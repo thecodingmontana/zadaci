@@ -120,10 +120,6 @@ export default defineNuxtConfig({
       { name: 'Geist', provider: 'google' },
       { name: 'Bebas Neue', provider: 'google' },
       { name: 'Instrument Serif', provider: 'google' },
-      {
-        name: 'Regarn',
-        src: { url: '/fonts/Regarn-Regular.woff', format: 'woff' },
-      },
     ],
   },
   pinia: {
