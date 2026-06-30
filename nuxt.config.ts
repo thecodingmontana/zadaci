@@ -100,7 +100,7 @@ export default defineNuxtConfig({
       }),
     ],
     build: {
-      sourcemap: false, // Disable sourcemaps entirely for production
+      sourcemap: false,
     },
     server: {
       allowedHosts: ['9a7549781176.ngrok-free.app'],
