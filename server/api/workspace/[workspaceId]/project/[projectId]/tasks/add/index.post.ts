@@ -165,10 +165,9 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    for (const user of users) {
-      if (!user.user?.email || user.user_id === session.user.id) continue
-
-      await sendTaskAssignmentEmail({
+    await Promise.all(users
+      .filter(user => user.user?.email && user.user_id !== session.user.id)
+      .map(user => sendTaskAssignmentEmail({
         email: user.user.email,
         user: user.user.username,
         addedBy: session.user.username,
@@ -176,8 +175,8 @@ export default defineEventHandler(async (event) => {
         workspace: workspace.name,
         link: `${appLink}/workspace/${workspaceId}/projects/${project.id}`,
         task: task.name,
-      })
-    }
+      })),
+    )
 
     return {
       message: 'Task created successfully',

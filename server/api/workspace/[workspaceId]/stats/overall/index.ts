@@ -1,4 +1,4 @@
-import { and, eq, ne, inArray, count } from 'drizzle-orm'
+import { and, eq, ne, inArray, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -33,31 +33,27 @@ export default defineEventHandler(async (event) => {
     const projectIds = activeProjects.map(p => p.id)
     const totalProjects = activeProjects.length
 
-    const [tasksCountRow] = await db.select({
-      count: count().as('count'),
+    const statusCounts = await db.select({
+      status: tables.tasksTable.status,
+      count: sql<number>`count(*)::int`,
     }).from(tables.tasksTable).where(
       inArray(tables.tasksTable.project_id, projectIds),
-    )
+    ).groupBy(tables.tasksTable.status)
 
-    const [inProgressRow] = await db.select({
-      count: count().as('count'),
-    }).from(tables.tasksTable).where(and(
-      inArray(tables.tasksTable.project_id, projectIds),
-      eq(tables.tasksTable.status, 'IN PROGRESS'),
-    ))
-
-    const [completedRow] = await db.select({
-      count: count().as('count'),
-    }).from(tables.tasksTable).where(and(
-      inArray(tables.tasksTable.project_id, projectIds),
-      eq(tables.tasksTable.status, 'COMPLETED'),
-    ))
+    let totalTasks = 0
+    let totalTasksInProgress = 0
+    let totalTasksCompleted = 0
+    for (const row of statusCounts) {
+      totalTasks += row.count
+      if (row.status === 'IN PROGRESS') totalTasksInProgress = row.count
+      if (row.status === 'COMPLETED') totalTasksCompleted = row.count
+    }
 
     return {
       totalProjects,
-      totalTasks: Number(tasksCountRow?.count ?? 0),
-      totalTasksInProgress: Number(inProgressRow?.count ?? 0),
-      totalTasksCompleted: Number(completedRow?.count ?? 0),
+      totalTasks,
+      totalTasksInProgress,
+      totalTasksCompleted,
     }
   }
   catch (error: any) {

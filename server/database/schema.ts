@@ -49,7 +49,9 @@ export const workspaceTable = pgTable('workspace', {
   subscription_plan: subscriptionPlanEnum('subscription_plan').default('FREE'),
   created_at: timestamp('created_at', { mode: 'date', precision: 3 }).notNull(),
   updated_at: timestamp('updated_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  workspaceUserIdIdx: index('workspace_user_id_idx').on(table.user_id),
+}))
 
 export const subscriptionTable = pgTable('subscription', {
   id: text('id').primaryKey(),
@@ -58,7 +60,9 @@ export const subscriptionTable = pgTable('subscription', {
   expires_at: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
   created_at: timestamp('created_at', { mode: 'date', precision: 3 }).notNull(),
   updated_at: timestamp('updated_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  subscriptionWorkspaceIdIdx: index('subscription_workspace_id_idx').on(table.workspace_id),
+}))
 
 export const billingEventsTable = pgTable('billing_events', {
   id: text('id').primaryKey(),
@@ -67,7 +71,9 @@ export const billingEventsTable = pgTable('billing_events', {
   payload: jsonb('payload').notNull(),
   created_at: timestamp('created_at', { mode: 'date', precision: 3 }).notNull(),
   updated_at: timestamp('updated_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  billingEventsWorkspaceIdIdx: index('billing_events_workspace_id_idx').on(table.workspace_id),
+}))
 
 export const workspaceMembersTable = pgTable('workspace_members', {
   id: text('id').primaryKey(),
@@ -76,7 +82,10 @@ export const workspaceMembersTable = pgTable('workspace_members', {
   workspace_id: text('workspace_id').notNull().references(() => workspaceTable.id, { onDelete: 'cascade' }),
   created_at: timestamp('created_at', { mode: 'date', precision: 3 }).notNull(),
   updated_at: timestamp('updated_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  workspaceMembersUserIdIdx: index('workspace_members_user_id_idx').on(table.user_id),
+  workspaceMembersWorkspaceIdIdx: index('workspace_members_workspace_id_idx').on(table.workspace_id),
+}))
 
 export const sessionTable = pgTable('session', {
   id: varchar('id', { length: 255 }).primaryKey(),
@@ -131,7 +140,10 @@ export const workspaceInviteRequest = pgTable('workspace_invite_request', {
   invited_by: varchar('invited_by', { length: 255 }).notNull().references(() => userTable.id, { onDelete: 'cascade' }),
   created_at: timestamp('created_at', { mode: 'date', precision: 3 }).notNull(),
   updated_at: timestamp('updated_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  workspaceInviteWorkspaceIdIdx: index('workspace_invite_workspace_id_idx').on(table.workspace_id),
+  workspaceInviteInvitedByIdx: index('workspace_invite_invited_by_idx').on(table.invited_by),
+}))
 
 export const oauthAccountTable = pgTable('oauth_account', {
   id: text('id').primaryKey(),
@@ -160,7 +172,9 @@ export const projectTable = pgTable('project', {
   due_date: timestamp('due_date', { mode: 'date' }),
   created_at: timestamp('created_at', { mode: 'date', precision: 3 }).notNull(),
   updated_at: timestamp('updated_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  projectWorkspaceIdIdx: index('project_workspace_id_idx').on(table.workspace_id),
+}))
 
 export const projectMembers = pgTable('project_members', {
   id: text('id').primaryKey(),
@@ -168,7 +182,10 @@ export const projectMembers = pgTable('project_members', {
   member_id: text('member_id').notNull().references(() => workspaceMembersTable.id, { onDelete: 'cascade' }),
   created_at: timestamp('created_at', { mode: 'date', precision: 3 }).notNull(),
   updated_at: timestamp('updated_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  projectMembersProjectIdIdx: index('project_members_project_id_idx').on(table.project_id),
+  projectMembersMemberIdIdx: index('project_members_member_id_idx').on(table.member_id),
+}))
 
 export const tasksTable = pgTable('tasks', {
   id: text('id').primaryKey(),
@@ -180,14 +197,19 @@ export const tasksTable = pgTable('tasks', {
   due_date: timestamp('due_date', { mode: 'date' }),
   created_at: timestamp('created_at', { mode: 'date', precision: 3 }).notNull(),
   updated_at: timestamp('updated_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  tasksProjectIdIdx: index('tasks_project_id_idx').on(table.project_id),
+}))
 
 export const taskAssigneesTable = pgTable('task_assignees', {
   id: text('id').primaryKey(),
   task_id: text('task_id').notNull().references(() => tasksTable.id, { onDelete: 'cascade' }),
   member_id: text('member_id').notNull().references(() => workspaceMembersTable.id, { onDelete: 'cascade' }),
   assigned_at: timestamp('assigned_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  taskAssigneesTaskIdIdx: index('task_assignees_task_id_idx').on(table.task_id),
+  taskAssigneesMemberIdIdx: index('task_assignees_member_id_idx').on(table.member_id),
+}))
 
 export const tasksActivityTable = pgTable('tasks_activity', {
   id: text('id').primaryKey(),
@@ -195,7 +217,10 @@ export const tasksActivityTable = pgTable('tasks_activity', {
   task_id: text('task_id').notNull().references(() => tasksTable.id, { onDelete: 'cascade' }),
   changed_by: text('changed_by').notNull().references(() => workspaceMembersTable.id, { onDelete: 'cascade' }),
   changed_at: timestamp('changed_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  tasksActivityTaskIdIdx: index('tasks_activity_task_id_idx').on(table.task_id),
+  tasksActivityChangedByIdx: index('tasks_activity_changed_by_idx').on(table.changed_by),
+}))
 
 export const subtasksTable = pgTable('subtasks', {
   id: text('id').primaryKey(),
@@ -204,7 +229,9 @@ export const subtasksTable = pgTable('subtasks', {
   is_completed: boolean('is_completed').default(false).notNull(),
   created_at: timestamp('created_at', { mode: 'date', precision: 3 }).notNull(),
   updated_at: timestamp('updated_at', { mode: 'date', precision: 3 }).notNull(),
-})
+}, table => ({
+  subtasksTaskIdIdx: index('subtasks_task_id_idx').on(table.task_id),
+}))
 
 // Relations
 export const userRelations = relations(userTable, ({ many }) => ({
