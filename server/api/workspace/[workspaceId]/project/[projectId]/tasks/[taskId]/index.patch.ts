@@ -111,17 +111,15 @@ export default defineEventHandler(async (event) => {
     }
 
     if (status === 'COMPLETED') {
-      for (const project_member of project.members) {
-        await sendTaskCompletionMail({
-          workspace: project.workspace.name,
-          user: project_member.member.user.username as string,
-          project: project.title,
-          completedBy: session.user.id === project_member.member.user.id ? 'You' : session.user.username,
-          link: `${process.env.NUXT_PUBLIC_SITE_URL}/workspace/${project.workspace.id}/projects/${project.id}`,
-          email: project_member.member.user.email,
-          task: task.name,
-        })
-      }
+      await Promise.all(project.members.map(project_member => sendTaskCompletionMail({
+        workspace: project.workspace.name,
+        user: project_member.member.user.username as string,
+        project: project.title,
+        completedBy: session.user.id === project_member.member.user.id ? 'You' : session.user.username,
+        link: `${process.env.NUXT_PUBLIC_SITE_URL}/workspace/${project.workspace.id}/projects/${project.id}`,
+        email: project_member.member.user.email,
+        task: task.name,
+      })))
     }
 
     return { message: 'Task status updated successfully!' }
