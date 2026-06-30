@@ -7,6 +7,8 @@ definePageMeta({
 })
 
 const workspaceStore = useWorkspaceStore()
+const route = useRoute()
+const workspaceId = computed(() => (route.params.workspaceId as string) || workspaceStore.activeWorkspace?.id)
 // const modalStore = useModalStore()
 
 const currentActiveWorkspace = computed(() => {
@@ -25,7 +27,7 @@ defineOgImageComponent('UseOdama', {
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',
 })
 
-const { data: workspace } = await useAsyncData(() => useRequestFetch()(`/api/workspace/${currentActiveWorkspace?.value?.id}/details/user-exists`))
+const { data: workspace } = await useAsyncData(() => useRequestFetch()(`/api/workspace/${workspaceId.value}/details/user-exists`), { watch: [workspaceId] })
 
 onBeforeMount(() => {
   if (!workspace.value) {
@@ -41,9 +43,12 @@ onMounted(() => {
   else {
     workspaceStore?.onSetWorkspaceBreadcrumb({
       name: 'Wikis',
-      path: `/workspace/${currentActiveWorkspace.value?.id}/dashboard`,
+      path: `/workspace/${workspaceId.value}/dashboard`,
       children: null,
     })
+    if (workspace.value && !workspaceStore.activeWorkspace) {
+      workspaceStore.onSetActiveWorkspace(workspace.value)
+    }
   }
 })
 </script>

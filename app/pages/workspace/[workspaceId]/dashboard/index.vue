@@ -11,8 +11,10 @@ definePageMeta({
   layout: 'workspace',
 })
 
+const route = useRoute()
 const workspaceStore = useWorkspaceStore()
 const modalStore = useModalStore()
+const workspaceId = computed(() => (route.params.workspaceId as string) || workspaceStore.activeWorkspace?.id)
 
 const currentActiveWorkspace = computed(() => {
   return workspaceStore.activeWorkspace
@@ -30,7 +32,9 @@ defineOgImageComponent('UseOdama', {
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',
 })
 
-const { data: workspace, status } = await useAsyncData(() => useRequestFetch()(`/api/workspace/${currentActiveWorkspace?.value?.id}/details/user-exists`))
+const { data: workspace, status } = await useAsyncData('dashboard_user_exists', () => useRequestFetch()(`/api/workspace/${workspaceId.value}/details/user-exists`), {
+  watch: [workspaceId],
+})
 
 onBeforeMount(() => {
   if (!workspace.value) {
@@ -44,9 +48,10 @@ onMounted(() => {
     navigateTo('/workspace/onboarding')
   }
   else {
+    workspaceStore?.onSetActiveWorkspace(workspace.value)
     workspaceStore?.onSetWorkspaceBreadcrumb({
       name: 'Dashboard',
-      path: `/workspace/${currentActiveWorkspace.value?.id}/dashboard`,
+      path: `/workspace/${workspaceId.value}/dashboard`,
       children: null,
     })
   }
@@ -62,7 +67,7 @@ const onAddNewProject = () => {
   <section class="">
     <WorkspaceDashboardLoadingSkeleton v-if="status ==='idle' || status === 'pending'" />
     <div
-      v-else
+      v-else-if="status === 'success' && workspace"
       class="grid grid-cols-1 gap-10 md:grid-cols-4 w-full"
     >
       <div class="col-span-1 md:col-span-2 xl:col-span-3 flex flex-col gap-8 self-start">
@@ -77,16 +82,24 @@ const onAddNewProject = () => {
           </Button>
         </div>
         <div class="grid gap-y-3 lg:gap-y-6">
-          <OverallStats :workspace-id="currentActiveWorkspace?.id!" />
-          <WeeklyTasksProductivity :workspace-id="currentActiveWorkspace?.id!" />
+          <OverallStats :workspace-id="workspaceId" />
+          <WeeklyTasksProductivity :workspace-id="workspaceId" />
         </div>
       </div>
       <div class="col-span-1 md:col-span-2 xl:col-span-1 self-start flex flex-col gap-8">
         <ProjectStats />
         <div>
-          <AllTasksStats :workspace-id="currentActiveWorkspace?.id!" />
+          <AllTasksStats :workspace-id="workspaceId" />
         </div>
       </div>
+    </div>
+    <div
+      v-else
+      class="flex items-center justify-center min-h-[50vh]"
+    >
+      <p class="text-muted-foreground">
+        Unable to load dashboard data.
+      </p>
     </div>
   </section>
 </template>

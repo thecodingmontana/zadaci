@@ -15,6 +15,7 @@ definePageMeta({
 const route = useRoute()
 const workspaceStore = useWorkspaceStore()
 const modalStore = useModalStore()
+const workspaceId = computed(() => (route.params.workspaceId as string) || workspaceStore.activeWorkspace?.id)
 
 const currentActiveWorkspace = computed(() => {
   return workspaceStore.activeWorkspace
@@ -114,23 +115,24 @@ const onRemoveMember = async (payload: IProjectMembers) => {
 
 const { data: project, status } = await useAsyncData(
   `project-${route.params.projectId}`,
-  () => useRequestFetch()(`/api/workspace/${currentActiveWorkspace.value?.id}/project/${route.params.projectId}/info`),
+  () => useRequestFetch()(`/api/workspace/${workspaceId.value}/project/${route.params.projectId}/info`),
+  { watch: [workspaceId] },
 )
 
 watchEffect(async () => {
   if (status.value === 'success') {
     if (!project.value) {
       navigateTo('/workspace/projects/all')
-      await refreshNuxtData([`sidebar_projects_${currentActiveWorkspace.value?.id}`, `board_view_projects_${currentActiveWorkspace.value?.id}`, `all_project_stat_${currentActiveWorkspace.value?.id}`, `mobile_sidebar_projects_${currentActiveWorkspace.value?.id}`])
+      await refreshNuxtData([`sidebar_projects_${workspaceId.value}`, `board_view_projects_${workspaceId.value}`, `all_project_stat_${workspaceId.value}`, `mobile_sidebar_projects_${workspaceId.value}`])
     }
     else {
       workspaceStore?.onSetWorkspaceBreadcrumb({
         name: `${currentActiveWorkspace.value?.name}`,
-        path: `/workspace/${currentActiveWorkspace.value?.id}/dashboard`,
+        path: `/workspace/${workspaceId.value}/dashboard`,
         children: [
           {
             name: `Projects`,
-            path: `/workspace/${currentActiveWorkspace.value?.id}/dashboard`,
+            path: `/workspace/${workspaceId.value}/dashboard`,
             children: [
               {
                 name: `${project.value?.title}`,

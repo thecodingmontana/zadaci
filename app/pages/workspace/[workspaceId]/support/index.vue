@@ -8,6 +8,8 @@ definePageMeta({
 })
 
 const workspaceStore = useWorkspaceStore()
+const route = useRoute()
+const workspaceId = computed(() => (route.params.workspaceId as string) || workspaceStore.activeWorkspace?.id)
 
 const currentActiveWorkspace = computed(() => {
   return workspaceStore.activeWorkspace
@@ -25,7 +27,7 @@ defineOgImageComponent('UseOdama', {
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',
 })
 
-const { data: workspace, status } = await useAsyncData(() => useRequestFetch()(`/api/workspace/${currentActiveWorkspace?.value?.id}/details/user-exists`))
+const { data: workspace, status } = await useAsyncData(() => useRequestFetch()(`/api/workspace/${workspaceId.value}/details/user-exists`), { watch: [workspaceId] })
 
 onBeforeMount(() => {
   if (!workspace.value) {
@@ -41,15 +43,18 @@ onMounted(() => {
   else {
     workspaceStore?.onSetWorkspaceBreadcrumb({
       name: `${currentActiveWorkspace.value?.name}`,
-      path: `/workspace/${currentActiveWorkspace.value?.id}/dashboard`,
+      path: `/workspace/${workspaceId.value}/dashboard`,
       children: [
         {
           name: 'Support',
-          path: `/workspace/${currentActiveWorkspace.value?.id}/support`,
+          path: `/workspace/${workspaceId.value}/support`,
           children: null,
         },
       ],
     })
+    if (workspace.value && !workspaceStore.activeWorkspace) {
+      workspaceStore.onSetActiveWorkspace(workspace.value)
+    }
   }
 })
 </script>
@@ -65,7 +70,7 @@ onMounted(() => {
       </div>
     </div>
     <div
-      v-else
+      v-else-if="status === 'success' && workspace"
       class="w-full"
     >
       <!-- todo: work on the my requests and submit a request feature -->
@@ -86,6 +91,11 @@ onMounted(() => {
         </Button>
       </div> -->
       <SupportWrapper />
+    </div>
+    <div v-else>
+      <p class="text-muted-foreground">
+        Unable to load data.
+      </p>
     </div>
   </section>
 </template>

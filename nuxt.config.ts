@@ -122,6 +122,7 @@ export default defineNuxtConfig({
     },
   },
   fonts: {
+    download: false,
     families: [
       { name: 'Geist', provider: 'google' },
       { name: 'Bebas Neue', provider: 'google' },

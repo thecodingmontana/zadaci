@@ -10,6 +10,8 @@ definePageMeta({
 })
 
 const workspaceStore = useWorkspaceStore()
+const route = useRoute()
+const workspaceId = computed(() => (route.params.workspaceId as string) || workspaceStore.activeWorkspace?.id)
 
 const currentActiveWorkspace = computed(() => {
   return workspaceStore.activeWorkspace
@@ -27,7 +29,7 @@ defineOgImageComponent('Zadaci', {
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',
 })
 
-const { data: workspace, status } = await useAsyncData(() => useRequestFetch()(`/api/workspace/${currentActiveWorkspace?.value?.id}/details/user-exists`))
+const { data: workspace, status } = await useAsyncData(() => useRequestFetch()(`/api/workspace/${workspaceId.value}/details/user-exists`), { watch: [workspaceId] })
 
 onBeforeMount(() => {
   if (!workspace.value) {
@@ -43,21 +45,24 @@ onMounted(() => {
   else {
     workspaceStore?.onSetWorkspaceBreadcrumb({
       name: `${currentActiveWorkspace.value?.name}`,
-      path: `/workspace/${currentActiveWorkspace.value?.id}/dashboard`,
+      path: `/workspace/${workspaceId.value}/dashboard`,
       children: [
         {
           name: 'Settings',
-          path: `/workspace/${currentActiveWorkspace.value?.id}/settings/general`,
+          path: `/workspace/${workspaceId.value}/settings/general`,
           children: [
             {
               name: 'General',
-              path: `/workspace/${currentActiveWorkspace.value?.id}/settings/general`,
+              path: `/workspace/${workspaceId.value}/settings/general`,
               children: null,
             },
           ],
         },
       ],
     })
+    if (workspace.value && !workspaceStore.activeWorkspace) {
+      workspaceStore.onSetActiveWorkspace(workspace.value)
+    }
   }
 })
 </script>
@@ -81,12 +86,17 @@ onMounted(() => {
       </div>
     </div>
     <div
-      v-else
+      v-else-if="status === 'success' && workspace"
       class="grid gap-3.5"
     >
       <Password />
       <CurrentSessions />
       <MFA />
+    </div>
+    <div v-else>
+      <p class="text-muted-foreground">
+        Unable to load data.
+      </p>
     </div>
   </section>
 </template>
