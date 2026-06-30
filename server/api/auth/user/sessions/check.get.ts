@@ -1,4 +1,4 @@
-import { validateSessionToken } from '~/server/libs/session'
+import { validateSessionToken } from '~~/server/libs/session'
 
 export default defineEventHandler(async (event) => {
   try {

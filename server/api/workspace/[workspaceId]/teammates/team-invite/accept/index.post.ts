@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
-import { tables, useDrizzle } from '~/server/utils/drizzle'
+import { tables, useDrizzle } from '~~/server/utils/drizzle'
 
 export default defineEventHandler(async (event) => {
   try {

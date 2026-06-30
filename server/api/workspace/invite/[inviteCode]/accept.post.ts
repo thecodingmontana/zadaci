@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import { faker } from '@faker-js/faker'
-import { encryptString } from '~/server/utils/encryption'
-import { generateRandomRecoveryCode } from '~/server/utils'
-import { sendWorkspaceWelcomeMail } from '~/server/utils/emails/actions/workspace-welcome'
+import { encryptString } from '~~/server/utils/encryption'
+import { generateRandomRecoveryCode } from '~~/server/utils'
+import { sendWorkspaceWelcomeMail } from '~~/server/utils/emails/actions/workspace-welcome'
 
 export default defineEventHandler(async (event) => {
   try {

@@ -5,8 +5,8 @@ import {
 } from '@oslojs/encoding'
 import { eq } from 'drizzle-orm'
 import type { Session as DBSession } from './../database/schema'
-import { tables, useDrizzle } from '~/server/utils/drizzle'
-import type { User } from '~/types'
+import { tables, useDrizzle } from '~~/server/utils/drizzle'
+import type { User } from '~~/shared/types'
 
 export async function validateSessionToken(
   token: string,

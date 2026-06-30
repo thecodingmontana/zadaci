@@ -1,7 +1,7 @@
 import { eq, and, inArray } from 'drizzle-orm'
 import { v4 as uuidV4 } from 'uuid'
-import { sendProjectCompletionMail } from '~/server/utils/emails/actions/completed-project'
-import { type ProjectMembers, validPriorities, validStatuses, type Priority, type Status } from '~/types'
+import { sendProjectCompletionMail } from '~~/server/utils/emails/actions/completed-project'
+import { type ProjectMembers, validPriorities, validStatuses, type Priority, type Status } from '~~/shared/types'
 
 export default defineEventHandler(async (event) => {
   try {

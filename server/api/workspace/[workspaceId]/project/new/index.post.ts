@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { eq, and, inArray } from 'drizzle-orm'
-import { type Priority, type Status, validStatuses, validPriorities, type ProjectMembers, appLink } from '~/types'
-import { sendProjectAssignmentEmail } from '~/server/utils/emails/actions/send-project-assignment'
+import { type Priority, type Status, validStatuses, validPriorities, type ProjectMembers, appLink } from '~~/shared/types'
+import { sendProjectAssignmentEmail } from '~~/server/utils/emails/actions/send-project-assignment'
 
 export default defineEventHandler(async (event) => {
   try {

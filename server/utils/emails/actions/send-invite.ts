@@ -1,6 +1,6 @@
 import { render } from '@vue-email/render'
 import WorkspaceInvite from '../templates/WorkspaceInvite.vue'
-import { resend } from '~/server/libs/resend'
+import { resend } from '~~/server/libs/resend'
 
 interface TeamInviteEmailProps {
   email: string

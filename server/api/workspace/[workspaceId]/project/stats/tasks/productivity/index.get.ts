@@ -1,6 +1,6 @@
 import { startOfWeek, endOfWeek, subWeeks } from 'date-fns'
 import { and, between, eq, sql } from 'drizzle-orm'
-import { weekDays } from '~/types'
+import { weekDays } from '~~/shared/types'
 
 export default defineEventHandler(async (event) => {
   try {

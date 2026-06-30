@@ -1,9 +1,9 @@
 import { inArray, and, eq } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
-import { sendTaskCompletionMail } from '~/server/utils/emails/actions/completed-task'
-import { sendTaskAssignmentEmail } from '~/server/utils/emails/actions/send-task-assignment'
-import type { Priority, ProjectMembers, Status } from '~/types'
-import { validPriorities, validStatuses } from '~/types'
+import { sendTaskCompletionMail } from '~~/server/utils/emails/actions/completed-task'
+import { sendTaskAssignmentEmail } from '~~/server/utils/emails/actions/send-task-assignment'
+import type { Priority, ProjectMembers, Status } from '~~/shared/types'
+import { validPriorities, validStatuses } from '~~/shared/types'
 
 export default defineEventHandler(async (event) => {
   try {

@@ -1,8 +1,8 @@
 import { encodeHexLowerCase } from '@oslojs/encoding'
 import { verifyTOTP } from '@oslojs/otp'
 import { sha256 } from '@oslojs/crypto/sha2'
-import { getUserTOTPKey } from '~/server/libs/totp'
-import { setSessionAs2FAVerified } from '~/server/libs/session'
+import { getUserTOTPKey } from '~~/server/libs/totp'
+import { setSessionAs2FAVerified } from '~~/server/libs/session'
 
 export default defineEventHandler(async (event) => {
   try {

@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 import { decrypt, encrypt } from './encryption'
-import { tables, useDrizzle } from '~/server/utils/drizzle'
+import { tables, useDrizzle } from '~~/server/utils/drizzle'
 
 export async function getUserTOTPKey(
   userId: string,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Container, Font, Head, Hr, Html, Img, Tailwind, Text } from '@vue-email/components'
-import { appLink } from '~/types'
+import { appLink } from '~~/shared/types'
 
 const props = defineProps({
   code: String,

@@ -4,7 +4,7 @@ import { sha256 } from '@oslojs/crypto/sha2'
 import {
   encodeHexLowerCase,
 } from '@oslojs/encoding'
-import { setSessionAs2FAVerified } from '~/server/libs/session'
+import { setSessionAs2FAVerified } from '~~/server/libs/session'
 
 interface ISuccess {
   user: {

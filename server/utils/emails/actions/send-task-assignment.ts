@@ -1,6 +1,6 @@
 import { render } from '@vue-email/render'
 import TaskConfirmationMail from '../templates/TaskConfirmationMail.vue'
-import { resend } from '~/server/libs/resend'
+import { resend } from '~~/server/libs/resend'
 
 interface Props {
   email: string

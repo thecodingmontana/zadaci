@@ -1,5 +1,5 @@
 import { eq, and, inArray } from 'drizzle-orm'
-import type { ProjectMembers } from '~/types'
+import type { ProjectMembers } from '~~/shared/types'
 
 export default defineEventHandler(async (event) => {
   try {

@@ -76,9 +76,6 @@ export default defineNuxtConfig({
     polarProductId: process.env.POLAR_PRODUCT_ID,
     polarWebhookSecret: process.env.POLAR_WEBHOOK_SECRET,
   },
-  future: {
-    compatibilityVersion: 4,
-  },
   compatibilityDate: '2025-05-15',
   nitro: {
     rollupConfig: {
@@ -136,7 +133,7 @@ export default defineNuxtConfig({
     ],
   },
   pinia: {
-    storesDirs: ['./stores/**'],
+    storesDirs: ['./app/stores/**'],
   },
   piniaPluginPersistedstate: {
     storage: 'cookies',
@@ -154,6 +151,6 @@ export default defineNuxtConfig({
      * Directory that the component lives in.
      * @default "./components/ui"
      */
-    componentDir: './components/ui',
+    componentDir: './app/components/ui',
   },
 })

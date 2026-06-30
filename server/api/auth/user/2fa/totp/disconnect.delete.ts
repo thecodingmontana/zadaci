@@ -1,6 +1,6 @@
 import { encodeHexLowerCase } from '@oslojs/encoding'
 import { sha256 } from '@oslojs/crypto/sha2'
-import { deleteUserTOTPKey } from '~/server/libs/totp'
+import { deleteUserTOTPKey } from '~~/server/libs/totp'
 
 export default defineEventHandler(async (event) => {
   try {

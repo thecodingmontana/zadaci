@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { tables, useDrizzle } from '~/server/utils/drizzle'
+import { tables, useDrizzle } from '~~/server/utils/drizzle'
 
 export default defineEventHandler(async (event) => {
   try {

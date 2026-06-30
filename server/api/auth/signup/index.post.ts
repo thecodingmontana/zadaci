@@ -1,13 +1,13 @@
 import { and, eq } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 import { faker } from '@faker-js/faker'
-import { isWithinExpirationDate, generateRandomRecoveryCode, capitalize } from '~/server/utils'
-import type { SessionFlags } from '~/server/libs/session'
-import { createSession, generateSessionToken } from '~/server/libs/session'
-import { encryptString } from '~/server/utils/encryption'
-import { isValidEmail } from '~/server/utils/validations'
-import type { User } from '~/types'
-import { createSessionMetadata } from '~/server/utils/authHelpers'
+import { isWithinExpirationDate, generateRandomRecoveryCode, capitalize } from '~~/server/utils'
+import type { SessionFlags } from '~~/server/libs/session'
+import { createSession, generateSessionToken } from '~~/server/libs/session'
+import { encryptString } from '~~/server/utils/encryption'
+import { isValidEmail } from '~~/server/utils/validations'
+import type { User } from '~~/shared/types'
+import { createSessionMetadata } from '~~/server/utils/authHelpers'
 
 export default defineEventHandler(async (event) => {
   try {

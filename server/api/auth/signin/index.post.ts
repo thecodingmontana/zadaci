@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm'
-import type { SessionFlags } from '~/server/libs/session'
-import { createSession, generateSessionToken } from '~/server/libs/session'
-import { isValidEmail } from '~/server/utils/validations'
-import { isWithinExpirationDate } from '~/server/utils'
-import { createSessionMetadata } from '~/server/utils/authHelpers'
+import type { SessionFlags } from '~~/server/libs/session'
+import { createSession, generateSessionToken } from '~~/server/libs/session'
+import { isValidEmail } from '~~/server/utils/validations'
+import { isWithinExpirationDate } from '~~/server/utils'
+import { createSessionMetadata } from '~~/server/utils/authHelpers'
 
 export default defineEventHandler(async (event) => {
   try {
