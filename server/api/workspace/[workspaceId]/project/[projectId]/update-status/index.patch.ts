@@ -1,5 +1,5 @@
-import { sendProjectCompletionMail } from '~/server/utils/emails/actions/completed-project'
-import { validStatuses, type Status } from '~/types'
+import { sendProjectCompletionMail } from '~~/server/utils/emails/actions/completed-project'
+import { validStatuses, type Status } from '~~/shared/types'
 
 export default defineEventHandler(async (event) => {
   try {

@@ -1,6 +1,6 @@
 import { render } from '@vue-email/render'
 import WorkspaceDecline from '../templates/WorkspaceDecline.vue'
-import { resend } from '~/server/libs/resend'
+import { resend } from '~~/server/libs/resend'
 
 interface TeamInviteEmailProps {
   email: string

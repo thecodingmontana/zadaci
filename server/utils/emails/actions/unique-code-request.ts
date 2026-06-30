@@ -1,6 +1,6 @@
 import { render } from '@vue-email/render'
 import UniqueCodeRequest from '../templates/UniqueCodeRequest.vue'
-import { resend } from '~/server/libs/resend'
+import { resend } from '~~/server/libs/resend'
 
 interface Props {
   code: string

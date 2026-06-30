@@ -5,8 +5,8 @@ import { UAParser } from 'ua-parser-js'
 import type { SessionFlags } from '../libs/session'
 import { createSession, generateSessionToken } from '../libs/session'
 import type { User } from '../database/schema'
-import { generateRandomRecoveryCode } from '~/server/utils'
-import { encryptString } from '~/server/utils/encryption'
+import { generateRandomRecoveryCode } from '~~/server/utils'
+import { encryptString } from '~~/server/utils/encryption'
 
 interface AuthenticateOauthUserOptions {
   providerName: 'google' | 'github'

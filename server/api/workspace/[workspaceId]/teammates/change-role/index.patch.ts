@@ -1,5 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm'
-import { tables, useDrizzle } from '~/server/utils/drizzle'
+import { tables, useDrizzle } from '~~/server/utils/drizzle'
 
 interface ITeammate {
   id: string

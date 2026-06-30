@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm'
-import { useDrizzle } from '~/server/utils/drizzle'
+import { useDrizzle } from '~~/server/utils/drizzle'
 
 export default defineEventHandler(async (event) => {
   try {

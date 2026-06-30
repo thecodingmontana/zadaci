@@ -1,4 +1,4 @@
-import { sendWorkspaceDeclineMail } from '~/server/utils/emails/actions/workspace-decline'
+import { sendWorkspaceDeclineMail } from '~~/server/utils/emails/actions/workspace-decline'
 
 export default defineEventHandler(async (event) => {
   try {

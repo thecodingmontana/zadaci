@@ -1,6 +1,6 @@
 import { render } from '@vue-email/render'
 import CompletedProjectMail from '../templates/CompletedProjectMail.vue'
-import { resend } from '~/server/libs/resend'
+import { resend } from '~~/server/libs/resend'
 
 interface ProjectCompletionMailProps {
   email: string

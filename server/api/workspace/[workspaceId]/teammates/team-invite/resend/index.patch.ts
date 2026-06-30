@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { addDays } from 'date-fns'
-import { tables, useDrizzle } from '~/server/utils/drizzle'
-import { sendWorkspaceInvite } from '~/server/utils/emails/actions/send-invite'
+import { tables, useDrizzle } from '~~/server/utils/drizzle'
+import { sendWorkspaceInvite } from '~~/server/utils/emails/actions/send-invite'
 
 interface ResendTeammate {
   email: string

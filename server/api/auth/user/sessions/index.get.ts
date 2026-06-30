@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
-import { getUserSessions } from '~/server/libs/session'
-import { useDrizzle } from '~/server/utils/drizzle'
+import { getUserSessions } from '~~/server/libs/session'
+import { useDrizzle } from '~~/server/utils/drizzle'
 
 export default defineEventHandler(async (event) => {
   try {

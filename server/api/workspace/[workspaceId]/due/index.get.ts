@@ -1,6 +1,6 @@
 import { eq, and, notInArray } from 'drizzle-orm'
 import { isToday, isTomorrow, isThisWeek } from 'date-fns'
-import type { DueItem } from '~/types'
+import type { DueItem } from '~~/shared/types'
 
 export default defineEventHandler(async (event) => {
   try {
