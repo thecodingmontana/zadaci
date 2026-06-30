@@ -15,7 +15,10 @@ definePageMeta({
 const route = useRoute()
 const workspaceStore = useWorkspaceStore()
 const modalStore = useModalStore()
-const workspaceId = computed(() => (route.params.workspaceId as string) || workspaceStore.activeWorkspace?.id)
+const workspaceId = computed(() => {
+  const paramId = route.params.workspaceId as string
+  return (paramId && paramId !== 'undefined') ? paramId : workspaceStore.activeWorkspace?.id
+})
 
 const currentActiveWorkspace = computed(() => {
   return workspaceStore.activeWorkspace
@@ -152,7 +155,7 @@ useHead({
   titleTemplate: `${currentActiveWorkspace.value?.name} - Project | ${project.value?.title}`,
 })
 
-defineOgImageComponent('UseOdama', {
+defineOgImage('UseOdama', {
   title: currentActiveWorkspace.value ? `${currentActiveWorkspace.value?.name} - Project | ${project.value?.title}` : 'Project',
   description:
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',

@@ -1,7 +1,5 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import { EnhancedQueryLogger } from 'drizzle-query-logger'
-import pino from 'pino'
 import * as schema from '../database/schema'
 import 'dotenv/config'
 
@@ -11,19 +9,8 @@ export const tables = schema
 
 const connectionString = process.env.DATABASE_URL!
 
-const pinoLogger = pino()
-
-const logger
-  = process.env.NODE_ENV !== 'production'
-    ? new EnhancedQueryLogger({
-      log: (message) => {
-        pinoLogger.info(message)
-      },
-    })
-    : undefined
-
 const queryClient = postgres(connectionString, { prepare: false })
 
 export function useDrizzle() {
-  return drizzle(queryClient, { schema, logger })
+  return drizzle(queryClient, { schema })
 }

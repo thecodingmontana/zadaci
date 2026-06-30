@@ -41,18 +41,18 @@ onMounted(() => {
       )
       const workspaceId = params.workspaceId
 
-      if (workspaceId !== activeWorkspace?.id) {
+      if (workspaceId !== activeWorkspace?.id && activeWorkspace?.id) {
         workspaceStore?.onSetWorkspaceBreadcrumb({
           name: 'Dashboard',
-          path: `/workspace/${activeWorkspace?.id}/dashboard`,
+          path: `/workspace/${activeWorkspace.id}/dashboard`,
           children: null,
         })
-        return navigateTo(`/workspace/${activeWorkspace?.id}/dashboard`)
+        return navigateTo(`/workspace/${activeWorkspace.id}/dashboard`)
       }
     }
     else {
       const firstWorkspace = workspaces.value[0]
-      if (firstWorkspace) {
+      if (firstWorkspace?.id) {
         workspaceStore.onSetActiveWorkspace(firstWorkspace)
         workspaceStore?.onSetWorkspaceBreadcrumb({
           name: 'Dashboard',

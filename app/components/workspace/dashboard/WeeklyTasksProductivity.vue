@@ -30,11 +30,13 @@ const normalizeData = (raw: Partial<ProductivityDataItem>[]): ProductivityDataIt
   })
 }
 
+const requestFetch = useRequestFetch()
+
 const fetchData = async () => {
   isFetchingData.value = true
   try {
     const range = selectedValue.value === 'on' ? 'this' : 'last'
-    const res = await $fetch(`/api/workspace/${workspaceId}/project/stats/tasks/productivity?range=${range}`, {
+    const res = await requestFetch(`/api/workspace/${workspaceId}/project/stats/tasks/productivity?range=${range}`, {
       method: 'GET',
     })
 

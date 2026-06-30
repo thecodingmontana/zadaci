@@ -1,0 +1,1 @@
+DROP TABLE "polar_customers" CASCADE;

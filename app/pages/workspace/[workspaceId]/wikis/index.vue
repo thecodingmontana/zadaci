@@ -8,7 +8,10 @@ definePageMeta({
 
 const workspaceStore = useWorkspaceStore()
 const route = useRoute()
-const workspaceId = computed(() => (route.params.workspaceId as string) || workspaceStore.activeWorkspace?.id)
+const workspaceId = computed(() => {
+  const paramId = route.params.workspaceId as string
+  return (paramId && paramId !== 'undefined') ? paramId : workspaceStore.activeWorkspace?.id
+})
 // const modalStore = useModalStore()
 
 const currentActiveWorkspace = computed(() => {
@@ -21,7 +24,7 @@ useHead({
     : 'Wikis',
 })
 
-defineOgImageComponent('UseOdama', {
+defineOgImage('UseOdama', {
   title: currentActiveWorkspace.value ? `${currentActiveWorkspace.value?.name} - Wikis` : 'Wikis',
   description:
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',

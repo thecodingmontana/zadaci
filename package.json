@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "NODE_OPTIONS='--no-deprecation' nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
@@ -27,8 +27,6 @@
     "@oslojs/encoding": "^1.1.0",
     "@oslojs/otp": "^1.1.0",
     "@pinia/nuxt": "0.11.1",
-    "@polar-sh/nuxt": "^0.5.7",
-    "@polar-sh/sdk": "^0.34.3",
     "@radix-icons/vue": "^1.0.0",
     "@simplewebauthn/browser": "^11.0.0",
     "@simplewebauthn/server": "^11.0.0",

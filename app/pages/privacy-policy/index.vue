@@ -3,7 +3,7 @@ useHead({
   titleTemplate: '%s - Privacy Policy',
 })
 
-defineOgImageComponent('Zadaci', {
+defineOgImage('Zadaci', {
   title: 'Privacy Policy | Zadaci',
   description: 'Learn how Zadaci collects, uses, and protects your personal information. Your privacy matters to us.',
 })

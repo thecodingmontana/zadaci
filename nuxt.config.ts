@@ -18,7 +18,6 @@ export default defineNuxtConfig({
     'pinia-plugin-persistedstate/nuxt',
     'nuxt-charts',
     '@vueuse/nuxt',
-    '@polar-sh/nuxt',
     'floating-vue/nuxt',
   ],
   devtools: { enabled: true },
@@ -68,13 +67,7 @@ export default defineNuxtConfig({
         redirectURL: process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL,
       },
     },
-    private: {
-      polarAccessToken: process.env.POLAR_ACCESS_TOKEN,
-      polarCheckoutSuccessUrl: process.env.POLAR_CHECKOUT_SUCCESS_URL,
-      polarServer: process.env.POLAR_SERVER,
-    },
-    polarProductId: process.env.POLAR_PRODUCT_ID,
-    polarWebhookSecret: process.env.POLAR_WEBHOOK_SECRET,
+    private: {},
   },
   compatibilityDate: '2025-05-15',
   nitro: {

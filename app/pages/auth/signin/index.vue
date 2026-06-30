@@ -22,7 +22,7 @@ useHead({
   titleTemplate: '%s - Sign in',
 })
 
-defineOgImageComponent('Zadaci', {
+defineOgImage('Zadaci', {
   title: 'Sign in',
   description: 'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',
 })

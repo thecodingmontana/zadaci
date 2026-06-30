@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Plus } from 'lucide-vue-next'
 import Button from '~/components/ui/button/Button.vue'
 import AllTasksStats from '~/components/workspace/dashboard/AllTasksStats.vue'
 import Greetings from '~/components/workspace/dashboard/Greetings.vue'
@@ -14,7 +15,10 @@ definePageMeta({
 const route = useRoute()
 const workspaceStore = useWorkspaceStore()
 const modalStore = useModalStore()
-const workspaceId = computed(() => (route.params.workspaceId as string) || workspaceStore.activeWorkspace?.id)
+const workspaceId = computed(() => {
+  const paramId = route.params.workspaceId as string
+  return (paramId && paramId !== 'undefined') ? paramId : workspaceStore.activeWorkspace?.id
+})
 
 const currentActiveWorkspace = computed(() => {
   return workspaceStore.activeWorkspace
@@ -26,7 +30,7 @@ useHead({
     : 'Dashboard',
 })
 
-defineOgImageComponent('UseOdama', {
+defineOgImage('UseOdama', {
   title: currentActiveWorkspace.value ? `${currentActiveWorkspace.value?.name} - Dashboard` : 'Dashboard',
   description:
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',

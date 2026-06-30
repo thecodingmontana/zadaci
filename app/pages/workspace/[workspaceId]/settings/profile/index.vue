@@ -10,7 +10,10 @@ definePageMeta({
 
 const workspaceStore = useWorkspaceStore()
 const route = useRoute()
-const workspaceId = computed(() => (route.params.workspaceId as string) || workspaceStore.activeWorkspace?.id)
+const workspaceId = computed(() => {
+  const paramId = route.params.workspaceId as string
+  return (paramId && paramId !== 'undefined') ? paramId : workspaceStore.activeWorkspace?.id
+})
 
 const currentActiveWorkspace = computed(() => {
   return workspaceStore.activeWorkspace
@@ -22,7 +25,7 @@ useHead({
     : 'Settings Profile',
 })
 
-defineOgImageComponent('Zadaci', {
+defineOgImage('Zadaci', {
   title: currentActiveWorkspace.value ? `${currentActiveWorkspace.value?.name} - Settings Profile` : 'Settings Profile',
   description:
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',

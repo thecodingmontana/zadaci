@@ -3,7 +3,7 @@ useHead({
   titleTemplate: '%s - Terms of Service',
 })
 
-defineOgImageComponent('Zadaci', {
+defineOgImage('Zadaci', {
   title: 'Terms of Service | Zadaci',
   description: 'Read the terms and conditions for using Zadaci\'s restaurant management platform. Know your rights and responsibilities.',
 })
