@@ -32,7 +32,8 @@ const { data } = await useAsyncData(`search_bar_sidebar_projects_${currentActive
       fetchedAt: new Date(),
     }
   },
-  getCachedData(key, nuxtApp) {
+  getCachedData(key, { cause: _cause }) {
+    const nuxtApp = useNuxtApp()
     const data = nuxtApp.payload.data[key] || nuxtApp.static.data[key]
     // If data is not fetched yet
     if (!data) {

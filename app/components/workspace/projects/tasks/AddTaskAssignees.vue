@@ -36,7 +36,8 @@ const { data } = await useAsyncData(`task_project_members_${activeWorkspace.valu
       fetchedAt: new Date(),
     }
   },
-  getCachedData(key, nuxtApp) {
+  getCachedData(key, { cause: _cause }) {
+    const nuxtApp = useNuxtApp()
     const data = nuxtApp.payload.data[key] || nuxtApp.static.data[key]
     // If data is not fetched yet
     if (!data) {
