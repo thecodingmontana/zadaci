@@ -11,6 +11,7 @@
     "prepare": "husky",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "typecheck": "nuxt prepare && vue-tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
