@@ -30,7 +30,7 @@ useHead({
     : 'Dashboard',
 })
 
-defineOgImage('UseOdama', {
+defineOgImage('Zadaci', {
   title: currentActiveWorkspace.value ? `${currentActiveWorkspace.value?.name} - Dashboard` : 'Dashboard',
   description:
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',

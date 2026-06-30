@@ -11,7 +11,7 @@ useHead({
   titleTemplate: '%s - Onboarding',
 })
 
-defineOgImage('UseOdama', {
+defineOgImage('Zadaci', {
   title: 'Zadaci - Onboarding',
   description:
     'All-in-one project management platform built to help you and your team get things done faster',

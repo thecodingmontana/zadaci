@@ -155,7 +155,7 @@ useHead({
   titleTemplate: `${currentActiveWorkspace.value?.name} - Project | ${project.value?.title}`,
 })
 
-defineOgImage('UseOdama', {
+defineOgImage('Zadaci', {
   title: currentActiveWorkspace.value ? `${currentActiveWorkspace.value?.name} - Project | ${project.value?.title}` : 'Project',
   description:
     'Zadaci is an all-in-one project management platform built to help you and your team get things done faster.',
