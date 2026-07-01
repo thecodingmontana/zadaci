@@ -27,7 +27,7 @@ const isModalOpen = computed(() => {
   return modalStore?.type === 'mobileSidebar' && modalStore?.isOpen
 })
 
-const { data: rawWorkspaces, status } = await useAsyncData('workspaces', () => useRequestFetch()(`/api/workspace/user/${user.value?.id}/workspaces`))
+const { data: rawWorkspaces, status } = await useAsyncData('mobile_sidebar_workspaces', () => useRequestFetch()(`/api/workspace/user/${user.value?.id}/workspaces`))
 
 const workspaces = computed(() => {
   return rawWorkspaces.value?.map(workspace => ({
@@ -83,7 +83,7 @@ const onAddNewProject = () => {
 }
 
 const { data: projects } = await useAsyncData(
-  () => `sidebar_projects_${currentActiveWorkspace.value?.id}`,
+  `mobile_sidebar_projects_${currentActiveWorkspace.value?.id}`,
   () => {
     if (currentActiveWorkspace.value?.id) {
       return useRequestFetch()(`/api/workspace/${currentActiveWorkspace.value.id}/user/projects/all`)
