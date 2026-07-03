@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ["shadcn-nuxt"],
+  modules: ["shadcn-nuxt", "nuxt-auth-utils"],
 
   shadcn: {
     /**
