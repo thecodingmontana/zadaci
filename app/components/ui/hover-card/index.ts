@@ -1,3 +1,3 @@
-export { default as HoverCard } from "./HoverCard.vue"
-export { default as HoverCardContent } from "./HoverCardContent.vue"
-export { default as HoverCardTrigger } from "./HoverCardTrigger.vue"
+export { default as HoverCard } from "./hover-card.vue";
+export { default as HoverCardContent } from "./hover-card-content.vue";
+export { default as HoverCardTrigger } from "./hover-card-trigger.vue";

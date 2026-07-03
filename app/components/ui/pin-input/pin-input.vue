@@ -1,0 +1,29 @@
+<script setup lang="ts" generic="Type extends 'text' | 'number' = 'text'">
+import { reactiveOmit } from "@vueuse/core";
+import type { PinInputRootEmits, PinInputRootProps } from "reka-ui";
+import { useForwardPropsEmits } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = withDefaults(
+  defineProps<PinInputRootProps<Type> & { class?: HTMLAttributes["class"] }>(),
+  {
+    otp: true,
+  }
+);
+const emits = defineEmits<PinInputRootEmits<Type>>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwarded = useForwardPropsEmits(delegatedProps, emits);
+</script>
+
+<template>
+  <PinInputRoot
+    :otp="props.otp"
+    data-slot="pin-input"
+    v-bind="forwarded" :class="cn('flex items-center gap-2 has-disabled:opacity-50 disabled:cursor-not-allowed', props.class)"
+  >
+    <slot />
+  </PinInputRoot>
+</template>

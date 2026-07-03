@@ -1,16 +1,15 @@
-export { default as DropdownMenu } from "./DropdownMenu.vue"
-
-export { default as DropdownMenuCheckboxItem } from "./DropdownMenuCheckboxItem.vue"
-export { default as DropdownMenuContent } from "./DropdownMenuContent.vue"
-export { default as DropdownMenuGroup } from "./DropdownMenuGroup.vue"
-export { default as DropdownMenuItem } from "./DropdownMenuItem.vue"
-export { default as DropdownMenuLabel } from "./DropdownMenuLabel.vue"
-export { default as DropdownMenuRadioGroup } from "./DropdownMenuRadioGroup.vue"
-export { default as DropdownMenuRadioItem } from "./DropdownMenuRadioItem.vue"
-export { default as DropdownMenuSeparator } from "./DropdownMenuSeparator.vue"
-export { default as DropdownMenuShortcut } from "./DropdownMenuShortcut.vue"
-export { default as DropdownMenuSub } from "./DropdownMenuSub.vue"
-export { default as DropdownMenuSubContent } from "./DropdownMenuSubContent.vue"
-export { default as DropdownMenuSubTrigger } from "./DropdownMenuSubTrigger.vue"
-export { default as DropdownMenuTrigger } from "./DropdownMenuTrigger.vue"
-export { DropdownMenuPortal } from "reka-ui"
+export { DropdownMenuPortal } from "reka-ui";
+export { default as DropdownMenu } from "./dropdown-menu.vue";
+export { default as DropdownMenuCheckboxItem } from "./dropdown-menu-checkbox-item.vue";
+export { default as DropdownMenuContent } from "./dropdown-menu-content.vue";
+export { default as DropdownMenuGroup } from "./dropdown-menu-group.vue";
+export { default as DropdownMenuItem } from "./dropdown-menu-item.vue";
+export { default as DropdownMenuLabel } from "./dropdown-menu-label.vue";
+export { default as DropdownMenuRadioGroup } from "./dropdown-menu-radio-group.vue";
+export { default as DropdownMenuRadioItem } from "./dropdown-menu-radio-item.vue";
+export { default as DropdownMenuSeparator } from "./dropdown-menu-separator.vue";
+export { default as DropdownMenuShortcut } from "./dropdown-menu-shortcut.vue";
+export { default as DropdownMenuSub } from "./dropdown-menu-sub.vue";
+export { default as DropdownMenuSubContent } from "./dropdown-menu-sub-content.vue";
+export { default as DropdownMenuSubTrigger } from "./dropdown-menu-sub-trigger.vue";
+export { default as DropdownMenuTrigger } from "./dropdown-menu-trigger.vue";

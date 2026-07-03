@@ -1,7 +1,7 @@
 import { index, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { USER_ROLE, user_role_enum } from "./enums";
 import { user } from "./user";
 import { timestamps } from "./utils";
-import { USER_ROLE, user_role_enum } from "./enums";
 
 export const workspace = pgTable(
   "workspace",
@@ -18,7 +18,7 @@ export const workspace = pgTable(
   (table) => ({
     workspaceUserIdIdx: index("workspace_user_id_idx").on(table.user_id),
     workspaceName: index("workspace_name_id_idx").on(table.name, table.id),
-  }),
+  })
 );
 
 export const workspace_members = pgTable(
@@ -36,12 +36,12 @@ export const workspace_members = pgTable(
   },
   (table) => ({
     workspaceMembersUserIdIdx: index("workspace_members_user_id_idx").on(
-      table.user_id,
+      table.user_id
     ),
     workspaceMembersWorkspaceIdIdx: index(
-      "workspace_members_workspace_id_idx",
+      "workspace_members_workspace_id_idx"
     ).on(table.workspace_id),
-  }),
+  })
 );
 
 export const workspace_invite_request = pgTable(
@@ -65,10 +65,10 @@ export const workspace_invite_request = pgTable(
   },
   (table) => ({
     workspaceInviteWorkspaceIdIdx: index(
-      "workspace_invite_workspace_id_idx",
+      "workspace_invite_workspace_id_idx"
     ).on(table.workspace_id),
     workspaceInviteInvitedByIdx: index("workspace_invite_invited_by_idx").on(
-      table.invited_by,
+      table.invited_by
     ),
-  }),
+  })
 );

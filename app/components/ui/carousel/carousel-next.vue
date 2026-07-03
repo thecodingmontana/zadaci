@@ -1,0 +1,47 @@
+<script setup lang="ts">
+import type { ButtonVariants } from "@/components/ui/button";
+import type { WithClassAsProps } from "./interface";
+import { useCarousel } from "./use-carousel";
+
+const _props = withDefaults(
+  defineProps<
+    {
+      variant?: ButtonVariants["variant"];
+      size?: ButtonVariants["size"];
+    } & WithClassAsProps
+  >(),
+  {
+    variant: "outline",
+    size: "icon",
+  }
+);
+
+const {
+  orientation: _orientation,
+  canScrollNext: _canScrollNext,
+  scrollNext: _scrollNext,
+  // biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+} = useCarousel();
+</script>
+
+<template>
+  <Button
+    data-slot="carousel-next"
+    :disabled="!_canScrollNext"
+    :class="cn(
+      'absolute size-8 rounded-full',
+      _orientation === 'horizontal'
+        ? 'top-1/2 -right-12 -translate-y-1/2'
+        : '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',
+      props.class,
+    )"
+    :variant="variant"
+    :size="size"
+    @click="_scrollNext"
+  >
+    <slot>
+      <ArrowRight />
+      <span class="sr-only">Next Slide</span>
+    </slot>
+  </Button>
+</template>

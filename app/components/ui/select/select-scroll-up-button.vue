@@ -1,0 +1,27 @@
+<script setup lang="ts">
+import { reactiveOmit } from "@vueuse/core";
+import type { SelectScrollUpButtonProps } from "reka-ui";
+import { useForwardProps } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = defineProps<
+  SelectScrollUpButtonProps & { class?: HTMLAttributes["class"] }
+>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwardedProps = useForwardProps(delegatedProps);
+</script>
+
+<template>
+  <SelectScrollUpButton
+    data-slot="select-scroll-up-button"
+    v-bind="forwardedProps"
+    :class="cn('flex cursor-default items-center justify-center py-1', props.class)"
+  >
+    <slot>
+      <ChevronUp class="size-4" />
+    </slot>
+  </SelectScrollUpButton>
+</template>

@@ -1,0 +1,23 @@
+<script setup lang="ts">
+import { reactiveOmit } from "@vueuse/core";
+import type { MenubarSeparatorProps } from "reka-ui";
+import { useForwardProps } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = defineProps<
+  MenubarSeparatorProps & { class?: HTMLAttributes["class"] }
+>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwardedProps = useForwardProps(delegatedProps);
+</script>
+
+<template>
+  <MenubarSeparator
+    data-slot="menubar-separator"
+    :class=" cn('bg-border -mx-1 my-1 h-px', props.class)"
+    v-bind="forwardedProps"
+  />
+</template>

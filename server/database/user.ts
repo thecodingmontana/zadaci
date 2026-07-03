@@ -102,7 +102,7 @@ export const oauth_account = pgTable(
   (table) => ({
     providerUserIndex: index("provider_user_unique").on(
       table.provider,
-      table.provider_user_id,
+      table.provider_user_id
     ),
-  }),
+  })
 );

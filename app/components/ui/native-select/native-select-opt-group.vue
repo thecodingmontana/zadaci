@@ -1,0 +1,11 @@
+<script setup lang="ts">
+import type { HTMLAttributes } from "vue";
+
+const _props = defineProps<{ class?: HTMLAttributes["class"] }>();
+</script>
+
+<template>
+  <optgroup data-slot="native-select-optgroup" :class="cn('bg-popover text-popover-foreground', props.class)">
+    <slot />
+  </optgroup>
+</template>

@@ -1,0 +1,27 @@
+<script setup lang="ts">
+import { reactiveOmit } from "@vueuse/core";
+import type { ListboxContentProps } from "reka-ui";
+import { useForwardProps } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = defineProps<
+  ListboxContentProps & { class?: HTMLAttributes["class"] }
+>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwarded = useForwardProps(delegatedProps);
+</script>
+
+<template>
+  <ListboxContent
+    data-slot="command-list"
+    v-bind="forwarded"
+    :class="cn('max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto', props.class)"
+  >
+    <div role="presentation">
+      <slot />
+    </div>
+  </ListboxContent>
+</template>

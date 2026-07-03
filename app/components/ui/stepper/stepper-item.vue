@@ -1,0 +1,25 @@
+<script lang="ts" setup>
+import { reactiveOmit } from "@vueuse/core";
+import type { StepperItemProps } from "reka-ui";
+import { useForwardProps } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = defineProps<
+  StepperItemProps & { class?: HTMLAttributes["class"] }
+>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwarded = useForwardProps(delegatedProps);
+</script>
+
+<template>
+  <StepperItem
+    v-slot="slotProps"
+    v-bind="forwarded"
+    :class="cn('flex items-center gap-2 group data-[disabled]:pointer-events-none', props.class)"
+  >
+    <slot v-bind="slotProps" />
+  </StepperItem>
+</template>

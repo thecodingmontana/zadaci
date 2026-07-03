@@ -1,0 +1,25 @@
+<script setup lang="ts">
+import { reactiveOmit } from "@vueuse/core";
+import type { DialogDescriptionProps } from "reka-ui";
+import { useForwardProps } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = defineProps<
+  DialogDescriptionProps & { class?: HTMLAttributes["class"] }
+>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwardedProps = useForwardProps(delegatedProps);
+</script>
+
+<template>
+  <DialogDescription
+    data-slot="dialog-description"
+    v-bind="forwardedProps"
+    :class="cn('text-muted-foreground text-sm', props.class)"
+  >
+    <slot />
+  </DialogDescription>
+</template>

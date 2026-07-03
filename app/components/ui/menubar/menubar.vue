@@ -1,0 +1,32 @@
+<script setup lang="ts">
+import { reactiveOmit } from "@vueuse/core";
+import type { MenubarRootEmits, MenubarRootProps } from "reka-ui";
+import { useForwardPropsEmits } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = defineProps<
+  MenubarRootProps & { class?: HTMLAttributes["class"] }
+>();
+const emits = defineEmits<MenubarRootEmits>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwarded = useForwardPropsEmits(delegatedProps, emits);
+</script>
+
+<template>
+  <MenubarRoot
+    v-slot="slotProps"
+    data-slot="menubar"
+    v-bind="forwarded"
+    :class="
+      cn(
+        'bg-background flex h-9 items-center gap-1 rounded-md border p-1 shadow-xs',
+        props.class,
+      )
+    "
+  >
+    <slot v-bind="slotProps" />
+  </MenubarRoot>
+</template>

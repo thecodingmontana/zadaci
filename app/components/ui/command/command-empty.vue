@@ -1,0 +1,29 @@
+<script setup lang="ts">
+import { reactiveOmit } from "@vueuse/core";
+import type { PrimitiveProps } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+import { computed } from "vue";
+import { useCommand } from ".";
+
+const props = defineProps<
+  PrimitiveProps & { class?: HTMLAttributes["class"] }
+>();
+
+const _delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const { filterState } = useCommand();
+const _isRender = computed(
+  () => !!filterState.search && filterState.filtered.count === 0
+);
+</script>
+
+<template>
+  <Primitive
+    v-if="isRender"
+    data-slot="command-empty"
+    v-bind="delegatedProps" :class="cn('py-6 text-center text-sm', props.class)"
+  >
+    <slot />
+  </Primitive>
+</template>

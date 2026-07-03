@@ -1,0 +1,29 @@
+<script setup lang="ts">
+import { reactiveOmit } from "@vueuse/core";
+import type { NavigationMenuTriggerProps } from "reka-ui";
+import { useForwardProps } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = defineProps<
+  NavigationMenuTriggerProps & { class?: HTMLAttributes["class"] }
+>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwardedProps = useForwardProps(delegatedProps);
+</script>
+
+<template>
+  <NavigationMenuTrigger
+    data-slot="navigation-menu-trigger"
+    v-bind="forwardedProps"
+    :class="cn(navigationMenuTriggerStyle(), 'group', props.class)"
+  >
+    <slot />
+    <ChevronDown
+      class="relative top-px ml-1 size-3 transition duration-300 group-data-[state=open]:rotate-180"
+      aria-hidden="true"
+    />
+  </NavigationMenuTrigger>
+</template>

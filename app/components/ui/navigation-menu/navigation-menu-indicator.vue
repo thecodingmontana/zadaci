@@ -1,0 +1,25 @@
+<script setup lang="ts">
+import { reactiveOmit } from "@vueuse/core";
+import type { NavigationMenuIndicatorProps } from "reka-ui";
+import { useForwardProps } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = defineProps<
+  NavigationMenuIndicatorProps & { class?: HTMLAttributes["class"] }
+>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwardedProps = useForwardProps(delegatedProps);
+</script>
+
+<template>
+  <NavigationMenuIndicator
+    data-slot="navigation-menu-indicator"
+    v-bind="forwardedProps"
+    :class="cn('data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:fade-in top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden', props.class)"
+  >
+    <div class="bg-border relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm shadow-md" />
+  </NavigationMenuIndicator>
+</template>

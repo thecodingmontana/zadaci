@@ -1,0 +1,27 @@
+<script setup lang="ts">
+import { reactiveOmit } from "@vueuse/core";
+import type { RadioGroupRootEmits, RadioGroupRootProps } from "reka-ui";
+import { useForwardPropsEmits } from "reka-ui";
+import type { HTMLAttributes } from "vue";
+
+const props = defineProps<
+  RadioGroupRootProps & { class?: HTMLAttributes["class"] }
+>();
+const emits = defineEmits<RadioGroupRootEmits>();
+
+const delegatedProps = reactiveOmit(props, "class");
+
+// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const _forwarded = useForwardPropsEmits(delegatedProps, emits);
+</script>
+
+<template>
+  <RadioGroupRoot
+    v-slot="slotProps"
+    data-slot="radio-group"
+    :class="cn('grid gap-3', props.class)"
+    v-bind="forwarded"
+  >
+    <slot v-bind="slotProps" />
+  </RadioGroupRoot>
+</template>
