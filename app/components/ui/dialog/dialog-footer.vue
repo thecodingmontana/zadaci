@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue";
 
-const _props = withDefaults(
+const props = withDefaults(
   defineProps<{
     class?: HTMLAttributes["class"];
     showCloseButton?: boolean;

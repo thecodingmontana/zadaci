@@ -4,8 +4,7 @@ import type { HTMLAttributes } from "vue";
 
 const props = defineProps<{ class?: HTMLAttributes["class"] }>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardProps(props);
+const forwarded = useForwardProps(props);
 </script>
 
 <template>

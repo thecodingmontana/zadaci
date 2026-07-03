@@ -9,13 +9,11 @@ const props = defineProps<{ index: number; class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardProps(delegatedProps);
+const forwarded = useForwardProps(delegatedProps);
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const context = useVueOTPContext();
 
-const _slot = computed(() => context?.value.slots[props.index]);
+const slot = computed(() => context?.value.slots[props.index]);
 </script>
 
 <template>

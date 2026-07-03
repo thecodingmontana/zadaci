@@ -2,12 +2,12 @@
 import type { HTMLAttributes } from "vue";
 import { computed } from "vue";
 
-const _props = defineProps<{
+const props = defineProps<{
   showIcon?: boolean;
   class?: HTMLAttributes["class"];
 }>();
 
-const _width = computed(() => `${Math.floor(Math.random() * 40) + 50}%`);
+const width = computed(() => `${Math.floor(Math.random() * 40) + 50}%`);
 </script>
 
 <template>

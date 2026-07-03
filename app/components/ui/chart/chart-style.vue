@@ -7,10 +7,9 @@ defineProps<{
   id?: HTMLAttributes["id"];
 }>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const { config } = useChart();
 
-const _colorConfig = computed(() =>
+const colorConfig = computed(() =>
   Object.entries(config.value).filter(
     ([, config]) => config.theme || config.color
   )

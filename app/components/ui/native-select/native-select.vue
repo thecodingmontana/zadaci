@@ -16,13 +16,12 @@ const emit = defineEmits<{
   "update:modelValue": AcceptableValue;
 }>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _modelValue = useVModel(props, "modelValue", emit, {
+const modelValue = useVModel(props, "modelValue", emit, {
   passive: true,
   defaultValue: "",
 });
 
-const _delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>

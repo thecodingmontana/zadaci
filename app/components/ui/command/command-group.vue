@@ -13,14 +13,13 @@ const props = defineProps<
   }
 >();
 
-const _delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class");
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const { allGroups, filterState } = useCommand();
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+
 const id = useId();
 
-const _isRender = computed(() =>
+const isRender = computed(() =>
   filterState.search ? filterState.filtered.groups.has(id) : true
 );
 

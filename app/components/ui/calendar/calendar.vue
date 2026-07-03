@@ -25,16 +25,14 @@ const emits = defineEmits<CalendarRootEmits>();
 
 const delegatedProps = reactiveOmit(props, "class", "layout", "placeholder");
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _placeholder = useVModel(props, "placeholder", emits, {
+const placeholder = useVModel(props, "placeholder", emits, {
   passive: true,
   defaultValue: props.defaultPlaceholder ?? today(getLocalTimeZone()),
 }) as Ref<DateValue>;
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _formatter = useDateFormatter(props.locale ?? "en");
+const formatter = useDateFormatter(props.locale ?? "en");
 
-const _yearRange = computed(
+const yearRange = computed(
   () =>
     props.yearRange ??
     createYearRange({
@@ -63,8 +61,7 @@ const [_DefineYearTemplate, _ReuseYearTemplate] = createReusableTemplate<{
   date: DateValue;
 }>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(delegatedProps, emits);
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>

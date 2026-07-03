@@ -17,8 +17,8 @@ defineSlots<{
   };
 }>();
 
-const { config: _config } = toRefs(props);
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const { config } = toRefs(props);
+
 const uniqueId = useId();
 const _chartId = computed(
   () => `chart-${props.id || uniqueId.replace(/:/g, "")}`
@@ -26,7 +26,7 @@ const _chartId = computed(
 
 provideChartContext({
   id: uniqueId,
-  config: _config,
+  config,
 });
 </script>
 
@@ -50,7 +50,7 @@ provideChartContext({
       '--vis-font-family': 'var(--font-sans)',
     }"
   >
-    <slot :id="uniqueId" :config="_config" />
+    <slot :id="uniqueId" :config="config" />
     <ChartStyle :id="_chartId" />
   </div>
 </template>

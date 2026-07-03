@@ -2,12 +2,11 @@
 import type { HTMLAttributes } from "vue";
 import { useFormField } from "./use-form-field";
 
-const _props = defineProps<{
+const props = defineProps<{
   class?: HTMLAttributes["class"];
 }>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const { name: _name, formMessageId: _formMessageId } = useFormField();
+const { name, formMessageId: _formMessageId } = useFormField();
 </script>
 
 <template>
@@ -15,7 +14,7 @@ const { name: _name, formMessageId: _formMessageId } = useFormField();
     :id="_formMessageId"
     data-slot="form-message"
     as="p"
-    :name="toValue(_name)"
+    :name="toValue(name)"
     :class="cn('text-destructive text-sm', props.class)"
   />
 </template>

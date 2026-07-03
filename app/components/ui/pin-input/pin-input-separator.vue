@@ -3,8 +3,8 @@ import type { PrimitiveProps } from "reka-ui";
 import { useForwardProps } from "reka-ui";
 
 const props = defineProps<PrimitiveProps>();
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwardedProps = useForwardProps(props);
+
+const forwardedProps = useForwardProps(props);
 </script>
 
 <template>

@@ -6,7 +6,7 @@ defineOptions({
   inheritAttrs: false,
 });
 
-const _props = withDefaults(defineProps<SidebarProps>(), {
+const props = withDefaults(defineProps<SidebarProps>(), {
   side: "left",
   variant: "sidebar",
   collapsible: "offcanvas",
@@ -14,10 +14,9 @@ const _props = withDefaults(defineProps<SidebarProps>(), {
 
 const {
   isMobile: _isMobile,
-  state: _state,
+  state,
   openMobile: _openMobile,
   setOpenMobile: _setOpenMobile,
-  // biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 } = useSidebar();
 </script>
 
@@ -56,8 +55,8 @@ const {
     v-else
     class="group peer text-sidebar-foreground hidden md:block"
     data-slot="sidebar"
-    :data-state="_state"
-    :data-collapsible="_state === 'collapsed' ? collapsible : ''"
+    :data-state="state"
+    :data-collapsible="state === 'collapsed' ? collapsible : ''"
     :data-variant="variant"
     :data-side="side"
   >

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { ToasterProps } from "vue-sonner";
 
-const _props = defineProps<ToasterProps>();
+const props = defineProps<ToasterProps>();
 </script>
 
 <template>

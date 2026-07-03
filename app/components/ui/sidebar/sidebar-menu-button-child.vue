@@ -10,7 +10,7 @@ export interface SidebarMenuButtonProps extends PrimitiveProps {
   variant?: SidebarMenuButtonVariants["variant"];
 }
 
-const _props = withDefaults(defineProps<SidebarMenuButtonProps>(), {
+const props = withDefaults(defineProps<SidebarMenuButtonProps>(), {
   as: "button",
   variant: "default",
   size: "default",

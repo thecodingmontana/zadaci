@@ -6,9 +6,8 @@ defineOptions({
   inheritAttrs: false,
 });
 
-const _props = defineProps<WithClassAsProps>();
+const props = defineProps<WithClassAsProps>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const { carouselRef: _carouselRef, orientation: _orientation } = useCarousel();
 </script>
 

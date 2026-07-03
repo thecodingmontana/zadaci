@@ -2,9 +2,8 @@
 import type { WithClassAsProps } from "./interface";
 import { useCarousel } from "./use-carousel";
 
-const _props = defineProps<WithClassAsProps>();
+const props = defineProps<WithClassAsProps>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const { orientation: _orientation } = useCarousel();
 </script>
 

@@ -7,7 +7,7 @@ const props = defineProps<{
   errors?: Array<string | { message: string | undefined } | undefined>;
 }>();
 
-const _content = computed(() => {
+const content = computed(() => {
   if (!props.errors || props.errors.length === 0) return null;
 
   const uniqueErrors = [

@@ -11,8 +11,7 @@ const props = defineProps<{
 const emits =
   defineEmits<(e: "update:modelValue", payload: string | number) => void>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _modelValue = useVModel(props, "modelValue", emits, {
+const modelValue = useVModel(props, "modelValue", emits, {
   passive: true,
   defaultValue: props.defaultValue,
 });

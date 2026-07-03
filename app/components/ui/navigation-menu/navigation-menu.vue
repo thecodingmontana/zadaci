@@ -18,8 +18,8 @@ const props = withDefaults(
 const emits = defineEmits<NavigationMenuRootEmits>();
 
 const delegatedProps = reactiveOmit(props, "class", "viewport");
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>

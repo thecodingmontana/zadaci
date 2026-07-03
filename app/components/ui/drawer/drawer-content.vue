@@ -12,8 +12,7 @@ const props = defineProps<
 >();
 const emits = defineEmits<DialogContentEmits>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(props, emits);
+const forwarded = useForwardPropsEmits(props, emits);
 </script>
 
 <template>

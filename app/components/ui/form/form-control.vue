@@ -6,7 +6,6 @@ const {
   formItemId: _formItemId,
   formDescriptionId: _formDescriptionId,
   formMessageId: _formMessageId,
-  // biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 } = useFormField();
 </script>
 

@@ -19,11 +19,11 @@ const props = defineProps<
   }
 >();
 
-const _context = inject<ToggleGroupVariants>("toggleGroup");
+const context = inject<ToggleGroupVariants>("toggleGroup");
 
 const delegatedProps = reactiveOmit(props, "class", "size", "variant");
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwardedProps = useForwardProps(delegatedProps);
+
+const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>

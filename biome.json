@@ -75,6 +75,29 @@
       "enabled": false
     }
   },
+  "overrides": [
+    {
+      "includes": ["**/*.vue"],
+      "linter": {
+        "enabled": true,
+        "domains": {
+          "react": "none",
+          "next": "none",
+          "vue": "recommended"
+        },
+        "rules": {
+          "correctness": {
+            "useHookAtTopLevel": "off",
+            "noUnusedVariables": "off",
+            "noVueDuplicateKeys": "off"
+          }
+        }
+      },
+      "formatter": {
+        "enabled": true
+      }
+    }
+  ],
   "extends": [
     "ultracite/biome/core",
     "ultracite/biome/react",

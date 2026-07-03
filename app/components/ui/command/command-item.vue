@@ -13,17 +13,15 @@ const emits = defineEmits<ListboxItemEmits>();
 
 const delegatedProps = reactiveOmit(props, "class");
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(delegatedProps, emits);
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const id = useId();
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+
 const { filterState, allItems, allGroups } = useCommand();
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+
 const groupContext = useCommandGroup();
 
-const _isRender = computed(() => {
+const isRender = computed(() => {
   if (filterState.search) {
     const filteredCurrentItem = filterState.filtered.items.get(id);
     // If the filtered items is undefined means not in the all times map yet
@@ -39,7 +37,7 @@ const _isRender = computed(() => {
 });
 
 const itemRef = ref();
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+
 const currentElement = useCurrentElement(itemRef);
 onMounted(() => {
   if (!(currentElement.value instanceof HTMLElement)) return;

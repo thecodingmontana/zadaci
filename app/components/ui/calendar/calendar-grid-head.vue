@@ -2,7 +2,7 @@
 import type { CalendarGridHeadProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const _props = defineProps<
+const props = defineProps<
   CalendarGridHeadProps & { class?: HTMLAttributes["class"] }
 >();
 </script>

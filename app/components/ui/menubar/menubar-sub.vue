@@ -10,8 +10,7 @@ interface MenubarSubRootProps {
 const props = defineProps<MenubarSubRootProps>();
 const emits = defineEmits<MenubarSubEmits>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(props, emits);
+const forwarded = useForwardPropsEmits(props, emits);
 </script>
 
 <template>

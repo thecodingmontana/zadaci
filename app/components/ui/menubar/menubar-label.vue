@@ -6,7 +6,7 @@ import type { HTMLAttributes } from "vue";
 const props = defineProps<
   MenubarLabelProps & { class?: HTMLAttributes["class"]; inset?: boolean }
 >();
-const _delegatedProps = reactiveOmit(props, "class", "inset");
+const delegatedProps = reactiveOmit(props, "class", "inset");
 </script>
 
 <template>

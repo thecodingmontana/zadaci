@@ -5,8 +5,7 @@ import { useForwardPropsEmits } from "reka-ui";
 const props = defineProps<ContextMenuRootProps>();
 const emits = defineEmits<ContextMenuRootEmits>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(props, emits);
+const forwarded = useForwardPropsEmits(props, emits);
 </script>
 
 <template>

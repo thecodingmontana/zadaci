@@ -5,9 +5,8 @@ import { useForwardExpose, useForwardPropsEmits } from "reka-ui";
 const props = defineProps<SplitterPanelProps>();
 const emits = defineEmits<SplitterPanelEmits>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(props, emits);
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
+const forwarded = useForwardPropsEmits(props, emits);
+
 const { forwardRef: _forwardRef } = useForwardExpose();
 </script>
 

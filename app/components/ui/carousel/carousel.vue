@@ -20,7 +20,6 @@ const {
   orientation,
   scrollNext,
   scrollPrev,
-  // biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 } = useProvideCarousel(props, emits);
 
 defineExpose({

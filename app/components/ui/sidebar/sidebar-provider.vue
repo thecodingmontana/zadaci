@@ -32,11 +32,9 @@ const emits = defineEmits<{
   "update:open": [open: boolean];
 }>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const isMobile = useMediaQuery("(max-width: 768px)");
 const openMobile = ref(false);
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const open = useVModel(props, "open", emits, {
   defaultValue: props.defaultOpen ?? false,
   passive: (props.open === undefined) as false,
@@ -60,7 +58,6 @@ function toggleSidebar() {
     : setOpen(!open.value);
 }
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 useEventListener("keydown", (event: KeyboardEvent) => {
   if (
     event.key === SIDEBAR_KEYBOARD_SHORTCUT &&

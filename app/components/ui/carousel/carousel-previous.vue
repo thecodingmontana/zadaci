@@ -3,7 +3,7 @@ import type { ButtonVariants } from "@/components/ui/button";
 import type { WithClassAsProps } from "./interface";
 import { useCarousel } from "./use-carousel";
 
-const _props = withDefaults(
+const props = withDefaults(
   defineProps<
     {
       variant?: ButtonVariants["variant"];
@@ -20,7 +20,6 @@ const {
   orientation: _orientation,
   canScrollPrev: _canScrollPrev,
   scrollPrev: _scrollPrev,
-  // biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 } = useCarousel();
 </script>
 

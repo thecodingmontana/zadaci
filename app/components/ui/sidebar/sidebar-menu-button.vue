@@ -21,10 +21,9 @@ const props = withDefaults(
   }
 );
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const { isMobile: _isMobile, state: _state } = useSidebar();
 
-const _delegatedProps = reactiveOmit(props, "tooltip");
+const delegatedProps = reactiveOmit(props, "tooltip");
 </script>
 
 <template>

@@ -8,7 +8,7 @@ interface Props extends PrimitiveProps {
   orientation?: ButtonGroupVariants["orientation"];
 }
 
-const _props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   as: "div",
 });
 </script>

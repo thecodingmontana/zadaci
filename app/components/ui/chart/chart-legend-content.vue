@@ -16,10 +16,9 @@ const props = withDefaults(
   }
 );
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const { id, config } = useChart();
 
-const _payload = computed(() =>
+const payload = computed(() =>
   Object.entries(config.value).map(([key, value]) => ({
     key: props.nameKey || key,
     itemConfig: value,

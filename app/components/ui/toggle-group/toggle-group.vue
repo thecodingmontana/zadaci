@@ -32,8 +32,8 @@ provide("toggleGroup", {
 });
 
 const delegatedProps = reactiveOmit(props, "class", "size", "variant");
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>

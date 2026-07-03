@@ -2,7 +2,7 @@
 import type { HTMLAttributes } from "vue";
 import type { InputGroupVariants } from ".";
 
-const _props = withDefaults(
+const props = withDefaults(
   defineProps<{
     align?: InputGroupVariants["align"];
     class?: HTMLAttributes["class"];

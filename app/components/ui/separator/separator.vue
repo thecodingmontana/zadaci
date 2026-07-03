@@ -11,7 +11,7 @@ const props = withDefaults(
   }
 );
 
-const _delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>

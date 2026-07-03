@@ -9,7 +9,7 @@ interface Props extends PrimitiveProps {
   variant?: ButtonVariants["variant"];
 }
 
-const _props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   as: "button",
 });
 </script>

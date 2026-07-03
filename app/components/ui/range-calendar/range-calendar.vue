@@ -12,8 +12,7 @@ const emits = defineEmits<RangeCalendarRootEmits>();
 
 const delegatedProps = reactiveOmit(props, "class");
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(delegatedProps, emits);
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>

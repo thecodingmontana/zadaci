@@ -7,7 +7,7 @@ const props = defineProps<
   AlertDialogCancelProps & { class?: HTMLAttributes["class"] }
 >();
 
-const _delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>

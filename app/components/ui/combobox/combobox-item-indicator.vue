@@ -10,8 +10,7 @@ const props = defineProps<
 
 const delegatedProps = reactiveOmit(props, "class");
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardProps(delegatedProps);
+const forwarded = useForwardProps(delegatedProps);
 </script>
 
 <template>

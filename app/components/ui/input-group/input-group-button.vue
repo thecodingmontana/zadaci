@@ -9,7 +9,7 @@ interface InputGroupButtonProps {
   variant?: ButtonVariants["variant"];
 }
 
-const _props = withDefaults(defineProps<InputGroupButtonProps>(), {
+const props = withDefaults(defineProps<InputGroupButtonProps>(), {
   size: "xs",
   variant: "ghost",
 });

@@ -3,7 +3,7 @@ import type { PrimitiveProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import type { ItemVariants } from ".";
 
-const _props = withDefaults(
+const props = withDefaults(
   defineProps<
     PrimitiveProps & {
       class?: HTMLAttributes["class"];

@@ -7,7 +7,7 @@ const props = defineProps<
   ContextMenuLabelProps & { class?: HTMLAttributes["class"]; inset?: boolean }
 >();
 
-const _delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>

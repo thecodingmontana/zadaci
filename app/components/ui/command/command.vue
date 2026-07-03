@@ -17,13 +17,11 @@ const emits = defineEmits<ListboxRootEmits>();
 
 const delegatedProps = reactiveOmit(props, "class");
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
-const _forwarded = useForwardPropsEmits(delegatedProps, emits);
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
 const allItems = ref<Map<string, string>>(new Map());
 const allGroups = ref<Map<string, Set<string>>>(new Map());
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const { contains } = useFilter({ sensitivity: "base" });
 const filterState = reactive({
   search: "",

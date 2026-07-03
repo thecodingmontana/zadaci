@@ -2,7 +2,7 @@
 import type { PrimitiveProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const _props = defineProps<
+const props = defineProps<
   PrimitiveProps & {
     class?: HTMLAttributes["class"];
   }

@@ -2,11 +2,10 @@
 import type { HTMLAttributes } from "vue";
 import { useSidebar } from "./utils";
 
-const _props = defineProps<{
+const props = defineProps<{
   class?: HTMLAttributes["class"];
 }>();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: <script setup> is the component setup function
 const { toggleSidebar: _toggleSidebar } = useSidebar();
 </script>
 

@@ -2,7 +2,7 @@
 import type { HTMLAttributes } from "vue";
 import type { ItemMediaVariants } from ".";
 
-const _props = defineProps<{
+const props = defineProps<{
   class?: HTMLAttributes["class"];
   variant?: ItemMediaVariants["variant"];
 }>();

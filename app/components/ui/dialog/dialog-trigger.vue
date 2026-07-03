@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DialogTriggerProps } from "reka-ui";
 
-const _props = defineProps<DialogTriggerProps>();
+const props = defineProps<DialogTriggerProps>();
 </script>
 
 <template>

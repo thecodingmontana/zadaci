@@ -2,7 +2,7 @@
 import type { HTMLAttributes } from "vue";
 import type { AlertVariants } from ".";
 
-const _props = defineProps<{
+const props = defineProps<{
   class?: HTMLAttributes["class"];
   variant?: AlertVariants["variant"];
 }>();

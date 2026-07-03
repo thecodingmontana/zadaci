@@ -27,7 +27,7 @@ const props = withDefaults(
 // TODO: currently we use `createElement` and `render` to render the
 // const chartContext = useChart(null)
 
-const _payload = computed(() => {
+const payload = computed(() => {
   return Object.entries(props.payload)
     .map(([key, value]) => {
       // const key = `${props.nameKey || item.name || item.dataKey || "value"}`
@@ -39,10 +39,10 @@ const _payload = computed(() => {
     .filter((i) => i.itemConfig);
 });
 
-const _nestLabel = computed(
+const nestLabel = computed(
   () => Object.keys(props.payload).length === 1 && props.indicator !== "dot"
 );
-const _tooltipLabel = computed(() => {
+const tooltipLabel = computed(() => {
   if (props.hideLabel) return null;
   if (props.labelFormatter && props.x !== undefined) {
     return props.labelFormatter(props.x);
