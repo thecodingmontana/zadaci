@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue";
-import type { ButtonVariants } from "@/components/ui/button";
 import type { InputGroupButtonVariants } from ".";
+import type { ButtonVariants } from "@/components/ui/button";
 
 interface InputGroupButtonProps {
   class?: HTMLAttributes["class"];

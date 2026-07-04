@@ -2,6 +2,7 @@
   "semi": true,
   "singleQuote": false,
   "plugins": ["prettier-plugin-tailwindcss"],
+  "tailwindFunctions": ["cn", "cva"],
   "trailingComma": "all",
   "printWidth": 100,
   "tabWidth": 2,

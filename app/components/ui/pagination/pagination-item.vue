@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { reactiveOmit } from "@vueuse/core";
 import type { PaginationListItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import type { ButtonVariants } from "@/components/ui/button";
+import { reactiveOmit } from "@vueuse/core";
 
 const props = withDefaults(
   defineProps<

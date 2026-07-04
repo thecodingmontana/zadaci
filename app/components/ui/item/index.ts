@@ -1,7 +1,6 @@
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 
-export { default as Item } from "./item.vue";
 export { default as ItemActions } from "./item-actions.vue";
 export { default as ItemContent } from "./item-content.vue";
 export { default as ItemDescription } from "./item-description.vue";
@@ -11,6 +10,7 @@ export { default as ItemHeader } from "./item-header.vue";
 export { default as ItemMedia } from "./item-media.vue";
 export { default as ItemSeparator } from "./item-separator.vue";
 export { default as ItemTitle } from "./item-title.vue";
+export { default as Item } from "./item.vue";
 
 export const itemVariants = cva(
   "group/item flex flex-wrap items-center rounded-md border border-transparent text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-accent/50",

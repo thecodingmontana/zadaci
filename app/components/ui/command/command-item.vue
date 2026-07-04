@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { reactiveOmit, useCurrentElement } from "@vueuse/core";
 import type { ListboxItemEmits, ListboxItemProps } from "reka-ui";
-import { useForwardPropsEmits, useId } from "reka-ui";
 import type { HTMLAttributes } from "vue";
+import { reactiveOmit, useCurrentElement } from "@vueuse/core";
+import { useForwardPropsEmits, useId } from "reka-ui";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useCommand, useCommandGroup } from ".";
 

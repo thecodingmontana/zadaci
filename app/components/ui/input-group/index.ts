@@ -1,12 +1,12 @@
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 
-export { default as InputGroup } from "./input-group.vue";
 export { default as InputGroupAddon } from "./input-group-addon.vue";
 export { default as InputGroupButton } from "./input-group-button.vue";
 export { default as InputGroupInput } from "./input-group-input.vue";
 export { default as InputGroupText } from "./input-group-text.vue";
 export { default as InputGroupTextarea } from "./input-group-textarea.vue";
+export { default as InputGroup } from "./input-group.vue";
 
 export const inputGroupAddonVariants = cva(
   "flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium text-muted-foreground select-none group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-4",

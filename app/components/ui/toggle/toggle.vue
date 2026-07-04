@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { reactiveOmit } from "@vueuse/core";
 import type { ToggleEmits, ToggleProps } from "reka-ui";
-import { useForwardPropsEmits } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import type { ToggleVariants } from ".";
+import { reactiveOmit } from "@vueuse/core";
+import { useForwardPropsEmits } from "reka-ui";
 
 const props = withDefaults(
   defineProps<

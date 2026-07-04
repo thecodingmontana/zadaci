@@ -1,12 +1,12 @@
-export { default as RangeCalendar } from "./range-calendar.vue";
-export { default as RangeCalendarCell } from "./range-calendar-cell.vue";
 export { default as RangeCalendarCellTrigger } from "./range-calendar-cell-trigger.vue";
-export { default as RangeCalendarGrid } from "./range-calendar-grid.vue";
+export { default as RangeCalendarCell } from "./range-calendar-cell.vue";
 export { default as RangeCalendarGridBody } from "./range-calendar-grid-body.vue";
 export { default as RangeCalendarGridHead } from "./range-calendar-grid-head.vue";
 export { default as RangeCalendarGridRow } from "./range-calendar-grid-row.vue";
+export { default as RangeCalendarGrid } from "./range-calendar-grid.vue";
 export { default as RangeCalendarHeadCell } from "./range-calendar-head-cell.vue";
 export { default as RangeCalendarHeader } from "./range-calendar-header.vue";
 export { default as RangeCalendarHeading } from "./range-calendar-heading.vue";
 export { default as RangeCalendarNextButton } from "./range-calendar-next-button.vue";
 export { default as RangeCalendarPrevButton } from "./range-calendar-prev-button.vue";
+export { default as RangeCalendar } from "./range-calendar.vue";

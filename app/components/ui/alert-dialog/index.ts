@@ -1,4 +1,3 @@
-export { default as AlertDialog } from "./alert-dialog.vue";
 export { default as AlertDialogAction } from "./alert-dialog-action.vue";
 export { default as AlertDialogCancel } from "./alert-dialog-cancel.vue";
 export { default as AlertDialogContent } from "./alert-dialog-content.vue";
@@ -7,3 +6,4 @@ export { default as AlertDialogFooter } from "./alert-dialog-footer.vue";
 export { default as AlertDialogHeader } from "./alert-dialog-header.vue";
 export { default as AlertDialogTitle } from "./alert-dialog-title.vue";
 export { default as AlertDialogTrigger } from "./alert-dialog-trigger.vue";
+export { default as AlertDialog } from "./alert-dialog.vue";

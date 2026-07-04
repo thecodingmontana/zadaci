@@ -1,12 +1,12 @@
 <script lang="ts" setup>
+import type { CalendarRootEmits, CalendarRootProps, DateValue } from "reka-ui";
+import type { HTMLAttributes, Ref } from "vue";
+import type { LayoutTypes } from ".";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { createReusableTemplate, reactiveOmit, useVModel } from "@vueuse/core";
-import type { CalendarRootEmits, CalendarRootProps, DateValue } from "reka-ui";
 import { useDateFormatter, useForwardPropsEmits } from "reka-ui";
 import { createYearRange } from "reka-ui/date";
-import type { HTMLAttributes, Ref } from "vue";
 import { computed, toRaw } from "vue";
-import type { LayoutTypes } from ".";
 
 const props = withDefaults(
   defineProps<

@@ -1,6 +1,6 @@
 import type { VariantProps } from "class-variance-authority";
-import { cva } from "class-variance-authority";
 import type { HTMLAttributes } from "vue";
+import { cva } from "class-variance-authority";
 
 export interface SidebarProps {
   class?: HTMLAttributes["class"];
@@ -9,29 +9,29 @@ export interface SidebarProps {
   variant?: "sidebar" | "floating" | "inset";
 }
 
-export { default as Sidebar } from "./sidebar.vue";
 export { default as SidebarContent } from "./sidebar-content.vue";
 export { default as SidebarFooter } from "./sidebar-footer.vue";
-export { default as SidebarGroup } from "./sidebar-group.vue";
 export { default as SidebarGroupAction } from "./sidebar-group-action.vue";
 export { default as SidebarGroupContent } from "./sidebar-group-content.vue";
 export { default as SidebarGroupLabel } from "./sidebar-group-label.vue";
+export { default as SidebarGroup } from "./sidebar-group.vue";
 export { default as SidebarHeader } from "./sidebar-header.vue";
 export { default as SidebarInput } from "./sidebar-input.vue";
 export { default as SidebarInset } from "./sidebar-inset.vue";
-export { default as SidebarMenu } from "./sidebar-menu.vue";
 export { default as SidebarMenuAction } from "./sidebar-menu-action.vue";
 export { default as SidebarMenuBadge } from "./sidebar-menu-badge.vue";
 export { default as SidebarMenuButton } from "./sidebar-menu-button.vue";
 export { default as SidebarMenuItem } from "./sidebar-menu-item.vue";
 export { default as SidebarMenuSkeleton } from "./sidebar-menu-skeleton.vue";
-export { default as SidebarMenuSub } from "./sidebar-menu-sub.vue";
 export { default as SidebarMenuSubButton } from "./sidebar-menu-sub-button.vue";
 export { default as SidebarMenuSubItem } from "./sidebar-menu-sub-item.vue";
+export { default as SidebarMenuSub } from "./sidebar-menu-sub.vue";
+export { default as SidebarMenu } from "./sidebar-menu.vue";
 export { default as SidebarProvider } from "./sidebar-provider.vue";
 export { default as SidebarRail } from "./sidebar-rail.vue";
 export { default as SidebarSeparator } from "./sidebar-separator.vue";
 export { default as SidebarTrigger } from "./sidebar-trigger.vue";
+export { default as Sidebar } from "./sidebar.vue";
 
 export { useSidebar } from "./utils";
 

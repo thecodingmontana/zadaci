@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { DialogContentEmits, DialogContentProps } from "reka-ui";
-import { useForwardPropsEmits } from "reka-ui";
 import type { HTMLAttributes } from "vue";
+import { useForwardPropsEmits } from "reka-ui";
 
 defineOptions({
   inheritAttrs: false,

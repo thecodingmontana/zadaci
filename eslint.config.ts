@@ -1,12 +1,16 @@
-import withNuxt from "./.nuxt/eslint.config.mjs";
+import antfu from "@antfu/eslint-config";
 import prettier from "eslint-config-prettier";
-import unicorn from "eslint-plugin-unicorn";
+import withNuxt from "./.nuxt/eslint.config.mjs";
+
+const antfuConfig = await antfu({
+  stylistic: false,
+  vue: true,
+  typescript: true,
+});
 
 export default withNuxt(
+  ...antfuConfig,
   {
-    plugins: {
-      unicorn,
-    },
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
@@ -20,9 +24,20 @@ export default withNuxt(
         "error",
         {
           cases: { kebabCase: true },
-          ignore: [/^nuxt\.config\./, /^eslint\.config\./, /^tailwind\./, /^\..+/],
+          ignore: [
+            /^nuxt\.config\./,
+            /^eslint\.config\./,
+            /^tailwind\./,
+            /^\..+/,
+            /^AGENTS\.md$/,
+            /^README\.md$/,
+            /^\d{14}_[a-z]+(_[a-z]+)*$/,
+          ],
         },
       ],
+      "pnpm/yaml-enforce-settings": "off",
+      "no-console": "off",
+      "node/prefer-global/process": "off",
     },
   },
   prettier,

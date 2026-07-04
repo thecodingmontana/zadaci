@@ -13,6 +13,11 @@ export default defineNuxtConfig({
   },
 
   modules: ["@nuxt/eslint", "shadcn-nuxt", "nuxt-auth-utils"],
+  eslint: {
+    config: {
+      standalone: false,
+    },
+  },
 
   shadcn: {
     /**

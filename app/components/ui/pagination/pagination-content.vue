@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { reactiveOmit } from "@vueuse/core";
 import type { PaginationListProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
+import { reactiveOmit } from "@vueuse/core";
 
 const props = defineProps<PaginationListProps & { class?: HTMLAttributes["class"] }>();
 

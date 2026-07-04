@@ -1,4 +1,3 @@
-export { default as Menubar } from "./menubar.vue";
 export { default as MenubarCheckboxItem } from "./menubar-checkbox-item.vue";
 export { default as MenubarContent } from "./menubar-content.vue";
 export { default as MenubarGroup } from "./menubar-group.vue";
@@ -9,7 +8,8 @@ export { default as MenubarRadioGroup } from "./menubar-radio-group.vue";
 export { default as MenubarRadioItem } from "./menubar-radio-item.vue";
 export { default as MenubarSeparator } from "./menubar-separator.vue";
 export { default as MenubarShortcut } from "./menubar-shortcut.vue";
-export { default as MenubarSub } from "./menubar-sub.vue";
 export { default as MenubarSubContent } from "./menubar-sub-content.vue";
 export { default as MenubarSubTrigger } from "./menubar-sub-trigger.vue";
+export { default as MenubarSub } from "./menubar-sub.vue";
 export { default as MenubarTrigger } from "./menubar-trigger.vue";
+export { default as Menubar } from "./menubar.vue";

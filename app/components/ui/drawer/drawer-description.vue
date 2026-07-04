@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { reactiveOmit } from "@vueuse/core";
 import type { DrawerDescriptionProps } from "vaul-vue";
 import type { HTMLAttributes } from "vue";
+import { reactiveOmit } from "@vueuse/core";
 
 const props = defineProps<DrawerDescriptionProps & { class?: HTMLAttributes["class"] }>();
 

@@ -27,7 +27,6 @@ export const fieldVariants = cva(
 
 export type FieldVariants = VariantProps<typeof fieldVariants>;
 
-export { default as Field } from "./field.vue";
 export { default as FieldContent } from "./field-content.vue";
 export { default as FieldDescription } from "./field-description.vue";
 export { default as FieldError } from "./field-error.vue";
@@ -37,3 +36,4 @@ export { default as FieldLegend } from "./field-legend.vue";
 export { default as FieldSeparator } from "./field-separator.vue";
 export { default as FieldSet } from "./field-set.vue";
 export { default as FieldTitle } from "./field-title.vue";
+export { default as Field } from "./field.vue";

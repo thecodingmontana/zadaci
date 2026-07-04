@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { reactiveOmit } from "@vueuse/core";
 import type { SwitchRootEmits, SwitchRootProps } from "reka-ui";
-import { useForwardPropsEmits } from "reka-ui";
 import type { HTMLAttributes } from "vue";
+import { reactiveOmit } from "@vueuse/core";
+import { useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<SwitchRootProps & { class?: HTMLAttributes["class"] }>();
 

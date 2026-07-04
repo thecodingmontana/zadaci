@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ButtonVariants } from "@/components/ui/button";
 import type { WithClassAsProps } from "./interface";
+import type { ButtonVariants } from "@/components/ui/button";
 import { useCarousel } from "./use-carousel";
 
 const props = withDefaults(

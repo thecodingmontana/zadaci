@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { reactiveOmit } from "@vueuse/core";
 import type { DialogContentEmits, DialogContentProps } from "reka-ui";
-import { useForwardPropsEmits } from "reka-ui";
 import type { HTMLAttributes } from "vue";
+import { reactiveOmit } from "@vueuse/core";
+import { useForwardPropsEmits } from "reka-ui";
 
 interface SheetContentProps extends DialogContentProps {
   class?: HTMLAttributes["class"];

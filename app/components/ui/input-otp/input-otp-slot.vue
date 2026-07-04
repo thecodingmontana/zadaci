@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
 import { useForwardProps } from "reka-ui";
-import type { HTMLAttributes } from "vue";
 import { computed } from "vue";
 import { useVueOTPContext } from "vue-input-otp";
 

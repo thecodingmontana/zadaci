@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { reactiveOmit } from "@vueuse/core";
 import type { TagsInputItemDeleteProps } from "reka-ui";
-import { useForwardProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
+import { reactiveOmit } from "@vueuse/core";
+import { useForwardProps } from "reka-ui";
 
 const props = defineProps<TagsInputItemDeleteProps & { class?: HTMLAttributes["class"] }>();
 

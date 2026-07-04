@@ -1,8 +1,8 @@
-import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
 import { sql } from "drizzle-orm";
 import { db, driver as pool } from "./db";
+import "dotenv/config";
 
 async function main() {
   if (!db.query || Object.keys(db.query).length === 0) {
