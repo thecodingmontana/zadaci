@@ -11,14 +11,7 @@
       "schema": "public"
     },
     {
-      "values": [
-        "idea",
-        "todo",
-        "in_progress",
-        "in_review",
-        "completed",
-        "abandoned"
-      ],
+      "values": ["idea", "todo", "in_progress", "in_review", "completed", "abandoned"],
       "name": "status",
       "entityType": "enums",
       "schema": "public"

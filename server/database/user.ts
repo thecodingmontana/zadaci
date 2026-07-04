@@ -1,12 +1,4 @@
-import {
-  boolean,
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { timestamps } from "./utils";
 
 export const user = pgTable("user", {
@@ -100,9 +92,6 @@ export const oauth_account = pgTable(
     ...timestamps,
   },
   (table) => ({
-    providerUserIndex: index("provider_user_unique").on(
-      table.provider,
-      table.provider_user_id
-    ),
-  })
+    providerUserIndex: index("provider_user_unique").on(table.provider, table.provider_user_id),
+  }),
 );

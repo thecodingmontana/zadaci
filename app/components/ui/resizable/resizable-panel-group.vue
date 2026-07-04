@@ -4,9 +4,7 @@ import type { SplitterGroupEmits, SplitterGroupProps } from "reka-ui";
 import { useForwardPropsEmits } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  SplitterGroupProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<SplitterGroupProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<SplitterGroupEmits>();
 
 const delegatedProps = reactiveOmit(props, "class");

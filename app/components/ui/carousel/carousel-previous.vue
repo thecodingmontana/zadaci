@@ -13,7 +13,7 @@ const props = withDefaults(
   {
     variant: "outline",
     size: "icon",
-  }
+  },
 );
 
 const {
@@ -27,13 +27,15 @@ const {
   <Button
     data-slot="carousel-previous"
     :disabled="!_canScrollPrev"
-    :class="cn(
-      'absolute size-8 rounded-full',
-      _orientation === 'horizontal'
-        ? 'top-1/2 -left-12 -translate-y-1/2'
-        : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
-      props.class,
-    )"
+    :class="
+      cn(
+        'absolute size-8 rounded-full',
+        _orientation === 'horizontal'
+          ? 'top-1/2 -left-12 -translate-y-1/2'
+          : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
+        props.class,
+      )
+    "
     :variant="variant"
     :size="size"
     @click="_scrollPrev"

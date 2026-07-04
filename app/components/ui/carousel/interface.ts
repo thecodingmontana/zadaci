@@ -15,10 +15,7 @@ export interface CarouselProps {
   plugins?: CarouselPlugin;
 }
 
-export type CarouselEmits = (
-  e: "init-api",
-  payload: UnwrapRefCarouselApi
-) => void;
+export type CarouselEmits = (e: "init-api", payload: UnwrapRefCarouselApi) => void;
 
 export interface WithClassAsProps {
   class?: HTMLAttributes["class"];

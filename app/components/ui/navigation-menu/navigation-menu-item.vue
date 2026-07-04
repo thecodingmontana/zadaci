@@ -3,9 +3,7 @@ import { reactiveOmit } from "@vueuse/core";
 import type { NavigationMenuItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  NavigationMenuItemProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<NavigationMenuItemProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 </script>

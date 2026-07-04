@@ -4,9 +4,7 @@ import type { CalendarHeadingProps } from "reka-ui";
 import { useForwardProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  CalendarHeadingProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<CalendarHeadingProps & { class?: HTMLAttributes["class"] }>();
 
 defineSlots<{
   default: (props: { headingValue: string }) => any;

@@ -4,9 +4,7 @@ import type { NumberFieldRootEmits, NumberFieldRootProps } from "reka-ui";
 import { useForwardPropsEmits } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  NumberFieldRootProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<NumberFieldRootProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<NumberFieldRootEmits>();
 
 const delegatedProps = reactiveOmit(props, "class");

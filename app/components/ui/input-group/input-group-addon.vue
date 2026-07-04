@@ -9,7 +9,7 @@ const props = withDefaults(
   }>(),
   {
     align: "inline-start",
-  }
+  },
 );
 
 function _handleInputGroupAddonClick(e: MouseEvent) {

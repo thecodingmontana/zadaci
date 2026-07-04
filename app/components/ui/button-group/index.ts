@@ -19,7 +19,7 @@ export const buttonGroupVariants = cva(
     defaultVariants: {
       orientation: "horizontal",
     },
-  }
+  },
 );
 
 export type ButtonGroupVariants = VariantProps<typeof buttonGroupVariants>;

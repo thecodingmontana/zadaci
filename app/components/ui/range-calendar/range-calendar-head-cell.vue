@@ -4,9 +4,7 @@ import type { RangeCalendarHeadCellProps } from "reka-ui";
 import { useForwardProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  RangeCalendarHeadCellProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<RangeCalendarHeadCellProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 

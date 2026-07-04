@@ -18,10 +18,8 @@ export const project = pgTable(
     ...timestamps,
   },
   (table) => ({
-    project_workspace_id_idx: index("project_workspace_id_idx").on(
-      table.workspace_id
-    ),
-  })
+    project_workspace_id_idx: index("project_workspace_id_idx").on(table.workspace_id),
+  }),
 );
 
 export const project_members = pgTable(
@@ -37,13 +35,9 @@ export const project_members = pgTable(
     ...timestamps,
   },
   (table) => ({
-    project_members_project_id_idx: index("project_members_project_id_idx").on(
-      table.project_id
-    ),
-    project_members_member_id_idx: index("project_members_member_id_idx").on(
-      table.member_id
-    ),
-  })
+    project_members_project_id_idx: index("project_members_project_id_idx").on(table.project_id),
+    project_members_member_id_idx: index("project_members_member_id_idx").on(table.member_id),
+  }),
 );
 
 export const task = pgTable(
@@ -62,7 +56,7 @@ export const task = pgTable(
   },
   (table) => ({
     tasks_project_id_idx: index("tasks_project_id_idx").on(table.project_id),
-  })
+  }),
 );
 
 export const task_assignees = pgTable(
@@ -82,13 +76,9 @@ export const task_assignees = pgTable(
     ...timestamps,
   },
   (table) => ({
-    task_assignees_task_id_idx: index("task_assignees_task_id_idx").on(
-      table.task_id
-    ),
-    task_assignees_member_id_idx: index("task_assignees_member_id_idx").on(
-      table.member_id
-    ),
-  })
+    task_assignees_task_id_idx: index("task_assignees_task_id_idx").on(table.task_id),
+    task_assignees_member_id_idx: index("task_assignees_member_id_idx").on(table.member_id),
+  }),
 );
 
 export const tasks_activity = pgTable(
@@ -109,13 +99,9 @@ export const tasks_activity = pgTable(
     ...timestamps,
   },
   (table) => ({
-    tasks_activity_task_id_idx: index("tasks_activity_task_id_idx").on(
-      table.task_id
-    ),
-    tasks_activity_changed_by_idx: index("tasks_activity_changed_by_idx").on(
-      table.changed_by
-    ),
-  })
+    tasks_activity_task_id_idx: index("tasks_activity_task_id_idx").on(table.task_id),
+    tasks_activity_changed_by_idx: index("tasks_activity_changed_by_idx").on(table.changed_by),
+  }),
 );
 
 export const subtasks = pgTable(
@@ -131,5 +117,5 @@ export const subtasks = pgTable(
   },
   (table) => ({
     subtasks_task_id_idx: index("subtasks_task_id_idx").on(table.task_id),
-  })
+  }),
 );

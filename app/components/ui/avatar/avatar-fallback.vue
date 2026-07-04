@@ -3,9 +3,7 @@ import { reactiveOmit } from "@vueuse/core";
 import type { AvatarFallbackProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  AvatarFallbackProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<AvatarFallbackProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 </script>
@@ -14,7 +12,7 @@ const delegatedProps = reactiveOmit(props, "class");
   <AvatarFallback
     data-slot="avatar-fallback"
     v-bind="delegatedProps"
-    :class="cn('bg-muted flex size-full items-center justify-center rounded-full', props.class)"
+    :class="cn('flex size-full items-center justify-center rounded-full bg-muted', props.class)"
   >
     <slot />
   </AvatarFallback>

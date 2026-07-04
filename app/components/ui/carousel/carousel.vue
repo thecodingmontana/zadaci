@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import type {
-  CarouselEmits,
-  CarouselProps,
-  WithClassAsProps,
-} from "./interface";
+import type { CarouselEmits, CarouselProps, WithClassAsProps } from "./interface";
 import { useProvideCarousel } from "./use-carousel";
 
 const props = withDefaults(defineProps<CarouselProps & WithClassAsProps>(), {
@@ -59,6 +55,14 @@ function _onKeyDown(event: KeyboardEvent) {
     tabindex="0"
     @keydown="onKeyDown"
   >
-    <slot :can-scroll-next :can-scroll-prev :carousel-api :carousel-ref :orientation :scroll-next :scroll-prev />
+    <slot
+      :can-scroll-next
+      :can-scroll-prev
+      :carousel-api
+      :carousel-ref
+      :orientation
+      :scroll-next
+      :scroll-prev
+    />
   </div>
 </template>

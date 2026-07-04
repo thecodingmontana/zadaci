@@ -3,9 +3,7 @@ import { reactiveOmit } from "@vueuse/core";
 import type { DrawerDescriptionProps } from "vaul-vue";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  DrawerDescriptionProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<DrawerDescriptionProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 </script>
@@ -14,7 +12,7 @@ const delegatedProps = reactiveOmit(props, "class");
   <DrawerDescription
     data-slot="drawer-description"
     v-bind="delegatedProps"
-    :class="cn('text-muted-foreground text-sm', props.class)"
+    :class="cn('text-sm text-muted-foreground', props.class)"
   >
     <slot />
   </DrawerDescription>

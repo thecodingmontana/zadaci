@@ -4,9 +4,7 @@ import type { CalendarGridProps } from "reka-ui";
 import { useForwardProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  CalendarGridProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<CalendarGridProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 

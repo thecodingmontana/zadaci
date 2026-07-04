@@ -50,34 +50,31 @@
   "languages": {
     "JavaScript": {
       "code_actions_on_format": {
-        "source.fixAll.biome": true,
-        "source.organizeImports.biome": true
+        "source.fixAll.eslint": true
       },
       "formatter": {
         "language_server": {
-          "name": "biome"
+          "name": "prettier"
         }
       }
     },
     "TSX": {
       "code_actions_on_format": {
-        "source.fixAll.biome": true,
-        "source.organizeImports.biome": true
+        "source.fixAll.eslint": true
       },
       "formatter": {
         "language_server": {
-          "name": "biome"
+          "name": "prettier"
         }
       }
     },
     "TypeScript": {
       "code_actions_on_format": {
-        "source.fixAll.biome": true,
-        "source.organizeImports.biome": true
+        "source.fixAll.eslint": true
       },
       "formatter": {
         "language_server": {
-          "name": "biome"
+          "name": "prettier"
         }
       }
     }

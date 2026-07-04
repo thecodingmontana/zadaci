@@ -4,9 +4,7 @@ import type { NavigationMenuTriggerProps } from "reka-ui";
 import { useForwardProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  NavigationMenuTriggerProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<NavigationMenuTriggerProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 

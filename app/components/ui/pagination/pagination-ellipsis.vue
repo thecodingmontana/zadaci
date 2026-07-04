@@ -3,9 +3,7 @@ import { reactiveOmit } from "@vueuse/core";
 import type { PaginationEllipsisProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  PaginationEllipsisProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<PaginationEllipsisProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 </script>

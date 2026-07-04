@@ -2,12 +2,9 @@
 import type { PrimitiveProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = withDefaults(
-  defineProps<PrimitiveProps & { class?: HTMLAttributes["class"] }>(),
-  {
-    as: "a",
-  }
-);
+const props = withDefaults(defineProps<PrimitiveProps & { class?: HTMLAttributes["class"] }>(), {
+  as: "a",
+});
 </script>
 
 <template>
@@ -15,7 +12,7 @@ const props = withDefaults(
     data-slot="breadcrumb-link"
     :as="as"
     :as-child="asChild"
-    :class="cn('hover:text-foreground transition-colors', props.class)"
+    :class="cn('transition-colors hover:text-foreground', props.class)"
   >
     <slot />
   </Primitive>

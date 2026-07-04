@@ -4,9 +4,7 @@ import { useForwardPropsEmits } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import type { OTPInputEmits, OTPInputProps } from "vue-input-otp";
 
-const props = defineProps<
-  OTPInputProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<OTPInputProps & { class?: HTMLAttributes["class"] }>();
 
 const emits = defineEmits<OTPInputEmits>();
 

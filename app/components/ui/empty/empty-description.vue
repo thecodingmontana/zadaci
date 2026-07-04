@@ -9,10 +9,12 @@ defineProps<{
 <template>
   <p
     data-slot="empty-description"
-    :class="cn(
-      'text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4',
-      $attrs.class ?? '',
-    )"
+    :class="
+      cn(
+        'text-sm/relaxed text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary',
+        $attrs.class ?? '',
+      )
+    "
   >
     <slot />
   </p>

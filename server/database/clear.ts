@@ -31,15 +31,10 @@ async function main() {
         GRANT ALL ON TABLES    TO ${currentRole};
       ALTER DEFAULT PRIVILEGES IN SCHEMA public
         GRANT ALL ON SEQUENCES TO ${currentRole};
-    `)
+    `),
   );
 
-  const migrationsDir = path.join(
-    process.cwd(),
-    "server",
-    "database",
-    "migrations"
-  );
+  const migrationsDir = path.join(process.cwd(), "server", "database", "migrations");
   console.log("migrationsDir", migrationsDir);
 
   if (fs.existsSync(migrationsDir)) {

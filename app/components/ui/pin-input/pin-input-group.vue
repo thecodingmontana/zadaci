@@ -4,9 +4,7 @@ import type { PrimitiveProps } from "reka-ui";
 import { useForwardProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  PrimitiveProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<PrimitiveProps & { class?: HTMLAttributes["class"] }>();
 const delegatedProps = reactiveOmit(props, "class");
 
 const forwardedProps = useForwardProps(delegatedProps);

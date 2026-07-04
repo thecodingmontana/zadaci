@@ -14,7 +14,7 @@ const [useProvideCarousel, useInjectCarousel] = createInjectionState(
         ...opts,
         axis: orientation === "horizontal" ? "x" : "y",
       },
-      plugins
+      plugins,
     );
 
     function scrollPrev() {
@@ -51,14 +51,13 @@ const [useProvideCarousel, useInjectCarousel] = createInjectionState(
       scrollNext,
       orientation,
     };
-  }
+  },
 );
 
 function useCarousel() {
   const carouselState = useInjectCarousel();
 
-  if (!carouselState)
-    throw new Error("useCarousel must be used within a <Carousel />");
+  if (!carouselState) throw new Error("useCarousel must be used within a <Carousel />");
 
   return carouselState;
 }

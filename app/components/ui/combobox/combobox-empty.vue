@@ -3,9 +3,7 @@ import { reactiveOmit } from "@vueuse/core";
 import type { ComboboxEmptyProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  ComboboxEmptyProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<ComboboxEmptyProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 </script>

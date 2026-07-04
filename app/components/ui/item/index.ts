@@ -13,7 +13,7 @@ export { default as ItemSeparator } from "./item-separator.vue";
 export { default as ItemTitle } from "./item-title.vue";
 
 export const itemVariants = cva(
-  "group/item flex flex-wrap items-center rounded-md border border-transparent text-sm outline-none transition-colors duration-100 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-accent/50",
+  "group/item flex flex-wrap items-center rounded-md border border-transparent text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-accent/50",
   {
     variants: {
       variant: {
@@ -30,7 +30,7 @@ export const itemVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
+  },
 );
 
 export const itemMediaVariants = cva(
@@ -40,14 +40,13 @@ export const itemMediaVariants = cva(
       variant: {
         default: "bg-transparent",
         icon: "size-8 rounded-sm border bg-muted [&_svg:not([class*='size-'])]:size-4",
-        image:
-          "size-10 overflow-hidden rounded-sm [&_img]:size-full [&_img]:object-cover",
+        image: "size-10 overflow-hidden rounded-sm [&_img]:size-full [&_img]:object-cover",
       },
     },
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 export type ItemVariants = VariantProps<typeof itemVariants>;

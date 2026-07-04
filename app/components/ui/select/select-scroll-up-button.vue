@@ -4,9 +4,7 @@ import type { SelectScrollUpButtonProps } from "reka-ui";
 import { useForwardProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  SelectScrollUpButtonProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<SelectScrollUpButtonProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 

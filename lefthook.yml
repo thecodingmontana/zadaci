@@ -1,14 +1,25 @@
 pre-commit:
   jobs:
-    - run: pnpm dlx ultracite fix
+    - run: pnpm exec eslint --fix {staged_files}
       glob:
         - "*.js"
         - "*.jsx"
         - "*.ts"
         - "*.tsx"
+        - "*.vue"
+      stage_fixed: true
+    - run: pnpm exec prettier --write {staged_files}
+      glob:
+        - "*.js"
+        - "*.jsx"
+        - "*.ts"
+        - "*.tsx"
+        - "*.vue"
         - "*.json"
         - "*.jsonc"
         - "*.css"
+      stage_fixed: true
+    - run: python3 scripts/fix-tailwind-quotes.py
       stage_fixed: true
 
 commit-msg:

@@ -15,18 +15,12 @@ interface Constructor<P = any> {
   __isFragment?: never;
   __isSuspense?: never;
   __isTeleport?: never;
-  new (
-    ...args: any[]
-  ): {
+  new (...args: any[]): {
     $props: P;
   };
 }
 
-export function componentToString<P>(
-  config: ChartConfig,
-  component: Constructor<P>,
-  props?: P
-) {
+export function componentToString<P>(config: ChartConfig, component: Constructor<P>, props?: P) {
   // biome-ignore lint/correctness/useHookAtTopLevel: called during component mount lifecycle
   const id = useId();
 

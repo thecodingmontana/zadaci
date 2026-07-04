@@ -4,9 +4,7 @@ import type { TabsRootEmits, TabsRootProps } from "reka-ui";
 import { useForwardPropsEmits } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  TabsRootProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<TabsRootProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<TabsRootEmits>();
 
 const delegatedProps = reactiveOmit(props, "class");

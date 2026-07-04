@@ -13,7 +13,9 @@ const {
   <Slot
     :id="_formItemId"
     data-slot="form-control"
-    :aria-describedby="!_error ? `${_formDescriptionId}` : `${_formDescriptionId} ${_formMessageId}`"
+    :aria-describedby="
+      !_error ? `${_formDescriptionId}` : `${_formDescriptionId} ${_formMessageId}`
+    "
     :aria-invalid="!!_error"
   >
     <slot />

@@ -4,9 +4,7 @@ import type { RangeCalendarGridRowProps } from "reka-ui";
 import { useForwardProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  RangeCalendarGridRowProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<RangeCalendarGridRowProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 
@@ -16,7 +14,8 @@ const forwardedProps = useForwardProps(delegatedProps);
 <template>
   <RangeCalendarGridRow
     data-slot="range-calendar-grid-row"
-    :class="cn('flex', props.class)" v-bind="forwardedProps"
+    :class="cn('flex', props.class)"
+    v-bind="forwardedProps"
   >
     <slot />
   </RangeCalendarGridRow>

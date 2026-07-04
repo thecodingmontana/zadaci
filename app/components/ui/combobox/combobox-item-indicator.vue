@@ -4,9 +4,7 @@ import type { ComboboxItemIndicatorProps } from "reka-ui";
 import { useForwardProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  ComboboxItemIndicatorProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<ComboboxItemIndicatorProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 

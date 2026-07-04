@@ -3,9 +3,7 @@ import { reactiveOmit } from "@vueuse/core";
 import type { DialogDescriptionProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
-const props = defineProps<
-  DialogDescriptionProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<DialogDescriptionProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 </script>
@@ -13,7 +11,7 @@ const delegatedProps = reactiveOmit(props, "class");
 <template>
   <DialogDescription
     data-slot="sheet-description"
-    :class="cn('text-muted-foreground text-sm', props.class)"
+    :class="cn('text-sm text-muted-foreground', props.class)"
     v-bind="delegatedProps"
   >
     <slot />
