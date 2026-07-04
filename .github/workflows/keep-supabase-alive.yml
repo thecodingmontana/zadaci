@@ -9,18 +9,39 @@ jobs:
   update-cron-job:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify secrets are present
+        run: |
+          if [ -z "${SUPABASE_URL_CHECK}" ]; then
+            echo "SUPABASE_URL is empty or not set"
+            exit 1
+          fi
+          if [ -z "${SUPABASE_KEY_CHECK}" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY is empty or not set"
+            exit 1
+          fi
+        env:
+          SUPABASE_URL_CHECK: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY_CHECK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
       - name: Insert cron job with message
         run: |
           DATE_STR=$(date -u +"%A, %d %B, %Y")
           MESSAGE="Cron job created on $DATE_STR"
-          response=$(curl -s -w "%{http_code}" -X POST ${{ secrets.SUPABASE_URL }}/rest/v1/cron_jobs \
-          -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-          -H "Content-Type: application/json" \
-          -d "{\"message\": \"$MESSAGE\"}")
+
+          response=$(curl -sS -w "%{http_code}" -X POST "${SUPABASE_URL}/rest/v1/cron_jobs" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"message\": \"$MESSAGE\"}") || { echo "curl failed with exit code $?"; exit 1; }
 
           http_code="${response: -3}"
+
           if [ "$http_code" -ne 201 ] && [ "$http_code" -ne 200 ]; then
-          echo "Failed to insert cron job. HTTP code: $http_code"
-          exit 1
+            echo "Failed to insert cron job. HTTP code: $http_code"
+            exit 1
           fi
+
+          echo "Cron job inserted successfully. HTTP code: $http_code"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
