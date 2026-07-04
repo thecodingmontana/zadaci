@@ -18,20 +18,26 @@ async function main() {
   await db.execute(sql.raw(`DROP SCHEMA IF EXISTS "drizzle" CASCADE;`));
 
   // Drop and recreate public schema
-  await db.execute(sql.raw("DROP SCHEMA IF EXISTS public CASCADE;"));
-  await db.execute(sql.raw("CREATE SCHEMA public;"));
+  await db.execute(sql.raw(`DROP SCHEMA IF EXISTS public CASCADE;`));
+  await db.execute(sql.raw(`CREATE SCHEMA public;`));
 
   // Grant privileges to current role
+  // NOTE: each statement is run separately — postgres.js prepared statements
+  // cannot contain multiple semicolon-separated commands in a single query.
+  await db.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO "${currentRole}";`));
   await db.execute(
-    sql.raw(`
-      GRANT USAGE ON SCHEMA public TO ${currentRole};
-      GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA public TO ${currentRole};
-      GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ${currentRole};
-      ALTER DEFAULT PRIVILEGES IN SCHEMA public
-        GRANT ALL ON TABLES    TO ${currentRole};
-      ALTER DEFAULT PRIVILEGES IN SCHEMA public
-        GRANT ALL ON SEQUENCES TO ${currentRole};
-    `),
+    sql.raw(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${currentRole}";`),
+  );
+  await db.execute(
+    sql.raw(`GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${currentRole}";`),
+  );
+  await db.execute(
+    sql.raw(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "${currentRole}";`),
+  );
+  await db.execute(
+    sql.raw(
+      `ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "${currentRole}";`,
+    ),
   );
 
   const migrationsDir = path.join(process.cwd(), "server", "database", "migrations");
@@ -49,11 +55,14 @@ async function main() {
     console.log(`⚠️  No migrations directory found at: ${migrationsDir}`);
   }
 
-  await pool.end();
   console.log("✅ Database schemas dropped and migrations folder cleared");
 }
 
-main().catch((err) => {
-  console.error("❌ Error clearing database and migrations folder:", err);
-  process.exit(1);
-});
+main()
+  .catch((err) => {
+    console.error("❌ Error clearing database and migrations folder:", err);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await pool.end();
+  });
