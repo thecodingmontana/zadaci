@@ -118,7 +118,6 @@
   * {
     @apply border-border outline-ring/50;
   }
-
   body {
     @apply bg-background text-foreground;
   }
@@ -136,7 +135,6 @@
   --tst-bezel-shadow: 0 22px 44px -18px rgba(27, 27, 25, 0.22), 0 0 0 1px rgba(27, 27, 25, 0.05);
   --tst-panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
-
 .dark .tst-root {
   --tst-text: #f3f3ef;
   --tst-mute: #a2a29a;
@@ -149,17 +147,14 @@
   --tst-bezel-shadow: 0 22px 44px -18px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --tst-panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
-
 @keyframes tst-spin {
   to {
     transform: rotate(360deg);
   }
 }
-
 .tst-spin {
   animation: tst-spin 0.9s linear infinite;
 }
-
 @media (prefers-reduced-motion: reduce) {
   .tst-spin {
     animation: none;

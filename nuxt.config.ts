@@ -1,4 +1,5 @@
 import tailwindcss from "@tailwindcss/vite";
+import vue from "@vitejs/plugin-vue";
 import MotionResolver from "motion-v/resolver";
 import Components from "unplugin-vue-components/vite";
 
@@ -93,5 +94,24 @@ export default defineNuxtConfig({
     storage: "cookie", // or 'sessionStorage' or 'cookie'
     storageKey: "zadaci-color-mode",
     cookieAttrs: { "max-age": "31536000", path: "/" },
+  },
+  nitro: {
+    rollupConfig: {
+      plugins: [vue()],
+    },
+    experimental: {
+      openAPI: true,
+    },
+    openAPI: {
+      route: "/_docs/openapi.json",
+      ui: {
+        scalar: {
+          route: "/_docs/scalar",
+        },
+        swagger: {
+          route: "/_docs/swagger",
+        },
+      },
+    },
   },
 });

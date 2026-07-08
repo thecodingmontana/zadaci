@@ -1,3 +1,5 @@
+import { env } from "~~/env";
+
 export interface Project {
   name: string;
   tagline: string;
@@ -273,7 +275,7 @@ export interface WorkspaceInvite {
   };
 }
 
-export const appLink = process.env.NUXT_PUBLIC_SITE_URL as string;
+export const appLink = env.NUXT_PUBLIC_SITE_URL as string;
 
 export interface DueItem {
   id: string;
