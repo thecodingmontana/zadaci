@@ -11,6 +11,7 @@ const props = defineProps<{
   layout: Layout;
   paused: boolean;
   reduce: boolean;
+  isBottom: boolean;
 }>();
 
 const emit = defineEmits<{ height: [id: number, h: number]; close: [] }>();
@@ -77,10 +78,13 @@ function onAction() {
 
 <template>
   <motion.div
-    class="absolute inset-x-0 top-0"
-    :style="{ zIndex: layout.z, transformOrigin: '50% 0%' }"
+    class="absolute inset-x-0"
+    :class="isBottom ? 'bottom-0' : 'top-0'"
+    :style="{ zIndex: layout.z, transformOrigin: isBottom ? '50% 100%' : '50% 0%' }"
     :initial="
-      reduce ? { opacity: 0 } : { opacity: 0, y: layout.ty - 26, scale: 0.9, filter: 'blur(8px)' }
+      reduce
+        ? { opacity: 0 }
+        : { opacity: 0, y: layout.ty + (isBottom ? 26 : -26), scale: 0.9, filter: 'blur(8px)' }
     "
     :animate="
       reduce
@@ -88,7 +92,9 @@ function onAction() {
         : { opacity: layout.o, y: layout.ty, scale: layout.s, filter: 'blur(0px)' }
     "
     :exit="
-      reduce ? { opacity: 0 } : { opacity: 0, y: layout.ty - 12, scale: 0.92, filter: 'blur(6px)' }
+      reduce
+        ? { opacity: 0 }
+        : { opacity: 0, y: layout.ty + (isBottom ? 12 : -12), scale: 0.92, filter: 'blur(6px)' }
     "
     :transition="{ duration: 0.34, ease: EASE }"
   >

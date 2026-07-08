@@ -3,6 +3,9 @@ import { reactive } from "vue";
 
 export type ToastType = "success" | "error" | "info" | "pending";
 
+export type ToastPosition =
+  "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+
 export interface ToastAction {
   label: string;
   icon?: Component;
@@ -14,6 +17,7 @@ export interface ToastInput {
   desc?: string;
   type?: ToastType;
   duration?: number;
+  position?: ToastPosition;
   action?: ToastAction;
 }
 
@@ -59,9 +63,15 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
   update,
   promise<Tn>(
     run: Promise<Tn>,
-    msg: { loading: string; success: string | ((v: Tn) => string); error: string; desc?: string },
+    msg: {
+      loading: string;
+      success: string | ((v: Tn) => string);
+      error: string;
+      desc?: string;
+      position?: ToastPosition;
+    },
   ) {
-    const id = push({ title: msg.loading, type: "pending", duration: 0 });
+    const id = push({ title: msg.loading, type: "pending", duration: 0, position: msg.position });
     run
       .then((v) =>
         update(id, {

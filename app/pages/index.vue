@@ -14,6 +14,7 @@ import { toast } from "~/lib/toast";
         toast.success('Changes saved', {
           desc: 'Atlas redesign · 12 files',
           action: { label: 'View', icon: GitCompare },
+          position: 'top-center',
         })
       "
     >

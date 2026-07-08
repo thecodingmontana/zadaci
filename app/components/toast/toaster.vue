@@ -1,89 +1,58 @@
 <script setup lang="ts">
-import type { Layout } from "./toast-card.vue";
-import { AnimatePresence } from "motion-v";
-import { computed, reactive, ref, watch } from "vue";
-import { getToastState, toast } from "../../lib/toast";
-import { useReducedMotion } from "../../lib/use-reduce-motion";
-import ToastCard from "./toast-card.vue";
+import type { ToastData, ToastPosition } from "~/lib/toast";
+import { computed } from "vue";
+import { getToastState } from "~/lib/toast";
+import { useReducedMotion } from "~/lib/use-reduce-motion";
+import ToastStack from "./toast-stack.vue";
 
-const props = withDefaults(defineProps<{ max?: number; class?: string }>(), { max: 5 });
+const props = withDefaults(
+  defineProps<{ max?: number; position?: ToastPosition; class?: string }>(),
+  { max: 5, position: "bottom-right" },
+);
 
 const state = getToastState();
 const reduce = useReducedMotion();
-const expanded = ref(false);
-const heights = reactive<Record<number, number>>({});
 
-const GAP = 12;
-const PEEK = 15;
+const ALL_POSITIONS: ToastPosition[] = [
+  "top-left",
+  "top-center",
+  "top-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+];
 
-function onHeight(id: number, h: number) {
-  if (heights[id] !== h) heights[id] = h;
-}
+const groups = computed(() => {
+  const g: Partial<Record<ToastPosition, ToastData[]>> = {};
+  for (const t of state.list) {
+    const pos = t.position ?? props.position;
+    (g[pos] ??= []).push(t);
+  }
+  for (const key of Object.keys(g) as ToastPosition[]) {
+    g[key] = g[key]!.slice(0, props.max);
+  }
+  return g;
+});
 
-const visible = computed(() => state.list.slice(0, props.max));
-
-watch(
-  () => visible.value.length,
-  (len) => {
-    if (len <= 1 && expanded.value) expanded.value = false;
-  },
+const activePositions = computed(() =>
+  ALL_POSITIONS.filter((p) => (groups.value[p]?.length ?? 0) > 0),
 );
 
-const frontH = computed(() => {
-  const id = visible.value[0]?.id;
-  return id !== undefined ? (heights[id] ?? 78) : 78;
-});
-
-const layouts = computed<Layout[]>(() => {
-  let acc = 0;
-  return visible.value.map((t, i) => {
-    const h = heights[t.id] ?? 78;
-    const expandedY = acc;
-    acc += h + GAP;
-    const depth = Math.min(i, 2);
-    return {
-      ty: expanded.value ? expandedY : depth * PEEK,
-      s: expanded.value ? 1 : 1 - depth * 0.05,
-      o: expanded.value ? 1 : i < 3 ? 1 : 0,
-      contentShown: expanded.value || i === 0,
-      z: 100 - i,
-    };
-  });
-});
-
-const wrapH = computed(() => {
-  let acc = 0;
-  for (const t of visible.value) acc += (heights[t.id] ?? 78) + GAP;
-  return expanded.value ? Math.max(acc - GAP, frontH.value) : frontH.value + 2 * PEEK;
-});
+function anchorClasses(pos: ToastPosition) {
+  const [v, h] = pos.split("-") as ["top" | "bottom", "left" | "center" | "right"];
+  const vClass = v === "top" ? "items-start" : "items-end";
+  const hClass = h === "left" ? "justify-start" : h === "center" ? "justify-center" : "justify-end";
+  return `${vClass} ${hClass}`;
+}
 </script>
 
 <template>
   <div
-    class="tst-root pointer-events-none fixed inset-0 z-100 flex items-start justify-end p-4 sm:p-6"
-    :class="[props.class]"
+    v-for="pos in activePositions"
+    :key="pos"
+    class="tst-root pointer-events-none fixed inset-0 z-100 flex p-4 sm:p-6"
+    :class="[anchorClasses(pos), props.class]"
   >
-    <div
-      class="pointer-events-auto relative w-95 max-w-[calc(100vw-3rem)]"
-      :style="{
-        height: visible.length ? `${wrapH}px` : '0px',
-        transition: 'height 0.34s cubic-bezier(0.23,1,0.32,1)',
-      }"
-      @mouseenter="visible.length > 1 && (expanded = true)"
-      @mouseleave="expanded = false"
-    >
-      <AnimatePresence>
-        <ToastCard
-          v-for="(t, i) in visible"
-          :key="t.id"
-          :t="t"
-          :layout="layouts[i]!"
-          :paused="expanded"
-          :reduce="reduce"
-          @height="onHeight"
-          @close="toast.dismiss(t.id)"
-        />
-      </AnimatePresence>
-    </div>
+    <ToastStack :toasts="groups[pos]!" :position="pos" :reduce="reduce" />
   </div>
 </template>
