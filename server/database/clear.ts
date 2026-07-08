@@ -22,8 +22,6 @@ async function main() {
   await db.execute(sql.raw(`CREATE SCHEMA public;`));
 
   // Grant privileges to current role
-  // NOTE: each statement is run separately — postgres.js prepared statements
-  // cannot contain multiple semicolon-separated commands in a single query.
   await db.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO "${currentRole}";`));
   await db.execute(
     sql.raw(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${currentRole}";`),

@@ -1,8 +1,10 @@
-import { boolean, index, integer, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
-import { timestamps } from "./utils";
+import { boolean, index, integer, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { generateNanoId, pgTable, timestamps } from "./utils";
 
 export const user = pgTable("user", {
-  id: text("id").primaryKey(),
+  id: varchar("id", { length: 16 })
+    .primaryKey()
+    .$defaultFn(() => generateNanoId()),
   email: varchar("email", { length: 255 }).notNull().unique(),
   username: varchar("username", { length: 255 }).notNull(),
   password: text("password"),
@@ -14,7 +16,9 @@ export const user = pgTable("user", {
 });
 
 export const unique_code = pgTable("unique_code_request", {
-  id: text("id").primaryKey(),
+  id: varchar("id", { length: 16 })
+    .primaryKey()
+    .$defaultFn(() => generateNanoId()),
   email: text("email").notNull(),
   code: text("code").notNull(),
   expires_at: timestamp("expires_at", {
@@ -26,7 +30,7 @@ export const unique_code = pgTable("unique_code_request", {
 
 export const session = pgTable("session", {
   id: varchar("id", { length: 255 }).primaryKey(),
-  user_id: text("user_id")
+  user_id: varchar("user_id", { length: 16 })
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   expires_at: timestamp("expires_at", {
@@ -43,8 +47,10 @@ export const session = pgTable("session", {
 });
 
 export const password_reset_session = pgTable("password_reset_session", {
-  id: varchar("id", { length: 255 }).primaryKey(),
-  user_id: text("user_id")
+  id: varchar("id", { length: 16 })
+    .primaryKey()
+    .$defaultFn(() => generateNanoId()),
+  user_id: varchar("user_id", { length: 16 })
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   email: varchar("email", { length: 255 }).notNull(),
@@ -56,24 +62,28 @@ export const password_reset_session = pgTable("password_reset_session", {
 });
 
 export const totp_credential = pgTable("totp_credential", {
-  id: varchar("id", { length: 255 }).primaryKey(),
-  user_id: text("user_id")
+  id: varchar("id", { length: 16 })
+    .primaryKey()
+    .$defaultFn(() => generateNanoId()),
+  user_id: varchar("user_id", { length: 16 })
     .notNull()
     .unique()
     .references(() => user.id, { onDelete: "cascade" }),
-  key: text("key").notNull(),
+  key: varchar("key", { length: 255 }).notNull(),
   ...timestamps,
 });
 
 export const passkeys = pgTable("passkeys", {
-  id: text("id").primaryKey(),
-  user_id: text("user_id")
+  id: varchar("id", { length: 16 })
+    .primaryKey()
+    .$defaultFn(() => generateNanoId()),
+  user_id: varchar("user_id", { length: 16 })
     .notNull()
     .references(() => user.id, {
       onDelete: "cascade",
       onUpdate: "cascade",
     }),
-  public_key: text("public_key").notNull(),
+  public_key: varchar("public_key", { length: 255 }).notNull(),
   counter: integer("counter").notNull(),
   backed_up: boolean("backed_up").notNull().default(false),
   transports: text("transports").notNull(),
@@ -83,15 +93,15 @@ export const passkeys = pgTable("passkeys", {
 export const oauth_account = pgTable(
   "oauth_account",
   {
-    id: text("id").primaryKey(),
-    user_id: text("user_id")
+    id: varchar("id", { length: 16 })
+      .primaryKey()
+      .$defaultFn(() => generateNanoId()),
+    user_id: varchar("user_id", { length: 16 })
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     provider: text("provider").notNull(),
-    provider_user_id: text("provider_user_id").notNull(),
+    provider_user_id: varchar("provider_user_id", { length: 255 }).notNull(),
     ...timestamps,
   },
-  (table) => ({
-    providerUserIndex: index("provider_user_unique").on(table.provider, table.provider_user_id),
-  }),
+  (table) => [index("provider_user_unique").on(table.provider, table.provider_user_id)],
 );
