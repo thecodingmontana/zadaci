@@ -21,22 +21,29 @@ async function main() {
   await db.execute(sql.raw(`DROP SCHEMA IF EXISTS public CASCADE;`));
   await db.execute(sql.raw(`CREATE SCHEMA public;`));
 
-  // Grant privileges to current role
-  await db.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO "${currentRole}";`));
-  await db.execute(
-    sql.raw(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${currentRole}";`),
-  );
-  await db.execute(
-    sql.raw(`GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${currentRole}";`),
-  );
-  await db.execute(
-    sql.raw(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "${currentRole}";`),
-  );
-  await db.execute(
-    sql.raw(
-      `ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "${currentRole}";`,
-    ),
-  );
+  // Roles that need access: the connecting role + Supabase's API roles
+  const rolesToGrant = Array.from(new Set([currentRole, "anon", "authenticated", "service_role"]));
+
+  for (const role of rolesToGrant) {
+    console.log(`🔐 Granting privileges to role: ${role}`);
+    await db.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO "${role}";`));
+    await db.execute(sql.raw(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${role}";`));
+    await db.execute(
+      sql.raw(`GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${role}";`),
+    );
+    await db.execute(
+      sql.raw(`GRANT ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA public TO "${role}";`),
+    );
+    await db.execute(
+      sql.raw(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "${role}";`),
+    );
+    await db.execute(
+      sql.raw(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "${role}";`),
+    );
+    await db.execute(
+      sql.raw(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO "${role}";`),
+    );
+  }
 
   const migrationsDir = path.join(process.cwd(), "server", "database", "migrations");
   console.log("migrationsDir", migrationsDir);
@@ -53,7 +60,7 @@ async function main() {
     console.log(`⚠️  No migrations directory found at: ${migrationsDir}`);
   }
 
-  console.log("✅ Database schemas dropped and migrations folder cleared");
+  console.log("✅ Database schemas dropped, privileges restored, and migrations folder cleared");
 }
 
 main()
