@@ -25,6 +25,7 @@
     "db:reset": "pnpm run db:clear && pnpm run db:generate && pnpm run db:migrate"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.5.0",
     "@hugeicons/core-free-icons": "^4.2.2",
     "@hugeicons/vue": "^1.0.7",
     "@lucide/vue": "^1.23.0",
@@ -51,6 +52,7 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
+    "cnfast": "^0.0.8",
     "date-fns": "^4.4.0",
     "drizzle-orm": "1.0.0-rc.4",
     "embla-carousel-vue": "^8.6.0",

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Container, Font, Head, Hr, Html, Img, Link, Tailwind, Text } from "@vue-email/components";
-import { appLink } from "~~/shared/types";
+import { appLink } from "~~/shared/types/index";
 
 defineProps({
   user: String,
@@ -41,7 +41,7 @@ defineProps({
         corePlugins: {},
       }"
     >
-      <Container class="mx-auto max-w-[650px] bg-gray-100 p-5">
+      <Container class="mx-auto max-w-162.5 bg-gray-100 p-5">
         <Link :href="appLink" class="flex items-center justify-center">
           <Img
             src="https://res.cloudinary.com/dfa1yoc1v/image/upload/v1751271040/rrgh50r6tads0nqxnakg.png"

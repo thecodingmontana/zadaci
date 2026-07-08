@@ -62,6 +62,18 @@ export default defineNuxtConfig({
   },
   auth: {
     webAuthn: true,
+    hash: {
+      driver: "argon2",
+      argon2: {
+        variant: "id", // argon2id - resistant to both GPU cracking and side-channel attacks
+        version: 0x13, // v19, the latest and strongest version
+        iterations: 3, // OWASP baseline; raises compute cost per hash
+        memory: 65536, // 64 MiB - the actual security lever; higher = harder to brute-force at scale
+        parallelism: 4, // threads used per hash; tune to your server's CPU cores
+        saltSize: 16, // 16 bytes is standard, no need to increase
+        hashLength: 32, // 32 bytes output, standard for argon2id
+      },
+    },
   },
 
   site: {

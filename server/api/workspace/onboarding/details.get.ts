@@ -1,0 +1,39 @@
+import { and, eq } from "drizzle-orm";
+import { db, tables } from "~~/server/database/db";
+
+export default defineEventHandler(async (event) => {
+  try {
+    const session = await requireUserSession(event);
+    const user = await db.query.user.findFirst({
+      where: { id: session.user.id },
+    });
+    const [workspace] = await db
+      .select({
+        id: tables.workspace.id,
+        name: tables.workspace.name,
+        imageUrl: tables.workspace.image_url,
+        inviteCode: tables.workspace.invite_code,
+        userRole: tables.workspace_members.role,
+        createdAt: tables.workspace.created_at,
+        updatedAt: tables.workspace.updated_at,
+      })
+      .from(tables.workspace)
+      .innerJoin(
+        tables.workspace_members,
+        and(
+          eq(tables.workspace_members.workspace_id, tables.workspace.id),
+          eq(tables.workspace_members.user_id, session.user.id),
+        ),
+      );
+    return {
+      username: user ? user.username : "",
+      workspace: workspace || null,
+    };
+  } catch (error: any) {
+    const errorMessage = error.error ? error.error.message : error.message;
+    throw createError({
+      statusCode: error.statusCode ? error.statusCode : 500,
+      statusMessage: `${errorMessage}!`,
+    });
+  }
+});

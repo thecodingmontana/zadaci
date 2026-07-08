@@ -1,13 +1,11 @@
 import antfu from "@antfu/eslint-config";
 import prettier from "eslint-config-prettier";
 import withNuxt from "./.nuxt/eslint.config.mjs";
-
 const antfuConfig = await antfu({
   stylistic: false,
   vue: true,
   typescript: true,
 });
-
 export default withNuxt(
   ...antfuConfig,
   {
@@ -32,12 +30,14 @@ export default withNuxt(
             /^AGENTS\.md$/,
             /^README\.md$/,
             /^\d{14}_[a-z]+(_[a-z]+)*$/,
+            /^\[.*\]$/,
           ],
         },
       ],
       "pnpm/yaml-enforce-settings": "off",
       "no-console": "off",
       "node/prefer-global/process": "off",
+      "node/prefer-global/buffer": "off",
     },
   },
   prettier,
