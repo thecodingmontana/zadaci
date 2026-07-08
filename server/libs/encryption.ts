@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { createCipheriv, createDecipheriv } from "node:crypto";
 import { DynamicBuffer } from "@oslojs/binary";
 import { decodeBase64 } from "@oslojs/encoding";
+import { env } from "~~/env";
 
 const REQUIRED_KEY_LENGTH = 16;
 const IV_LENGTH = 16;
@@ -17,7 +18,7 @@ function validateKey(key: Uint8Array): void {
 }
 
 function getEncryptionKey(): Uint8Array {
-  const rawKey = decodeBase64(process.env.ENCRYPTION_KEY ?? "");
+  const rawKey = decodeBase64(env.ENCRYPTION_KEY ?? "");
   validateKey(rawKey);
   return rawKey;
 }

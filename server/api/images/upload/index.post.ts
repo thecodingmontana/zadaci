@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import { env } from "~~/env";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -21,9 +22,9 @@ export default defineEventHandler(async (event) => {
     }
 
     cloudinary.config({
-      cloud_name: process.env.NUXT_CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.NUXT_CLOUDINARY_CLOUD_API_KEY,
-      api_secret: process.env.NUXT_CLOUDINARY_CLOUD_API_SECRET,
+      cloud_name: env.NUXT_CLOUDINARY_CLOUD_NAME,
+      api_key: env.NUXT_CLOUDINARY_CLOUD_API_KEY,
+      api_secret: env.NUXT_CLOUDINARY_CLOUD_API_SECRET,
     });
 
     const uploadImg = await cloudinary.uploader.upload(body.image, {
