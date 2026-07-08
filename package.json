@@ -21,7 +21,8 @@
     "fix-tailwind-quotes": "python3 scripts/fix-tailwind-quotes.py",
     "fix-and-check": "pnpm run check-types && pnpm run lint:fix && pnpm run format && pnpm run fix-tailwind-quotes && pnpm run lint",
     "commit": "git add . && git cz",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "db:reset": "pnpm db:clear && pnpm db:generate && pnpm db:migrate"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.2.2",
