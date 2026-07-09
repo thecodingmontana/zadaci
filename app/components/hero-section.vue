@@ -15,7 +15,7 @@ import { MultiplayerText } from "./ui/multiplayer-text";
     <div class="relative z-10 flex w-full max-w-3xl flex-col items-center gap-6 px-4">
       <MultiplayerText
         text="Turning teams productivity into a powerful daily habit"
-        class="text-4xl leading-[1.45] font-semibold tracking-tight text-black sm:text-[3.5rem] dark:text-white"
+        class="text-3xl leading-[1.45] font-semibold tracking-tight text-black sm:text-[3.5rem] dark:text-white"
         :players="[
           { name: 'Mira', color: '#3ecf8e' },
           { name: 'Jonas', color: '#f0883e' },
@@ -24,7 +24,9 @@ import { MultiplayerText } from "./ui/multiplayer-text";
         :interval="1500"
       />
 
-      <p class="max-w-xl text-lg leading-relaxed text-balance text-black/60 dark:text-white/50">
+      <p
+        class="max-w-xl text-sm leading-relaxed text-balance text-black/60 sm:text-lg dark:text-white/50"
+      >
         Stay organized and collaborate seamlessly with Zadaci. The all-in-one project management
         platform built to get things done faster.
       </p>
