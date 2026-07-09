@@ -1,24 +1,23 @@
-<script lang="ts" setup>
-import { GitCompare } from "@lucide/vue";
-import { toast } from "~/lib/toast";
+<script setup lang="ts">
+import Hero from "~/components/hero-section.vue";
+const { loggedIn } = useUserSession();
+
+watch(
+  () => loggedIn.value,
+  (loggedIn) => {
+    if (loggedIn) {
+      // eslint-disable-next-line link-checker/valid-route, link-checker/valid-sitemap-link
+      navigateTo("/workspace/onboarding");
+    }
+  },
+  {
+    immediate: true,
+  },
+);
 </script>
+
 <template>
   <div>
-    <div>
-      Hello I know you missed us but currently i am working hard to port this project into something
-      new kindly sit back and be patient, my apologies.
-    </div>
-    <a href="mailto:thecodingmontana@gmail.com">Click to contact me.</a>
-    <button
-      @click="
-        toast.success('Changes saved', {
-          desc: 'Atlas redesign · 12 files',
-          action: { label: 'View', icon: GitCompare },
-          position: 'top-center',
-        })
-      "
-    >
-      Save
-    </button>
+    <Hero />
   </div>
 </template>

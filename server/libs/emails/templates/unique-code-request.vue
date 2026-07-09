@@ -53,7 +53,7 @@ const props = defineProps({
         <Text class="text-center text-xl font-semibold">
           The code below is only valid for 10 minutes.
         </Text>
-        <Text class="text-brand block rounded-md bg-gray-100 p-5 text-center text-3xl">
+        <Text class="block rounded-md bg-gray-100 p-5 text-center text-3xl text-brand">
           {{ props?.code }}
         </Text>
 

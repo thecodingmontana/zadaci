@@ -43,11 +43,11 @@ import { appLink } from "~~/shared/types/index";
             class="h-16 w-auto rounded-md object-contain"
           />
         </Link>
-        <Text class="text-brand text-center text-2xl font-semibold"> You're on the waitlist! </Text>
+        <Text class="text-center text-2xl font-semibold text-brand"> You're on the waitlist! </Text>
         <Container>
           <Text class="text-base leading-6 text-gray-600">
             Thanks for joining the waitlist for
-            <Link :href="appLink" class="text-brand inline font-semibold"> Zadaci </Link>, an
+            <Link :href="appLink" class="inline font-semibold text-brand"> Zadaci </Link>, an
             all-in-one project management platform built to help you and your team get things done
             faster.
           </Text>

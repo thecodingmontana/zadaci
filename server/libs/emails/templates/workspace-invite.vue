@@ -52,7 +52,7 @@ defineProps({
           />
         </Link>
         <Container>
-          <Text class="text-brand text-2xl font-semibold">
+          <Text class="text-2xl font-semibold text-brand">
             You've been invited to join {{ workspace }} Workspace on Zadaci 🎉.
           </Text>
           <Text class="text-base leading-6 text-gray-600">
@@ -93,7 +93,7 @@ defineProps({
             Looking forward to having you onboard!
           </Text>
           <Text class="text-base leading-6 text-gray-600"> Best regards, </Text>
-          <Text class="text-brand text-base leading-6"> Zadaci Team. </Text>
+          <Text class="text-base leading-6 text-brand"> Zadaci Team. </Text>
         </Container>
 
         <Hr class="mt-8 mb-3 border-gray-200" />

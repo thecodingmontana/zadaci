@@ -165,6 +165,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^21.2.0
         version: 21.2.0
+      '@iconify-json/lucide':
+        specifier: ^1.2.116
+        version: 1.2.116
       '@nuxt/eslint':
         specifier: ^1.16.0
         version: 1.16.0(@typescript-eslint/utils@8.62.1(eslint@10.6.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.39)(crossws@0.4.8(srvx@0.11.20))(esbuild@0.28.1)(eslint@10.6.0(jiti@2.7.0))(magicast@0.5.3)(oxc-parser@0.133.0)(rollup@4.62.2)(typescript@6.0.3)(vite@7.3.6(@types/node@26.1.0)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.48.0)(yaml@2.9.0))
@@ -1214,6 +1217,9 @@ packages:
 
   '@iconify-json/carbon@1.2.24':
     resolution: {integrity: sha512-b7u/eTWE3xFa7UXlRJBSEm6At1y6+F0P3imBEip5/8QeRzouxVjBf80Y2xnu1GYsFo9MYlHA0bZfxxMd5givfw==}
+
+  '@iconify-json/lucide@1.2.116':
+    resolution: {integrity: sha512-mbwPmiUXaZyLMSeQOxiTqz2fmZikD9qiGnMBiev47UUNY9uGCEgMg9iUYwaJzCtJTDtAIyK4vokfIpqsVorgSw==}
 
   '@iconify/collections@1.0.707':
     resolution: {integrity: sha512-bVwLyF2qrvOvpswa1d5W0DOImvYHoxgPuHhkqL6p4rQNTj4yk+aB6DM6PbKFQloFk/5pYb75pP3rg9yrDmrBkQ==}
@@ -9218,6 +9224,10 @@ snapshots:
   '@humanwhocodes/retry@0.4.3': {}
 
   '@iconify-json/carbon@1.2.24':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/lucide@1.2.116':
     dependencies:
       '@iconify/types': 2.0.0
 

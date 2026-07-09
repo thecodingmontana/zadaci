@@ -17,7 +17,15 @@ export default defineNuxtConfig({
       }),
     ],
     optimizeDeps: {
-      include: ["@lucide/vue", "@unhead/schema-org/vue", "@vueuse/core", "motion-v"],
+      include: [
+        "@lucide/vue",
+        "@unhead/schema-org/vue",
+        "@vueuse/core",
+        "class-variance-authority",
+        "cnfast",
+        "motion-v",
+        "reka-ui",
+      ],
     },
   },
 

@@ -64,7 +64,7 @@ defineProps({
 
         <Container v-if="supportLink">
           <Text class="text-base leading-6 text-gray-600"> Need help or have questions? </Text>
-          <Link :href="supportLink" class="text-brand text-sm"> Contact support </Link>
+          <Link :href="supportLink" class="text-sm text-brand"> Contact support </Link>
         </Container>
       </Container>
     </Tailwind>
