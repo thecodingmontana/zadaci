@@ -17,9 +17,9 @@ import { MultiplayerText } from "./ui/multiplayer-text";
         text="Turning teams productivity into a powerful daily habit"
         class="text-3xl leading-[1.45] font-semibold tracking-tight text-black sm:text-[3.5rem] dark:text-white"
         :players="[
-          { name: 'Mira', color: '#3ecf8e' },
-          { name: 'Jonas', color: '#f0883e' },
-          { name: 'Ada', color: '#22d3ee' },
+          { name: 'Olive Bishop', color: '#3ecf8e' },
+          { name: 'Blackie', color: '#f0883e' },
+          { name: 'thecodingmontana', color: '#22d3ee' },
         ]"
         :interval="1500"
       />
