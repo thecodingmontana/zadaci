@@ -20,6 +20,7 @@ import { MultiplayerText } from "./ui/multiplayer-text";
           { name: 'Olive Bishop', color: '#3ecf8e' },
           { name: 'Blackie', color: '#f0883e' },
           { name: 'thecodingmontana', color: '#22d3ee' },
+          { name: 'Ebra Kitavey', color: '#ffb703' },
         ]"
         :interval="1500"
       />
