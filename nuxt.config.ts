@@ -29,6 +29,21 @@ export default defineNuxtConfig({
         "reka-ui",
       ],
     },
+    build: {
+      rollupOptions: {
+        onwarn(warning, warn) {
+          if (
+            warning.code === "SOURCEMAP_ERROR" ||
+            warning.code === "PLUGIN_WARNING" ||
+            warning.message?.includes("#__PURE__") ||
+            warning.message?.includes("Sourcemap is likely to be incorrect")
+          ) {
+            return;
+          }
+          warn(warning);
+        },
+      },
+    },
   },
 
   modules: [
