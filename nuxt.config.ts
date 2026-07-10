@@ -24,7 +24,6 @@ export default defineNuxtConfig({
         "@unhead/schema-org/vue",
         "@vueuse/core",
         "class-variance-authority",
-        "cnfast",
         "date-fns",
         "motion-v",
         "reka-ui",
