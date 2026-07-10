@@ -2,7 +2,7 @@
 import type { ContextMenuItemEmits, ContextMenuItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaContextMenuItem, useForwardPropsEmits } from "reka-ui";
 
 const props = withDefaults(
   defineProps<
@@ -24,7 +24,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <ContextMenuItem
+  <RekaContextMenuItem
     data-slot="context-menu-item"
     :data-inset="inset ? '' : undefined"
     :data-variant="variant"
@@ -37,5 +37,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot />
-  </ContextMenuItem>
+  </RekaContextMenuItem>
 </template>

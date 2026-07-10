@@ -2,6 +2,7 @@
 import type { DrawerTitleProps } from "vaul-vue";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
+import { DrawerTitle as VaulDrawerTitle } from "vaul-vue";
 
 const props = defineProps<DrawerTitleProps & { class?: HTMLAttributes["class"] }>();
 
@@ -9,11 +10,11 @@ const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
-  <DrawerTitle
+  <VaulDrawerTitle
     data-slot="drawer-title"
     v-bind="delegatedProps"
-    :class="cn('font-semibold text-foreground', props.class)"
+    :class="cn('text-lg leading-none font-semibold tracking-tight', props.class)"
   >
     <slot />
-  </DrawerTitle>
+  </VaulDrawerTitle>
 </template>

@@ -2,7 +2,7 @@
 import type { DialogDescriptionProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaDialogDescription, useForwardProps } from "reka-ui";
 
 const props = defineProps<DialogDescriptionProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,11 +12,11 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <DialogDescription
+  <RekaDialogDescription
     data-slot="dialog-description"
     v-bind="forwardedProps"
     :class="cn('text-sm text-muted-foreground', props.class)"
   >
     <slot />
-  </DialogDescription>
+  </RekaDialogDescription>
 </template>

@@ -2,7 +2,7 @@
 import type { SelectTriggerProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaSelectTrigger, useForwardProps } from "reka-ui";
 
 const props = withDefaults(
   defineProps<
@@ -20,7 +20,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <SelectTrigger
+  <RekaSelectTrigger
     data-slot="select-trigger"
     :data-size="size"
     v-bind="forwardedProps"
@@ -35,5 +35,5 @@ const forwardedProps = useForwardProps(delegatedProps);
     <SelectIcon as-child>
       <ChevronDown class="size-4 opacity-50" />
     </SelectIcon>
-  </SelectTrigger>
+  </RekaSelectTrigger>
 </template>

@@ -2,7 +2,7 @@
 import type { ContextMenuSubTriggerProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaContextMenuSubTrigger, useForwardProps } from "reka-ui";
 
 const props = defineProps<
   ContextMenuSubTriggerProps & {
@@ -17,7 +17,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <ContextMenuSubTrigger
+  <RekaContextMenuSubTrigger
     data-slot="context-menu-sub-trigger"
     :data-inset="inset ? '' : undefined"
     v-bind="forwardedProps"
@@ -30,5 +30,5 @@ const forwardedProps = useForwardProps(delegatedProps);
   >
     <slot />
     <ChevronRight class="ml-auto" />
-  </ContextMenuSubTrigger>
+  </RekaContextMenuSubTrigger>
 </template>

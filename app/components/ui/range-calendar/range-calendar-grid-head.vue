@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import type { RangeCalendarGridHeadProps } from "reka-ui";
+import { RekaRangeCalendarGridHead } from "reka-ui";
 
 const props = defineProps<RangeCalendarGridHeadProps>();
 </script>
 
 <template>
-  <RangeCalendarGridHead data-slot="range-calendar-grid-head" v-bind="props">
+  <RekaRangeCalendarGridHead data-slot="range-calendar-grid-head" v-bind="props">
     <slot />
-  </RangeCalendarGridHead>
+  </RekaRangeCalendarGridHead>
 </template>

@@ -2,7 +2,7 @@
 import type { RangeCalendarCellProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaRangeCalendarCell, useForwardProps } from "reka-ui";
 
 const props = defineProps<RangeCalendarCellProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,7 +12,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <RangeCalendarCell
+  <RekaRangeCalendarCell
     data-slot="range-calendar-cell"
     :class="
       cn(
@@ -23,5 +23,5 @@ const forwardedProps = useForwardProps(delegatedProps);
     v-bind="forwardedProps"
   >
     <slot />
-  </RangeCalendarCell>
+  </RekaRangeCalendarCell>
 </template>

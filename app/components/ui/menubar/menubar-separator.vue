@@ -2,7 +2,7 @@
 import type { MenubarSeparatorProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaMenubarSeparator, useForwardProps } from "reka-ui";
 
 const props = defineProps<MenubarSeparatorProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,7 +12,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <MenubarSeparator
+  <RekaMenubarSeparator
     data-slot="menubar-separator"
     :class="cn('-mx-1 my-1 h-px bg-border', props.class)"
     v-bind="forwardedProps"

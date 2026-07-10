@@ -2,6 +2,7 @@
 import type { AccordionTriggerProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
+import { RekaAccordionTrigger } from "reka-ui";
 
 const props = defineProps<AccordionTriggerProps & { class?: HTMLAttributes["class"] }>();
 
@@ -10,7 +11,7 @@ const delegatedProps = reactiveOmit(props, "class");
 
 <template>
   <AccordionHeader class="flex">
-    <AccordionTrigger
+    <RekaAccordionTrigger
       data-slot="accordion-trigger"
       v-bind="delegatedProps"
       :class="
@@ -26,6 +27,6 @@ const delegatedProps = reactiveOmit(props, "class");
           class="pointer-events-none size-4 shrink-0 translate-y-0.5 text-muted-foreground transition-transform duration-200"
         />
       </slot>
-    </AccordionTrigger>
+    </RekaAccordionTrigger>
   </AccordionHeader>
 </template>

@@ -2,7 +2,7 @@
 import type { StepperTitleProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaStepperTitle, useForwardProps } from "reka-ui";
 
 const props = defineProps<StepperTitleProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,10 +12,10 @@ const forwarded = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <StepperTitle
+  <RekaStepperTitle
     v-bind="forwarded"
     :class="cn('text-md font-semibold whitespace-nowrap', props.class)"
   >
     <slot />
-  </StepperTitle>
+  </RekaStepperTitle>
 </template>

@@ -2,7 +2,7 @@
 import type { DropdownMenuSubTriggerProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaDropdownMenuSubTrigger, useForwardProps } from "reka-ui";
 
 const props = defineProps<
   DropdownMenuSubTriggerProps & {
@@ -17,7 +17,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <DropdownMenuSubTrigger
+  <RekaDropdownMenuSubTrigger
     data-slot="dropdown-menu-sub-trigger"
     v-bind="forwardedProps"
     :data-inset="inset ? '' : undefined"
@@ -30,5 +30,5 @@ const forwardedProps = useForwardProps(delegatedProps);
   >
     <slot />
     <ChevronRight class="ml-auto size-4" />
-  </DropdownMenuSubTrigger>
+  </RekaDropdownMenuSubTrigger>
 </template>

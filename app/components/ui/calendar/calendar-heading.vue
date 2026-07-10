@@ -2,7 +2,7 @@
 import type { CalendarHeadingProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaCalendarHeading, useForwardProps } from "reka-ui";
 
 const props = defineProps<CalendarHeadingProps & { class?: HTMLAttributes["class"] }>();
 
@@ -16,7 +16,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <CalendarHeading
+  <RekaCalendarHeading
     v-slot="{ headingValue }"
     data-slot="calendar-heading"
     :class="cn('text-sm font-medium', props.class)"
@@ -25,5 +25,5 @@ const forwardedProps = useForwardProps(delegatedProps);
     <slot :heading-value>
       {{ headingValue }}
     </slot>
-  </CalendarHeading>
+  </RekaCalendarHeading>
 </template>

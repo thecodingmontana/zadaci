@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue";
+import { NumberFieldInput as RekaNumberFieldInput } from "reka-ui";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -7,7 +8,7 @@ const props = defineProps<{
 </script>
 
 <template>
-  <NumberFieldInput
+  <RekaNumberFieldInput
     data-slot="input"
     :class="
       cn(

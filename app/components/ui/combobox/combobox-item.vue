@@ -2,7 +2,7 @@
 import type { ComboboxItemEmits, ComboboxItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaComboboxItem, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<ComboboxItemProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<ComboboxItemEmits>();
@@ -13,7 +13,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <ComboboxItem
+  <RekaComboboxItem
     data-slot="combobox-item"
     v-bind="forwarded"
     :class="
@@ -24,5 +24,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot />
-  </ComboboxItem>
+  </RekaComboboxItem>
 </template>

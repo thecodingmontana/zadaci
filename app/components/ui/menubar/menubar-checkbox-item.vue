@@ -2,7 +2,7 @@
 import type { MenubarCheckboxItemEmits, MenubarCheckboxItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaMenubarCheckboxItem, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<MenubarCheckboxItemProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<MenubarCheckboxItemEmits>();
@@ -13,7 +13,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <MenubarCheckboxItem
+  <RekaMenubarCheckboxItem
     data-slot="menubar-checkbox-item"
     v-bind="forwarded"
     :class="
@@ -31,5 +31,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       </MenubarItemIndicator>
     </span>
     <slot />
-  </MenubarCheckboxItem>
+  </RekaMenubarCheckboxItem>
 </template>

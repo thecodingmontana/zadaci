@@ -2,7 +2,7 @@
 import type { DialogContentEmits, DialogContentProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaDialogContent, useForwardPropsEmits } from "reka-ui";
 
 defineOptions({
   inheritAttrs: false,
@@ -29,7 +29,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 <template>
   <DialogPortal>
     <DialogOverlay />
-    <DialogContent
+    <RekaDialogContent
       data-slot="dialog-content"
       v-bind="{ ...$attrs, ...forwarded }"
       :class="
@@ -49,6 +49,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <X />
         <span class="sr-only">Close</span>
       </DialogClose>
-    </DialogContent>
+    </RekaDialogContent>
   </DialogPortal>
 </template>

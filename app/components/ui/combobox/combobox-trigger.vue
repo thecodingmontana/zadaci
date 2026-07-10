@@ -2,7 +2,7 @@
 import type { ComboboxTriggerProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaComboboxTrigger, useForwardProps } from "reka-ui";
 
 const props = defineProps<ComboboxTriggerProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,12 +12,12 @@ const forwarded = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <ComboboxTrigger
+  <RekaComboboxTrigger
     data-slot="combobox-trigger"
     v-bind="forwarded"
     :class="cn('', props.class)"
     tabindex="0"
   >
     <slot />
-  </ComboboxTrigger>
+  </RekaComboboxTrigger>
 </template>

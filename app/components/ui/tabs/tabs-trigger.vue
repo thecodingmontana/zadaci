@@ -2,7 +2,7 @@
 import type { TabsTriggerProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaTabsTrigger, useForwardProps } from "reka-ui";
 
 const props = defineProps<TabsTriggerProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,7 +12,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <TabsTrigger
+  <RekaTabsTrigger
     data-slot="tabs-trigger"
     :class="
       cn(
@@ -23,5 +23,5 @@ const forwardedProps = useForwardProps(delegatedProps);
     v-bind="forwardedProps"
   >
     <slot />
-  </TabsTrigger>
+  </RekaTabsTrigger>
 </template>

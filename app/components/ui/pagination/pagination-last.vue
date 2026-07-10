@@ -3,7 +3,7 @@ import type { PaginationLastProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import type { ButtonVariants } from "@/components/ui/button";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaPaginationLast, useForwardProps } from "reka-ui";
 
 const props = withDefaults(
   defineProps<
@@ -23,7 +23,7 @@ const forwarded = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <PaginationLast
+  <RekaPaginationLast
     data-slot="pagination-last"
     :class="cn(buttonVariants({ variant: 'ghost', size }), 'gap-1 px-2.5 sm:pr-2.5', props.class)"
     v-bind="forwarded"
@@ -32,5 +32,5 @@ const forwarded = useForwardProps(delegatedProps);
       <span class="hidden sm:block">Last</span>
       <ChevronRightIcon />
     </slot>
-  </PaginationLast>
+  </RekaPaginationLast>
 </template>

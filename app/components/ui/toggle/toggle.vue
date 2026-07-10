@@ -3,7 +3,7 @@ import type { ToggleEmits, ToggleProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import type { ToggleVariants } from ".";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaToggle, useForwardPropsEmits } from "reka-ui";
 
 const props = withDefaults(
   defineProps<
@@ -28,12 +28,12 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <Toggle
+  <RekaToggle
     v-slot="slotProps"
     data-slot="toggle"
     v-bind="forwarded"
     :class="cn(toggleVariants({ variant, size }), props.class)"
   >
     <slot v-bind="slotProps" />
-  </Toggle>
+  </RekaToggle>
 </template>

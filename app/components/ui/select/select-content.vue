@@ -2,7 +2,7 @@
 import type { SelectContentEmits, SelectContentProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaSelectContent, useForwardPropsEmits } from "reka-ui";
 
 defineOptions({
   inheritAttrs: false,
@@ -23,7 +23,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
 <template>
   <SelectPortal>
-    <SelectContent
+    <RekaSelectContent
       data-slot="select-content"
       v-bind="{ ...$attrs, ...forwarded }"
       :class="
@@ -48,6 +48,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <slot />
       </SelectViewport>
       <SelectScrollDownButton />
-    </SelectContent>
+    </RekaSelectContent>
   </SelectPortal>
 </template>

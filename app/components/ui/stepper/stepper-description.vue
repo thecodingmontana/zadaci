@@ -2,7 +2,7 @@
 import type { StepperDescriptionProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaStepperDescription, useForwardProps } from "reka-ui";
 
 const props = defineProps<StepperDescriptionProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,11 +12,11 @@ const forwarded = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <StepperDescription
+  <RekaStepperDescription
     v-slot="slotProps"
     v-bind="forwarded"
     :class="cn('text-xs text-muted-foreground', props.class)"
   >
     <slot v-bind="slotProps" />
-  </StepperDescription>
+  </RekaStepperDescription>
 </template>

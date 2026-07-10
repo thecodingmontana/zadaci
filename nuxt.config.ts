@@ -19,10 +19,13 @@ export default defineNuxtConfig({
     optimizeDeps: {
       include: [
         "@lucide/vue",
+        "@oslojs/crypto/sha2",
+        "@oslojs/encoding",
         "@unhead/schema-org/vue",
         "@vueuse/core",
         "class-variance-authority",
         "cnfast",
+        "date-fns",
         "motion-v",
         "reka-ui",
       ],
@@ -37,6 +40,7 @@ export default defineNuxtConfig({
     "@vue-dnd-kit/nuxt",
     "@nuxt/icon",
     "@nuxtjs/color-mode",
+    "evlog/nuxt",
   ],
   eslint: {
     config: {
@@ -132,6 +136,11 @@ export default defineNuxtConfig({
           route: "/_docs/swagger",
         },
       },
+    },
+  },
+  evlog: {
+    env: {
+      service: "zadaci-app",
     },
   },
 });

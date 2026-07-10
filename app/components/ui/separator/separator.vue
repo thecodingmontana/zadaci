@@ -2,6 +2,7 @@
 import type { SeparatorProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
+import { Separator as RekaSeparator } from "reka-ui";
 
 const props = withDefaults(defineProps<SeparatorProps & { class?: HTMLAttributes["class"] }>(), {
   orientation: "horizontal",
@@ -12,7 +13,7 @@ const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
-  <Separator
+  <RekaSeparator
     data-slot="separator"
     v-bind="delegatedProps"
     :class="

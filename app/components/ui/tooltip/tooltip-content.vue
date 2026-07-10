@@ -2,7 +2,7 @@
 import type { TooltipContentEmits, TooltipContentProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaTooltipContent, useForwardPropsEmits } from "reka-ui";
 
 defineOptions({
   inheritAttrs: false,
@@ -24,7 +24,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
 <template>
   <TooltipPortal>
-    <TooltipContent
+    <RekaTooltipContent
       data-slot="tooltip-content"
       v-bind="{ ...forwarded, ...$attrs }"
       :class="
@@ -39,6 +39,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       <TooltipArrow
         class="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-xs bg-foreground fill-foreground"
       />
-    </TooltipContent>
+    </RekaTooltipContent>
   </TooltipPortal>
 </template>

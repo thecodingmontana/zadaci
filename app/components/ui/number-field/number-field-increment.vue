@@ -2,7 +2,7 @@
 import type { NumberFieldIncrementProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaNumberFieldIncrement, useForwardProps } from "reka-ui";
 
 const props = defineProps<NumberFieldIncrementProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,7 +12,7 @@ const forwarded = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <NumberFieldIncrement
+  <RekaNumberFieldIncrement
     data-slot="increment"
     v-bind="forwarded"
     :class="
@@ -25,5 +25,5 @@ const forwarded = useForwardProps(delegatedProps);
     <slot>
       <Plus class="h-4 w-4" />
     </slot>
-  </NumberFieldIncrement>
+  </RekaNumberFieldIncrement>
 </template>

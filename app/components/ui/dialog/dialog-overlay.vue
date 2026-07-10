@@ -2,6 +2,7 @@
 import type { DialogOverlayProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
+import { RekaDialogOverlay } from "reka-ui";
 
 const props = defineProps<DialogOverlayProps & { class?: HTMLAttributes["class"] }>();
 
@@ -9,7 +10,7 @@ const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
-  <DialogOverlay
+  <RekaDialogOverlay
     data-slot="dialog-overlay"
     v-bind="delegatedProps"
     :class="
@@ -20,5 +21,5 @@ const delegatedProps = reactiveOmit(props, "class");
     "
   >
     <slot />
-  </DialogOverlay>
+  </RekaDialogOverlay>
 </template>

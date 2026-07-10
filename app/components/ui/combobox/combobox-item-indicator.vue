@@ -2,7 +2,7 @@
 import type { ComboboxItemIndicatorProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaComboboxItemIndicator, useForwardProps } from "reka-ui";
 
 const props = defineProps<ComboboxItemIndicatorProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,11 +12,11 @@ const forwarded = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <ComboboxItemIndicator
+  <RekaComboboxItemIndicator
     data-slot="combobox-item-indicator"
     v-bind="forwarded"
     :class="cn('ml-auto', props.class)"
   >
     <slot />
-  </ComboboxItemIndicator>
+  </RekaComboboxItemIndicator>
 </template>

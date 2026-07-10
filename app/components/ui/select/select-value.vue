@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { SelectValueProps } from "reka-ui";
+import { RekaSelectValue } from "reka-ui";
 
 const props = defineProps<SelectValueProps>();
 </script>
 
 <template>
-  <SelectValue data-slot="select-value" v-bind="props">
+  <RekaSelectValue data-slot="select-value" v-bind="props">
     <slot />
-  </SelectValue>
+  </RekaSelectValue>
 </template>

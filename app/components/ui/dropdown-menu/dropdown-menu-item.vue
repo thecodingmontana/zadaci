@@ -2,7 +2,7 @@
 import type { DropdownMenuItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaDropdownMenuItem, useForwardProps } from "reka-ui";
 
 const props = withDefaults(
   defineProps<
@@ -23,7 +23,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <DropdownMenuItem
+  <RekaDropdownMenuItem
     data-slot="dropdown-menu-item"
     :data-inset="inset ? '' : undefined"
     :data-variant="variant"
@@ -36,5 +36,5 @@ const forwardedProps = useForwardProps(delegatedProps);
     "
   >
     <slot />
-  </DropdownMenuItem>
+  </RekaDropdownMenuItem>
 </template>

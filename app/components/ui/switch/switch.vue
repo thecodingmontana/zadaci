@@ -2,7 +2,11 @@
 import type { SwitchRootEmits, SwitchRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import {
+  SwitchRoot as RekaSwitchRoot,
+  SwitchThumb as RekaSwitchThumb,
+  useForwardPropsEmits,
+} from "reka-ui";
 
 const props = defineProps<SwitchRootProps & { class?: HTMLAttributes["class"] }>();
 
@@ -14,7 +18,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <SwitchRoot
+  <RekaSwitchRoot
     v-slot="slotProps"
     data-slot="switch"
     v-bind="forwarded"
@@ -25,7 +29,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       )
     "
   >
-    <SwitchThumb
+    <RekaSwitchThumb
       data-slot="switch-thumb"
       :class="
         cn(
@@ -34,6 +38,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       "
     >
       <slot name="thumb" v-bind="slotProps" />
-    </SwitchThumb>
-  </SwitchRoot>
+    </RekaSwitchThumb>
+  </RekaSwitchRoot>
 </template>

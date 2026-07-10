@@ -2,7 +2,7 @@
 import type { ContextMenuRadioItemEmits, ContextMenuRadioItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaContextMenuRadioItem, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<ContextMenuRadioItemProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<ContextMenuRadioItemEmits>();
@@ -13,7 +13,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <ContextMenuRadioItem
+  <RekaContextMenuRadioItem
     data-slot="context-menu-radio-item"
     v-bind="forwarded"
     :class="
@@ -31,5 +31,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       </ContextMenuItemIndicator>
     </span>
     <slot />
-  </ContextMenuRadioItem>
+  </RekaContextMenuRadioItem>
 </template>

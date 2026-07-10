@@ -2,7 +2,7 @@
 import type { DropdownMenuRadioItemEmits, DropdownMenuRadioItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaDropdownMenuRadioItem, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<DropdownMenuRadioItemProps & { class?: HTMLAttributes["class"] }>();
 
@@ -14,7 +14,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <DropdownMenuRadioItem
+  <RekaDropdownMenuRadioItem
     data-slot="dropdown-menu-radio-item"
     v-bind="forwarded"
     :class="
@@ -32,5 +32,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       </DropdownMenuItemIndicator>
     </span>
     <slot />
-  </DropdownMenuRadioItem>
+  </RekaDropdownMenuRadioItem>
 </template>

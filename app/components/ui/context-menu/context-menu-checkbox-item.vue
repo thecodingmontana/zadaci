@@ -2,7 +2,7 @@
 import type { ContextMenuCheckboxItemEmits, ContextMenuCheckboxItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaContextMenuCheckboxItem, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<ContextMenuCheckboxItemProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<ContextMenuCheckboxItemEmits>();
@@ -13,7 +13,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <ContextMenuCheckboxItem
+  <RekaContextMenuCheckboxItem
     data-slot="context-menu-checkbox-item"
     v-bind="forwarded"
     :class="
@@ -31,5 +31,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       </ContextMenuItemIndicator>
     </span>
     <slot />
-  </ContextMenuCheckboxItem>
+  </RekaContextMenuCheckboxItem>
 </template>

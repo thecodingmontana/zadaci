@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MenubarSubEmits } from "reka-ui";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaMenubarSub, useForwardPropsEmits } from "reka-ui";
 
 interface MenubarSubRootProps {
   defaultOpen?: boolean;
@@ -14,7 +14,7 @@ const forwarded = useForwardPropsEmits(props, emits);
 </script>
 
 <template>
-  <MenubarSub v-slot="slotProps" data-slot="menubar-sub" v-bind="forwarded">
+  <RekaMenubarSub v-slot="slotProps" data-slot="menubar-sub" v-bind="forwarded">
     <slot v-bind="slotProps" />
-  </MenubarSub>
+  </RekaMenubarSub>
 </template>

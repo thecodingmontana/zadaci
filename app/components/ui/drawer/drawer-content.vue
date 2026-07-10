@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { DialogContentEmits, DialogContentProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaDrawerContent, useForwardPropsEmits } from "reka-ui";
 
 defineOptions({
   inheritAttrs: false,
@@ -16,7 +16,7 @@ const forwarded = useForwardPropsEmits(props, emits);
 <template>
   <DrawerPortal>
     <DrawerOverlay />
-    <DrawerContent
+    <RekaDrawerContent
       data-slot="drawer-content"
       v-bind="{ ...$attrs, ...forwarded }"
       :class="
@@ -34,6 +34,6 @@ const forwarded = useForwardPropsEmits(props, emits);
         class="mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block"
       />
       <slot />
-    </DrawerContent>
+    </RekaDrawerContent>
   </DrawerPortal>
 </template>

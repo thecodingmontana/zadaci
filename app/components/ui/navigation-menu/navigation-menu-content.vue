@@ -2,7 +2,7 @@
 import type { NavigationMenuContentEmits, NavigationMenuContentProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaNavigationMenuContent, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<NavigationMenuContentProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<NavigationMenuContentEmits>();
@@ -13,7 +13,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <NavigationMenuContent
+  <RekaNavigationMenuContent
     data-slot="navigation-menu-content"
     v-bind="forwarded"
     :class="
@@ -25,5 +25,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot />
-  </NavigationMenuContent>
+  </RekaNavigationMenuContent>
 </template>

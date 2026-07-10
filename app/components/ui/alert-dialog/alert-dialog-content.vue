@@ -2,7 +2,7 @@
 import type { AlertDialogContentEmits, AlertDialogContentProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaAlertDialogContent, useForwardPropsEmits } from "reka-ui";
 
 defineOptions({
   inheritAttrs: false,
@@ -22,7 +22,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       data-slot="alert-dialog-overlay"
       class="fixed inset-0 z-50 bg-black/80 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
     />
-    <AlertDialogContent
+    <RekaAlertDialogContent
       data-slot="alert-dialog-content"
       v-bind="{ ...$attrs, ...forwarded }"
       :class="
@@ -33,6 +33,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       "
     >
       <slot />
-    </AlertDialogContent>
+    </RekaAlertDialogContent>
   </AlertDialogPortal>
 </template>

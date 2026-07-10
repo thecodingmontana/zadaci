@@ -2,7 +2,7 @@
 import type { TagsInputInputProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaTagsInputInput, useForwardProps } from "reka-ui";
 
 const props = defineProps<TagsInputInputProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,7 +12,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <TagsInputInput
+  <RekaTagsInputInput
     v-bind="forwardedProps"
     :class="cn('min-h-5 flex-1 bg-transparent px-1 text-sm focus:outline-none', props.class)"
   />

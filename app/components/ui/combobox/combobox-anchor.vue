@@ -2,7 +2,7 @@
 import type { ComboboxAnchorProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RekaComboboxAnchor, useForwardProps } from "reka-ui";
 
 const props = defineProps<ComboboxAnchorProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,11 +12,11 @@ const forwarded = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <ComboboxAnchor
+  <RekaComboboxAnchor
     data-slot="combobox-anchor"
     v-bind="forwarded"
     :class="cn('w-[200px]', props.class)"
   >
     <slot />
-  </ComboboxAnchor>
+  </RekaComboboxAnchor>
 </template>
