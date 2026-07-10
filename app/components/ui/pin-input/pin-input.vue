@@ -1,9 +1,8 @@
-import { RekaPinInputRoot } from "reka-ui";
 <script setup lang="ts" generic="Type extends 'text' | 'number' = 'text'">
 import type { PinInputRootEmits, PinInputRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaPinInputRoot, useForwardPropsEmits } from "reka-ui";
 
 const props = withDefaults(
   defineProps<PinInputRootProps<Type> & { class?: HTMLAttributes["class"] }>(),

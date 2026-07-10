@@ -1,8 +1,8 @@
-import { RekaScrollAreaRoot } from "reka-ui";
 <script setup lang="ts">
 import type { ScrollAreaRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
+import { RekaScrollAreaRoot } from "reka-ui";
 
 const props = defineProps<ScrollAreaRootProps & { class?: HTMLAttributes["class"] }>();
 

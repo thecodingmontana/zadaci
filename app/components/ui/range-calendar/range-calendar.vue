@@ -1,9 +1,8 @@
-import { RekaRangeCalendarRoot } from "reka-ui";
 <script lang="ts" setup>
 import type { RangeCalendarRootEmits, RangeCalendarRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaRangeCalendarRoot, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<RangeCalendarRootProps & { class?: HTMLAttributes["class"] }>();
 

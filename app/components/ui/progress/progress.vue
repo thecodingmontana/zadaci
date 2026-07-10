@@ -1,8 +1,8 @@
-import { RekaProgressRoot } from "reka-ui";
 <script setup lang="ts">
 import type { ProgressRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
+import { RekaProgressRoot } from "reka-ui";
 
 const props = withDefaults(defineProps<ProgressRootProps & { class?: HTMLAttributes["class"] }>(), {
   modelValue: 0,

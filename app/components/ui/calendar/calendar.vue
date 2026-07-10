@@ -1,11 +1,10 @@
-import { RekaCalendarRoot } from "reka-ui";
 <script lang="ts" setup>
 import type { CalendarRootEmits, CalendarRootProps, DateValue } from "reka-ui";
 import type { HTMLAttributes, Ref } from "vue";
 import type { LayoutTypes } from ".";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { createReusableTemplate, reactiveOmit, useVModel } from "@vueuse/core";
-import { useDateFormatter, useForwardPropsEmits } from "reka-ui";
+import { RekaCalendarRoot, useDateFormatter, useForwardPropsEmits } from "reka-ui";
 import { createYearRange } from "reka-ui/date";
 import { computed, toRaw } from "vue";
 

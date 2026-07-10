@@ -1,7 +1,6 @@
-import { RekaComboboxRoot } from "reka-ui";
 <script setup lang="ts">
 import type { ComboboxRootEmits, ComboboxRootProps } from "reka-ui";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaComboboxRoot, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<ComboboxRootProps>();
 const emits = defineEmits<ComboboxRootEmits>();

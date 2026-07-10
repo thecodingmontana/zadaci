@@ -1,9 +1,8 @@
-import { RekaTabsRoot } from "reka-ui";
 <script setup lang="ts">
 import type { TabsRootEmits, TabsRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaTabsRoot, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<TabsRootProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<TabsRootEmits>();

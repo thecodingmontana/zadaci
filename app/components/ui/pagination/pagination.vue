@@ -1,9 +1,8 @@
-import { RekaPaginationRoot } from "reka-ui";
 <script setup lang="ts">
 import type { PaginationRootEmits, PaginationRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaPaginationRoot, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<
   PaginationRootProps & {

@@ -1,6 +1,6 @@
-import { RekaAvatarRoot } from "reka-ui";
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue";
+import { RekaAvatarRoot } from "reka-ui";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];

@@ -1,7 +1,6 @@
-import { RekaCollapsibleRoot } from "reka-ui";
 <script setup lang="ts">
 import type { CollapsibleRootEmits, CollapsibleRootProps } from "reka-ui";
-import { useForwardPropsEmits } from "reka-ui";
+import { RekaCollapsibleRoot, useForwardPropsEmits } from "reka-ui";
 
 const props = defineProps<CollapsibleRootProps>();
 const emits = defineEmits<CollapsibleRootEmits>();
