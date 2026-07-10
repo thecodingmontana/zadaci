@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import OauthProviders from "~/components/auth/oauth/oauth-providers.vue";
+import SigninForm from "~/components/auth/signin/signin-form.vue";
 import ThemeToggle from "~/components/shared/theme-toggle.vue";
 import BackgroundPattern from "~/components/svgs/background-pattern.vue";
 import Zadaci from "~/components/svgs/zadaci.vue";
@@ -31,13 +33,13 @@ import Zadaci from "~/components/svgs/zadaci.vue";
                     <p class="text-sm text-muted-foreground">Sign in to access your account.</p>
                   </div>
                 </div>
-                <!-- <SigninForm /> -->
+                <SigninForm />
                 <div class="flex items-center">
                   <hr class="w-full" />
                   <p class="mx-3 shrink-0 text-center text-sm">or</p>
                   <hr class="w-full" />
                 </div>
-                <!-- <OauthProviders /> -->
+                <OauthProviders />
                 <p class="text-center text-sm">
                   Don't have an account?
                   <NuxtLink to="/auth/signup" class="cursor-pointer underline decoration-wavy"

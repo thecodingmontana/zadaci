@@ -24,9 +24,11 @@ export default defineNuxtConfig({
         "@unhead/schema-org/vue",
         "@vueuse/core",
         "class-variance-authority",
+        "clsx",
         "date-fns",
         "motion-v",
         "reka-ui",
+        "tailwind-merge",
       ],
     },
     build: {
@@ -55,6 +57,9 @@ export default defineNuxtConfig({
     "@nuxt/icon",
     "@nuxtjs/color-mode",
     "evlog/nuxt",
+    "@pinia/nuxt",
+    "@nuxt/image",
+    "pinia-plugin-persistedstate/nuxt",
   ],
   eslint: {
     config: {
@@ -156,5 +161,15 @@ export default defineNuxtConfig({
     env: {
       service: "zadaci-app",
     },
+  },
+  pinia: {
+    storesDirs: ["./app/stores/**"],
+  },
+  piniaPluginPersistedstate: {
+    storage: "cookies",
+    cookieOptions: {
+      sameSite: "lax",
+    },
+    debug: true,
   },
 });

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Instrument+Serif:ital@0;1&display=swap");
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -7,7 +7,7 @@
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: "Inter", sans-serif;
+  --font-sans: "Bricolage Grotesque", sans-serif;
   --font-bebas-neue: "Bebas Neue", sans-serif;
   --font-instrument-serif: "Instrument Serif", serif;
   --color-brand: var(--brand);
