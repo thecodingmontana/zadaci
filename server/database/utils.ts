@@ -22,6 +22,15 @@ export const timestamps = {
     .$onUpdateFn(() => new Date()),
 };
 
+export const syncable = {
+  ...timestamps,
+  deleted_at: timestamp("deleted_at", {
+    mode: "date",
+    precision: 3,
+    withTimezone: true,
+  }),
+};
+
 const generateNanoIdCore = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
   16,

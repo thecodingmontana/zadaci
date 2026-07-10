@@ -8,6 +8,7 @@ export const relations = defineRelations(schema, (r) => ({
     workspaces: r.many.workspace_members(),
     oauth_accounts: r.many.oauth_account(),
     password_reset_sessions: r.many.password_reset_session(),
+    created_channels: r.many.channel(),
   },
   workspace: {
     owner: r.one.user({
@@ -16,6 +17,7 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     members: r.many.workspace_members(),
     projects: r.many.project(),
+    channels: r.many.channel(),
   },
   workspace_members: {
     user: r.one.user({
@@ -29,6 +31,10 @@ export const relations = defineRelations(schema, (r) => ({
     tasks: r.many.task_assignees(),
     activities: r.many.tasks_activity(),
     project_memberships: r.many.project_members(),
+    channel_memberships: r.many.channel_members(),
+    messages: r.many.message(),
+    task_comments: r.many.task_comment(),
+    project_comments: r.many.project_comment(),
   },
   project: {
     workspace: r.one.workspace({
@@ -37,6 +43,7 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     tasks: r.many.task(),
     members: r.many.project_members(),
+    comments: r.many.project_comment(),
   },
   project_members: {
     project: r.one.project({
@@ -48,6 +55,16 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.workspace_members.id,
     }),
   },
+  project_comment: {
+    project: r.one.project({
+      from: r.project_comment.project_id,
+      to: r.project.id,
+    }),
+    author: r.one.workspace_members({
+      from: r.project_comment.author_id,
+      to: r.workspace_members.id,
+    }),
+  },
   task: {
     project: r.one.project({
       from: r.task.project_id,
@@ -56,6 +73,7 @@ export const relations = defineRelations(schema, (r) => ({
     subtasks: r.many.subtasks(),
     activities: r.many.tasks_activity(),
     assignees: r.many.task_assignees(),
+    comments: r.many.task_comment(),
   },
   task_assignees: {
     task: r.one.task({
@@ -64,6 +82,16 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     member: r.one.workspace_members({
       from: r.task_assignees.member_id,
+      to: r.workspace_members.id,
+    }),
+  },
+  task_comment: {
+    task: r.one.task({
+      from: r.task_comment.task_id,
+      to: r.task.id,
+    }),
+    author: r.one.workspace_members({
+      from: r.task_comment.author_id,
       to: r.workspace_members.id,
     }),
   },
@@ -81,6 +109,45 @@ export const relations = defineRelations(schema, (r) => ({
     member: r.one.workspace_members({
       from: r.tasks_activity.changed_by,
       to: r.workspace_members.id,
+    }),
+  },
+  channel: {
+    workspace: r.one.workspace({
+      from: r.channel.workspace_id,
+      to: r.workspace.id,
+    }),
+    created_by_user: r.one.user({
+      from: r.channel.created_by,
+      to: r.user.id,
+    }),
+    members: r.many.channel_members(),
+    messages: r.many.message(),
+  },
+  channel_members: {
+    channel: r.one.channel({
+      from: r.channel_members.channel_id,
+      to: r.channel.id,
+    }),
+    member: r.one.workspace_members({
+      from: r.channel_members.member_id,
+      to: r.workspace_members.id,
+    }),
+  },
+  message: {
+    channel: r.one.channel({
+      from: r.message.channel_id,
+      to: r.channel.id,
+    }),
+    author: r.one.workspace_members({
+      from: r.message.author_id,
+      to: r.workspace_members.id,
+    }),
+    references: r.many.message_reference(),
+  },
+  message_reference: {
+    message: r.one.message({
+      from: r.message_reference.message_id,
+      to: r.message.id,
     }),
   },
   passkeys: {

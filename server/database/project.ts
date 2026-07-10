@@ -1,6 +1,6 @@
 import { boolean, index, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { PRIORITY, priority_enum, STATUS, status_enum } from "./enums";
-import { generateNanoId, pgTable, timestamps } from "./utils";
+import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
 export const project = pgTable(
@@ -17,7 +17,7 @@ export const project = pgTable(
       .notNull()
       .references(() => workspace.id, { onDelete: "cascade" }),
     due_date: timestamp("due_date", { mode: "date" }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [index("project_workspace_id_idx").on(table.workspace_id)],
 );
@@ -56,7 +56,7 @@ export const task = pgTable(
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
     due_date: timestamp("due_date", { mode: "date" }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [index("tasks_project_id_idx").on(table.project_id)],
 );
@@ -77,7 +77,7 @@ export const task_assignees = pgTable(
       mode: "date",
       precision: 3,
     }).notNull(),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("task_assignees_task_id_idx").on(table.task_id),
@@ -102,7 +102,7 @@ export const tasks_activity = pgTable(
       mode: "date",
       precision: 3,
     }).notNull(),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("tasks_activity_task_id_idx").on(table.task_id),
@@ -121,7 +121,7 @@ export const subtasks = pgTable(
       .notNull()
       .references(() => task.id, { onDelete: "cascade" }),
     is_completed: boolean("is_completed").default(false).notNull(),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [index("subtasks_task_id_idx").on(table.task_id)],
 );
