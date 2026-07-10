@@ -2,6 +2,7 @@
 import type { IAuthProvider } from "~/types";
 import { Loader2 } from "@lucide/vue";
 import { cn } from "~/lib/utils";
+import { useOauthStore } from "~/stores/use-oauth-store";
 
 const oauthStore = useOauthStore();
 

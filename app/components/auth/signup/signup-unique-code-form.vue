@@ -1,6 +1,6 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { Loader } from "@lucide/vue";
+import { ArrowRight, Loader, Mail, RotateCw } from "@lucide/vue";
 import { useForm } from "vee-validate";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { toast } from "~/lib/toast";
@@ -34,19 +34,30 @@ const onSendUniqueCode = sendUniqueCodeForm.handleSubmit(async (values) => {
       },
     });
 
-    props?.onResetForm({
+    toast.success(res.message ?? "Verification code sent", {
+      desc: "Check your inbox for the code",
+      position: "top-center",
+      action: {
+        label: "Continue",
+        icon: ArrowRight,
+      },
+    });
+
+    props.onResetForm({
       mail: values.email,
       codeSent: true,
     });
-
-    return toast.success(res.message, {
-      position: "top-center",
-    });
   } catch (error: any) {
-    const errorMessage = error.response ? error.response._data.message : error.message;
+    const errorMessage = error?.response ? error.response._data?.message : error?.message;
 
-    toast.error(errorMessage, {
+    toast.error(errorMessage ?? "Couldn't send the code, please try again.", {
+      desc: "Check your email and try again",
       position: "top-center",
+      action: {
+        label: "Retry",
+        icon: RotateCw,
+        onClick: onSendUniqueCode,
+      },
     });
   } finally {
     isSendingCode.value = false;
@@ -58,7 +69,10 @@ const onSendUniqueCode = sendUniqueCodeForm.handleSubmit(async (values) => {
   <form class="mt-5 space-y-4" @submit.prevent="onSendUniqueCode">
     <FormField v-slot="{ componentField }" name="email">
       <FormItem class="space-y-1">
-        <FormLabel class="text-sm font-medium"> Email </FormLabel>
+        <FormLabel class="flex items-center gap-1.5 text-sm font-medium">
+          <Mail class="size-4 text-black/50 dark:text-white/50" />
+          Email
+        </FormLabel>
         <FormControl>
           <div
             :class="
@@ -77,7 +91,11 @@ const onSendUniqueCode = sendUniqueCodeForm.handleSubmit(async (values) => {
           </div>
         </FormControl>
         <div class="flex items-center gap-1 px-0.5 text-xs text-red-600">
-          <Icon v-if="sendUniqueCodeForm.errors.value.email" name="lucide-circle-alert" />
+          <Icon
+            v-if="sendUniqueCodeForm.errors.value.email"
+            name="lucide:circle-alert"
+            class="size-5"
+          />
           <FormMessage />
         </div>
       </FormItem>
@@ -108,6 +126,7 @@ const onSendUniqueCode = sendUniqueCodeForm.handleSubmit(async (values) => {
       "
     >
       <Loader v-if="isSendingCode" class="size-5 animate-spin" />
+      <ArrowRight v-else class="size-4" />
       Continue
     </button>
   </form>

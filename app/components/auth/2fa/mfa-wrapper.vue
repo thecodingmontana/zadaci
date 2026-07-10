@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
-import AutheticatorApps from "./AutheticatorApps.vue";
-import PasskeyAuthentification from "./PasskeyAuthentification.vue";
+import { useModalStore } from "~/stores/use-modal-store.js";
+import AutheticatorApps from "./autheticator-apps.vue";
+import PasskeyAuthentification from "./passkey-authentification.vue";
 
 const modalStore = useModalStore();
 const { user } = useUserSession();

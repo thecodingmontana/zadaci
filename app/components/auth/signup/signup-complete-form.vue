@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Loader } from "@lucide/vue";
+import { ArrowRight, Loader, Mail, RotateCw } from "@lucide/vue";
 import { useForm } from "vee-validate";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { toast } from "~/lib/toast";
@@ -22,9 +22,9 @@ const form = useForm({
   validationSchema: signinFormSchema,
 });
 
-const setIsResendingCode = (payload: boolean) => {
+function setIsResendingCode(payload: boolean) {
   isResendCode.value = payload;
-};
+}
 
 const onSubmit = form.handleSubmit(async (values) => {
   try {
@@ -38,23 +38,34 @@ const onSubmit = form.handleSubmit(async (values) => {
       },
     });
 
-    props?.onResetForm({
-      mail: "",
-      codeSent: false,
+    toast.success(res.message ?? "Account created successfully", {
+      desc: "Redirecting you to onboarding",
+      position: "top-center",
+      action: {
+        label: "Continue",
+        icon: ArrowRight,
+      },
     });
 
-    toast.success(res.message, {
-      position: "top-center",
+    props.onResetForm({
+      mail: "",
+      codeSent: false,
     });
 
     await refreshSession();
     // eslint-disable-next-line link-checker/valid-route, link-checker/valid-sitemap-link
     return navigateTo("/workspace/onboarding");
   } catch (error: any) {
-    const errorMessage = error.response ? error.response._data.message : error.message;
+    const errorMessage = error?.response ? error.response._data?.message : error?.message;
 
-    toast.error(errorMessage, {
+    toast.error(errorMessage ?? "Sign up failed, please try again.", {
+      desc: "Check your code and try again",
       position: "top-center",
+      action: {
+        label: "Retry",
+        icon: RotateCw,
+        onClick: onSubmit,
+      },
     });
   } finally {
     isSigningUp.value = false;
@@ -62,7 +73,7 @@ const onSubmit = form.handleSubmit(async (values) => {
 });
 
 function onClear() {
-  props?.onResetForm({
+  props.onResetForm({
     mail: "",
     codeSent: false,
   });
@@ -82,7 +93,10 @@ function onClear() {
   <form class="space-y-2" @submit.prevent="onSubmit">
     <div class="space-y-1">
       <div class="space-y-1">
-        <label class="block text-sm font-medium">Email</label>
+        <label class="flex items-center gap-1.5 text-sm font-medium">
+          <Mail class="size-4 text-black/50 dark:text-white/50" />
+          Email
+        </label>
         <div
           :class="
             cn(
@@ -99,27 +113,22 @@ function onClear() {
             disabled
             class="block h-11.5 w-full rounded-md border-0 bg-transparent px-3 py-2 text-sm focus:outline-none"
           />
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="absolute right-3 size-5 rounded-full bg-background hover:cursor-pointer"
+          <button
+            type="button"
+            aria-label="Clear email"
+            class="absolute right-3 grid size-6 place-items-center rounded-full bg-background text-black/50 transition hover:cursor-pointer hover:text-black/80 dark:text-white/50 dark:hover:text-white/80"
             @click="onClear"
           >
-            <circle cx="12" cy="12" r="10" />
-            <path d="m15 9-6 6" />
-            <path d="m9 9 6 6" />
-          </svg>
+            <Icon name="lucide:x-circle" class="size-5" />
+          </button>
         </div>
       </div>
       <FormField v-slot="{ componentField }" name="code">
         <FormItem>
-          <FormLabel class="text-sm font-medium"> Code </FormLabel>
+          <FormLabel class="flex items-center gap-1.5 text-sm font-medium">
+            <Icon name="lucide:key-round" class="size-4 text-black/50 dark:text-white/50" />
+            Code
+          </FormLabel>
           <FormControl>
             <div :class="cn('rounded-md border', form.errors.value.code && 'border-red-300')">
               <input
@@ -133,16 +142,16 @@ function onClear() {
             </div>
           </FormControl>
           <div class="flex items-center gap-1 px-0.5 text-xs text-red-600">
-            <Icon v-if="form.errors.value.code" name="lucide lucide-circle-alert" />
+            <Icon v-if="form.errors.value.code" name="lucide:circle-alert" class="size-5" />
             <FormMessage />
           </div>
           <div class="flex w-full items-center justify-between pt-1">
             <p class="flex items-center gap-1 text-xs font-medium text-green-700">
-              <Icon name="lucide lucide-circle-check" />
+              <Icon name="lucide:circle-check" class="size-3.5" />
               Paste the code sent to your email
             </p>
             <ResendCodeButton
-              :email="props?.email"
+              :email="props.email"
               :api-url="apiUrl"
               :set-is-resending-code="setIsResendingCode"
               :is-resend-code="isResendCode"
@@ -172,6 +181,7 @@ function onClear() {
       "
     >
       <Loader v-if="isSigningUp" class="size-5 animate-spin" />
+      <ArrowRight v-else class="size-4" />
       Continue
     </button>
   </form>

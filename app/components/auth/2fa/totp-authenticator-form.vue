@@ -12,7 +12,6 @@ const props = defineProps<{
 }>();
 
 const { fetch: fetchUserSession } = useUserSession();
-
 const isTwoFactorSetup = ref(false);
 
 const form = useForm({
@@ -22,7 +21,6 @@ const form = useForm({
 const onSubmit = form.handleSubmit(async (values) => {
   try {
     isTwoFactorSetup.value = true;
-
     const res = await $fetch("/api/auth/user/2fa/totp/verify", {
       method: "POST",
       body: {
@@ -30,19 +28,18 @@ const onSubmit = form.handleSubmit(async (values) => {
       },
     });
 
-    onCancel();
-
-    toast.success(res.message, {
+    toast.success(res.message ?? "Two-factor authentication verified", {
+      desc: "Redirecting you to onboarding",
       position: "top-center",
     });
 
+    onCancel();
     await fetchUserSession();
-
-    return navigateTo(`/workspace/onboarding`);
+    return navigateTo("/workspace/onboarding");
   } catch (error: any) {
-    const errorMessage = error.response ? error.response._data.statusMessage : error.message;
-
-    toast.error(errorMessage, {
+    const errorMessage = error?.response ? error.response._data?.statusMessage : error?.message;
+    toast.error(errorMessage ?? "Verification failed, please try again.", {
+      desc: "Double-check the code and try again",
       position: "top-center",
     });
   } finally {
@@ -52,7 +49,7 @@ const onSubmit = form.handleSubmit(async (values) => {
 
 function onCancel() {
   form.resetForm();
-  props?.onClose();
+  props.onClose();
 }
 </script>
 
@@ -62,7 +59,8 @@ function onCancel() {
       <FormField v-slot="{ componentField, value }" name="code">
         <FormItem>
           <div class="space-y-2">
-            <FormLabel class="flex items-center justify-center text-base">
+            <FormLabel class="flex items-center justify-center gap-1.5 text-base">
+              <Icon name="lucide:shield-check" class="size-4 text-black/50 dark:text-white/50" />
               Enter the generated code for verification
             </FormLabel>
             <FormControl>
@@ -86,7 +84,7 @@ function onCancel() {
               </PinInput>
             </FormControl>
             <div class="flex items-center justify-center gap-1 px-0.5 text-xs text-red-600">
-              <Icon v-if="form.errors.value.code" name="lucide-circle-alert" />
+              <Icon v-if="form.errors.value.code" name="lucide:circle-alert" class="size-3.5" />
               <FormMessage />
             </div>
           </div>
@@ -100,17 +98,20 @@ function onCancel() {
         class="w-full cursor-pointer gap-2 bg-brand hover:bg-brand-secondary"
       >
         <Loader v-if="isTwoFactorSetup" class="size-5 animate-spin" />
+        <Icon v-else name="lucide:key-round" class="size-5" />
         Authenticate
       </Button>
       <Button
         type="button"
-        class="w-full cursor-pointer"
+        class="w-full cursor-pointer gap-2"
         variant="outline"
         :disabled="isTwoFactorSetup"
         @click="onCancel"
       >
+        <Icon name="lucide:x" class="size-4" />
         Cancel
       </Button>
     </div>
   </form>
 </template>
+:w

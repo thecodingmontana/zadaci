@@ -84,6 +84,7 @@
     "@antfu/eslint-config": "^9.1.0",
     "@commitlint/cli": "^21.2.0",
     "@commitlint/config-conventional": "^21.2.0",
+    "@iconify-json/devicon": "^1.2.62",
     "@iconify-json/lucide": "^1.2.116",
     "@nuxt/eslint": "^1.16.0",
     "@tailwindcss/vite": "^4.3.2",

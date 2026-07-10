@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from "~/components/ui/button";
+import { useModalStore } from "~/stores/use-modal-store";
 
 const modalStore = useModalStore();
 

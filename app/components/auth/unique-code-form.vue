@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { AlertTriangle, ArrowRight, Mail } from "@lucide/vue";
 import { useForm } from "vee-validate";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { toast } from "~/lib/toast";
@@ -15,14 +16,19 @@ const sendUniqueCodeForm = useForm({
 
 const onSendUniqueCode = sendUniqueCodeForm.handleSubmit((values) => {
   try {
-    props?.onResetForm({
+    props.onResetForm({
       mail: values.email,
       codeSent: true,
     });
   } catch (error) {
     if (error instanceof Error) {
       toast.error(error.message, {
+        desc: "Something went wrong, please try again",
         position: "top-center",
+        action: {
+          label: "Retry",
+          icon: AlertTriangle,
+        },
       });
     }
   }
@@ -33,7 +39,10 @@ const onSendUniqueCode = sendUniqueCodeForm.handleSubmit((values) => {
   <form class="mt-5 space-y-4" @submit.prevent="onSendUniqueCode">
     <FormField v-slot="{ componentField }" name="email">
       <FormItem class="space-y-1">
-        <FormLabel class="text-sm font-medium"> Email </FormLabel>
+        <FormLabel class="flex items-center gap-1.5 text-sm font-medium">
+          <Mail class="size-4 text-black/50 dark:text-white/50" />
+          Email
+        </FormLabel>
         <FormControl>
           <div
             :class="
@@ -49,7 +58,11 @@ const onSendUniqueCode = sendUniqueCodeForm.handleSubmit((values) => {
           </div>
         </FormControl>
         <div class="flex items-center gap-1 px-0.5 text-xs text-red-600">
-          <Icon v-if="sendUniqueCodeForm.errors.value.email" name="lucide-circle-alert" />
+          <Icon
+            v-if="sendUniqueCodeForm.errors.value.email"
+            name="lucide:circle-alert"
+            class="size-5"
+          />
           <FormMessage />
         </div>
       </FormItem>
@@ -76,6 +89,7 @@ const onSendUniqueCode = sendUniqueCodeForm.handleSubmit((values) => {
       "
     >
       Continue
+      <ArrowRight class="size-4" />
     </button>
   </form>
 </template>
