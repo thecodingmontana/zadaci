@@ -1,3 +1,4 @@
+import { RekaCalendarRoot } from "reka-ui";
 <script lang="ts" setup>
 import type { CalendarRootEmits, CalendarRootProps, DateValue } from "reka-ui";
 import type { HTMLAttributes, Ref } from "vue";
@@ -123,7 +124,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     </div>
   </DefineYearTemplate>
 
-  <CalendarRoot
+  <RekaCalendarRoot
     v-slot="{ grid, weekDays, date }"
     v-bind="forwarded"
     v-model:placeholder="placeholder"
@@ -192,5 +193,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         </CalendarGridBody>
       </CalendarGrid>
     </div>
-  </CalendarRoot>
+  </RekaCalendarRoot>
 </template>

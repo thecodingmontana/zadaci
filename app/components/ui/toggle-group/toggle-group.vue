@@ -1,3 +1,4 @@
+import { RekaToggleGroupRoot } from "reka-ui";
 <script setup lang="ts">
 import type { VariantProps } from "class-variance-authority";
 import type { ToggleGroupRootEmits, ToggleGroupRootProps } from "reka-ui";
@@ -37,7 +38,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <ToggleGroupRoot
+  <RekaToggleGroupRoot
     v-slot="slotProps"
     data-slot="toggle-group"
     :data-size="size"
@@ -55,5 +56,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot v-bind="slotProps" />
-  </ToggleGroupRoot>
+  </RekaToggleGroupRoot>
 </template>

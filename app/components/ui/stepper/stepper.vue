@@ -1,3 +1,4 @@
+import { RekaStepperRoot } from "reka-ui";
 <script lang="ts" setup>
 import type { StepperRootEmits, StepperRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -13,7 +14,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <StepperRoot v-slot="slotProps" :class="cn('flex gap-2', props.class)" v-bind="forwarded">
+  <RekaStepperRoot v-slot="slotProps" :class="cn('flex gap-2', props.class)" v-bind="forwarded">
     <slot v-bind="slotProps" />
-  </StepperRoot>
+  </RekaStepperRoot>
 </template>

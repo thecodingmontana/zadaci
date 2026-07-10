@@ -1,3 +1,4 @@
+import { RekaRangeCalendarRoot } from "reka-ui";
 <script lang="ts" setup>
 import type { RangeCalendarRootEmits, RangeCalendarRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -14,7 +15,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <RangeCalendarRoot
+  <RekaRangeCalendarRoot
     v-slot="{ grid, weekDays }"
     data-slot="range-calendar"
     :class="cn('p-3', props.class)"
@@ -55,5 +56,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         </RangeCalendarGridBody>
       </RangeCalendarGrid>
     </div>
-  </RangeCalendarRoot>
+  </RekaRangeCalendarRoot>
 </template>

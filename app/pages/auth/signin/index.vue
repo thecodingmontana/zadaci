@@ -3,7 +3,6 @@ import ThemeToggle from "~/components/shared/theme-toggle.vue";
 import BackgroundPattern from "~/components/svgs/background-pattern.vue";
 import Zadaci from "~/components/svgs/zadaci.vue";
 </script>
-
 <template>
   <div class="relative flex h-screen w-full flex-col overflow-hidden">
     <div class="relative size-full overflow-hidden">
@@ -19,7 +18,7 @@ import Zadaci from "~/components/svgs/zadaci.vue";
               <ThemeToggle />
             </div>
             <div
-              class="container mx-auto flex h-[100vh-60px] max-w-lg grow flex-col justify-center px-10 transition-all lg:max-w-md lg:px-5"
+              class="container mx-auto flex h-[calc(100vh-60px)] max-w-lg grow flex-col justify-center px-10 transition-all lg:max-w-md lg:px-5"
             >
               <div class="relative flex flex-col space-y-3">
                 <div class="flex flex-col items-center gap-y-4">

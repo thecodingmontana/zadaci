@@ -1,3 +1,4 @@
+import { RekaNavigationMenuRoot } from "reka-ui";
 <script setup lang="ts">
 import type { NavigationMenuRootEmits, NavigationMenuRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -23,7 +24,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <NavigationMenuRoot
+  <RekaNavigationMenuRoot
     v-slot="slotProps"
     data-slot="navigation-menu"
     :data-viewport="viewport"
@@ -37,5 +38,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
   >
     <slot v-bind="slotProps" />
     <NavigationMenuViewport v-if="viewport" />
-  </NavigationMenuRoot>
+  </RekaNavigationMenuRoot>
 </template>

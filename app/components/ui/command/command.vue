@@ -1,3 +1,4 @@
+import { RekaListboxRoot } from "reka-ui";
 <script setup lang="ts">
 import type { ListboxRootEmits, ListboxRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -78,7 +79,7 @@ provideCommandContext({
 </script>
 
 <template>
-  <ListboxRoot
+  <RekaListboxRoot
     data-slot="command"
     v-bind="forwarded"
     :class="
@@ -89,5 +90,5 @@ provideCommandContext({
     "
   >
     <slot />
-  </ListboxRoot>
+  </RekaListboxRoot>
 </template>

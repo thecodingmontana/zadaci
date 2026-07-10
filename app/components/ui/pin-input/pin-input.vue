@@ -1,3 +1,4 @@
+import { RekaPinInputRoot } from "reka-ui";
 <script setup lang="ts" generic="Type extends 'text' | 'number' = 'text'">
 import type { PinInputRootEmits, PinInputRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -18,7 +19,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <PinInputRoot
+  <RekaPinInputRoot
     :otp="props.otp"
     data-slot="pin-input"
     v-bind="forwarded"
@@ -27,5 +28,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot />
-  </PinInputRoot>
+  </RekaPinInputRoot>
 </template>

@@ -1,3 +1,4 @@
+import { RekaAvatarRoot } from "reka-ui";
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue";
 
@@ -7,10 +8,10 @@ const props = defineProps<{
 </script>
 
 <template>
-  <AvatarRoot
+  <RekaAvatarRoot
     data-slot="avatar"
     :class="cn('relative flex size-8 shrink-0 overflow-hidden rounded-full', props.class)"
   >
     <slot />
-  </AvatarRoot>
+  </RekaAvatarRoot>
 </template>

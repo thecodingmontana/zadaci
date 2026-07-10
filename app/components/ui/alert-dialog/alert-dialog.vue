@@ -1,3 +1,4 @@
+import { RekaAlertDialogRoot } from "reka-ui";
 <script setup lang="ts">
 import type { AlertDialogEmits, AlertDialogProps } from "reka-ui";
 import { useForwardPropsEmits } from "reka-ui";
@@ -9,7 +10,7 @@ const forwarded = useForwardPropsEmits(props, emits);
 </script>
 
 <template>
-  <AlertDialogRoot v-slot="slotProps" data-slot="alert-dialog" v-bind="forwarded">
+  <RekaAlertDialogRoot v-slot="slotProps" data-slot="alert-dialog" v-bind="forwarded">
     <slot v-bind="slotProps" />
-  </AlertDialogRoot>
+  </RekaAlertDialogRoot>
 </template>

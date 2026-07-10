@@ -1,3 +1,4 @@
+import { RekaTabsRoot } from "reka-ui";
 <script setup lang="ts">
 import type { TabsRootEmits, TabsRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -13,12 +14,12 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <TabsRoot
+  <RekaTabsRoot
     v-slot="slotProps"
     data-slot="tabs"
     v-bind="forwarded"
     :class="cn('flex flex-col gap-2', props.class)"
   >
     <slot v-bind="slotProps" />
-  </TabsRoot>
+  </RekaTabsRoot>
 </template>

@@ -2,6 +2,7 @@
 import type { PrimitiveProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import type { ItemVariants } from ".";
+import { Primitive as RekaPrimitive } from "reka-ui";
 
 const props = withDefaults(
   defineProps<
@@ -18,7 +19,7 @@ const props = withDefaults(
 </script>
 
 <template>
-  <Primitive
+  <RekaPrimitive
     data-slot="item"
     :data-variant="variant"
     :data-size="size"
@@ -27,5 +28,5 @@ const props = withDefaults(
     :class="cn(itemVariants({ variant, size }), props.class)"
   >
     <slot />
-  </Primitive>
+  </RekaPrimitive>
 </template>

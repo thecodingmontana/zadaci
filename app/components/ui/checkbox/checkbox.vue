@@ -1,3 +1,4 @@
+import { RekaCheckboxRoot } from "reka-ui";
 <script setup lang="ts">
 import type { CheckboxRootEmits, CheckboxRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -13,7 +14,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <CheckboxRoot
+  <RekaCheckboxRoot
     v-slot="slotProps"
     data-slot="checkbox"
     v-bind="forwarded"
@@ -32,5 +33,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <Check class="size-3.5" />
       </slot>
     </CheckboxIndicator>
-  </CheckboxRoot>
+  </RekaCheckboxRoot>
 </template>

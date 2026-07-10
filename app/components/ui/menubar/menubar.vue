@@ -1,3 +1,4 @@
+import { RekaMenubarRoot } from "reka-ui";
 <script setup lang="ts">
 import type { MenubarRootEmits, MenubarRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -13,7 +14,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <MenubarRoot
+  <RekaMenubarRoot
     v-slot="slotProps"
     data-slot="menubar"
     v-bind="forwarded"
@@ -22,5 +23,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot v-bind="slotProps" />
-  </MenubarRoot>
+  </RekaMenubarRoot>
 </template>

@@ -1,3 +1,4 @@
+import { RekaTagsInputRoot } from "reka-ui";
 <script setup lang="ts">
 import type { TagsInputRootEmits, TagsInputRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -13,7 +14,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <TagsInputRoot
+  <RekaTagsInputRoot
     v-slot="slotProps"
     v-bind="forwarded"
     :class="
@@ -26,5 +27,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot v-bind="slotProps" />
-  </TagsInputRoot>
+  </RekaTagsInputRoot>
 </template>

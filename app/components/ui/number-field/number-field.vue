@@ -1,3 +1,4 @@
+import { RekaNumberFieldRoot } from "reka-ui";
 <script setup lang="ts">
 import type { NumberFieldRootEmits, NumberFieldRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
@@ -13,7 +14,11 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <NumberFieldRoot v-slot="slotProps" v-bind="forwarded" :class="cn('grid gap-1.5', props.class)">
+  <RekaNumberFieldRoot
+    v-slot="slotProps"
+    v-bind="forwarded"
+    :class="cn('grid gap-1.5', props.class)"
+  >
     <slot v-bind="slotProps" />
-  </NumberFieldRoot>
+  </RekaNumberFieldRoot>
 </template>
