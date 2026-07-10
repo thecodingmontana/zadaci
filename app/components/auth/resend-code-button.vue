@@ -1,6 +1,6 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { toast } from "vue-sonner";
+import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
 const props = defineProps<{

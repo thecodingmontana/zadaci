@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { IAuthProvider } from "~/types";
-import { Loader2 } from "lucide-vue-next";
+import { Loader2 } from "@lucide/vue";
 import { cn } from "~/lib/utils";
 
 const oauthStore = useOauthStore();

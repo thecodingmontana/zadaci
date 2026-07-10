@@ -3,7 +3,7 @@ import type { HTMLAttributes } from "vue";
 import { ErrorMessage } from "vee-validate";
 import { toValue } from "vue";
 import { cn } from "@/lib/utils";
-import { useFormField } from "./useFormField";
+import { useFormField } from "./use-form-field";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];

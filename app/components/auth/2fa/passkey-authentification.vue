@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Loader2 } from "lucide-vue-next";
-import { toast } from "vue-sonner";
+import { Loader2 } from "@lucide/vue";
 import { Button } from "~/components/ui/button";
+import { toast } from "~/lib/toast";
 
 const props = defineProps<{
   onSetIsAuthenticating: (payload: boolean) => void;

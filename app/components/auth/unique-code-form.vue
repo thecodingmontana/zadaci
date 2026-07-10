@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useForm } from "vee-validate";
-import { toast } from "vue-sonner";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
+import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 import { sendUniqueCodeSchema } from "~/types";
 

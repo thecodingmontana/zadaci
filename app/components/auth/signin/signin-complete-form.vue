@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { AlertCircleIcon, Loader } from "lucide-vue-next";
+import { AlertCircle, Loader } from "@lucide/vue";
 import { useForm } from "vee-validate";
-import { toast } from "vue-sonner";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
+import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 import { signinFormSchema } from "~/types";
 import ResendCodeButton from "../resend-code-button.vue";
@@ -132,7 +132,7 @@ function onClear() {
             </div>
           </FormControl>
           <div class="flex items-center gap-1 px-0.5 text-xs text-red-600">
-            <AlertCircleIcon v-if="form.errors.value.code" class="size-5" />
+            <AlertCircle v-if="form.errors.value.code" class="size-5" />
             <FormMessage />
           </div>
           <div class="flex w-full items-center justify-between pt-1">

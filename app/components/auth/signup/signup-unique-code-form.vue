@@ -1,9 +1,9 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { Loader } from "lucide-vue-next";
+import { Loader } from "@lucide/vue";
 import { useForm } from "vee-validate";
-import { toast } from "vue-sonner";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
+import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 import { sendUniqueCodeSchema } from "~/types";
 

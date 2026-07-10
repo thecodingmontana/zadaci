@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { Slot } from "reka-ui";
-import { useFormField } from "./useFormField";
+import { useFormField } from "./use-form-field";
 
 const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
 </script>
