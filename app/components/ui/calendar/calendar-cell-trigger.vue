@@ -2,7 +2,9 @@
 import type { CalendarCellTriggerProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaCalendarCellTrigger, useForwardProps } from "reka-ui";
+import { CalendarCellTrigger, useForwardProps } from "reka-ui";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const props = withDefaults(
   defineProps<CalendarCellTriggerProps & { class?: HTMLAttributes["class"] }>(),
@@ -17,7 +19,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <RekaCalendarCellTrigger
+  <CalendarCellTrigger
     data-slot="calendar-cell-trigger"
     :class="
       cn(
@@ -38,5 +40,5 @@ const forwardedProps = useForwardProps(delegatedProps);
     v-bind="forwardedProps"
   >
     <slot />
-  </RekaCalendarCellTrigger>
+  </CalendarCellTrigger>
 </template>

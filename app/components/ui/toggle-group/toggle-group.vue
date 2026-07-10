@@ -4,8 +4,9 @@ import type { ToggleGroupRootEmits, ToggleGroupRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import type { toggleVariants } from "@/components/ui/toggle";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaToggleGroupRoot, useForwardPropsEmits } from "reka-ui";
+import { ToggleGroupRoot, useForwardPropsEmits } from "reka-ui";
 import { provide } from "vue";
+import { cn } from "@/lib/utils";
 
 type ToggleGroupVariants = VariantProps<typeof toggleVariants>;
 
@@ -32,12 +33,11 @@ provide("toggleGroup", {
 });
 
 const delegatedProps = reactiveOmit(props, "class", "size", "variant");
-
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <RekaToggleGroupRoot
+  <ToggleGroupRoot
     v-slot="slotProps"
     data-slot="toggle-group"
     :data-size="size"
@@ -55,5 +55,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot v-bind="slotProps" />
-  </RekaToggleGroupRoot>
+  </ToggleGroupRoot>
 </template>

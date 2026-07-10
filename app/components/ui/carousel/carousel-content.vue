@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WithClassAsProps } from "./interface";
-import { useCarousel } from "./use-carousel";
+import { cn } from "@/lib/utils";
+import { useCarousel } from "./useCarousel";
 
 defineOptions({
   inheritAttrs: false,
@@ -8,13 +9,13 @@ defineOptions({
 
 const props = defineProps<WithClassAsProps>();
 
-const { carouselRef: _carouselRef, orientation: _orientation } = useCarousel();
+const { carouselRef, orientation } = useCarousel();
 </script>
 
 <template>
-  <div :ref="_carouselRef" data-slot="carousel-content" class="overflow-hidden">
+  <div ref="carouselRef" data-slot="carousel-content" class="overflow-hidden">
     <div
-      :class="cn('flex', _orientation === 'horizontal' ? '-ml-4' : '-mt-4 flex-col', props.class)"
+      :class="cn('flex', orientation === 'horizontal' ? '-ml-4' : '-mt-4 flex-col', props.class)"
       v-bind="$attrs"
     >
       <slot />

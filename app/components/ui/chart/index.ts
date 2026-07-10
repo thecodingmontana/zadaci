@@ -20,8 +20,8 @@ export type ChartConfig = {
 };
 
 interface ChartContextProps {
-  config: Ref<ChartConfig>;
   id: string;
+  config: Ref<ChartConfig>;
 }
 
 export const [useChart, provideChartContext] = createContext<ChartContextProps>("Chart");

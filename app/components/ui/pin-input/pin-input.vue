@@ -2,7 +2,8 @@
 import type { PinInputRootEmits, PinInputRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaPinInputRoot, useForwardPropsEmits } from "reka-ui";
+import { PinInputRoot, useForwardPropsEmits } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = withDefaults(
   defineProps<PinInputRootProps<Type> & { class?: HTMLAttributes["class"] }>(),
@@ -18,7 +19,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <RekaPinInputRoot
+  <PinInputRoot
     :otp="props.otp"
     data-slot="pin-input"
     v-bind="forwarded"
@@ -27,5 +28,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot />
-  </RekaPinInputRoot>
+  </PinInputRoot>
 </template>

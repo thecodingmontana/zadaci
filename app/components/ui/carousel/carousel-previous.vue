@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { WithClassAsProps } from "./interface";
 import type { ButtonVariants } from "@/components/ui/button";
-import { useCarousel } from "./use-carousel";
+import { ArrowLeft } from "@lucide/vue";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useCarousel } from "./useCarousel";
 
 const props = withDefaults(
   defineProps<
@@ -16,21 +19,17 @@ const props = withDefaults(
   },
 );
 
-const {
-  orientation: _orientation,
-  canScrollPrev: _canScrollPrev,
-  scrollPrev: _scrollPrev,
-} = useCarousel();
+const { orientation, canScrollPrev, scrollPrev } = useCarousel();
 </script>
 
 <template>
   <Button
     data-slot="carousel-previous"
-    :disabled="!_canScrollPrev"
+    :disabled="!canScrollPrev"
     :class="
       cn(
         'absolute size-8 rounded-full',
-        _orientation === 'horizontal'
+        orientation === 'horizontal'
           ? 'top-1/2 -left-12 -translate-y-1/2'
           : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
         props.class,
@@ -38,7 +37,7 @@ const {
     "
     :variant="variant"
     :size="size"
-    @click="_scrollPrev"
+    @click="scrollPrev"
   >
     <slot>
       <ArrowLeft />

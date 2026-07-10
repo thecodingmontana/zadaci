@@ -2,12 +2,14 @@
 import type { ListboxRootEmits, ListboxRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaListboxRoot, useFilter, useForwardPropsEmits } from "reka-ui";
+import { ListboxRoot, useFilter, useForwardPropsEmits } from "reka-ui";
 import { reactive, ref, watch } from "vue";
+import { cn } from "@/lib/utils";
 import { provideCommandContext } from ".";
 
 const props = withDefaults(defineProps<ListboxRootProps & { class?: HTMLAttributes["class"] }>(), {
   modelValue: "",
+  highlightOnHover: true,
 });
 
 const emits = defineEmits<ListboxRootEmits>();
@@ -78,7 +80,7 @@ provideCommandContext({
 </script>
 
 <template>
-  <RekaListboxRoot
+  <ListboxRoot
     data-slot="command"
     v-bind="forwarded"
     :class="
@@ -89,5 +91,5 @@ provideCommandContext({
     "
   >
     <slot />
-  </RekaListboxRoot>
+  </ListboxRoot>
 </template>

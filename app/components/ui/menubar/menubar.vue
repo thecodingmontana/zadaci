@@ -2,7 +2,8 @@
 import type { MenubarRootEmits, MenubarRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaMenubarRoot, useForwardPropsEmits } from "reka-ui";
+import { MenubarRoot, useForwardPropsEmits } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<MenubarRootProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<MenubarRootEmits>();
@@ -13,7 +14,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <RekaMenubarRoot
+  <MenubarRoot
     v-slot="slotProps"
     data-slot="menubar"
     v-bind="forwarded"
@@ -22,5 +23,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     "
   >
     <slot v-bind="slotProps" />
-  </RekaMenubarRoot>
+  </MenubarRoot>
 </template>

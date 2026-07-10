@@ -2,7 +2,8 @@
 import type { HoverCardContentProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaHoverCardContent, useForwardProps } from "reka-ui";
+import { HoverCardContent, HoverCardPortal, useForwardProps } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 defineOptions({
   inheritAttrs: false,
@@ -22,7 +23,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 
 <template>
   <HoverCardPortal>
-    <RekaHoverCardContent
+    <HoverCardContent
       data-slot="hover-card-content"
       v-bind="{ ...$attrs, ...forwardedProps }"
       :class="
@@ -33,6 +34,6 @@ const forwardedProps = useForwardProps(delegatedProps);
       "
     >
       <slot />
-    </RekaHoverCardContent>
+    </HoverCardContent>
   </HoverCardPortal>
 </template>

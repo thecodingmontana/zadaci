@@ -4,9 +4,24 @@ import type { HTMLAttributes, Ref } from "vue";
 import type { LayoutTypes } from ".";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { createReusableTemplate, reactiveOmit, useVModel } from "@vueuse/core";
-import { RekaCalendarRoot, useDateFormatter, useForwardPropsEmits } from "reka-ui";
-import { createYearRange } from "reka-ui/date";
+import { CalendarRoot, useDateFormatter, useForwardPropsEmits } from "reka-ui";
+import { createYear, createYearRange, toDate } from "reka-ui/date";
 import { computed, toRaw } from "vue";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { cn } from "@/lib/utils";
+import {
+  CalendarCell,
+  CalendarCellTrigger,
+  CalendarGrid,
+  CalendarGridBody,
+  CalendarGridHead,
+  CalendarGridRow,
+  CalendarHeadCell,
+  CalendarHeader,
+  CalendarHeading,
+  CalendarNextButton,
+  CalendarPrevButton,
+} from ".";
 
 const props = withDefaults(
   defineProps<
@@ -32,8 +47,8 @@ const placeholder = useVModel(props, "placeholder", emits, {
 
 const formatter = useDateFormatter(props.locale ?? "en");
 
-const yearRange = computed(
-  () =>
+const yearRange = computed(() => {
+  return (
     props.yearRange ??
     createYearRange({
       start:
@@ -49,15 +64,12 @@ const yearRange = computed(
           "year",
           10,
         ),
-    }),
-);
+    })
+  );
+});
 
-const [_DefineMonthTemplate, _ReuseMonthTemplate] = createReusableTemplate<{
-  date: DateValue;
-}>();
-const [_DefineYearTemplate, _ReuseYearTemplate] = createReusableTemplate<{
-  date: DateValue;
-}>();
+const [DefineMonthTemplate, ReuseMonthTemplate] = createReusableTemplate<{ date: DateValue }>();
+const [DefineYearTemplate, ReuseYearTemplate] = createReusableTemplate<{ date: DateValue }>();
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
@@ -123,7 +135,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     </div>
   </DefineYearTemplate>
 
-  <RekaCalendarRoot
+  <CalendarRoot
     v-slot="{ grid, weekDays, date }"
     v-bind="forwarded"
     v-model:placeholder="placeholder"
@@ -192,5 +204,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         </CalendarGridBody>
       </CalendarGrid>
     </div>
-  </RekaCalendarRoot>
+  </CalendarRoot>
 </template>

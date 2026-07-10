@@ -2,7 +2,8 @@
 import type { TabsListProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaTabsList } from "reka-ui";
+import { TabsList } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<TabsListProps & { class?: HTMLAttributes["class"] }>();
 
@@ -10,7 +11,7 @@ const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
-  <RekaTabsList
+  <TabsList
     data-slot="tabs-list"
     v-bind="delegatedProps"
     :class="
@@ -21,5 +22,5 @@ const delegatedProps = reactiveOmit(props, "class");
     "
   >
     <slot />
-  </RekaTabsList>
+  </TabsList>
 </template>

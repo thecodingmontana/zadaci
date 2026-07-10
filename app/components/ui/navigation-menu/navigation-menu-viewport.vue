@@ -2,7 +2,8 @@
 import type { NavigationMenuViewportProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaNavigationMenuViewport, useForwardProps } from "reka-ui";
+import { NavigationMenuViewport, useForwardProps } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<NavigationMenuViewportProps & { class?: HTMLAttributes["class"] }>();
 
@@ -13,7 +14,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 
 <template>
   <div class="absolute top-full left-0 isolate z-50 flex justify-center">
-    <RekaNavigationMenuViewport
+    <NavigationMenuViewport
       data-slot="navigation-menu-viewport"
       v-bind="forwardedProps"
       :class="

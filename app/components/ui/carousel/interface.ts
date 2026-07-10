@@ -11,11 +11,13 @@ export type UnwrapRefCarouselApi = UnwrapRef<CarouselApi>;
 
 export interface CarouselProps {
   opts?: CarouselOptions;
-  orientation?: "horizontal" | "vertical";
   plugins?: CarouselPlugin;
+  orientation?: "horizontal" | "vertical";
 }
 
-export type CarouselEmits = (e: "init-api", payload: UnwrapRefCarouselApi) => void;
+export interface CarouselEmits {
+  (e: "init-api", payload: UnwrapRefCarouselApi): void;
+}
 
 export interface WithClassAsProps {
   class?: HTMLAttributes["class"];

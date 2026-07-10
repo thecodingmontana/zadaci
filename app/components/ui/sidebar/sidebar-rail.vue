@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue";
+import { cn } from "@/lib/utils";
 import { useSidebar } from "./utils";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
 }>();
 
-const { toggleSidebar: _toggleSidebar } = useSidebar();
+const { toggleSidebar } = useSidebar();
 </script>
 
 <template>
@@ -27,7 +28,7 @@ const { toggleSidebar: _toggleSidebar } = useSidebar();
         props.class,
       )
     "
-    @click="_toggleSidebar"
+    @click="toggleSidebar"
   >
     <slot />
   </button>

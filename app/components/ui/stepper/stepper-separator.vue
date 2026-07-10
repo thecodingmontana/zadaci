@@ -2,7 +2,8 @@
 import type { StepperSeparatorProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaStepperSeparator, useForwardProps } from "reka-ui";
+import { StepperSeparator, useForwardProps } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<StepperSeparatorProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,7 +13,7 @@ const forwarded = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <RekaStepperSeparator
+  <StepperSeparator
     v-bind="forwarded"
     :class="
       cn(

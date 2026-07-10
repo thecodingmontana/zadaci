@@ -2,7 +2,9 @@
 import type { ScrollAreaRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaScrollAreaRoot } from "reka-ui";
+import { ScrollAreaCorner, ScrollAreaRoot, ScrollAreaViewport } from "reka-ui";
+import { cn } from "@/lib/utils";
+import ScrollBar from "./ScrollBar.vue";
 
 const props = defineProps<ScrollAreaRootProps & { class?: HTMLAttributes["class"] }>();
 
@@ -10,7 +12,7 @@ const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
-  <RekaScrollAreaRoot
+  <ScrollAreaRoot
     data-slot="scroll-area"
     v-bind="delegatedProps"
     :class="cn('relative', props.class)"
@@ -23,5 +25,5 @@ const delegatedProps = reactiveOmit(props, "class");
     </ScrollAreaViewport>
     <ScrollBar />
     <ScrollAreaCorner />
-  </RekaScrollAreaRoot>
+  </ScrollAreaRoot>
 </template>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue";
 import type { InputGroupVariants } from ".";
+import { cn } from "@/lib/utils";
+import { inputGroupAddonVariants } from ".";
 
 const props = withDefaults(
   defineProps<{
@@ -12,7 +14,7 @@ const props = withDefaults(
   },
 );
 
-function _handleInputGroupAddonClick(e: MouseEvent) {
+function handleInputGroupAddonClick(e: MouseEvent) {
   const currentTarget = e.currentTarget as HTMLElement | null;
   const target = e.target as HTMLElement | null;
   if (target && target.closest("button")) {

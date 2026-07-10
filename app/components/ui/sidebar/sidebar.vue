@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { SidebarProps } from ".";
-import { useSidebar } from "./utils";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import SheetDescription from "@/components/ui/sheet/SheetDescription.vue";
+import SheetHeader from "@/components/ui/sheet/SheetHeader.vue";
+import SheetTitle from "@/components/ui/sheet/SheetTitle.vue";
+import { cn } from "@/lib/utils";
+import { SIDEBAR_WIDTH_MOBILE, useSidebar } from "./utils";
 
 defineOptions({
   inheritAttrs: false,
@@ -12,12 +17,7 @@ const props = withDefaults(defineProps<SidebarProps>(), {
   collapsible: "offcanvas",
 });
 
-const {
-  isMobile: _isMobile,
-  state,
-  openMobile: _openMobile,
-  setOpenMobile: _setOpenMobile,
-} = useSidebar();
+const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 </script>
 
 <template>
@@ -32,7 +32,7 @@ const {
     <slot />
   </div>
 
-  <Sheet v-else-if="_isMobile" :open="_openMobile" v-bind="$attrs" @update:open="_setOpenMobile">
+  <Sheet v-else-if="isMobile" :open="openMobile" v-bind="$attrs" @update:open="setOpenMobile">
     <SheetContent
       data-sidebar="sidebar"
       data-slot="sidebar"

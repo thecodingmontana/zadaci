@@ -3,10 +3,10 @@ import type { HTMLAttributes } from "vue";
 import { cva } from "class-variance-authority";
 
 export interface SidebarProps {
-  class?: HTMLAttributes["class"];
-  collapsible?: "offcanvas" | "icon" | "none";
   side?: "left" | "right";
   variant?: "sidebar" | "floating" | "inset";
+  collapsible?: "offcanvas" | "icon" | "none";
+  class?: HTMLAttributes["class"];
 }
 
 export { default as SidebarContent } from "./sidebar-content.vue";

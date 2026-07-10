@@ -1,35 +1,54 @@
 <script setup lang="ts">
-import { Icon } from "@iconify/vue";
-import { Button } from "~/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+import { Moon, Sun } from "@lucide/vue";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const colorMode = useColorMode();
+const checked = ref(false);
+
+const updateCheckedState = (mode: string) => {
+  checked.value = mode === "light";
+};
+
+watch(
+  () => colorMode.value,
+  (newVal) => {
+    updateCheckedState(newVal);
+  },
+  {
+    immediate: true,
+  },
+);
+
+onMounted(() => {
+  updateCheckedState(colorMode.value);
+});
 </script>
 
 <template>
-  <DropdownMenu>
-    <DropdownMenuTrigger as-child>
-      <Button variant="outline">
-        <Icon
-          icon="radix-icons:moon"
-          class="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90"
-        />
-        <Icon
-          icon="radix-icons:sun"
-          class="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0"
-        />
-        <span class="sr-only">Toggle theme</span>
-      </Button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="end">
-      <DropdownMenuItem @click="colorMode.preference = 'light'"> Light </DropdownMenuItem>
-      <DropdownMenuItem @click="colorMode.preference = 'dark'"> Dark </DropdownMenuItem>
-      <DropdownMenuItem @click="colorMode.preference = 'system'"> System </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
+  <div>
+    <div class="relative inline-grid h-9 grid-cols-[1fr_1fr] items-center text-sm font-medium">
+      <Switch
+        id="switch-12"
+        v-model="checked"
+        class="peer absolute inset-0 h-[inherit] w-auto data-[state=checked]:bg-input/50 data-[state=unchecked]:bg-input/50 [&_span]:h-full [&_span]:w-1/2 [&_span]:transition-transform [&_span]:duration-300 [&_span]:ease-[cubic-bezier(0.16,1,0.3,1)] [&_span]:data-[state=checked]:translate-x-full [&_span]:data-[state=checked]:rtl:-translate-x-full"
+        @update:model-value="
+          (payload) => {
+            colorMode.preference = payload ? 'light' : 'dark';
+          }
+        "
+      />
+      <span
+        class="pointer-events-none relative ms-0.5 flex min-w-8 items-center justify-center text-center text-black peer-data-[state=checked]:text-muted-foreground/70"
+      >
+        <Moon :size="14" stroke-width="2" aria-hidden="true" />
+      </span>
+      <span
+        class="pointer-events-none relative me-0.5 flex min-w-8 items-center justify-center text-center peer-data-[state=unchecked]:text-muted-foreground/70"
+      >
+        <Sun :size="14" stroke-width="2" aria-hidden="true" />
+      </span>
+    </div>
+    <Label for="switch-12" class="sr-only"> Theme Switch </Label>
+  </div>
 </template>

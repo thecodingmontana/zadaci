@@ -2,6 +2,7 @@
 import type { HTMLAttributes } from "vue";
 import type { ChartConfig } from ".";
 import { computed } from "vue";
+import { cn } from "@/lib/utils";
 
 const props = withDefaults(
   defineProps<{

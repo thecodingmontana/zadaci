@@ -2,7 +2,8 @@
 import type { LabelProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { Label as RekaLabel } from "reka-ui";
+import { Label } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<LabelProps & { class?: HTMLAttributes["class"] }>();
 
@@ -10,7 +11,7 @@ const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
-  <RekaLabel
+  <Label
     data-slot="label"
     v-bind="delegatedProps"
     :class="
@@ -21,5 +22,5 @@ const delegatedProps = reactiveOmit(props, "class");
     "
   >
     <slot />
-  </RekaLabel>
+  </Label>
 </template>

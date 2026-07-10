@@ -2,7 +2,8 @@
 import type { ComboboxGroupProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaComboboxGroup } from "reka-ui";
+import { ComboboxGroup, ComboboxLabel } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<
   ComboboxGroupProps & {
@@ -15,7 +16,7 @@ const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
-  <RekaComboboxGroup
+  <ComboboxGroup
     data-slot="combobox-group"
     v-bind="delegatedProps"
     :class="cn('overflow-hidden p-1 text-foreground', props.class)"
@@ -24,5 +25,5 @@ const delegatedProps = reactiveOmit(props, "class");
       {{ heading }}
     </ComboboxLabel>
     <slot />
-  </RekaComboboxGroup>
+  </ComboboxGroup>
 </template>

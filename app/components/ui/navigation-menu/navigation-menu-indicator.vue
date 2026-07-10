@@ -2,7 +2,8 @@
 import type { NavigationMenuIndicatorProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaNavigationMenuIndicator, useForwardProps } from "reka-ui";
+import { NavigationMenuIndicator, useForwardProps } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<NavigationMenuIndicatorProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,7 +13,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <RekaNavigationMenuIndicator
+  <NavigationMenuIndicator
     data-slot="navigation-menu-indicator"
     v-bind="forwardedProps"
     :class="
@@ -23,5 +24,5 @@ const forwardedProps = useForwardProps(delegatedProps);
     "
   >
     <div class="relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm bg-border shadow-md" />
-  </RekaNavigationMenuIndicator>
+  </NavigationMenuIndicator>
 </template>

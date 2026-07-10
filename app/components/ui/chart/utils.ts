@@ -13,18 +13,18 @@ function serializeKey(key: Record<string, any>): string {
 
 interface Constructor<P = any> {
   __isFragment?: never;
-  __isSuspense?: never;
   __isTeleport?: never;
+  __isSuspense?: never;
   new (...args: any[]): {
     $props: P;
   };
 }
 
 export function componentToString<P>(config: ChartConfig, component: Constructor<P>, props?: P) {
-  // biome-ignore lint/correctness/useHookAtTopLevel: called during component mount lifecycle
-  const id = useId();
-
   if (!isClient) return;
+
+  // This function will be called once during mount lifecycle
+  const id = useId();
 
   // https://unovis.dev/docs/auxiliary/Crosshair#component-props
   return (_data: any, x: number | Date) => {

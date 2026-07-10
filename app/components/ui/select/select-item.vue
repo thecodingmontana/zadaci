@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { SelectItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
+import { Check } from "@lucide/vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaSelectItem, useForwardProps } from "reka-ui";
+import { SelectItem, SelectItemIndicator, SelectItemText, useForwardProps } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<SelectItemProps & { class?: HTMLAttributes["class"] }>();
 
@@ -12,7 +14,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-  <RekaSelectItem
+  <SelectItem
     data-slot="select-item"
     v-bind="forwardedProps"
     :class="
@@ -33,5 +35,5 @@ const forwardedProps = useForwardProps(delegatedProps);
     <SelectItemText>
       <slot />
     </SelectItemText>
-  </RekaSelectItem>
+  </SelectItem>
 </template>

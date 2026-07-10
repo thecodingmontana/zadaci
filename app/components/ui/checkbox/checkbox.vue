@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { CheckboxRootEmits, CheckboxRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
+import { Check } from "@lucide/vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaCheckboxRoot, useForwardPropsEmits } from "reka-ui";
+import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<CheckboxRootProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<CheckboxRootEmits>();
@@ -13,7 +15,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <RekaCheckboxRoot
+  <CheckboxRoot
     v-slot="slotProps"
     data-slot="checkbox"
     v-bind="forwarded"
@@ -32,5 +34,5 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <Check class="size-3.5" />
       </slot>
     </CheckboxIndicator>
-  </RekaCheckboxRoot>
+  </CheckboxRoot>
 </template>

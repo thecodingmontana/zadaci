@@ -2,7 +2,8 @@
 import type { ComboboxItemEmits, ComboboxItemProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaComboboxItem, useForwardPropsEmits } from "reka-ui";
+import { ComboboxItem, useForwardPropsEmits } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<ComboboxItemProps & { class?: HTMLAttributes["class"] }>();
 const emits = defineEmits<ComboboxItemEmits>();
@@ -13,16 +14,11 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <RekaComboboxItem
+  <ComboboxItem
     data-slot="combobox-item"
     v-bind="forwarded"
-    :class="
-      cn(
-        'relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4 [&_svg:not([class*=\'text-\'])]:text-muted-foreground',
-        props.class,
-      )
-    "
+    :class="cn('relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4 [&_svg:not([class*=\'text-\'])]:text-muted-foreground', props.class)"
   >
     <slot />
-  </RekaComboboxItem>
+  </ComboboxItem>
 </template>

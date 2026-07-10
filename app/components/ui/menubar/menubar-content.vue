@@ -2,7 +2,8 @@
 import type { MenubarContentProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { RekaMenubarContent, useForwardProps } from "reka-ui";
+import { MenubarContent, MenubarPortal, useForwardProps } from "reka-ui";
+import { cn } from "@/lib/utils";
 
 defineOptions({
   inheritAttrs: false,
@@ -24,7 +25,7 @@ const forwardedProps = useForwardProps(delegatedProps);
 
 <template>
   <MenubarPortal>
-    <RekaMenubarContent
+    <MenubarContent
       data-slot="menubar-content"
       v-bind="{ ...$attrs, ...forwardedProps }"
       :class="
@@ -35,6 +36,6 @@ const forwardedProps = useForwardProps(delegatedProps);
       "
     >
       <slot />
-    </RekaMenubarContent>
+    </MenubarContent>
   </MenubarPortal>
 </template>

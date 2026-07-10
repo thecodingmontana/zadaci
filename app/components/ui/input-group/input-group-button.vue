@@ -2,11 +2,14 @@
 import type { HTMLAttributes } from "vue";
 import type { InputGroupButtonVariants } from ".";
 import type { ButtonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { inputGroupButtonVariants } from ".";
 
 interface InputGroupButtonProps {
-  class?: HTMLAttributes["class"];
-  size?: InputGroupButtonVariants["size"];
   variant?: ButtonVariants["variant"];
+  size?: InputGroupButtonVariants["size"];
+  class?: HTMLAttributes["class"];
 }
 
 const props = withDefaults(defineProps<InputGroupButtonProps>(), {

@@ -1,8 +1,11 @@
 <script lang="ts" setup>
 import type { RangeCalendarPrevProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
+import { ChevronLeft } from "@lucide/vue";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardProps } from "reka-ui";
+import { RangeCalendarPrev, useForwardProps } from "reka-ui";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<RangeCalendarPrevProps & { class?: HTMLAttributes["class"] }>();
 
