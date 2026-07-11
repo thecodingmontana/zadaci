@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.11.0",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
