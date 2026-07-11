@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { Avatar, AvatarImage } from "~/components/ui/avatar";
 
 const props = withDefaults(
   defineProps<{
@@ -80,6 +81,26 @@ const styleTag = "style";
     ]"
     :style="rootStyle"
   >
+    <div class="pointer-events-auto absolute right-0 bottom-0 left-0 grid place-content-center">
+      <div class="flex items-center gap-x-1">
+        <p>&copy; {{ new Date().getFullYear() }} &middot; Made with 💚,</p>
+        <NuxtLink
+          to="https://x.com/@codewithmontana"
+          target="_blank"
+          class="group flex cursor-pointer items-center gap-x-1"
+        >
+          <Avatar class="size-6">
+            <AvatarImage
+              src="https://avatars.githubusercontent.com/u/63234437?v=4"
+              alt="Edo avatar"
+            />
+          </Avatar>
+          <p class="decoration-brand decoration-wavy group-hover:hover:underline">
+            @codewithmontana
+          </p>
+        </NuxtLink>
+      </div>
+    </div>
     <component :is="styleTag">{{ CSS }}</component>
 
     <div
