@@ -1,6 +1,69 @@
+CREATE TYPE "channel_type" AS ENUM('public', 'private', 'dm');--> statement-breakpoint
+CREATE TYPE "message_reference_type" AS ENUM('task', 'project', 'file', 'link');--> statement-breakpoint
 CREATE TYPE "priority" AS ENUM('low', 'medium', 'high', 'none', 'urgent');--> statement-breakpoint
 CREATE TYPE "status" AS ENUM('idea', 'todo', 'in_progress', 'in_review', 'completed', 'abandoned');--> statement-breakpoint
 CREATE TYPE "user_role" AS ENUM('owner', 'member', 'guest');--> statement-breakpoint
+CREATE TABLE "app_channel" (
+	"id" varchar(16) PRIMARY KEY,
+	"workspace_id" varchar(16) NOT NULL,
+	"name" varchar(255),
+	"type" "channel_type" DEFAULT 'public'::"channel_type" NOT NULL,
+	"created_by" varchar(16) NOT NULL,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
+);
+--> statement-breakpoint
+CREATE TABLE "app_channel_members" (
+	"id" varchar(16) PRIMARY KEY,
+	"channel_id" varchar(16) NOT NULL,
+	"member_id" varchar(16) NOT NULL,
+	"last_read_at" timestamp(3) with time zone,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "app_message" (
+	"id" varchar(16) PRIMARY KEY,
+	"channel_id" varchar(16) NOT NULL,
+	"author_id" varchar(16) NOT NULL,
+	"content" text NOT NULL,
+	"edited_at" timestamp(3) with time zone,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
+);
+--> statement-breakpoint
+CREATE TABLE "app_message_reference" (
+	"id" varchar(16) PRIMARY KEY,
+	"message_id" varchar(16) NOT NULL,
+	"ref_type" "message_reference_type" DEFAULT 'link'::"message_reference_type" NOT NULL,
+	"ref_id" varchar(16),
+	"snapshot" text,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "app_project_comment" (
+	"id" varchar(16) PRIMARY KEY,
+	"project_id" varchar(16) NOT NULL,
+	"author_id" varchar(16) NOT NULL,
+	"content" text NOT NULL,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
+);
+--> statement-breakpoint
+CREATE TABLE "app_task_comment" (
+	"id" varchar(16) PRIMARY KEY,
+	"task_id" varchar(16) NOT NULL,
+	"author_id" varchar(16) NOT NULL,
+	"content" text NOT NULL,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
+);
+--> statement-breakpoint
 CREATE TABLE "cron_jobs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"message" text,
@@ -16,7 +79,8 @@ CREATE TABLE "app_project" (
 	"workspace_id" varchar(16) NOT NULL,
 	"due_date" timestamp,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "app_project_members" (
@@ -33,7 +97,8 @@ CREATE TABLE "app_subtasks" (
 	"task_id" varchar(16) NOT NULL,
 	"is_completed" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "app_tasks" (
@@ -45,7 +110,8 @@ CREATE TABLE "app_tasks" (
 	"project_id" varchar(16) NOT NULL,
 	"due_date" timestamp,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "app_task_assignees" (
@@ -54,7 +120,8 @@ CREATE TABLE "app_task_assignees" (
 	"member_id" varchar(16) NOT NULL,
 	"assigned_at" timestamp(3) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "app_tasks_activity" (
@@ -64,7 +131,8 @@ CREATE TABLE "app_tasks_activity" (
 	"changed_by" varchar(16) NOT NULL,
 	"changed_at" timestamp(3) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "app_oauth_account" (
@@ -174,6 +242,13 @@ CREATE TABLE "app_workspace_members" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE INDEX "channel_workspace_id_idx" ON "app_channel" ("workspace_id");--> statement-breakpoint
+CREATE INDEX "channel_members_channel_id_idx" ON "app_channel_members" ("channel_id");--> statement-breakpoint
+CREATE INDEX "channel_members_member_id_idx" ON "app_channel_members" ("member_id");--> statement-breakpoint
+CREATE INDEX "message_channel_id_idx" ON "app_message" ("channel_id");--> statement-breakpoint
+CREATE INDEX "message_reference_message_id_idx" ON "app_message_reference" ("message_id");--> statement-breakpoint
+CREATE INDEX "project_comment_project_id_idx" ON "app_project_comment" ("project_id");--> statement-breakpoint
+CREATE INDEX "task_comment_task_id_idx" ON "app_task_comment" ("task_id");--> statement-breakpoint
 CREATE INDEX "project_workspace_id_idx" ON "app_project" ("workspace_id");--> statement-breakpoint
 CREATE INDEX "project_members_project_id_idx" ON "app_project_members" ("project_id");--> statement-breakpoint
 CREATE INDEX "project_members_member_id_idx" ON "app_project_members" ("member_id");--> statement-breakpoint
@@ -190,6 +265,17 @@ CREATE INDEX "workspace_invite_workspace_id_idx" ON "app_workspace_invite_reques
 CREATE INDEX "workspace_invite_invited_by_idx" ON "app_workspace_invite_request" ("invited_by");--> statement-breakpoint
 CREATE INDEX "workspace_members_user_id_idx" ON "app_workspace_members" ("user_id");--> statement-breakpoint
 CREATE INDEX "workspace_members_workspace_id_idx" ON "app_workspace_members" ("workspace_id");--> statement-breakpoint
+ALTER TABLE "app_channel" ADD CONSTRAINT "app_channel_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_channel" ADD CONSTRAINT "app_channel_created_by_app_user_id_fkey" FOREIGN KEY ("created_by") REFERENCES "app_user"("id");--> statement-breakpoint
+ALTER TABLE "app_channel_members" ADD CONSTRAINT "app_channel_members_channel_id_app_channel_id_fkey" FOREIGN KEY ("channel_id") REFERENCES "app_channel"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_channel_members" ADD CONSTRAINT "app_channel_members_member_id_app_workspace_members_id_fkey" FOREIGN KEY ("member_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_message" ADD CONSTRAINT "app_message_channel_id_app_channel_id_fkey" FOREIGN KEY ("channel_id") REFERENCES "app_channel"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_message" ADD CONSTRAINT "app_message_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id");--> statement-breakpoint
+ALTER TABLE "app_message_reference" ADD CONSTRAINT "app_message_reference_message_id_app_message_id_fkey" FOREIGN KEY ("message_id") REFERENCES "app_message"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_project_comment" ADD CONSTRAINT "app_project_comment_project_id_app_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "app_project"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_project_comment" ADD CONSTRAINT "app_project_comment_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id");--> statement-breakpoint
+ALTER TABLE "app_task_comment" ADD CONSTRAINT "app_task_comment_task_id_app_tasks_id_fkey" FOREIGN KEY ("task_id") REFERENCES "app_tasks"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_task_comment" ADD CONSTRAINT "app_task_comment_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id");--> statement-breakpoint
 ALTER TABLE "app_project" ADD CONSTRAINT "app_project_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_project_members" ADD CONSTRAINT "app_project_members_project_id_app_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "app_project"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_project_members" ADD CONSTRAINT "app_project_members_member_id_app_workspace_members_id_fkey" FOREIGN KEY ("member_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
