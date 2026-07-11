@@ -11,29 +11,42 @@ const props = defineProps<{
   isResendCode: boolean;
 }>();
 
-const timeElapsed = ref(30);
+const RESEND_COOLDOWN_S = 30;
+const timeElapsed = ref(RESEND_COOLDOWN_S);
+const isStopTimer = ref(false);
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const isStopTimer = ref(false);
+function clearTimer() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+}
 
 function startTimer() {
+  // Timer's already running — do nothing, don't touch isStopTimer or the
+  // UI will show "Resend" as clickable while the interval keeps ticking.
+  if (timer) return;
+
   isStopTimer.value = true;
-  if (timer) {
-    isStopTimer.value = false;
-    return;
-  }
+  timeElapsed.value = RESEND_COOLDOWN_S;
+
   timer = setInterval(() => {
     if (timeElapsed.value > 0) {
       timeElapsed.value -= 1;
     } else {
-      clearInterval(timer!);
-      timer = null;
+      clearTimer();
       isStopTimer.value = false;
-      timeElapsed.value = 30;
+      timeElapsed.value = RESEND_COOLDOWN_S;
     }
   }, 1000);
 }
+
+// A code was already sent right before this component appears — start the
+// cooldown immediately instead of leaving "Resend" clickable on mount.
+onMounted(startTimer);
+onUnmounted(clearTimer);
 
 async function onResendCode() {
   try {

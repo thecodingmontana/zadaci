@@ -4,7 +4,45 @@ import SigninForm from "~/components/auth/signin/signin-form.vue";
 import ThemeToggle from "~/components/shared/theme-toggle.vue";
 import BackgroundPattern from "~/components/svgs/background-pattern.vue";
 import Zadaci from "~/components/svgs/zadaci.vue";
+import { useOauthStore } from "~/stores/use-oauth-store";
+
+definePageMeta({
+  layout: "auth",
+});
+
+const oauthStore = useOauthStore();
+const { loggedIn } = useUserSession();
+
+watch(
+  loggedIn,
+  (isLoggedIn) => {
+    if (isLoggedIn) {
+      navigateTo("/workspace/onboarding");
+    }
+  },
+  {
+    immediate: true,
+  },
+);
+
+useHead({
+  titleTemplate: "%s - Zadaci",
+});
+
+defineOgImage("Zadaci", {
+  title: "Sign in",
+  description:
+    "Zadaci is an all-in-one project management platform built to help you and your team get things done faster.",
+});
+
+onMounted(() => {
+  oauthStore.onSigninWithOauthProvider({
+    isSigninWithOauth: false,
+    provider: null,
+  });
+});
 </script>
+
 <template>
   <div class="relative flex h-screen w-full flex-col overflow-hidden">
     <div class="relative size-full overflow-hidden">

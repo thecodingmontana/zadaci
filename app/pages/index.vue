@@ -6,7 +6,6 @@ watch(
   () => loggedIn.value,
   (loggedIn) => {
     if (loggedIn) {
-      // eslint-disable-next-line link-checker/valid-route, link-checker/valid-sitemap-link
       navigateTo("/workspace/onboarding");
     }
   },

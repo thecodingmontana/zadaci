@@ -16,7 +16,7 @@ defineProps<{
       {{ title || "Zadaci" }}
     </h1>
     <p class="text-center text-2xl text-slate-300">
-      {{ description || "Task Management for Modern Teams" }}
+      {{ description || "Project Management for Modern Teams" }}
     </p>
     <button
       @click="

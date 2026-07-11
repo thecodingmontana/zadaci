@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import SignupCompleteForm from "./SignupCompleteForm.vue";
-import SignupUniqueCodeForm from "./SignupUniqueCodeForm.vue";
+import SignupCompleteForm from "./signup-complete-form.vue";
+import SignupUniqueCodeForm from "./signup-unique-code-form.vue";
 
 const email = ref("");
 const isCodeSent = ref(false);

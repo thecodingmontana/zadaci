@@ -78,46 +78,63 @@ export const sendUniqueCodeSchema = toTypedSchema(
 
 export const onboardingProfileSchema = toTypedSchema(
   z.object({
-    first_name: z.string().min(1, {
-      message: "First name is required!",
-    }),
-    last_name: z.string().min(1, {
-      message: "Last name is required!",
-    }),
+    first_name: z
+      .string({
+        error: "First name is required!",
+      })
+      .min(1, {
+        message: "First name is required!",
+      }),
+    last_name: z
+      .string({
+        error: "Last name is required!",
+      })
+      .min(1, {
+        message: "Last name is required!",
+      }),
   }),
 );
 
 export const onboardingWorkspaceSchema = toTypedSchema(
   z.object({
-    name: z.string().min(1, "Name is required!"),
+    name: z
+      .string({
+        error: "Name is required!",
+      })
+      .min(1, "Name is required!"),
   }),
 );
 
 export const signinFormSchema = toTypedSchema(
   z.object({
     code: z
-      .string()
-      .max(8, {
-        message: "Code shouldn't be more than 8 characters.",
+      .string({
+        error: "Please enter the code sent to your email",
       })
-      .min(8, {
-        message: "Code shouldn't be less than 8 characters.",
+      .length(8, {
+        message: "Code must be exactly 8 characters.",
       }),
   }),
 );
 
 export const twoFactorSetupSchema = toTypedSchema(
   z.object({
-    code: z.array(z.coerce.string()).length(6, {
-      message: "Code shouldn't be less than 6 characters",
-    }),
+    code: z
+      .array(z.coerce.string(), {
+        error: "Please enter the code from your authenticator app",
+      })
+      .length(6, {
+        message: "Code shouldn't be less than 6 characters",
+      }),
   }),
 );
 
 export const registerSecurityKeysSchema = toTypedSchema(
   z.object({
     name: z
-      .string()
+      .string({
+        error: "Name is required!",
+      })
       .max(32, {
         message: "Maximum name length 32 chars!",
       })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertCircle, Loader } from "@lucide/vue";
+import { ArrowRight, Loader2, RotateCw } from "@lucide/vue";
 import { useForm } from "vee-validate";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { toast } from "~/lib/toast";
@@ -20,6 +20,7 @@ const { fetch: refreshSession } = useUserSession();
 
 const form = useForm({
   validationSchema: signinFormSchema,
+  initialValues: { code: "" },
 });
 
 function setIsResendingCode(payload: boolean) {
@@ -43,7 +44,7 @@ const onSubmit = form.handleSubmit(async (values) => {
       position: "top-center",
       action: {
         label: "Continue",
-        icon: (await import("@lucide/vue")).ArrowRight,
+        icon: ArrowRight,
       },
     });
 
@@ -62,7 +63,7 @@ const onSubmit = form.handleSubmit(async (values) => {
       position: "top-center",
       action: {
         label: "Retry",
-        icon: (await import("@lucide/vue")).RotateCw,
+        icon: RotateCw,
         onClick: onSubmit,
       },
     });
@@ -77,14 +78,6 @@ function onClear() {
     codeSent: false,
   });
   form.resetForm();
-  const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
-  const codeInput = document.querySelector('input[name="code"]') as HTMLInputElement;
-
-  if (emailInput) {
-    emailInput.value = "";
-  } else if (codeInput) {
-    codeInput.value = "";
-  }
 }
 </script>
 
@@ -92,26 +85,23 @@ function onClear() {
   <form class="mt-5 space-y-4" @submit.prevent="onSubmit">
     <div class="space-y-2">
       <div class="space-y-1">
-        <label class="flex items-center gap-1.5 text-sm font-medium">
-          <Icon name="lucide:mail" class="size-4 text-black/50 dark:text-white/50" />
+        <label class="text-sm font-medium">
           Email
         </label>
-        <div
-          :class="
-            cn(
-              'relative flex items-center rounded-md border',
-              form.errors.value.code && 'border-red-300',
-            )
-          "
-        >
+        <div class="relative flex items-center rounded-md border">
           <input
             name="email"
             type="text"
             placeholder="name@example.com"
             :value="props.email"
             disabled
-            class="block h-11.5 w-full rounded-md border-0 bg-transparent px-3 py-2 text-sm focus:outline-none"
+            class="block h-11.5 w-full peer ps-9 rounded-md border-0 bg-transparent px-3 py-2 text-sm focus:outline-none"
           />
+          <div
+            class="pointer-events-none absolute inset-y-0 inset-s-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50"
+          >
+            <Icon name="hugeicons:mail-at-sign-02" aria-hidden="true" size="18" />
+          </div>
           <button
             type="button"
             aria-label="Clear email"
@@ -124,24 +114,30 @@ function onClear() {
       </div>
       <FormField v-slot="{ componentField }" name="code">
         <FormItem class="space-y-1">
-          <FormLabel class="flex items-center gap-1.5 text-sm font-medium">
-            <Icon name="lucide:key-round" class="size-4 text-black/50 dark:text-white/50" />
+          <FormLabel class="text-sm font-medium">
             Code
           </FormLabel>
           <FormControl>
-            <div :class="cn('rounded-md border', form.errors.value.code && 'border-red-300')">
+            <div
+              :class="cn('relative rounded-md border', form.errors.value.code && 'border-red-300')"
+            >
               <input
                 type="text"
                 autocomplete="off"
                 placeholder="gets-sets-flys"
                 v-bind="componentField"
                 :disabled="form.isSubmitting.value || isResendCode"
-                class="block h-11.5 w-full rounded-md border-0 bg-transparent px-3 py-2 text-sm focus:bg-none focus:outline-none active:bg-transparent"
+                class="block h-11.5 w-full peer ps-9 rounded-md border-0 bg-transparent px-3 py-2 text-sm focus:bg-none focus:outline-none active:bg-transparent"
               />
+              <div
+                class="pointer-events-none absolute inset-y-0 inset-s-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50"
+              >
+                <Icon name="lucide:key-round" aria-hidden="true" size="18" />
+              </div>
             </div>
           </FormControl>
           <div class="flex items-center gap-1 px-0.5 text-xs text-red-600">
-            <AlertCircle v-if="form.errors.value.code" class="size-5" />
+            <Icon v-if="form.errors.value.code" name="lucide:circle-alert" class="size-5" />
             <FormMessage />
           </div>
           <div class="flex w-full items-center justify-between pt-1">
@@ -162,7 +158,9 @@ function onClear() {
     <button
       type="submit"
       :disabled="
-        Boolean(!form.controlledValues.value.code || form.errors.value.code || isSigningIn) ||
+        !form.controlledValues.value.code ||
+        !!form.errors.value.code ||
+        isSigningIn ||
         isResendCode
       "
       :class="
@@ -177,8 +175,8 @@ function onClear() {
         )
       "
     >
-      <Loader v-if="isSigningIn" class="size-5 animate-spin" />
-      <Icon v-else name="lucide:arrow-right" class="size-4" />
+      <Loader2 v-if="isSigningIn" class="size-5 animate-spin" />
+      <ArrowRight v-else class="size-4" />
       Continue
     </button>
   </form>

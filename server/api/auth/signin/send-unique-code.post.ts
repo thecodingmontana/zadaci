@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
 
     if (!user) {
       throw createError({
-        message: `Email ${email} not found!`,
+        message: `Email does't exists!`,
         statusCode: 400,
       });
     }
