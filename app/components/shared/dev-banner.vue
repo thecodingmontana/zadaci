@@ -9,7 +9,7 @@ function dismiss() {
 <template>
   <div
     v-if="isVisible"
-    class="relative z-50 flex items-center justify-center gap-2 border-b border-black/10 bg-[#fafafa] px-4 py-2 text-center text-xs font-medium text-black/70 dark:border-white/10 dark:bg-[#111110] dark:text-white/70"
+    class="relative z-50 flex items-center justify-center gap-2 bg-[#fafafa] px-4 py-2 text-center text-xs font-medium text-black/70 dark:border-white/10 dark:bg-[#111110] dark:text-white/70"
   >
     <Icon name="lucide:construction" class="shrink-0 text-orange-500" size="16" />
     <span>
