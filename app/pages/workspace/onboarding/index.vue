@@ -135,7 +135,7 @@ function errorMessage() {
       v-if="!showLoader && !isRedirecting && status !== 'error'"
       :username="onboarding?.username ?? null"
       :workspace="onboarding?.workspace ?? null"
-      :profile_completed="onboarding?.profile_completed ?? false"
+      :profile-completed="onboarding?.profile_completed ?? false"
     />
   </div>
 </template>
