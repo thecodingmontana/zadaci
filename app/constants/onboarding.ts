@@ -1,0 +1,1 @@
+export const ONBOARDING_LOADER_CYCLE_MS = 2000;

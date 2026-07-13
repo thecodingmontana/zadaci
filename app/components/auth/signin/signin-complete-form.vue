@@ -85,9 +85,7 @@ function onClear() {
   <form class="mt-5 space-y-4" @submit.prevent="onSubmit">
     <div class="space-y-2">
       <div class="space-y-1">
-        <label class="text-sm font-medium">
-          Email
-        </label>
+        <label class="text-sm font-medium"> Email </label>
         <div class="relative flex items-center rounded-md border">
           <input
             name="email"
@@ -95,7 +93,7 @@ function onClear() {
             placeholder="name@example.com"
             :value="props.email"
             disabled
-            class="block h-11.5 w-full peer ps-9 rounded-md border-0 bg-transparent px-3 py-2 text-sm focus:outline-none"
+            class="peer block h-11.5 w-full rounded-md border-0 bg-transparent px-3 py-2 ps-9 text-sm focus:outline-none"
           />
           <div
             class="pointer-events-none absolute inset-y-0 inset-s-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50"
@@ -114,9 +112,7 @@ function onClear() {
       </div>
       <FormField v-slot="{ componentField }" name="code">
         <FormItem class="space-y-1">
-          <FormLabel class="text-sm font-medium">
-            Code
-          </FormLabel>
+          <FormLabel class="text-sm font-medium"> Code </FormLabel>
           <FormControl>
             <div
               :class="cn('relative rounded-md border', form.errors.value.code && 'border-red-300')"
@@ -127,7 +123,7 @@ function onClear() {
                 placeholder="gets-sets-flys"
                 v-bind="componentField"
                 :disabled="form.isSubmitting.value || isResendCode"
-                class="block h-11.5 w-full peer ps-9 rounded-md border-0 bg-transparent px-3 py-2 text-sm focus:bg-none focus:outline-none active:bg-transparent"
+                class="peer block h-11.5 w-full rounded-md border-0 bg-transparent px-3 py-2 ps-9 text-sm focus:bg-none focus:outline-none active:bg-transparent"
               />
               <div
                 class="pointer-events-none absolute inset-y-0 inset-s-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50"
@@ -158,10 +154,7 @@ function onClear() {
     <button
       type="submit"
       :disabled="
-        !form.controlledValues.value.code ||
-        !!form.errors.value.code ||
-        isSigningIn ||
-        isResendCode
+        !form.controlledValues.value.code || !!form.errors.value.code || isSigningIn || isResendCode
       "
       :class="
         cn(

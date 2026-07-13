@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
 
     if (user) {
       throw createError({
-        message: `Email ${email} already exists!`,
+        message: `Email already exists!`,
         statusCode: 400,
       });
     }

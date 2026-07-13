@@ -23,6 +23,7 @@ export default defineNuxtConfig({
         "@oslojs/encoding",
         "@radix-icons/vue",
         "@t3-oss/env-nuxt",
+        "@tanstack/vue-query",
         "@unhead/schema-org/vue",
         "@vee-validate/zod",
         "@vueuse/core",

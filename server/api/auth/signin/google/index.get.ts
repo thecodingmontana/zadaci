@@ -3,7 +3,6 @@ import { authenticateOauthUser } from "~~/server/libs/auth-helpers";
 
 export default defineOAuthGoogleEventHandler({
   config: {},
-
   async onSuccess(event: H3Event, { user }: any) {
     await authenticateOauthUser(
       {
@@ -15,10 +14,12 @@ export default defineOAuthGoogleEventHandler({
       },
       event,
     );
-    return sendRedirect(event, "/workspace/onboarding");
-  },
 
+    const onboardingPath: string = "/workspace/onboarding";
+    return sendRedirect(event, onboardingPath);
+  },
   onError(event: H3Event, _) {
-    return sendRedirect(event, "/auth/signin");
+    const signinPath: string = "/auth/signin";
+    return sendRedirect(event, signinPath);
   },
 });

@@ -18,7 +18,7 @@ function dismiss() {
     <button
       type="button"
       aria-label="Dismiss banner"
-      class="ml-1 grid size-5 cursor-pointer shrink-0 place-items-center rounded-full text-black/40 transition hover:bg-black/5 hover:text-black/70 dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white/70"
+      class="ml-1 grid size-5 shrink-0 cursor-pointer place-items-center rounded-full text-black/40 transition hover:bg-black/5 hover:text-black/70 dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white/70"
       @click="dismiss"
     >
       <Icon name="lucide:x" class="size-3.5" />

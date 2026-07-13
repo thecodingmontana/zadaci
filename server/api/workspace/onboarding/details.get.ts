@@ -1,5 +1,10 @@
+import type { UserRole } from "~~/shared/types";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
+
+function toUserRole(role: string): UserRole {
+  return role.toUpperCase() as UserRole;
+}
 
 export default defineEventHandler(async (event) => {
   try {
@@ -7,6 +12,7 @@ export default defineEventHandler(async (event) => {
     const user = await db.query.user.findFirst({
       where: { id: session.user.id },
     });
+
     const [workspace] = await db
       .select({
         id: tables.workspace.id,
@@ -25,15 +31,32 @@ export default defineEventHandler(async (event) => {
           eq(tables.workspace_members.user_id, session.user.id),
         ),
       );
-    return {
+
+    const result = {
       username: user ? user.username : "",
-      workspace: workspace || null,
+      profile_completed: Boolean(user?.password),
+      workspace: workspace
+        ? {
+            ...workspace,
+            userRole: toUserRole(workspace.userRole),
+          }
+        : null,
     };
+
+    if (import.meta.dev) {
+      console.warn("[onboarding/details]", {
+        userId: session.user.id,
+        profile_completed: result.profile_completed,
+        has_workspace: Boolean(result.workspace),
+      });
+    }
+
+    return result;
   } catch (error: any) {
     const errorMessage = error.error ? error.error.message : error.message;
     throw createError({
       statusCode: error.statusCode ? error.statusCode : 500,
-      statusMessage: `${errorMessage}!`,
+      message: `${errorMessage}!`,
     });
   }
 });

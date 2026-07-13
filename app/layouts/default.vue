@@ -13,10 +13,10 @@ useHead({
 </script>
 
 <template>
-  <div>
+  <main>
     <NuxtLoadingIndicator />
     <DevBanner />
     <slot />
     <Toaster />
-  </div>
+  </main>
 </template>
