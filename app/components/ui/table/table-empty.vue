@@ -2,8 +2,8 @@
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
 import { cn } from "@/lib/utils";
-import TableCell from "./TableCell.vue";
-import TableRow from "./TableRow.vue";
+import TableCell from "./table-cell.vue";
+import TableRow from "./table-row.vue";
 
 const props = withDefaults(
   defineProps<{

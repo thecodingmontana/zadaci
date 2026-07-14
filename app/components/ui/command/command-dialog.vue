@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import Command from "./Command.vue";
+import Command from "./command.vue";
 
 const props = withDefaults(
   defineProps<

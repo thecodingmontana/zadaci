@@ -5,7 +5,7 @@ import { X } from "@lucide/vue";
 import { reactiveOmit } from "@vueuse/core";
 import { DialogClose, DialogContent, DialogPortal, useForwardPropsEmits } from "reka-ui";
 import { cn } from "@/lib/utils";
-import SheetOverlay from "./SheetOverlay.vue";
+import SheetOverlay from "./sheet-overlay.vue";
 
 interface SheetContentProps extends DialogContentProps {
   class?: HTMLAttributes["class"];
