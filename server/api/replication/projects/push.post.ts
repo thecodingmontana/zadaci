@@ -43,6 +43,8 @@ export default defineEventHandler(async (event) => {
       workspaceId,
       "| rowCount:",
       body.length,
+      "| deletedIds:",
+      body.filter((r) => r.newDocumentState.deleted_at).map((r) => r.newDocumentState.id),
     );
 
     const membership = await db.query.workspace_members.findFirst({

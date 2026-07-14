@@ -19,7 +19,7 @@ const isOpenSidebar = computed(() => workspaceStore?.isOpenSidebar);
 </script>
 
 <template>
-  <main class="flex min-h-screen flex-col bg-[#fafafa] dark:bg-[#1d1d1d]">
+  <main class="dark:bg-[#1d1d1d]zz flex min-h-screen flex-col bg-[#fafafa]">
     <NuxtLoadingIndicator />
     <div class="flex flex-1">
       <Sidebar />

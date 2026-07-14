@@ -20,6 +20,8 @@ const editingTaskId = ref<string | null>(null);
 const editTitle = ref("");
 const editTaskName = ref("");
 const log = ref<string[]>([]);
+let projectsSub: { unsubscribe: () => void } | null = null;
+let tasksSub: { unsubscribe: () => void } | null = null;
 
 const {
   start: startTaskSync,
@@ -47,45 +49,66 @@ async function startSync() {
   try {
     await Promise.all([startProjectSync(), startTaskSync()]);
     addLog(`Sync started for workspace: ${workspaceId.value}`);
-    await loadAll();
+    await setupSubscriptions();
   } catch (err: any) {
     addLog(`Sync start failed: ${err.message}`);
   }
 }
 
 function stopAllSync() {
+  teardownSubscriptions();
   stopProjectSync();
   stopTaskSync();
   addLog("Sync stopped");
 }
 
-async function loadAll() {
+async function setupSubscriptions() {
   const db = await useRxDbSafe();
   if (!db) {
     addLog("RxDB not available yet");
     return;
   }
+
+  teardownSubscriptions();
+
   try {
-    const projectDocs = await db.projects
-      .find({
-        selector: { workspace_id: workspaceId.value },
-        sort: [{ created_at: "asc" }],
-      })
-      .exec();
-    projects.value = projectDocs.map((d) => d.toMutableJSON());
+    const projectQuery = db.projects.find({
+      selector: { workspace_id: workspaceId.value },
+      sort: [{ created_at: "asc" }],
+    });
 
-    const taskDocs = await db.tasks
-      .find({
-        selector: { project_id: { $ne: "" } },
-        sort: [{ created_at: "asc" }],
-      })
-      .exec();
-    tasks.value = taskDocs.map((d) => d.toMutableJSON());
+    projectsSub = projectQuery.$.subscribe((docs) => {
+      projects.value = docs.map((d) => d.toMutableJSON());
+    });
 
-    addLog(`Loaded ${projects.value.length} projects, ${tasks.value.length} tasks from RxDB`);
+    const taskQuery = db.tasks.find({
+      selector: { project_id: { $ne: "" } },
+      sort: [{ created_at: "asc" }],
+    });
+
+    tasksSub = taskQuery.$.subscribe((docs) => {
+      tasks.value = docs.map((d) => d.toMutableJSON());
+    });
+
+    addLog("RxDB subscriptions active");
   } catch (err: any) {
-    addLog(`Load failed: ${err.message}`);
+    addLog(`Subscription setup failed: ${err.message}`);
   }
+}
+
+function teardownSubscriptions() {
+  if (projectsSub) {
+    projectsSub.unsubscribe();
+    projectsSub = null;
+  }
+  if (tasksSub) {
+    tasksSub.unsubscribe();
+    tasksSub = null;
+  }
+}
+
+async function loadAll() {
+  addLog("Refresh button is no longer needed — using reactive subscriptions");
 }
 
 async function createProject() {
@@ -111,7 +134,6 @@ async function createProject() {
     await db.projects.insert(project);
     addLog(`Created project: ${project.title}`);
     newProjectTitle.value = "";
-    await loadAll();
   } catch (err: any) {
     addLog(`Create failed: ${err.message}`);
   }
@@ -146,7 +168,6 @@ async function createTask() {
     await db.tasks.insert(task);
     addLog(`Created task: ${task.name} (project: ${targetProjectId})`);
     newTaskName.value = "";
-    await loadAll();
   } catch (err: any) {
     addLog(`Create failed: ${err.message}`);
   }
@@ -171,7 +192,6 @@ async function saveProjectEdit(projectId: string) {
       addLog(`Updated project: ${editTitle.value}`);
     }
     editingProjectId.value = null;
-    await loadAll();
   } catch (err: any) {
     addLog(`Update failed: ${err.message}`);
   }
@@ -184,13 +204,9 @@ async function deleteProject(projectId: string) {
   try {
     const doc = await db.projects.findOne({ selector: { id: projectId } }).exec();
     if (doc) {
-      await doc.patch({
-        deleted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+      await doc.remove();
       addLog(`Soft-deleted project: ${doc.get("title")}`);
     }
-    await loadAll();
   } catch (err: any) {
     addLog(`Delete failed: ${err.message}`);
   }
@@ -215,7 +231,6 @@ async function saveTaskEdit(taskId: string) {
       addLog(`Updated task: ${editTaskName.value}`);
     }
     editingTaskId.value = null;
-    await loadAll();
   } catch (err: any) {
     addLog(`Update failed: ${err.message}`);
   }
@@ -228,13 +243,9 @@ async function deleteTask(taskId: string) {
   try {
     const doc = await db.tasks.findOne({ selector: { id: taskId } }).exec();
     if (doc) {
-      await doc.patch({
-        deleted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+      await doc.remove();
       addLog(`Soft-deleted task: ${doc.get("name")}`);
     }
-    await loadAll();
   } catch (err: any) {
     addLog(`Delete failed: ${err.message}`);
   }

@@ -151,6 +151,7 @@ export function useTaskSync(workspaceId: () => string | undefined) {
           table: "app_tasks",
         },
         () => {
+          console.log("[rxdb-debug] Realtime channel fired for app_tasks");
           scheduleReSync();
         },
       )

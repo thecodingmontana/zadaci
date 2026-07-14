@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
   middleware: ["authenticated"],
-  layout: "workspace",
+  layout: "work",
 });
 </script>
 
