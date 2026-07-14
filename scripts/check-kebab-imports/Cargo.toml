@@ -1,6 +1,15 @@
 [package]
-name = "check-kebab-imports"
+name = "opencode-tools"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+
+[[bin]]
+name = "check-kebab-imports"
+path = "src/bin/check-kebab-imports.rs"
+
+[[bin]]
+name = "fix-tailwind-quotes"
+path = "src/bin/fix-tailwind-quotes.rs"
 
 [dependencies]
+regex = "1"
