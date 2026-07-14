@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, or, sql } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 
 interface Checkpoint {
@@ -9,11 +9,11 @@ interface Checkpoint {
 interface PullResponse {
   documents: {
     id: string;
-    name: string;
+    title: string;
     description: string | null;
     status: string;
     priority: string;
-    project_id: string;
+    workspace_id: string;
     due_date: string | null;
     created_at: string;
     updated_at: string;
@@ -43,16 +43,6 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403, statusMessage: "Access denied" });
     }
 
-    const workspaceProjects = await db
-      .select({ id: tables.project.id })
-      .from(tables.project)
-      .where(eq(tables.project.workspace_id, workspaceId));
-
-    const projectIds = workspaceProjects.map((p) => p.id);
-    if (projectIds.length === 0) {
-      return { documents: [], checkpoint: null } satisfies PullResponse;
-    }
-
     let checkpoint: Checkpoint | null = null;
     if (checkpointParam) {
       try {
@@ -62,15 +52,15 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const conditions = [inArray(tables.task.project_id, projectIds)];
+    const conditions = [eq(tables.project.workspace_id, workspaceId)];
 
     if (checkpoint) {
       conditions.push(
         or(
-          gt(tables.task.updated_at, new Date(checkpoint.updated_at)),
+          gt(tables.project.updated_at, new Date(checkpoint.updated_at)),
           and(
-            sql`${tables.task.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
-            gt(tables.task.id, checkpoint.id),
+            sql`${tables.project.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
+            gt(tables.project.id, checkpoint.id),
           ),
         ),
       );
@@ -78,20 +68,20 @@ export default defineEventHandler(async (event) => {
 
     const rows = await db
       .select({
-        id: tables.task.id,
-        name: tables.task.name,
-        description: tables.task.description,
-        status: tables.task.status,
-        priority: tables.task.priority,
-        project_id: tables.task.project_id,
-        due_date: tables.task.due_date,
-        created_at: tables.task.created_at,
-        updated_at: tables.task.updated_at,
-        deleted_at: tables.task.deleted_at,
+        id: tables.project.id,
+        title: tables.project.title,
+        description: tables.project.description,
+        status: tables.project.status,
+        priority: tables.project.priority,
+        workspace_id: tables.project.workspace_id,
+        due_date: tables.project.due_date,
+        created_at: tables.project.created_at,
+        updated_at: tables.project.updated_at,
+        deleted_at: tables.project.deleted_at,
       })
-      .from(tables.task)
+      .from(tables.project)
       .where(and(...conditions))
-      .orderBy(asc(tables.task.updated_at), asc(tables.task.id))
+      .orderBy(asc(tables.project.updated_at), asc(tables.project.id))
       .limit(batchSize);
 
     const lastRow = rows[rows.length - 1];
@@ -104,11 +94,11 @@ export default defineEventHandler(async (event) => {
 
     const documents = rows.map((row) => ({
       id: row.id,
-      name: row.name,
+      title: row.title,
       description: row.description,
       status: row.status,
       priority: row.priority,
-      project_id: row.project_id,
+      workspace_id: row.workspace_id,
       due_date: row.due_date ? row.due_date.toISOString() : null,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
