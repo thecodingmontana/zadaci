@@ -2,7 +2,7 @@
 import type { HTMLAttributes } from "vue";
 import { onBeforeUnmount, onMounted, watch } from "vue";
 import { cn } from "@/lib/utils";
-import { SCROLL_KEYS, useMessageScrollerContext } from "./useMessageScroller";
+import { SCROLL_KEYS, useMessageScrollerContext } from "./use-message-scroller";
 
 const props = withDefaults(
   defineProps<{

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { MessageScrollerProviderProps } from "./useMessageScroller";
+import type { MessageScrollerProviderProps } from "./use-message-scroller";
 import { onMounted, watch } from "vue";
-import { DEFAULTS, provideMessageScroller } from "./useMessageScroller";
+import { DEFAULTS, provideMessageScroller } from "./use-message-scroller";
 
 const props = withDefaults(defineProps<MessageScrollerProviderProps>(), {
   autoScroll: false,

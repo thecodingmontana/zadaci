@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, HTMLAttributes } from "vue";
 import { cn } from "@/lib/utils";
-import { useMessageScrollerRegister } from "./useMessageScroller";
+import { useMessageScrollerRegister } from "./use-message-scroller";
 
 const props = withDefaults(
   defineProps<{

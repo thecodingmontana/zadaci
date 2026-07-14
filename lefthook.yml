@@ -21,6 +21,7 @@ pre-commit:
       stage_fixed: true
     - run: python3 scripts/fix-tailwind-quotes.py
       stage_fixed: true
+    - run: scripts/check-kebab-imports/target/release/check-kebab-imports
 
 commit-msg:
   commands:

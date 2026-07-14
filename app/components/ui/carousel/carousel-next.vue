@@ -4,7 +4,7 @@ import type { ButtonVariants } from "@/components/ui/button";
 import { ArrowRight } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useCarousel } from "./useCarousel";
+import { useCarousel } from "./use-carousel";
 
 const props = withDefaults(
   defineProps<

@@ -22,3 +22,6 @@ logs
 .env
 .env.*
 !.env.example
+
+# Rust tool build artifacts
+scripts/check-kebab-imports/target/
