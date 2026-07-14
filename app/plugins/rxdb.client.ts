@@ -40,7 +40,7 @@ export type ZadaciDatabase = RxDatabase<{
 
 const TASK_SCHEMA = {
   title: "tasks",
-  version: 1,
+  version: 2,
   type: "object",
   primaryKey: {
     key: "id",
@@ -49,7 +49,7 @@ const TASK_SCHEMA = {
   properties: {
     id: { type: "string", maxLength: 16 },
     name: { type: "string", maxLength: 255 },
-    description: { type: "string" },
+    description: { type: ["string", "null"] },
     status: {
       type: "string",
       maxLength: 20,
@@ -72,7 +72,7 @@ const TASK_SCHEMA = {
 
 const PROJECT_SCHEMA = {
   title: "projects",
-  version: 1,
+  version: 2,
   type: "object",
   primaryKey: {
     key: "id",
@@ -81,7 +81,7 @@ const PROJECT_SCHEMA = {
   properties: {
     id: { type: "string", maxLength: 16 },
     title: { type: "string", maxLength: 255 },
-    description: { type: "string" },
+    description: { type: ["string", "null"] },
     status: {
       type: "string",
       maxLength: 20,
@@ -128,12 +128,14 @@ export default defineNuxtPlugin(async () => {
       schema: TASK_SCHEMA,
       migrationStrategies: {
         1: (oldDoc) => oldDoc,
+        2: (oldDoc) => oldDoc,
       },
     },
     projects: {
       schema: PROJECT_SCHEMA,
       migrationStrategies: {
         1: (oldDoc) => oldDoc,
+        2: (oldDoc) => oldDoc,
       },
     },
   });
