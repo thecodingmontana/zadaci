@@ -4,6 +4,10 @@ import { customAlphabet } from "nanoid";
 
 import { useRxDbSafe } from "~/composables/use-rxdb";
 
+definePageMeta({
+  middleware: ["authenticated"],
+});
+
 const genId = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 16);
 
 const workspaceId = ref("");
@@ -118,8 +122,7 @@ async function createTask() {
   const db = await useRxDbSafe();
   if (!db) return;
 
-  const targetProjectId =
-    projects.value.length > 0 ? projects.value[0].id : "";
+  const targetProjectId = projects.value.length > 0 ? projects.value[0].id : "";
   if (!targetProjectId) {
     addLog("Create a project first");
     return;
@@ -322,10 +325,7 @@ watch([tasksError, projectsError], ([te, pe]) => {
     </div>
 
     <div class="mb-6">
-      <button
-        class="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
-        @click="loadAll"
-      >
+      <button class="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700" @click="loadAll">
         Refresh from RxDB
       </button>
       <span class="ml-2 text-sm text-gray-500">
@@ -344,11 +344,7 @@ watch([tasksError, projectsError], ([te, pe]) => {
             :class="{ 'opacity-50': project.deleted_at }"
           >
             <template v-if="editingProjectId === project.id">
-              <input
-                v-model="editTitle"
-                type="text"
-                class="mb-2 w-full rounded border px-2 py-1"
-              />
+              <input v-model="editTitle" type="text" class="mb-2 w-full rounded border px-2 py-1" />
               <div class="flex gap-2">
                 <button
                   class="rounded bg-blue-600 px-3 py-1 text-sm text-white"
@@ -370,10 +366,7 @@ watch([tasksError, projectsError], ([te, pe]) => {
                   <span class="font-medium" :class="{ 'line-through': project.deleted_at }">
                     {{ project.title }}
                   </span>
-                  <span
-                    v-if="project.deleted_at"
-                    class="ml-2 text-xs text-red-500"
-                  >
+                  <span v-if="project.deleted_at" class="ml-2 text-xs text-red-500">
                     (deleted)
                   </span>
                 </div>
@@ -440,12 +433,7 @@ watch([tasksError, projectsError], ([te, pe]) => {
                   <span class="ml-1 text-xs text-gray-500">
                     project: {{ task.project_id.slice(0, 8) }}...
                   </span>
-                  <span
-                    v-if="task.deleted_at"
-                    class="ml-2 text-xs text-red-500"
-                  >
-                    (deleted)
-                  </span>
+                  <span v-if="task.deleted_at" class="ml-2 text-xs text-red-500"> (deleted) </span>
                 </div>
                 <div class="flex gap-1">
                   <button
@@ -465,9 +453,7 @@ watch([tasksError, projectsError], ([te, pe]) => {
               </div>
             </template>
           </div>
-          <div v-if="tasks.length === 0" class="py-4 text-center text-gray-400">
-            No tasks yet
-          </div>
+          <div v-if="tasks.length === 0" class="py-4 text-center text-gray-400">No tasks yet</div>
         </div>
       </div>
     </div>

@@ -1,7 +1,9 @@
 import type { RxCollection, RxDatabase } from "rxdb";
 import { addRxPlugin, createRxDatabase } from "rxdb";
 import { RxDBDevModePlugin } from "rxdb/plugins/dev-mode";
+import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
 import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
+import { wrappedValidateAjvStorage } from "rxdb/plugins/validate-ajv";
 
 export interface TaskDocType {
   id: string;
@@ -38,7 +40,7 @@ export type ZadaciDatabase = RxDatabase<{
 
 const TASK_SCHEMA = {
   title: "tasks",
-  version: 0,
+  version: 1,
   type: "object",
   primaryKey: {
     key: "id",
@@ -46,21 +48,23 @@ const TASK_SCHEMA = {
   },
   properties: {
     id: { type: "string", maxLength: 16 },
-    name: { type: "string" },
+    name: { type: "string", maxLength: 255 },
     description: { type: "string" },
     status: {
       type: "string",
+      maxLength: 20,
       enum: ["idea", "todo", "in_progress", "in_review", "completed", "abandoned"],
     },
     priority: {
       type: "string",
+      maxLength: 10,
       enum: ["low", "medium", "high", "none", "urgent"],
     },
     project_id: { type: "string", maxLength: 16 },
-    due_date: { type: "string" },
-    created_at: { type: "string" },
-    updated_at: { type: "string" },
-    deleted_at: { type: "string" },
+    due_date: { type: ["string", "null"], maxLength: 24 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+    deleted_at: { type: ["string", "null"], maxLength: 24 },
   },
   required: ["id", "name", "status", "priority", "project_id", "created_at", "updated_at"],
   indexes: ["project_id", "status", "updated_at"],
@@ -68,7 +72,7 @@ const TASK_SCHEMA = {
 
 const PROJECT_SCHEMA = {
   title: "projects",
-  version: 0,
+  version: 1,
   type: "object",
   primaryKey: {
     key: "id",
@@ -76,21 +80,23 @@ const PROJECT_SCHEMA = {
   },
   properties: {
     id: { type: "string", maxLength: 16 },
-    title: { type: "string" },
+    title: { type: "string", maxLength: 255 },
     description: { type: "string" },
     status: {
       type: "string",
+      maxLength: 20,
       enum: ["idea", "todo", "in_progress", "in_review", "completed", "abandoned"],
     },
     priority: {
       type: "string",
+      maxLength: 10,
       enum: ["low", "medium", "high", "none", "urgent"],
     },
     workspace_id: { type: "string", maxLength: 16 },
-    due_date: { type: "string" },
-    created_at: { type: "string" },
-    updated_at: { type: "string" },
-    deleted_at: { type: "string" },
+    due_date: { type: ["string", "null"], maxLength: 24 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+    deleted_at: { type: ["string", "null"], maxLength: 24 },
   },
   required: ["id", "title", "status", "priority", "workspace_id", "created_at", "updated_at"],
   indexes: ["workspace_id", "status", "updated_at"],
@@ -105,18 +111,30 @@ export default defineNuxtPlugin(async () => {
     addRxPlugin(RxDBDevModePlugin);
   }
 
+  addRxPlugin(RxDBMigrationSchemaPlugin);
+
+  const storage = import.meta.dev
+    ? wrappedValidateAjvStorage({ storage: getRxStorageDexie() })
+    : getRxStorageDexie();
+
   const db = await createRxDatabase<ZadaciDatabase>({
     name: "zadaci",
-    storage: getRxStorageDexie(),
+    storage,
     eventReduce: true,
   });
 
   await db.addCollections({
     tasks: {
       schema: TASK_SCHEMA,
+      migrationStrategies: {
+        1: (oldDoc) => oldDoc,
+      },
     },
     projects: {
       schema: PROJECT_SCHEMA,
+      migrationStrategies: {
+        1: (oldDoc) => oldDoc,
+      },
     },
   });
 

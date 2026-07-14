@@ -36,6 +36,15 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: "workspace_id is required" });
     }
 
+    console.log(
+      "[rxdb-debug] tasks/push | userId:",
+      userId,
+      "| workspaceId:",
+      workspaceId,
+      "| rowCount:",
+      body.length,
+    );
+
     const membership = await db.query.workspace_members.findFirst({
       where: { user_id: userId, workspace_id: workspaceId },
     });
@@ -48,10 +57,14 @@ export default defineEventHandler(async (event) => {
     const validProjects = await db
       .select({ id: tables.project.id })
       .from(tables.project)
-      .where(and(eq(tables.project.workspace_id, workspaceId), inArray(tables.project.id, projectIds)));
+      .where(
+        and(eq(tables.project.workspace_id, workspaceId), inArray(tables.project.id, projectIds)),
+      );
 
     const validProjectIdSet = new Set(validProjects.map((p) => p.id));
-    const invalidRows = body.filter((row) => !validProjectIdSet.has(row.newDocumentState.project_id));
+    const invalidRows = body.filter(
+      (row) => !validProjectIdSet.has(row.newDocumentState.project_id),
+    );
     if (invalidRows.length > 0) {
       throw createError({
         statusCode: 403,

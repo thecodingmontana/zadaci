@@ -32,6 +32,17 @@ export default defineEventHandler(async (event) => {
     const checkpointParam = query.checkpoint as string | undefined;
     const batchSize = Math.min(Number(query.batch_size) || 50, 100);
 
+    console.log(
+      "[rxdb-debug] projects/pull | userId:",
+      userId,
+      "| workspaceId:",
+      workspaceId,
+      "| batchSize:",
+      batchSize,
+      "| hasCheckpoint:",
+      !!checkpointParam,
+    );
+
     if (!workspaceId) {
       return { documents: [], checkpoint: null } satisfies PullResponse;
     }

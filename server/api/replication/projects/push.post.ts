@@ -36,6 +36,15 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: "workspace_id is required" });
     }
 
+    console.log(
+      "[rxdb-debug] projects/push | userId:",
+      userId,
+      "| workspaceId:",
+      workspaceId,
+      "| rowCount:",
+      body.length,
+    );
+
     const membership = await db.query.workspace_members.findFirst({
       where: { user_id: userId, workspace_id: workspaceId },
     });

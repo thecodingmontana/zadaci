@@ -60,6 +60,8 @@ export function useTaskSync(workspaceId: () => string | undefined) {
       return;
     }
 
+    const requestFetch = useRequestFetch();
+
     const nuxtApp = useNuxtApp();
     const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
@@ -96,7 +98,7 @@ export function useTaskSync(workspaceId: () => string | undefined) {
             params.set("checkpoint", JSON.stringify(checkpoint));
           }
 
-          const result = await $fetch(`/api/replication/tasks/pull?${params.toString()}`);
+          const result = await requestFetch(`/api/replication/tasks/pull?${params.toString()}`);
           return result as {
             documents: TaskDocType[];
             checkpoint: { updated_at: string; id: string } | undefined;
@@ -111,7 +113,7 @@ export function useTaskSync(workspaceId: () => string | undefined) {
             return [];
           }
 
-          const result = await $fetch(`/api/replication/tasks/push?workspace_id=${id}`, {
+          const result = await requestFetch(`/api/replication/tasks/push?workspace_id=${id}`, {
             method: "POST",
             body: rows,
           });
