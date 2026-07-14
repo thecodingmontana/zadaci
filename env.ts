@@ -16,6 +16,8 @@ export const env = createEnv({
     NUXT_OAUTH_GOOGLE_REDIRECT_URL: z.url(),
 
     DATABASE_URL: z.url(),
+    SUPABASE_URL: z.string(),
+    SUPABASE_ANON_KEY: z.string(),
 
     NUXT_RESEND_API_KEY: z.string(),
 

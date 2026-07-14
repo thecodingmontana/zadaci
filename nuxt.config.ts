@@ -2,6 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import MotionResolver from "motion-v/resolver";
 import Components from "unplugin-vue-components/vite";
+import { env } from "./env";
 
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -35,6 +36,10 @@ export default defineNuxtConfig({
         "tailwind-merge",
         "vee-validate",
         "zod",
+        "rxdb",
+        "rxdb/plugins/storage-dexie",
+        "rxdb/plugins/dev-mode",
+        "rxdb/plugins/replication",
       ],
     },
     build: {
@@ -93,6 +98,12 @@ export default defineNuxtConfig({
         clientId: process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID,
         clientSecret: process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET,
         redirectURL: process.env.NUXT_OAUTH_GOOGLE_REDIRECT_URL,
+      },
+    },
+    public: {
+      supabase: {
+        url: env.SUPABASE_URL,
+        anonKey: env.SUPABASE_ANON_KEY,
       },
     },
     private: {},

@@ -1,0 +1,84 @@
+import type { RxCollection, RxDatabase } from "rxdb";
+import { addRxPlugin, createRxDatabase } from "rxdb";
+import { RxDBDevModePlugin } from "rxdb/plugins/dev-mode";
+import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
+
+export interface TaskDocType {
+  id: string;
+  name: string;
+  description: string | null;
+  status: "idea" | "todo" | "in_progress" | "in_review" | "completed" | "abandoned";
+  priority: "low" | "medium" | "high" | "none" | "urgent";
+  project_id: string;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export type TaskCollection = RxCollection<TaskDocType>;
+export type ZadaciDatabase = RxDatabase<{ tasks: TaskCollection }>;
+
+const TASK_SCHEMA = {
+  title: "tasks",
+  version: 0,
+  type: "object",
+  primaryKey: {
+    key: "id",
+    fields: ["id"],
+  },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    name: { type: "string" },
+    description: { type: "string" },
+    status: {
+      type: "string",
+      enum: ["idea", "todo", "in_progress", "in_review", "completed", "abandoned"],
+    },
+    priority: {
+      type: "string",
+      enum: ["low", "medium", "high", "none", "urgent"],
+    },
+    project_id: { type: "string", maxLength: 16 },
+    due_date: { type: "string" },
+    created_at: { type: "string" },
+    updated_at: { type: "string" },
+    deleted_at: { type: "string" },
+  },
+  required: ["id", "name", "status", "priority", "project_id", "created_at", "updated_at"],
+  indexes: ["project_id", "status", "updated_at"],
+} as const;
+
+export default defineNuxtPlugin(async () => {
+  if (import.meta.server) {
+    return;
+  }
+
+  if (import.meta.dev) {
+    addRxPlugin(RxDBDevModePlugin);
+  }
+
+  const db = await createRxDatabase<ZadaciDatabase>({
+    name: "zadaci",
+    storage: getRxStorageDexie(),
+    eventReduce: true,
+  });
+
+  await db.addCollections({
+    tasks: {
+      schema: TASK_SCHEMA,
+    },
+  });
+
+  return {
+    provide: {
+      rxdb: db,
+    },
+  };
+});
+
+declare module "#app" {
+  interface NuxtApp {
+    $rxdb: ZadaciDatabase;
+  }
+}
