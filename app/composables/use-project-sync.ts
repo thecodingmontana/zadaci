@@ -44,6 +44,7 @@ export function useProjectSync(workspaceId: () => string | undefined) {
   let cleanupFns: (() => void)[] = [];
   const isActive = ref(false);
   const syncError = ref<Error | null>(null);
+  const realtimeStatus = ref<string>("idle");
 
   onUnmounted(() => {
     stop();
@@ -160,6 +161,7 @@ export function useProjectSync(workspaceId: () => string | undefined) {
       )
       .subscribe((status) => {
         console.log("[rxdb-debug] Realtime channel subscribe status (projects):", status);
+        realtimeStatus.value = status;
       });
 
     cleanupFns.push(() => {
@@ -218,5 +220,6 @@ export function useProjectSync(workspaceId: () => string | undefined) {
     stop,
     isActive,
     syncError,
+    realtimeStatus,
   };
 }

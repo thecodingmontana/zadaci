@@ -28,6 +28,7 @@ const {
   stop: stopTaskSync,
   isActive: tasksActive,
   syncError: tasksError,
+  realtimeStatus: tasksRealtimeStatus,
 } = useTaskSync(() => workspaceId.value || undefined);
 
 const {
@@ -35,7 +36,21 @@ const {
   stop: stopProjectSync,
   isActive: projectsActive,
   syncError: projectsError,
+  realtimeStatus: projectsRealtimeStatus,
 } = useProjectSync(() => workspaceId.value || undefined);
+
+const online = ref(typeof navigator !== "undefined" ? navigator.onLine : true);
+
+if (import.meta.client) {
+  const onOnline = () => { online.value = true; };
+  const onOffline = () => { online.value = false; };
+  window.addEventListener("online", onOnline);
+  window.addEventListener("offline", onOffline);
+  onUnmounted(() => {
+    window.removeEventListener("online", onOnline);
+    window.removeEventListener("offline", onOffline);
+  });
+}
 
 function addLog(msg: string) {
   log.value.push(`${new Date().toLocaleTimeString()}: ${msg}`);
@@ -285,12 +300,30 @@ watch([tasksError, projectsError], ([te, pe]) => {
           Stop Sync
         </button>
       </div>
-      <div class="mt-1 flex gap-3 text-sm">
-        <span :class="tasksActive ? 'text-green-600' : 'text-gray-400'">
-          Tasks: {{ tasksActive ? "active" : "off" }}
+      <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block size-2 rounded-full" :class="online ? 'bg-green-500' : 'bg-red-500'" />
+          {{ online ? "Online" : "Offline" }}
         </span>
-        <span :class="projectsActive ? 'text-green-600' : 'text-gray-400'">
-          Projects: {{ projectsActive ? "active" : "off" }}
+
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block size-2 rounded-full" :style="{ backgroundColor: projectsRealtimeStatus === 'SUBSCRIBED' ? '#22c55e' : projectsRealtimeStatus === 'CHANNEL_ERROR' || projectsRealtimeStatus === 'TIMED_OUT' ? '#ef4444' : '#eab308' }" />
+          RT Projects: {{ projectsRealtimeStatus }}
+        </span>
+
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block size-2 rounded-full" :style="{ backgroundColor: tasksRealtimeStatus === 'SUBSCRIBED' ? '#22c55e' : tasksRealtimeStatus === 'CHANNEL_ERROR' || tasksRealtimeStatus === 'TIMED_OUT' ? '#ef4444' : '#eab308' }" />
+          RT Tasks: {{ tasksRealtimeStatus }}
+        </span>
+
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block size-2 rounded-full" :class="projectsActive ? 'bg-green-500' : 'bg-gray-400'" />
+          Sync Projects: {{ projectsActive ? "active" : "off" }}
+        </span>
+
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block size-2 rounded-full" :class="tasksActive ? 'bg-green-500' : 'bg-gray-400'" />
+          Sync Tasks: {{ tasksActive ? "active" : "off" }}
         </span>
       </div>
     </div>

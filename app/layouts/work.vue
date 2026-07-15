@@ -1,25 +1,20 @@
 <script setup lang="ts">
 import Toaster from "~/components/toast/toaster.vue";
-import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
-import AppHeader from "~/components/workspace/nav/app-header.vue";
-import AppSidebar from "~/components/workspace/nav/sidebar.vue";
+import NavigationSidebar from "~/components/workspace/nav/navigation-sidebar.vue";
 </script>
 
 <template>
-  <main class="flex min-h-screen flex-col">
+  <div class="h-full">
     <NuxtLoadingIndicator />
 
-    <SidebarProvider class="flex flex-1">
-      <AppSidebar />
+    <div class="hidden md:flex h-full w-18 z-30 flex-col fixed inset-y-0">
+                    <NavigationSidebar />
+                </div>
 
-      <SidebarInset>
-        <AppHeader />
-        <div class="flex flex-1 flex-col">
-          <slot />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+                <main class="md:pl-18 h-full">
+                    <slot />
+                </main>
 
     <Toaster />
-  </main>
+  </div>
 </template>
