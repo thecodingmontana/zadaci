@@ -134,6 +134,7 @@ export function useProjectSync(workspaceId: () => string | undefined) {
     cleanupFns.push(() => sub.unsubscribe());
 
     setupRealtimeChannel();
+    setupVisibilityListener();
     isActive.value = true;
   }
 
@@ -169,6 +170,18 @@ export function useProjectSync(workspaceId: () => string | undefined) {
         }
         realtimeChannel = null;
       }
+    });
+  }
+
+  function setupVisibilityListener() {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        scheduleReSync();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    cleanupFns.push(() => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     });
   }
 
