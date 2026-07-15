@@ -42,8 +42,12 @@ const {
 const online = ref(typeof navigator !== "undefined" ? navigator.onLine : true);
 
 if (import.meta.client) {
-  const onOnline = () => { online.value = true; };
-  const onOffline = () => { online.value = false; };
+  const onOnline = () => {
+    online.value = true;
+  };
+  const onOffline = () => {
+    online.value = false;
+  };
   window.addEventListener("online", onOnline);
   window.addEventListener("offline", onOffline);
   onUnmounted(() => {
@@ -88,7 +92,7 @@ async function setupSubscriptions() {
 
   try {
     const projectQuery = db.projects.find({
-      selector: { workspace_id: workspaceId.value },
+      selector: { workspace_id: workspaceId.value, deleted_at: { $eq: null } },
       sort: [{ created_at: "asc" }],
     });
 
@@ -97,7 +101,7 @@ async function setupSubscriptions() {
     });
 
     const taskQuery = db.tasks.find({
-      selector: { project_id: { $ne: "" } },
+      selector: { deleted_at: { $eq: null } },
       sort: [{ created_at: "asc" }],
     });
 
@@ -220,6 +224,7 @@ async function deleteProject(projectId: string) {
     const doc = await db.projects.findOne({ selector: { id: projectId } }).exec();
     if (doc) {
       await doc.remove();
+      console.log("[rxdb-debug] project delete - id:", projectId, "deleted_at:", doc.get("deleted_at"), "doc:", doc.toMutableJSON());
       addLog(`Soft-deleted project: ${doc.get("title")}`);
     }
   } catch (err: any) {
@@ -259,6 +264,7 @@ async function deleteTask(taskId: string) {
     const doc = await db.tasks.findOne({ selector: { id: taskId } }).exec();
     if (doc) {
       await doc.remove();
+      console.log("[rxdb-debug] task delete - id:", taskId, "deleted_at:", doc.get("deleted_at"), "doc:", doc.toMutableJSON());
       addLog(`Soft-deleted task: ${doc.get("name")}`);
     }
   } catch (err: any) {
@@ -302,27 +308,57 @@ watch([tasksError, projectsError], ([te, pe]) => {
       </div>
       <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <span class="inline-flex items-center gap-1">
-          <span class="inline-block size-2 rounded-full" :class="online ? 'bg-green-500' : 'bg-red-500'" />
+          <span
+            class="inline-block size-2 rounded-full"
+            :class="online ? 'bg-green-500' : 'bg-red-500'"
+          />
           {{ online ? "Online" : "Offline" }}
         </span>
 
         <span class="inline-flex items-center gap-1">
-          <span class="inline-block size-2 rounded-full" :style="{ backgroundColor: projectsRealtimeStatus === 'SUBSCRIBED' ? '#22c55e' : projectsRealtimeStatus === 'CHANNEL_ERROR' || projectsRealtimeStatus === 'TIMED_OUT' ? '#ef4444' : '#eab308' }" />
+          <span
+            class="inline-block size-2 rounded-full"
+            :style="{
+              backgroundColor:
+                projectsRealtimeStatus === 'SUBSCRIBED'
+                  ? '#22c55e'
+                  : projectsRealtimeStatus === 'CHANNEL_ERROR' ||
+                      projectsRealtimeStatus === 'TIMED_OUT'
+                    ? '#ef4444'
+                    : '#eab308',
+            }"
+          />
           RT Projects: {{ projectsRealtimeStatus }}
         </span>
 
         <span class="inline-flex items-center gap-1">
-          <span class="inline-block size-2 rounded-full" :style="{ backgroundColor: tasksRealtimeStatus === 'SUBSCRIBED' ? '#22c55e' : tasksRealtimeStatus === 'CHANNEL_ERROR' || tasksRealtimeStatus === 'TIMED_OUT' ? '#ef4444' : '#eab308' }" />
+          <span
+            class="inline-block size-2 rounded-full"
+            :style="{
+              backgroundColor:
+                tasksRealtimeStatus === 'SUBSCRIBED'
+                  ? '#22c55e'
+                  : tasksRealtimeStatus === 'CHANNEL_ERROR' || tasksRealtimeStatus === 'TIMED_OUT'
+                    ? '#ef4444'
+                    : '#eab308',
+            }"
+          />
           RT Tasks: {{ tasksRealtimeStatus }}
         </span>
 
         <span class="inline-flex items-center gap-1">
-          <span class="inline-block size-2 rounded-full" :class="projectsActive ? 'bg-green-500' : 'bg-gray-400'" />
+          <span
+            class="inline-block size-2 rounded-full"
+            :class="projectsActive ? 'bg-green-500' : 'bg-gray-400'"
+          />
           Sync Projects: {{ projectsActive ? "active" : "off" }}
         </span>
 
         <span class="inline-flex items-center gap-1">
-          <span class="inline-block size-2 rounded-full" :class="tasksActive ? 'bg-green-500' : 'bg-gray-400'" />
+          <span
+            class="inline-block size-2 rounded-full"
+            :class="tasksActive ? 'bg-green-500' : 'bg-gray-400'"
+          />
           Sync Tasks: {{ tasksActive ? "active" : "off" }}
         </span>
       </div>
