@@ -150,12 +150,14 @@ export function useTaskSync(workspaceId: () => string | undefined) {
           schema: "public",
           table: "app_tasks",
         },
-        () => {
-          console.log("[rxdb-debug] Realtime channel fired for app_tasks");
+        (payload) => {
+          console.log("[rxdb-debug] Realtime channel fired for app_tasks", payload);
           scheduleReSync();
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[rxdb-debug] Realtime channel subscribe status (tasks):", status);
+      });
 
     cleanupFns.push(() => {
       if (realtimeChannel) {

@@ -152,12 +152,14 @@ export function useProjectSync(workspaceId: () => string | undefined) {
           schema: "public",
           table: "app_project",
         },
-        () => {
-          console.log("[rxdb-debug] Realtime channel fired for app_project");
+        (payload) => {
+          console.log("[rxdb-debug] Realtime channel fired for app_project", payload);
           scheduleReSync();
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[rxdb-debug] Realtime channel subscribe status (projects):", status);
+      });
 
     cleanupFns.push(() => {
       if (realtimeChannel) {
