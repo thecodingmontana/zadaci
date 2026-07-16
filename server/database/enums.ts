@@ -42,6 +42,14 @@ export enum MESSAGE_REFERENCE_TYPE {
   LINK = "link",
 }
 
+export enum USER_STATUS {
+  AVAILABLE = "available",
+  BUSY = "busy",
+  AWAY = "away",
+  DO_NOT_DISTURB = "dnd",
+  OFFLINE = "offline",
+}
+
 export const user_role_enum = pgEnum("user_role", enumToPgEnum(USER_ROLE));
 export const status_enum = pgEnum("status", enumToPgEnum(STATUS));
 export const priority_enum = pgEnum("priority", enumToPgEnum(PRIORITY));
@@ -50,3 +58,4 @@ export const message_reference_type_enum = pgEnum(
   "message_reference_type",
   enumToPgEnum(MESSAGE_REFERENCE_TYPE),
 );
+export const user_status_enum = pgEnum("user_status", enumToPgEnum(USER_STATUS));

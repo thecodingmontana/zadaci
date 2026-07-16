@@ -56,7 +56,32 @@ NUXT_CLOUDINARY_CLOUD_API_KEY="your-cloud-api-key"
 NUXT_CLOUDINARY_CLOUD_API_SECRET="your-cloud-api-secret"
 ```
 
-### 4. Run the Development Server
+### 4. Run Database Migrations
+
+```bash
+pnpm run db:migrate
+```
+
+### 5. Enable Supabase Realtime
+
+For cross-tab live sync, tables must be added to the `supabase_realtime` publication:
+
+```bash
+pnpm run db:realtime
+```
+
+**Always verify** after running — don't trust the Supabase dashboard toggle:
+
+```sql
+select schemaname, tablename
+from pg_publication_tables
+where pubname = 'supabase_realtime'
+order by tablename;
+```
+
+> If a table you expect isn't in the output, the `alter publication` didn't take. Re-run `pnpm run db:realtime` and verify again. The tracked source of truth is `server/database/enable-realtime.sql` — update that file when adding new Tier 1 tables.
+
+### 6. Run the Development Server
 
 ```bash
 pnpm run dev

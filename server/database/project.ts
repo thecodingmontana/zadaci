@@ -1,5 +1,6 @@
 import { boolean, index, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { PRIORITY, priority_enum, STATUS, status_enum } from "./enums";
+import { team } from "./team";
 import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
@@ -16,10 +17,16 @@ export const project = pgTable(
     workspace_id: varchar("workspace_id", { length: 16 })
       .notNull()
       .references(() => workspace.id, { onDelete: "cascade" }),
+    team_id: varchar("team_id", { length: 16 }).references(() => team.id, {
+      onDelete: "set null",
+    }),
     due_date: timestamp("due_date", { mode: "date" }),
     ...syncable,
   },
-  (table) => [index("project_workspace_id_idx").on(table.workspace_id)],
+  (table) => [
+    index("project_workspace_id_idx").on(table.workspace_id),
+    index("project_team_id_idx").on(table.team_id),
+  ],
 );
 
 export const project_members = pgTable(

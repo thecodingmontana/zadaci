@@ -1,4 +1,5 @@
 import { boolean, index, integer, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { USER_STATUS, user_status_enum } from "./enums";
 import { generateNanoId, pgTable, timestamps } from "./utils";
 
 export const user = pgTable("user", {
@@ -105,3 +106,23 @@ export const oauth_account = pgTable(
   },
   (table) => [index("provider_user_unique").on(table.provider, table.provider_user_id)],
 );
+
+export const user_status = pgTable("user_status", {
+  id: varchar("id", { length: 16 })
+    .primaryKey()
+    .$defaultFn(() => generateNanoId()),
+  user_id: varchar("user_id", { length: 16 })
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  status: user_status_enum("status").notNull().default(USER_STATUS.AVAILABLE),
+  custom_message: text("custom_message"), // e.g. "In a meeting"
+  // Explicit expiry for temporary statuses (e.g. "Away for 30 min") —
+  // nullable, null means the status persists until manually changed.
+  status_expires_at: timestamp("status_expires_at", {
+    mode: "date",
+    precision: 3,
+    withTimezone: true,
+  }),
+  ...timestamps,
+});
