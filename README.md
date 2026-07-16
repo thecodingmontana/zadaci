@@ -108,7 +108,7 @@ Visit [http://localhost:3000](http://localhost:3000) to open Zadaci.
 
 ## 🤝 Contributing
 
-Feel free to fork the repo and submit pull requests. Feedback, suggestions, and improvements are welcome!
+See [CONTRIBUTING.md](CONTRIBUTING.md) for commit conventions and PR guidelines.
 
 ## 📄 License
 
