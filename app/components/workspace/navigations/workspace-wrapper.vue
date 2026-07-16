@@ -162,7 +162,7 @@ const settingsItems = [
   <div class="flex h-full w-64 shrink-0 flex-col border-r px-2 text-primary">
     <WorkspaceInfo />
     <div
-      class="group/scroll h-full [scrollbar-width:thin] [scrollbar-color:transparent_transparent] overflow-x-hidden overflow-y-auto py-2 pr-1 hover:[scrollbar-color:theme(colors.gray.300)_transparent] dark:hover:[scrollbar-color:theme(colors.neutral.600)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
+      class="group/scroll h-full scrollbar-thin [scrollbar-color:transparent_transparent] overflow-x-hidden overflow-y-auto py-2 pr-1 hover:[scrollbar-color:var(--color-gray-300)_transparent] dark:hover:[scrollbar-color:var(--color-neutral-600)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
     >
       <div class="space-y-2">
         <h3 class="font-ibm-plex-mono text-xs uppercase">Main Menu</h3>
@@ -177,6 +177,13 @@ const settingsItems = [
           >
             <Icon name="hugeicons:user-multiple-02" size="18" />
             <p class="text-sm">Members</p>
+          </div>
+
+          <div
+            class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+          >
+            <Icon name="hugeicons:calendar-03" size="18" />
+            <p class="text-sm">Calendar</p>
           </div>
 
           <Collapsible
@@ -248,7 +255,10 @@ const settingsItems = [
             class="group flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
             @click="toggleCommunication('channels')"
           >
-            <p class="text-sm font-medium">Channels</p>
+            <div class="flex items-center space-x-2">
+              <Icon name="hugeicons:message-multiple-01" size="16" />
+              <p class="text-sm font-medium">Channels</p>
+            </div>
             <div class="flex items-center space-x-1">
               <Button
                 variant="ghost"
@@ -313,7 +323,10 @@ const settingsItems = [
             class="group flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
             @click="toggleCommunication('directMessages')"
           >
-            <p class="text-sm font-medium">Direct Messages</p>
+            <div class="flex items-center space-x-2">
+              <Icon name="hugeicons:user-account" size="16" />
+              <p class="text-sm font-medium">Direct Messages</p>
+            </div>
             <div class="flex items-center space-x-1">
               <Button
                 variant="ghost"
@@ -457,6 +470,13 @@ const settingsItems = [
         >
           <Icon name="hugeicons:help-circle" size="18" />
           <p class="text-sm">Help & Support</p>
+        </div>
+
+        <div
+          class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+        >
+          <Icon name="hugeicons:favourite" size="18" />
+          <p class="text-sm">Donate</p>
         </div>
       </div>
     </div>
