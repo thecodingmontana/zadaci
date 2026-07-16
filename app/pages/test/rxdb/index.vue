@@ -264,7 +264,7 @@ async function deleteProject(projectId: string) {
     const doc = await db.projects.findOne({ selector: { id: projectId } }).exec();
     if (doc) {
       const now = new Date().toISOString();
-      await doc.atomicUpdate((oldData: any) => ({ ...oldData, deleted_at: now, updated_at: now }));
+      await doc.incrementalModify((oldData: any) => ({ ...oldData, deleted_at: now, updated_at: now }));
       console.log("[rxdb-debug] project delete - id:", projectId, "deleted_at:", doc.get("deleted_at"), "doc:", doc.toMutableJSON());
       addLog(`Soft-deleted project: ${doc.get("title")}`);
     }
@@ -305,7 +305,7 @@ async function deleteTask(taskId: string) {
     const doc = await db.tasks.findOne({ selector: { id: taskId } }).exec();
     if (doc) {
       const now = new Date().toISOString();
-      await doc.patch({ deleted_at: now, updated_at: now });
+      await doc.incrementalModify((oldData: any) => ({ ...oldData, deleted_at: now, updated_at: now }));
       console.log("[rxdb-debug] task delete - id:", taskId, "deleted_at:", doc.get("deleted_at"), "doc:", doc.toMutableJSON());
       addLog(`Soft-deleted task: ${doc.get("name")}`);
     }
