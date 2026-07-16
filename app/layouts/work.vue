@@ -1,20 +1,26 @@
 <script setup lang="ts">
 import Toaster from "~/components/toast/toaster.vue";
 import NavigationSidebar from "~/components/workspace/nav/navigation-sidebar.vue";
+import WorkspaceWrapper from "~/components/workspace/nav/workspace-wrapper.vue";
 </script>
 
 <template>
-  <div class="h-full">
-    <NuxtLoadingIndicator />
+    <div class="h-full">
+        <NuxtLoadingIndicator />
 
-    <div class="hidden md:flex h-full w-18 z-30 flex-col fixed inset-y-0">
-                    <NavigationSidebar />
-                </div>
+        <div class="fixed inset-y-0 z-30 hidden h-full w-18 flex-col md:flex">
+            <NavigationSidebar />
+        </div>
 
-                <main class="md:pl-18 h-full">
-                    <slot />
-                </main>
+        <main class="h-full md:pl-20">
+            <div class='hidden md:flex h-full w-64 z-20 flex-col fixed inset-y-0'>
+                <WorkspaceWrapper />
+            </div>
+            <div class='h-full md:pl-64'>
+                <slot />
+            </div>
+        </main>
 
-    <Toaster />
-  </div>
+        <Toaster />
+    </div>
 </template>

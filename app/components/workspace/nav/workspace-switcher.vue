@@ -59,8 +59,8 @@ function selectWorkspace(ws: Workspace) {
             :transition="{ duration: 0.15 }"
             class="grid flex-1 overflow-hidden text-left text-sm leading-tight"
           >
-            <span class="truncate font-semibold">{{ active.name }}</span>
-            <span class="truncate text-xs text-sidebar-foreground/60">{{ active.plan }} plan</span>
+            <span class="truncate font-semibold">{{ active?.name }}</span>
+            <span class="truncate text-xs text-sidebar-foreground/60">{{ active?.plan }} plan</span>
           </motion.div>
         </AnimatePresence>
 

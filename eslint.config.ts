@@ -30,6 +30,7 @@ export default withNuxt(
             /^tailwind\./,
             /^\..+/,
             /^AGENTS\.md$/,
+            /^Cargo\.toml$/,
             /^README\.md$/,
             /^\d{14}_[a-z]+(_[a-z]+)*$/,
             /^\[.*\]$/,
