@@ -103,14 +103,14 @@ async function setupSubscriptions() {
     console.log("[debug] ALL projects count:", allProjects.length);
     allProjects.forEach((p) => {
       const raw = p.toMutableJSON();
-      console.log("[debug]   project:", raw.id, "title:", raw.title, "deleted_at:", raw.deleted_at, "deleted_at type:", typeof raw.deleted_at, "has deleted_at key:", "deleted_at" in raw);
+      console.log("[debug]   project:", raw.id, "title:", raw.title, "deleted_at:", raw.deleted_at, "deleted_at type:", typeof raw.deleted_at, "has deleted_at key:", "deleted_at" in raw, "_deleted:", raw._deleted, "all keys:", Object.keys(raw));
     });
 
     const allTasks = await db.tasks.find().exec();
     console.log("[debug] ALL tasks count:", allTasks.length);
     allTasks.forEach((t) => {
       const raw = t.toMutableJSON();
-      console.log("[debug]   task:", raw.id, "name:", raw.name, "deleted_at:", raw.deleted_at, "deleted_at type:", typeof raw.deleted_at, "has deleted_at key:", "deleted_at" in raw);
+      console.log("[debug]   task:", raw.id, "name:", raw.name, "deleted_at:", raw.deleted_at, "deleted_at type:", typeof raw.deleted_at, "has deleted_at key:", "deleted_at" in raw, "_deleted:", raw._deleted, "all keys:", Object.keys(raw));
     });
 
     // Filtered diagnostic queries
@@ -134,7 +134,9 @@ async function setupSubscriptions() {
     });
 
     projectsSub = projectQuery.$.subscribe((docs) => {
-      projects.value = docs.filter((d) => !d.get("deleted_at")).map((d) => d.toMutableJSON());
+      const filtered = docs.filter((d) => !d.toMutableJSON()._deleted);
+      console.log("[debug] project sub fired - total:", docs.length, "filtered:", filtered.length);
+      projects.value = filtered.map((d) => d.toMutableJSON());
     });
 
     const taskQuery = db.tasks.find({
@@ -142,7 +144,9 @@ async function setupSubscriptions() {
     });
 
     tasksSub = taskQuery.$.subscribe((docs) => {
-      tasks.value = docs.filter((d) => !d.get("deleted_at")).map((d) => d.toMutableJSON());
+      const filtered = docs.filter((d) => !d.toMutableJSON()._deleted);
+      console.log("[debug] task sub fired - total:", docs.length, "filtered:", filtered.length);
+      tasks.value = filtered.map((d) => d.toMutableJSON());
     });
 
     addLog("RxDB subscriptions active");
