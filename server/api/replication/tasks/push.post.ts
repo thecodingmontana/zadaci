@@ -17,6 +17,7 @@ interface PushRow {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    _deleted?: boolean;
   };
 }
 
@@ -96,6 +97,7 @@ export default defineEventHandler(async (event) => {
 
     for (const row of body) {
       const doc = row.newDocumentState;
+      console.log("[rxdb-debug] task push row - id:", doc.id, "_deleted:", doc._deleted, "deleted_at:", doc.deleted_at, "deleted_at type:", typeof doc.deleted_at);
       const existing = existingMap.get(doc.id);
 
       if (existing) {
@@ -120,7 +122,12 @@ export default defineEventHandler(async (event) => {
       }
 
       const dueDate = doc.due_date ? new Date(doc.due_date) : null;
-      const deletedAt = doc.deleted_at ? new Date(doc.deleted_at) : null;
+      const isDeleted = doc._deleted === true;
+      const deletedAt = isDeleted ? (doc.deleted_at ? new Date(doc.deleted_at) : new Date()) : null;
+
+      if (isDeleted) {
+        console.log("[rxdb-debug] tasks/push DELETE - id:", doc.id, "deleted_at:", deletedAt?.toISOString());
+      }
 
       await db
         .insert(tables.task)
