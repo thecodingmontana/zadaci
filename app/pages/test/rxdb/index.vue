@@ -3,6 +3,7 @@ import type { ProjectDocType, TaskDocType } from "~/plugins/rxdb.client";
 import { customAlphabet } from "nanoid";
 
 import { useRxDbSafe } from "~/composables/use-rxdb";
+console.log("[debug] QUERY CODE VERSION 3");
 
 definePageMeta({
   middleware: ["authenticated"],
@@ -91,8 +92,44 @@ async function setupSubscriptions() {
   teardownSubscriptions();
 
   try {
+    const projectSelector = { workspace_id: workspaceId.value };
+    const taskSelector = {};
+
+    console.log("[debug] project selector:", JSON.stringify(projectSelector));
+    console.log("[debug] task selector:", JSON.stringify(taskSelector));
+
+    // Unfiltered diagnostic queries
+    const allProjects = await db.projects.find().exec();
+    console.log("[debug] ALL projects count:", allProjects.length);
+    allProjects.forEach((p) => {
+      const raw = p.toMutableJSON();
+      console.log("[debug]   project:", raw.id, "title:", raw.title, "deleted_at:", raw.deleted_at, "deleted_at type:", typeof raw.deleted_at, "has deleted_at key:", "deleted_at" in raw);
+    });
+
+    const allTasks = await db.tasks.find().exec();
+    console.log("[debug] ALL tasks count:", allTasks.length);
+    allTasks.forEach((t) => {
+      const raw = t.toMutableJSON();
+      console.log("[debug]   task:", raw.id, "name:", raw.name, "deleted_at:", raw.deleted_at, "deleted_at type:", typeof raw.deleted_at, "has deleted_at key:", "deleted_at" in raw);
+    });
+
+    // Filtered diagnostic queries
+    const filteredProjects = await db.projects.find({ selector: projectSelector }).exec();
+    console.log("[debug] FILTERED projects count (by workspace only):", filteredProjects.length);
+
+    const filteredTasks = await db.tasks.find({ selector: taskSelector }).exec();
+    console.log("[debug] FILTERED tasks count (no filter):", filteredTasks.length);
+
+    // Check for RxDB query errors by testing $eq: null directly
+    try {
+      const nullTest = await db.projects.find({ selector: { deleted_at: { $eq: null } } }).exec();
+      console.log("[debug] $eq:null test projects count:", nullTest.length);
+    } catch (e: any) {
+      console.log("[debug] $eq:null query ERROR:", e.message);
+    }
+
     const projectQuery = db.projects.find({
-      selector: { workspace_id: workspaceId.value },
+      selector: projectSelector,
       sort: [{ created_at: "asc" }],
     });
 
