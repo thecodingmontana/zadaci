@@ -2,6 +2,15 @@
 import Toaster from "~/components/toast/toaster.vue";
 import NavigationSidebar from "~/components/workspace/navigations/navigation-sidebar.vue";
 import WorkspaceWrapper from "~/components/workspace/navigations/workspace-wrapper.vue";
+
+useHead({
+  htmlAttrs: {
+    lang: "en",
+  },
+  bodyAttrs: {
+    class: "min-h-screen bg-background font-sans antialiased",
+  },
+});
 </script>
 
 <template>
@@ -20,7 +29,7 @@ import WorkspaceWrapper from "~/components/workspace/navigations/workspace-wrapp
         <slot />
       </div>
     </main>
-
     <Toaster />
+    <!-- <HotkeysDevtoolsPanel /> -->
   </div>
 </template>

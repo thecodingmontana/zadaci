@@ -1,10 +1,14 @@
 <script setup lang="ts">
 definePageMeta({
   middleware: ["authenticated"],
-  layout: "workspace",
+  layout: false,
 });
 </script>
 
 <template>
-  <div>Welcome to Workspace Dashboard</div>
+  <NuxtLayout name="workspace">
+    <NuxtLayout name="workspace-area">
+      <div>Welcome to Workspace Dashboard</div>
+    </NuxtLayout>
+  </NuxtLayout>
 </template>

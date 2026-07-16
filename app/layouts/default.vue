@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { HotkeysDevtoolsPanel } from "@tanstack/vue-hotkeys-devtools";
 import DevBanner from "~/components/shared/dev-banner.vue";
 import Toaster from "~/components/toast/toaster.vue";
-
 useHead({
   htmlAttrs: {
     lang: "en",
@@ -18,5 +18,6 @@ useHead({
     <DevBanner />
     <slot />
     <Toaster />
+    <HotkeysDevtoolsPanel />
   </main>
 </template>

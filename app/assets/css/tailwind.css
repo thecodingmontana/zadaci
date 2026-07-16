@@ -179,3 +179,62 @@
     animation: none;
   }
 }
+
+.cmk-root {
+  --cmk-text: #1b1b19;
+  --cmk-mute: #73736d;
+  --cmk-faint: #a6a6a0;
+  --cmk-panel: #ffffff;
+  --cmk-bezel: #f0f0ee;
+  --cmk-well: #f6f6f4;
+  --cmk-footer: #fbfbfa;
+  --cmk-hairline: rgba(27, 27, 25, 0.07);
+  --cmk-scrim: rgba(27, 27, 25, 0.16);
+  --cmk-layer-1: #e9e9e6;
+  --cmk-layer-2: #ddddda;
+  --cmk-key-bg: #ffffff;
+  --cmk-key-border: rgba(27, 27, 25, 0.1);
+  --cmk-key-border-strong: rgba(27, 27, 25, 0.18);
+  --cmk-key-shadow: rgba(27, 27, 25, 0.08);
+  --cmk-hl-bg: #ffe9a8;
+  --cmk-hl-text: #1b1b19;
+  --cmk-ring-track: rgba(27, 27, 25, 0.08);
+  --cmk-tile-lit: #ffffff;
+  --cmk-tile-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(27, 27, 25, 0.1);
+  --cmk-chip-bg: #ffffff;
+  --cmk-chip-border: rgba(27, 27, 25, 0.1);
+  --cmk-chip-shadow: 0 1px 1.5px rgba(27, 27, 25, 0.06);
+  --cmk-bezel-shadow: 0 32px 64px -24px rgba(27, 27, 25, 0.28), 0 0 0 1px rgba(27, 27, 25, 0.05);
+  --cmk-panel-shadow: 0 1px 2px rgba(27, 27, 25, 0.05);
+  --cmk-well-shadow: inset 0 1px 2px rgba(27, 27, 25, 0.05);
+  --cmk-sel-shadow: inset 0 0 0 1px rgba(27, 27, 25, 0.06), 0 1px 2px rgba(27, 27, 25, 0.04);
+}
+.dark .cmk-root {
+  --cmk-text: #f3f3ef;
+  --cmk-mute: #a2a29a;
+  --cmk-faint: #6e6e67;
+  --cmk-panel: #1e1e1b;
+  --cmk-bezel: #161513;
+  --cmk-well: #262622;
+  --cmk-footer: #1a1a17;
+  --cmk-hairline: rgba(255, 255, 255, 0.07);
+  --cmk-scrim: rgba(0, 0, 0, 0.5);
+  --cmk-layer-1: #232320;
+  --cmk-layer-2: #2a2a27;
+  --cmk-key-bg: #262622;
+  --cmk-key-border: rgba(255, 255, 255, 0.1);
+  --cmk-key-border-strong: rgba(255, 255, 255, 0.2);
+  --cmk-key-shadow: rgba(0, 0, 0, 0.4);
+  --cmk-hl-bg: rgba(255, 213, 120, 0.22);
+  --cmk-hl-text: #ffe9a8;
+  --cmk-ring-track: rgba(255, 255, 255, 0.1);
+  --cmk-tile-lit: #f3f3ef;
+  --cmk-tile-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --cmk-chip-bg: #262622;
+  --cmk-chip-border: rgba(255, 255, 255, 0.1);
+  --cmk-chip-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.4);
+  --cmk-bezel-shadow: 0 32px 64px -24px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --cmk-panel-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --cmk-well-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+  --cmk-sel-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
