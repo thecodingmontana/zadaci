@@ -1,23 +1,27 @@
 # Zadaci
 
-Zadaci is a powerful and collaborative task management platform designed for modern teams. It allows you to organize projects, assign tasks, manage subtasks, and collaborate efficiently with your team.
+Zadaci is a collaborative task management platform with real-time cross-tab sync, offline-first local storage, and team workspaces. Built with Nuxt 4, RxDB for local-first data, and Supabase Realtime for live multi-tab updates.
 
 ## 🌟 Features
 
-- 🗂 **Projects**: Organize tasks within specific projects for better focus.
-- ✅ **Tasks & Subtasks**: Create, assign, and manage tasks with support for nested subtasks.
-- 👥 **Teams**: Collaborate with team members with role-based access and permissions.
-- 🔐 **Authentication**: Google OAuth and secure session-based login.
+- 🗂 **Projects & Tasks**: Full CRUD with subtasks, statuses, priorities, tags, and teams.
+- 👥 **Teams**: Group members into teams for organizational structure.
+- 🏷 **Tags**: Color-coded tags for projects and tasks.
+- 🔄 **Offline-First**: RxDB stores everything locally in IndexedDB — works without internet.
+- ⚡ **Live Cross-Tab Sync**: Supabase Realtime keeps every open tab in sync instantly.
+- 🟢 **User Presence**: Status indicators (available, busy, away, DND, offline) with auto-expiry.
+- 🗑 **Soft-Delete**: Items are soft-deleted and synced — nothing disappears without trace.
+- 🔐 **Authentication**: Google OAuth + passkey (WebAuthn) support with 2FA.
 - 📁 **File Uploads**: Powered by Cloudinary for media management.
-- 📬 **Email Notifications**: Send automated emails when tasks are completed or updated.
-- 🌐 **Responsive Design**: Works great across desktops and mobile devices.
+- 📬 **Email Notifications**: Via Resend for task updates and team invites.
+- 🌐 **Responsive Design**: Works across desktops and mobile devices.
 
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Crow-Studio/zadaci.git
+git clone https://github.com/thecodingmontana/zadaci.git
 cd zadaci
 ```
 
@@ -91,12 +95,16 @@ Visit [http://localhost:3000](http://localhost:3000) to open Zadaci.
 
 ## 🛠 Tech Stack
 
-- **Nuxt 4**
-- **Tailwind CSS**
-- **Drizzle ORM + PostgreSQL**
-- **Google OAuth**
-- **Cloudinary** for media
-- **Resend** for email notifications
+- **Nuxt 4** — full-stack framework with auto-imports, file-based routing, server routes
+- **RxDB v17** — offline-first local database (Dexie/IndexedDB storage)
+- **Supabase Realtime** — live cross-tab sync via Postgres change streaming
+- **Drizzle ORM + PostgreSQL** — type-safe database access with migrations
+- **shadcn-nuxt / Reka UI** — accessible component primitives
+- **Google OAuth + WebAuthn** — authentication with passkey and 2FA support
+- **Tailwind CSS v4** — utility-first styling
+- **Cloudinary** — media uploads and management
+- **Resend** — email notifications
+- **TanStack Query** — server-state management for non-RxDB data
 
 ## 🤝 Contributing
 
