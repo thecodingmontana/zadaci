@@ -9,6 +9,7 @@ export const relations = defineRelations(schema, (r) => ({
     oauth_accounts: r.many.oauth_account(),
     password_reset_sessions: r.many.password_reset_session(),
     created_channels: r.many.channel(),
+    user_status: r.one.user_status(),
   },
   workspace: {
     owner: r.one.user({
@@ -18,6 +19,8 @@ export const relations = defineRelations(schema, (r) => ({
     members: r.many.workspace_members(),
     projects: r.many.project(),
     channels: r.many.channel(),
+    teams: r.many.team(),
+    tags: r.many.tag(),
   },
   workspace_members: {
     user: r.one.user({
@@ -35,6 +38,7 @@ export const relations = defineRelations(schema, (r) => ({
     messages: r.many.message(),
     task_comments: r.many.task_comment(),
     project_comments: r.many.project_comment(),
+    team_memberships: r.many.team_members(),
   },
   project: {
     workspace: r.one.workspace({
@@ -48,6 +52,7 @@ export const relations = defineRelations(schema, (r) => ({
     tasks: r.many.task(),
     members: r.many.project_members(),
     comments: r.many.project_comment(),
+    project_tags: r.many.project_tags(),
   },
   project_members: {
     project: r.one.project({
@@ -78,6 +83,7 @@ export const relations = defineRelations(schema, (r) => ({
     activities: r.many.tasks_activity(),
     assignees: r.many.task_assignees(),
     comments: r.many.task_comment(),
+    task_tags: r.many.task_tags(),
   },
   task_assignees: {
     task: r.one.task({
