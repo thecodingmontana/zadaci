@@ -134,7 +134,7 @@ async function setupSubscriptions() {
     });
 
     projectsSub = projectQuery.$.subscribe((docs) => {
-      const filtered = docs.filter((d) => !d.toMutableJSON()._deleted);
+      const filtered = docs.filter((d) => !d.toMutableJSON().deleted_at);
       console.log("[debug] project sub fired - total:", docs.length, "filtered:", filtered.length);
       projects.value = filtered.map((d) => d.toMutableJSON());
     });
@@ -144,7 +144,7 @@ async function setupSubscriptions() {
     });
 
     tasksSub = taskQuery.$.subscribe((docs) => {
-      const filtered = docs.filter((d) => !d.toMutableJSON()._deleted);
+      const filtered = docs.filter((d) => !d.toMutableJSON().deleted_at);
       console.log("[debug] task sub fired - total:", docs.length, "filtered:", filtered.length);
       tasks.value = filtered.map((d) => d.toMutableJSON());
     });
@@ -263,7 +263,8 @@ async function deleteProject(projectId: string) {
   try {
     const doc = await db.projects.findOne({ selector: { id: projectId } }).exec();
     if (doc) {
-      await doc.remove();
+      const now = new Date().toISOString();
+      await doc.patch({ deleted_at: now, updated_at: now });
       console.log("[rxdb-debug] project delete - id:", projectId, "deleted_at:", doc.get("deleted_at"), "doc:", doc.toMutableJSON());
       addLog(`Soft-deleted project: ${doc.get("title")}`);
     }
@@ -303,7 +304,8 @@ async function deleteTask(taskId: string) {
   try {
     const doc = await db.tasks.findOne({ selector: { id: taskId } }).exec();
     if (doc) {
-      await doc.remove();
+      const now = new Date().toISOString();
+      await doc.patch({ deleted_at: now, updated_at: now });
       console.log("[rxdb-debug] task delete - id:", taskId, "deleted_at:", doc.get("deleted_at"), "doc:", doc.toMutableJSON());
       addLog(`Soft-deleted task: ${doc.get("name")}`);
     }

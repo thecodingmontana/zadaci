@@ -122,11 +122,10 @@ export default defineEventHandler(async (event) => {
       }
 
       const dueDate = doc.due_date ? new Date(doc.due_date) : null;
-      const isDeleted = doc._deleted === true;
-      const deletedAt = isDeleted ? (doc.deleted_at ? new Date(doc.deleted_at) : new Date()) : null;
+      const deletedAt = doc.deleted_at ? new Date(doc.deleted_at) : null;
 
-      if (isDeleted) {
-        console.log("[rxdb-debug] tasks/push DELETE - id:", doc.id, "deleted_at:", deletedAt?.toISOString());
+      if (deletedAt) {
+        console.log("[rxdb-debug] tasks/push DELETE - id:", doc.id, "deleted_at:", deletedAt.toISOString());
       }
 
       await db
