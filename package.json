@@ -23,7 +23,7 @@
     "fix-and-check": "pnpm run check-types && pnpm run lint:fix && pnpm run format && pnpm run fix-tailwind-quotes && pnpm run check-kebab-imports && pnpm run lint",
     "commit": "git add . && git cz",
     "prepare": "lefthook install",
-    "db:realtime": "psql \"$DATABASE_URL\" -f server/database/enable-realtime.sql",
+    "db:realtime": "psql \"$(grep ^DATABASE_URL .env | head -1 | cut -d= -f2- | tr -d \\\")\" -f server/database/enable-realtime.sql",
     "db:reset": "pnpm run db:clear && pnpm run db:generate && pnpm run db:migrate",
     "clean": "rm -rf .nuxt dist node_modules pnpm-lock.yaml"
   },
