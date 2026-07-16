@@ -92,21 +92,20 @@ async function setupSubscriptions() {
 
   try {
     const projectQuery = db.projects.find({
-      selector: { workspace_id: workspaceId.value, deleted_at: { $eq: null } },
+      selector: { workspace_id: workspaceId.value },
       sort: [{ created_at: "asc" }],
     });
 
     projectsSub = projectQuery.$.subscribe((docs) => {
-      projects.value = docs.map((d) => d.toMutableJSON());
+      projects.value = docs.filter((d) => !d.get("deleted_at")).map((d) => d.toMutableJSON());
     });
 
     const taskQuery = db.tasks.find({
-      selector: { deleted_at: { $eq: null } },
       sort: [{ created_at: "asc" }],
     });
 
     tasksSub = taskQuery.$.subscribe((docs) => {
-      tasks.value = docs.map((d) => d.toMutableJSON());
+      tasks.value = docs.filter((d) => !d.get("deleted_at")).map((d) => d.toMutableJSON());
     });
 
     addLog("RxDB subscriptions active");
