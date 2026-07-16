@@ -67,6 +67,47 @@ export interface TaskTagDocType {
   updated_at: string;
 }
 
+export interface ChannelDocType {
+  id: string;
+  workspace_id: string;
+  name: string | null;
+  type: "public" | "private" | "dm";
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface ChannelMemberDocType {
+  id: string;
+  channel_id: string;
+  member_id: string;
+  last_read_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceMemberDocType {
+  id: string;
+  role: "owner" | "member" | "guest";
+  user_id: string;
+  workspace_id: string;
+  username: string;
+  profile_picture_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserStatusDocType {
+  id: string;
+  user_id: string;
+  status: "available" | "busy" | "away" | "dnd" | "offline";
+  custom_message: string | null;
+  status_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type TaskCollection = RxCollection<TaskDocType>;
 export type ProjectCollection = RxCollection<ProjectDocType>;
 export type ZadaciDatabase = RxDatabase<{
@@ -76,6 +117,10 @@ export type ZadaciDatabase = RxDatabase<{
   tags: RxCollection<TagDocType>;
   project_tags: RxCollection<ProjectTagDocType>;
   task_tags: RxCollection<TaskTagDocType>;
+  channels: RxCollection<ChannelDocType>;
+  channel_members: RxCollection<ChannelMemberDocType>;
+  workspace_members: RxCollection<WorkspaceMemberDocType>;
+  user_status: RxCollection<UserStatusDocType>;
 }>;
 
 const TASK_SCHEMA = {
@@ -222,6 +267,103 @@ const TASK_TAG_SCHEMA = {
   indexes: ["task_id", "tag_id"],
 } as const;
 
+const CHANNEL_SCHEMA = {
+  title: "channels",
+  version: 0,
+  type: "object",
+  primaryKey: {
+    key: "id",
+    fields: ["id"],
+  },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    workspace_id: { type: "string", maxLength: 16 },
+    name: { type: ["string", "null"] },
+    type: {
+      type: "string",
+      maxLength: 10,
+      enum: ["public", "private", "dm"],
+    },
+    created_by: { type: "string", maxLength: 16 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+    deleted_at: { type: ["string", "null"], maxLength: 24 },
+  },
+  required: ["id", "workspace_id", "type", "created_by", "created_at", "updated_at"],
+  indexes: ["workspace_id", "updated_at"],
+} as const;
+
+const CHANNEL_MEMBER_SCHEMA = {
+  title: "channel_members",
+  version: 0,
+  type: "object",
+  primaryKey: {
+    key: "id",
+    fields: ["id"],
+  },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    channel_id: { type: "string", maxLength: 16 },
+    member_id: { type: "string", maxLength: 16 },
+    last_read_at: { type: ["string", "null"], maxLength: 24 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+  },
+  required: ["id", "channel_id", "member_id", "created_at", "updated_at"],
+  indexes: ["channel_id", "member_id"],
+} as const;
+
+const WORKSPACE_MEMBER_SCHEMA = {
+  title: "workspace_members",
+  version: 0,
+  type: "object",
+  primaryKey: {
+    key: "id",
+    fields: ["id"],
+  },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    role: {
+      type: "string",
+      maxLength: 10,
+      enum: ["owner", "member", "guest"],
+    },
+    user_id: { type: "string", maxLength: 16 },
+    workspace_id: { type: "string", maxLength: 16 },
+    username: { type: "string", maxLength: 255 },
+    profile_picture_url: { type: ["string", "null"] },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+  },
+  required: ["id", "role", "user_id", "workspace_id", "username", "created_at", "updated_at"],
+  indexes: ["workspace_id", "user_id", "updated_at"],
+} as const;
+
+const USER_STATUS_SCHEMA = {
+  title: "user_status",
+  version: 0,
+  type: "object",
+  primaryKey: {
+    key: "id",
+    fields: ["id"],
+  },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    user_id: { type: "string", maxLength: 16 },
+    status: {
+      type: "string",
+      maxLength: 10,
+      enum: ["available", "busy", "away", "dnd", "offline"],
+    },
+    custom_message: { type: ["string", "null"] },
+    status_expires_at: { type: ["string", "null"], maxLength: 24 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+  },
+  required: ["id", "user_id", "status", "created_at", "updated_at"],
+  indexes: ["user_id", "updated_at"],
+} as const;
+
 export default defineNuxtPlugin(async () => {
   if (import.meta.server) {
     return;
@@ -262,6 +404,10 @@ export default defineNuxtPlugin(async () => {
     tags: { schema: TAG_SCHEMA, migrationStrategies: {} },
     project_tags: { schema: PROJECT_TAG_SCHEMA, migrationStrategies: {} },
     task_tags: { schema: TASK_TAG_SCHEMA, migrationStrategies: {} },
+    channels: { schema: CHANNEL_SCHEMA, migrationStrategies: {} },
+    channel_members: { schema: CHANNEL_MEMBER_SCHEMA, migrationStrategies: {} },
+    workspace_members: { schema: WORKSPACE_MEMBER_SCHEMA, migrationStrategies: {} },
+    user_status: { schema: USER_STATUS_SCHEMA, migrationStrategies: {} },
   });
 
   return {

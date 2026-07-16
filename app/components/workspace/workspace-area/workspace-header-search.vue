@@ -1,18 +1,52 @@
 <script setup lang="ts">
+import type { RxCollection } from "rxdb";
 import type { CommandGroup, CommandRow } from "~/components/ui/command-menu/types";
+import type {
+  ChannelDocType,
+  ProjectDocType,
+  TaskDocType,
+  TeamDocType,
+  WorkspaceMemberDocType,
+} from "~/plugins/rxdb.client";
 import CommandMenu from "~/components/ui/command-menu/command-menu.vue";
 import { Kbd, KbdGroup } from "~/components/ui/kbd";
 
-interface Member {
-  name: string;
-  avatar: string;
+const route = useRoute();
+const workspaceId = computed(() => route.params.workspaceId as string);
+const db = useRxDb();
+
+const members = ref<WorkspaceMemberDocType[]>([]);
+const projects = ref<ProjectDocType[]>([]);
+const teams = ref<TeamDocType[]>([]);
+const channels = ref<ChannelDocType[]>([]);
+const tasks = ref<TaskDocType[]>([]);
+
+function subscribe<T>(
+  collection: RxCollection<T> | undefined,
+  selector: any,
+  target: { value: T[] },
+) {
+  if (!collection) return;
+  const sub = collection.find({ selector }).$.subscribe((docs) => {
+    target.value = docs;
+  });
+  onUnmounted(() => sub.unsubscribe());
 }
 
-const members = reactive<Member[]>([
-  { name: "Albert Flores", avatar: "https://i.pravatar.cc/150?img=12" },
-  { name: "Arlene McCoy", avatar: "https://i.pravatar.cc/150?img=32" },
-  { name: "Jane Cooper", avatar: "https://i.pravatar.cc/150?img=45" },
-]);
+watch(
+  () => db,
+  (database) => {
+    if (!database) return;
+    const wsId = workspaceId.value;
+    if (!wsId) return;
+    subscribe(database.workspace_members as any, { workspace_id: wsId }, members);
+    subscribe(database.projects as any, { workspace_id: wsId, deleted_at: null }, projects);
+    subscribe(database.teams as any, { workspace_id: wsId, deleted_at: null }, teams);
+    subscribe(database.channels as any, { workspace_id: wsId, deleted_at: null }, channels);
+    subscribe(database.tasks as any, {}, tasks);
+  },
+  { immediate: true },
+);
 
 const commandMenuOpen = ref(false);
 
@@ -83,110 +117,58 @@ const commandGroups = computed<CommandGroup[]>(() => [
   },
   {
     title: "Projects",
-    rows: [
-      {
-        kind: "project",
-        id: "orion-mobile",
-        name: "Orion Mobile",
-        meta: "12 tasks",
-        gradient: ["#6366f1", "#8b5cf6"],
-        progress: 75,
-        shortcut: "⌘1",
-      },
-      {
-        kind: "project",
-        id: "atlas-dashboard",
-        name: "Atlas Dashboard",
-        meta: "8 tasks",
-        gradient: ["#f59e0b", "#ef4444"],
-        progress: 45,
-        shortcut: "⌘2",
-      },
-      {
-        kind: "project",
-        id: "epsilon-web",
-        name: "Epsilon Web",
-        meta: "5 tasks",
-        gradient: ["#10b981", "#06b6d4"],
-        progress: 90,
-        shortcut: "⌘3",
-      },
-    ],
+    rows: projects.value
+      .filter((p) => !p.deleted_at)
+      .map((p, i) => ({
+        kind: "project" as const,
+        id: p.id,
+        name: p.title,
+        meta: `${tasks.value.filter((t) => t.project_id === p.id && !t.deleted_at).length} tasks`,
+        gradient: [
+          ["#6366f1", "#8b5cf6"],
+          ["#f59e0b", "#ef4444"],
+          ["#10b981", "#06b6d4"],
+        ][i % 3] as [string, string],
+        progress: 0.5,
+        shortcut: `⌘${i + 1}`,
+      })),
   },
   {
     title: "Members",
-    rows: members.map((m) => ({
-      kind: "person",
-      id: m.name,
-      name: m.name,
-      role: "Team member",
-      avatar: m.avatar,
-      presence: "online",
+    rows: members.value.map((m) => ({
+      kind: "person" as const,
+      id: m.id,
+      name: m.username,
+      role: m.role === "owner" ? "Owner" : "Team member",
+      avatar: m.profile_picture_url ?? undefined,
+      presence: "online" as const,
     })),
   },
   {
     title: "Communication",
-    rows: [
-      {
-        kind: "action",
-        id: "channel-general",
-        label: "# General",
-        description: "Team-wide announcements",
+    rows: channels.value
+      .filter((c) => c.type !== "dm")
+      .map((c) => ({
+        kind: "action" as const,
+        id: c.id,
+        label: `# ${c.name}`,
+        description: c.type === "private" ? "Private channel" : "Public channel",
         glyph: "solar:hashtag-chat-linear",
-        shortcut: "⌘⇧G",
-        receipt: "opened general",
-      },
-      {
-        kind: "action",
-        id: "channel-design",
-        label: "# Design Status",
-        description: "Design updates & reviews",
-        glyph: "solar:hashtag-chat-linear",
-        shortcut: "⌘⇧D",
-        receipt: "opened design status",
-      },
-      {
-        kind: "action",
-        id: "channel-development",
-        label: "# Development",
-        description: "Engineering discussion",
-        glyph: "solar:hashtag-chat-linear",
-        shortcut: "⌘⇧E",
-        receipt: "opened development",
-      },
-    ],
+        shortcut: "",
+        receipt: `opened ${c.name}`,
+      })),
   },
   {
-    title: "Settings",
-    rows: [
-      {
-        kind: "action",
-        id: "settings-general",
-        label: "General",
-        description: "Workspace preferences",
-        glyph: "hugeicons:settings-02",
-        shortcut: "⌘,",
-        receipt: "opened general settings",
-      },
-      {
-        kind: "action",
-        id: "settings-profile",
-        label: "Profile",
-        description: "Manage your account",
-        glyph: "hugeicons:user-circle",
-        shortcut: "",
-        receipt: "opened profile",
-      },
-      {
-        kind: "action",
-        id: "settings-security",
-        label: "Security",
-        description: "Password & access control",
-        glyph: "hugeicons:shield-01",
-        shortcut: "",
-        receipt: "opened security",
-      },
-    ],
+    title: "Teams",
+    rows: teams.value.map((t) => ({
+      kind: "action" as const,
+      id: t.id,
+      label: t.name,
+      description: "Team",
+      glyph: "hugeicons:user-group",
+      shortcut: "",
+      receipt: `opened ${t.name}`,
+    })),
   },
 ]);
 

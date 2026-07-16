@@ -1,6 +1,43 @@
 <script setup lang="ts">
+import type { RxCollection } from "rxdb";
+import type { ProjectDocType, TaskDocType, TeamDocType } from "~/plugins/rxdb.client";
 import { Button } from "~/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
+
+const route = useRoute();
+const workspaceId = computed(() => route.params.workspaceId as string);
+
+const db = useRxDb();
+
+const tasks = ref<TaskDocType[]>([]);
+const projects = ref<ProjectDocType[]>([]);
+const teams = ref<TeamDocType[]>([]);
+
+function subscribeToCollection<T>(
+  collection: RxCollection<T> | undefined,
+  selector: any,
+  target: { value: T[] },
+) {
+  if (!collection) return;
+  const sub = collection.find({ selector }).$.subscribe((docs) => {
+    target.value = docs;
+  });
+  onUnmounted(() => sub.unsubscribe());
+}
+
+watch(
+  () => db,
+  (database) => {
+    if (!database) return;
+    const wsId = workspaceId.value;
+    if (!wsId) return;
+
+    subscribeToCollection(database.tasks as any, { project_id: { $ne: "" } }, tasks as any);
+    subscribeToCollection(database.projects as any, { workspace_id: wsId }, projects as any);
+    subscribeToCollection(database.teams as any, { workspace_id: wsId }, teams as any);
+  },
+  { immediate: true },
+);
 
 interface MenuSection {
   key: string;
@@ -9,32 +46,23 @@ interface MenuSection {
   items: string[];
 }
 
-const sections = reactive<MenuSection[]>([
-  {
-    key: "tasks",
-    label: "Tasks",
-    icon: "hugeicons:task-01",
-    items: ["Design Review", "API Integration", "QA Testing"],
-  },
-  {
-    key: "projects",
-    label: "Projects",
-    icon: "hugeicons:folder-01",
-    items: ["Orion Mobile", "Atlas Dashboard", "Epsilon Web"],
-  },
-  {
-    key: "teams",
-    label: "Teams",
-    icon: "hugeicons:user-group",
-    items: ["Design", "Engineering", "Product"],
-  },
-]);
+const sections: MenuSection[] = [
+  { key: "tasks", label: "Tasks", icon: "hugeicons:task-01", items: [] },
+  { key: "projects", label: "Projects", icon: "hugeicons:folder-01", items: [] },
+  { key: "teams", label: "Teams", icon: "hugeicons:user-group", items: [] },
+];
 
 const openSections = reactive<Record<string, boolean>>({
   tasks: false,
   projects: false,
   teams: false,
 });
+
+const sectionItems = computed(() => ({
+  tasks: tasks.value.filter((t) => !t.deleted_at).map((t) => t.name),
+  projects: projects.value.filter((p) => !p.deleted_at).map((p) => p.title),
+  teams: teams.value.filter((t) => !t.deleted_at).map((t) => t.name),
+}));
 
 const toggleSection = (key: string) => {
   openSections[key] = !openSections[key];
@@ -108,7 +136,7 @@ const handleAdd = (key: string, event: Event) => {
         <CollapsibleContent>
           <div class="mt-1 ml-6 space-y-1 border-l pl-2">
             <div
-              v-for="item in section.items"
+              v-for="item in sectionItems[section.key]"
               :key="item"
               class="flex cursor-pointer items-center rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
             >

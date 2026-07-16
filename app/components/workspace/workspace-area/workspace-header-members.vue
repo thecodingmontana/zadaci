@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { WorkspaceMemberDocType } from "~/plugins/rxdb.client";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import {
@@ -12,19 +13,26 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
 
-interface Member {
-  name: string;
-  avatar: string;
-}
+const route = useRoute();
+const workspaceId = computed(() => route.params.workspaceId as string);
+const db = useRxDb();
 
-const members = reactive<Member[]>([
-  { name: "Albert Flores", avatar: "https://i.pravatar.cc/150?img=12" },
-  { name: "Arlene McCoy", avatar: "https://i.pravatar.cc/150?img=32" },
-  { name: "Jane Cooper", avatar: "https://i.pravatar.cc/150?img=45" },
-]);
+const members = ref<WorkspaceMemberDocType[]>([]);
 
-const extraMembersCount = 10;
-const visibleMembers = computed(() => members.slice(0, 3));
+watch(
+  () => db?.workspace_members,
+  (col) => {
+    if (!col) return;
+    const sub = col.find({ selector: { workspace_id: workspaceId.value } }).$.subscribe((docs) => {
+      members.value = docs;
+    });
+    onUnmounted(() => sub.unsubscribe());
+  },
+  { immediate: true },
+);
+
+const extraMembersCount = computed(() => Math.max(0, members.value.length - 3));
+const visibleMembers = computed(() => members.value.slice(0, 3));
 
 const initials = (name: string) =>
   name
@@ -55,16 +63,18 @@ const hasNotifications = ref(true);
           <div class="flex -space-x-2">
             <Avatar
               v-for="member in visibleMembers"
-              :key="member.name"
+              :key="member.id"
               class="h-8 w-8 ring-2 ring-background"
             >
-              <AvatarImage :src="member.avatar" :alt="member.name" />
+              <AvatarImage :src="member.profile_picture_url ?? ''" :alt="member.username" />
               <AvatarFallback class="text-xs">
-                {{ initials(member.name) }}
+                {{ initials(member.username) }}
               </AvatarFallback>
             </Avatar>
           </div>
-          <span class="text-sm text-muted-foreground">+{{ extraMembersCount }}</span>
+          <span v-if="extraMembersCount > 0" class="text-sm text-muted-foreground"
+            >+{{ extraMembersCount }}</span
+          >
           <Icon name="hugeicons:arrow-down-01" size="14" class="text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
@@ -79,14 +89,14 @@ const hasNotifications = ref(true);
     <DropdownMenuContent align="end" class="w-56">
       <DropdownMenuLabel>Members</DropdownMenuLabel>
       <DropdownMenuSeparator />
-      <DropdownMenuItem v-for="member in members" :key="member.name" class="gap-2">
+      <DropdownMenuItem v-for="member in members" :key="member.id" class="gap-2">
         <Avatar class="h-6 w-6">
-          <AvatarImage :src="member.avatar" :alt="member.name" />
+          <AvatarImage :src="member.profile_picture_url ?? ''" :alt="member.username" />
           <AvatarFallback class="text-[10px]">
-            {{ initials(member.name) }}
+            {{ initials(member.username) }}
           </AvatarFallback>
         </Avatar>
-        <span class="text-sm">{{ member.name }}</span>
+        <span class="text-sm">{{ member.username }}</span>
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>

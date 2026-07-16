@@ -25,6 +25,7 @@ export default defineNuxtConfig({
         "@radix-icons/vue",
         "@supabase/supabase-js",
         "@t3-oss/env-nuxt",
+        "@tanstack/vue-hotkeys",
         "@tanstack/vue-query",
         "@unhead/schema-org/vue",
         "@vee-validate/zod",
@@ -37,6 +38,7 @@ export default defineNuxtConfig({
         "reka-ui",
         "rxdb",
         "rxdb/plugins/dev-mode",
+        "rxdb/plugins/migration-schema",
         "rxdb/plugins/replication",
         "rxdb/plugins/storage-dexie",
         "rxdb/plugins/validate-ajv",
@@ -74,6 +76,7 @@ export default defineNuxtConfig({
     "@pinia/nuxt",
     "@nuxt/image",
     "pinia-plugin-persistedstate/nuxt",
+    "@vueuse/nuxt",
   ],
   eslint: {
     config: {
@@ -212,6 +215,12 @@ export default defineNuxtConfig({
         // Web App Manifest
         { rel: "manifest", href: "/site.webmanifest" },
       ],
+    },
+  },
+
+  icon: {
+    serverBundle: {
+      collections: ["hugeicons", "solar"],
     },
   },
 });
