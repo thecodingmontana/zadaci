@@ -1,5 +1,5 @@
 import { db, tables } from "~~/server/database/db";
-import { USER_ROLE } from "~~/server/database/enums";
+import { CHANNEL_TYPE, USER_ROLE } from "~~/server/database/enums";
 import { generateUniqueCode } from "~~/server/libs/utils";
 
 export default defineEventHandler(async (event) => {
@@ -61,6 +61,32 @@ export default defineEventHandler(async (event) => {
         statusMessage: "Failed to create workspace member!",
       });
     }
+
+    const [generalChannel] = await db
+      .insert(tables.channel)
+      .values({
+        workspace_id: workspace.id,
+        name: "general",
+        type: CHANNEL_TYPE.PUBLIC,
+        created_by: session.user.id,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning();
+
+    if (!generalChannel) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Failed to create general channel!",
+      });
+    }
+
+    await db.insert(tables.channel_members).values({
+      channel_id: generalChannel.id,
+      member_id: member.id,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
 
     const newWorkspace = {
       user_role: member.role,
