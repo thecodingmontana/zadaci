@@ -86,7 +86,6 @@ export function useProjectSync(workspaceId: () => string | undefined) {
     replicationState = replicateRxCollection<ProjectDocType, { updated_at: string; id: string }>({
       replicationIdentifier: repId,
       collection: projectsCollection,
-      deletedField: "deleted_at",
       pull: {
         handler: async (checkpoint, batchSize) => {
           const id = workspaceId();

@@ -84,7 +84,6 @@ export function useTaskSync(workspaceId: () => string | undefined) {
     replicationState = replicateRxCollection<TaskDocType, { updated_at: string; id: string }>({
       replicationIdentifier: repId,
       collection: tasksCollection,
-      deletedField: "deleted_at",
       pull: {
         handler: async (checkpoint, batchSize) => {
           const id = workspaceId();
