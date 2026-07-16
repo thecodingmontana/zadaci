@@ -85,7 +85,16 @@ export default defineEventHandler(async (event) => {
 
     for (const row of body) {
       const doc = row.newDocumentState;
-      console.log("[rxdb-debug] project push row - id:", doc.id, "_deleted:", doc._deleted, "deleted_at:", doc.deleted_at, "deleted_at type:", typeof doc.deleted_at);
+      console.log(
+        "[rxdb-debug] project push row - id:",
+        doc.id,
+        "_deleted:",
+        doc._deleted,
+        "deleted_at:",
+        doc.deleted_at,
+        "deleted_at type:",
+        typeof doc.deleted_at,
+      );
       const existing = existingMap.get(doc.id);
 
       if (existing) {
@@ -113,7 +122,12 @@ export default defineEventHandler(async (event) => {
       const deletedAt = doc.deleted_at ? new Date(doc.deleted_at) : null;
 
       if (deletedAt) {
-        console.log("[rxdb-debug] projects/push DELETE - id:", doc.id, "deleted_at:", deletedAt.toISOString());
+        console.log(
+          "[rxdb-debug] projects/push DELETE - id:",
+          doc.id,
+          "deleted_at:",
+          deletedAt.toISOString(),
+        );
       }
 
       await db

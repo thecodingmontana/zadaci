@@ -103,14 +103,44 @@ async function setupSubscriptions() {
     console.log("[debug] ALL projects count:", allProjects.length);
     allProjects.forEach((p) => {
       const raw = p.toMutableJSON();
-      console.log("[debug]   project:", raw.id, "title:", raw.title, "deleted_at:", raw.deleted_at, "deleted_at type:", typeof raw.deleted_at, "has deleted_at key:", "deleted_at" in raw, "_deleted:", raw._deleted, "all keys:", Object.keys(raw));
+      console.log(
+        "[debug]   project:",
+        raw.id,
+        "title:",
+        raw.title,
+        "deleted_at:",
+        raw.deleted_at,
+        "deleted_at type:",
+        typeof raw.deleted_at,
+        "has deleted_at key:",
+        "deleted_at" in raw,
+        "_deleted:",
+        raw._deleted,
+        "all keys:",
+        Object.keys(raw),
+      );
     });
 
     const allTasks = await db.tasks.find().exec();
     console.log("[debug] ALL tasks count:", allTasks.length);
     allTasks.forEach((t) => {
       const raw = t.toMutableJSON();
-      console.log("[debug]   task:", raw.id, "name:", raw.name, "deleted_at:", raw.deleted_at, "deleted_at type:", typeof raw.deleted_at, "has deleted_at key:", "deleted_at" in raw, "_deleted:", raw._deleted, "all keys:", Object.keys(raw));
+      console.log(
+        "[debug]   task:",
+        raw.id,
+        "name:",
+        raw.name,
+        "deleted_at:",
+        raw.deleted_at,
+        "deleted_at type:",
+        typeof raw.deleted_at,
+        "has deleted_at key:",
+        "deleted_at" in raw,
+        "_deleted:",
+        raw._deleted,
+        "all keys:",
+        Object.keys(raw),
+      );
     });
 
     // Filtered diagnostic queries
@@ -264,8 +294,19 @@ async function deleteProject(projectId: string) {
     const doc = await db.projects.findOne({ selector: { id: projectId } }).exec();
     if (doc) {
       const now = new Date().toISOString();
-      await doc.incrementalModify((oldData: any) => ({ ...oldData, deleted_at: now, updated_at: now }));
-      console.log("[rxdb-debug] project delete - id:", projectId, "deleted_at:", doc.get("deleted_at"), "doc:", doc.toMutableJSON());
+      await doc.incrementalModify((oldData: any) => ({
+        ...oldData,
+        deleted_at: now,
+        updated_at: now,
+      }));
+      console.log(
+        "[rxdb-debug] project delete - id:",
+        projectId,
+        "deleted_at:",
+        doc.get("deleted_at"),
+        "doc:",
+        doc.toMutableJSON(),
+      );
       addLog(`Soft-deleted project: ${doc.get("title")}`);
     }
   } catch (err: any) {
@@ -305,8 +346,19 @@ async function deleteTask(taskId: string) {
     const doc = await db.tasks.findOne({ selector: { id: taskId } }).exec();
     if (doc) {
       const now = new Date().toISOString();
-      await doc.incrementalModify((oldData: any) => ({ ...oldData, deleted_at: now, updated_at: now }));
-      console.log("[rxdb-debug] task delete - id:", taskId, "deleted_at:", doc.get("deleted_at"), "doc:", doc.toMutableJSON());
+      await doc.incrementalModify((oldData: any) => ({
+        ...oldData,
+        deleted_at: now,
+        updated_at: now,
+      }));
+      console.log(
+        "[rxdb-debug] task delete - id:",
+        taskId,
+        "deleted_at:",
+        doc.get("deleted_at"),
+        "doc:",
+        doc.toMutableJSON(),
+      );
       addLog(`Soft-deleted task: ${doc.get("name")}`);
     }
   } catch (err: any) {

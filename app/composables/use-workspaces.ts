@@ -11,10 +11,7 @@ export function useWorkspaces() {
 
   return useQuery<Workspace[], Error>({
     queryKey: workspacesKey(user.value?.id),
-    queryFn: () =>
-      requestFetch<Workspace[]>(
-        `/api/workspace/user/${user.value?.id}/workspaces`,
-      ),
+    queryFn: () => requestFetch<Workspace[]>(`/api/workspace/user/${user.value?.id}/workspaces`),
     enabled: computed(() => Boolean(user.value?.id)),
   });
 }

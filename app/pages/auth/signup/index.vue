@@ -64,7 +64,7 @@ onMounted(() => {
                 <div class="flex flex-col items-center gap-y-4">
                   <NuxtLink to="/" class="flex items-center gap-x-2.5">
                     <Zadaci class="h-auto w-12" />
-                    <h1 class="mt-1 font-bebas-neue text-5xl font-semibold">Zadaci</h1>
+                    <h1 class="font-bebas-neue mt-1 text-5xl font-semibold">Zadaci</h1>
                   </NuxtLink>
                   <div class="space-y-1 text-center">
                     <h3 class="text-3xl font-bold text-brand capitalize dark:text-primary">
