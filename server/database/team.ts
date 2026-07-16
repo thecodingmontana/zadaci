@@ -18,11 +18,6 @@ export const team = pgTable(
   (table) => [index("team_workspace_id_idx").on(table.workspace_id)],
 );
 
-// Purely organizational for v2 — membership is a label/grouping, not an
-// access-control gate. A team's projects are still governed by normal
-// workspace/project membership; team_members does not restrict who can
-// be assigned to a team's projects. Revisit if/when real permissions
-// are needed later.
 export const team_members = pgTable(
   "team_members",
   {
