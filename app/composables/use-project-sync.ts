@@ -59,52 +59,45 @@ export function useProjectSync(workspaceId: () => string | undefined) {
   }
 
   async function start() {
-    if (import.meta.server) {
-      return;
-    }
+    if (import.meta.server) return;
 
     const requestFetch = useRequestFetch();
-
     const nuxtApp = useNuxtApp();
-    const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
+    const db = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
+      console.warn("[useProjectSync] No RxDB");
       return;
     }
-
-    const projectsCollection = db.projects;
-    if (!projectsCollection) {
+    if (!db.projects) {
+      console.warn("[useProjectSync] No collection");
       return;
     }
-
     const activeId = workspaceId();
     if (!activeId) {
+      console.warn("[useProjectSync] No wsId");
       return;
     }
 
-    const repId = `projects-ws-${activeId}`;
+    console.log(`[useProjectSync] Starting, workspace=${activeId}`);
+    const existingCount = await db.projects.count().exec();
+    console.log(`[useProjectSync] Existing docs: ${existingCount}`);
 
     replicationState = replicateRxCollection<ProjectDocType, { updated_at: string; id: string }>({
-      replicationIdentifier: repId,
-      collection: projectsCollection,
+      replicationIdentifier: `projects-ws-${activeId}`,
+      collection: db.projects,
       pull: {
         handler: async (checkpoint, batchSize) => {
           const id = workspaceId();
-          if (!id) {
-            return { documents: [], checkpoint: undefined };
-          }
-
+          if (!id) return { documents: [], checkpoint: undefined };
           const params = new URLSearchParams();
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
-          if (checkpoint) {
-            params.set("checkpoint", JSON.stringify(checkpoint));
-          }
-
-          const result = await requestFetch(`/api/replication/projects/pull?${params.toString()}`);
-          return result as {
-            documents: ProjectDocType[];
-            checkpoint: { updated_at: string; id: string } | undefined;
-          };
+          if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+          console.log(`[useProjectSync] Pull`, { checkpoint, batchSize });
+          const result = await requestFetch(`/api/replication/projects/pull?${params}`);
+          const docs = (result as any)?.documents ?? [];
+          console.log(`[useProjectSync] Pull returned ${docs.length} docs`);
+          return result as any;
         },
         batchSize: 50,
       },
@@ -112,13 +105,38 @@ export function useProjectSync(workspaceId: () => string | undefined) {
         handler: async (rows) => {
           const id = workspaceId();
           if (!id) {
+            console.warn("[useProjectSync] Push no wsId");
             return [];
           }
 
+          const filtered = rows.filter((r) => {
+            if (!r.newDocumentState) return true;
+            const wsId = (r.newDocumentState as any).workspace_id;
+            return wsId === undefined || wsId === id;
+          });
+          const skipped = rows.length - filtered.length;
+          if (skipped > 0) {
+            console.log(`[useProjectSync] Skipping ${skipped} stale row(s) from other workspaces`);
+          }
+          if (filtered.length === 0) return [];
+
+          console.log(`[useProjectSync] Push ${filtered.length} row(s)`);
+          filtered.forEach((r) =>
+            console.log(
+              `[useProjectSync]   Push:`,
+              r.newDocumentState
+                ? JSON.stringify({
+                    id: r.newDocumentState.id,
+                    workspace_id: (r.newDocumentState as any).workspace_id,
+                  }).slice(0, 200)
+                : "deleted",
+            ),
+          );
           const result = await requestFetch(`/api/replication/projects/push?workspace_id=${id}`, {
             method: "POST",
-            body: rows,
+            body: filtered,
           });
+          console.log(`[useProjectSync] Push done, ${(result as any[])?.length ?? 0} results`);
           return result as ProjectDocType[];
         },
         batchSize: 50,
@@ -128,14 +146,20 @@ export function useProjectSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const sub = replicationState.error$.subscribe((err) => {
+    replicationState.active$.subscribe((a) => console.log(`[useProjectSync] Active:`, a));
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useProjectSync] ❌`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
-
+    cleanupFns.push(() => subErr.unsubscribe());
+    const subCancel = replicationState.canceled$.subscribe((c) =>
+      console.log(`[useProjectSync] Canceled:`, c),
+    );
+    cleanupFns.push(() => subCancel.unsubscribe());
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useProjectSync] Started`);
   }
 
   function setupRealtimeChannel() {

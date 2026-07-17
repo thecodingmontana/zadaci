@@ -24,8 +24,12 @@ async function onSignOut() {
   try {
     isSigninOut.value = true;
     onClose();
+    console.log("[signout] Signing out — setting nuclear clear flag + clearing session");
+    localStorage.setItem("zadaci_clear_needed", "true");
     await clearSession();
+    console.log("[signout] Session cleared, now clearing RxDB");
     await useClearRxDb();
+    console.log("[signout] RxDB cleared, navigating to signin");
 
     toast.success("Signed out successfully", {
       desc: "See you again soon",

@@ -59,57 +59,48 @@ export function useChannelMemberSync(workspaceId: () => string | undefined) {
   }
 
   async function start() {
-    if (import.meta.server) {
-      return;
-    }
+    if (import.meta.server) return;
 
     const requestFetch = useRequestFetch();
-
     const nuxtApp = useNuxtApp();
-    const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
+    const db = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
+      console.warn("[useChannelMemberSync] No RxDB");
       return;
     }
-
-    const collection = db.channel_members;
-    if (!collection) {
+    if (!db.channel_members) {
+      console.warn("[useChannelMemberSync] No collection");
       return;
     }
-
     const activeId = workspaceId();
     if (!activeId) {
+      console.warn("[useChannelMemberSync] No wsId");
       return;
     }
 
-    const repId = `channel-members-ws-${activeId}`;
+    console.log(`[useChannelMemberSync] Starting, workspace=${activeId}`);
+    const existingCount = await db.channel_members.count().exec();
+    console.log(`[useChannelMemberSync] Existing docs: ${existingCount}`);
 
     replicationState = replicateRxCollection<
       ChannelMemberDocType,
       { updated_at: string; id: string }
     >({
-      replicationIdentifier: repId,
-      collection,
+      replicationIdentifier: `channel-members-ws-${activeId}`,
+      collection: db.channel_members,
       pull: {
         handler: async (checkpoint, batchSize) => {
           const id = workspaceId();
-          if (!id) {
-            return { documents: [], checkpoint: undefined };
-          }
-
+          if (!id) return { documents: [], checkpoint: undefined };
           const params = new URLSearchParams();
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
-          if (checkpoint) {
-            params.set("checkpoint", JSON.stringify(checkpoint));
-          }
-
-          const result = await requestFetch(
-            `/api/replication/channel-members/pull?${params.toString()}`,
-          );
-          return result as {
-            documents: ChannelMemberDocType[];
-            checkpoint: { updated_at: string; id: string } | undefined;
-          };
+          if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+          console.log(`[useChannelMemberSync] Pull`, { checkpoint, batchSize });
+          const result = await requestFetch(`/api/replication/channel-members/pull?${params}`);
+          const docs = (result as any)?.documents ?? [];
+          console.log(`[useChannelMemberSync] Pull returned ${docs.length} docs`);
+          return result as any;
         },
         batchSize: 50,
       },
@@ -117,15 +108,42 @@ export function useChannelMemberSync(workspaceId: () => string | undefined) {
         handler: async (rows) => {
           const id = workspaceId();
           if (!id) {
+            console.warn("[useChannelMemberSync] Push no wsId");
             return [];
           }
 
+          // Filter out stale rows from other workspaces (see use-channel-sync.ts).
+          const filtered = rows.filter((r) => {
+            if (!r.newDocumentState) return true;
+            const wsId = (r.newDocumentState as any).workspace_id;
+            return wsId === undefined || wsId === id;
+          });
+          const skipped = rows.length - filtered.length;
+          if (skipped > 0) {
+            console.log(
+              `[useChannelMemberSync] Skipping ${skipped} stale row(s) from other workspaces`,
+            );
+          }
+          if (filtered.length === 0) return [];
+
+          console.log(`[useChannelMemberSync] Push ${filtered.length} row(s)`);
+          filtered.forEach((r) =>
+            console.log(
+              `[useChannelMemberSync]   Push:`,
+              r.newDocumentState
+                ? JSON.stringify({
+                    id: r.newDocumentState.id,
+                    workspace_id: (r.newDocumentState as any).workspace_id,
+                  }).slice(0, 200)
+                : "deleted",
+            ),
+          );
           const result = await requestFetch(
             `/api/replication/channel-members/push?workspace_id=${id}`,
-            {
-              method: "POST",
-              body: rows,
-            },
+            { method: "POST", body: filtered },
+          );
+          console.log(
+            `[useChannelMemberSync] Push done, ${(result as any[])?.length ?? 0} results`,
           );
           return result as ChannelMemberDocType[];
         },
@@ -136,14 +154,20 @@ export function useChannelMemberSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const sub = replicationState.error$.subscribe((err) => {
+    replicationState.active$.subscribe((a) => console.log(`[useChannelMemberSync] Active:`, a));
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useChannelMemberSync] ❌`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
-
+    cleanupFns.push(() => subErr.unsubscribe());
+    const subCancel = replicationState.canceled$.subscribe((c) =>
+      console.log(`[useChannelMemberSync] Canceled:`, c),
+    );
+    cleanupFns.push(() => subCancel.unsubscribe());
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useChannelMemberSync] Started`);
   }
 
   function setupRealtimeChannel() {

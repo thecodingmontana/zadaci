@@ -59,55 +59,46 @@ export function useProjectTagSync(workspaceId: () => string | undefined) {
   }
 
   async function start() {
-    if (import.meta.server) {
-      return;
-    }
+    if (import.meta.server) return;
 
     const requestFetch = useRequestFetch();
-
     const nuxtApp = useNuxtApp();
-    const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
+    const db = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
+      console.warn("[useProjectTagSync] No RxDB");
       return;
     }
-
-    const projectTagsCollection = db.project_tags;
-    if (!projectTagsCollection) {
+    if (!db.project_tags) {
+      console.warn("[useProjectTagSync] No collection");
       return;
     }
-
     const activeId = workspaceId();
     if (!activeId) {
+      console.warn("[useProjectTagSync] No wsId");
       return;
     }
 
-    const repId = `project-tags-ws-${activeId}`;
+    console.log(`[useProjectTagSync] Starting, workspace=${activeId}`);
+    const existingCount = await db.project_tags.count().exec();
+    console.log(`[useProjectTagSync] Existing docs: ${existingCount}`);
 
     replicationState = replicateRxCollection<ProjectTagDocType, { updated_at: string; id: string }>(
       {
-        replicationIdentifier: repId,
-        collection: projectTagsCollection,
+        replicationIdentifier: `project-tags-ws-${activeId}`,
+        collection: db.project_tags,
         pull: {
           handler: async (checkpoint, batchSize) => {
             const id = workspaceId();
-            if (!id) {
-              return { documents: [], checkpoint: undefined };
-            }
-
+            if (!id) return { documents: [], checkpoint: undefined };
             const params = new URLSearchParams();
             params.set("workspace_id", id);
             params.set("batch_size", String(batchSize || 50));
-            if (checkpoint) {
-              params.set("checkpoint", JSON.stringify(checkpoint));
-            }
-
-            const result = await requestFetch(
-              `/api/replication/project-tags/pull?${params.toString()}`,
-            );
-            return result as {
-              documents: ProjectTagDocType[];
-              checkpoint: { updated_at: string; id: string } | undefined;
-            };
+            if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+            console.log(`[useProjectTagSync] Pull`, { checkpoint, batchSize });
+            const result = await requestFetch(`/api/replication/project-tags/pull?${params}`);
+            const docs = (result as any)?.documents ?? [];
+            console.log(`[useProjectTagSync] Pull returned ${docs.length} docs`);
+            return result as any;
           },
           batchSize: 50,
         },
@@ -115,16 +106,23 @@ export function useProjectTagSync(workspaceId: () => string | undefined) {
           handler: async (rows) => {
             const id = workspaceId();
             if (!id) {
+              console.warn("[useProjectTagSync] Push no wsId");
               return [];
             }
-
+            console.log(`[useProjectTagSync] Push ${rows.length} row(s)`);
+            rows.forEach((r) =>
+              console.log(
+                `[useProjectTagSync]   Push:`,
+                r.newDocumentState
+                  ? JSON.stringify({ id: r.newDocumentState.id }).slice(0, 200)
+                  : "deleted",
+              ),
+            );
             const result = await requestFetch(
               `/api/replication/project-tags/push?workspace_id=${id}`,
-              {
-                method: "POST",
-                body: rows,
-              },
+              { method: "POST", body: rows },
             );
+            console.log(`[useProjectTagSync] Push done, ${(result as any[])?.length ?? 0} results`);
             return result as ProjectTagDocType[];
           },
           batchSize: 50,
@@ -135,14 +133,20 @@ export function useProjectTagSync(workspaceId: () => string | undefined) {
       },
     );
 
-    const sub = replicationState.error$.subscribe((err) => {
+    replicationState.active$.subscribe((a) => console.log(`[useProjectTagSync] Active:`, a));
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useProjectTagSync] ❌`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
-
+    cleanupFns.push(() => subErr.unsubscribe());
+    const subCancel = replicationState.canceled$.subscribe((c) =>
+      console.log(`[useProjectTagSync] Canceled:`, c),
+    );
+    cleanupFns.push(() => subCancel.unsubscribe());
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useProjectTagSync] Started`);
   }
 
   function setupRealtimeChannel() {

@@ -364,9 +364,41 @@ const USER_STATUS_SCHEMA = {
   indexes: ["user_id", "updated_at"],
 } as const;
 
+const DB_NAME = "zadaci";
+const CLEAR_KEY = "zadaci_clear_needed";
+
 export default defineNuxtPlugin(async () => {
   if (import.meta.server) {
     return;
+  }
+
+  console.log("[rxdb-plugin] Starting RxDB plugin initialization");
+
+  // Nuclear clear: if a previous session left stale data in IndexedDB,
+  // delete the entire database before RxDB loads it. This prevents old
+  // documents from being pushed to the wrong workspace (403 errors).
+  const clearFlag = localStorage.getItem(CLEAR_KEY);
+  console.log("[rxdb-plugin] clear_needed flag:", clearFlag);
+  if (clearFlag === "true") {
+    console.log("[rxdb-plugin] ⚠️ NUCLEAR CLEAR — deleting IndexedDB database before RxDB loads");
+    localStorage.removeItem(CLEAR_KEY);
+    await new Promise<void>((resolve) => {
+      const req = indexedDB.deleteDatabase(DB_NAME);
+      req.onsuccess = () => {
+        console.log("[rxdb-plugin] IndexedDB deleted successfully");
+        resolve();
+      };
+      req.onerror = () => {
+        console.log("[rxdb-plugin] IndexedDB delete error (best effort):", req.error);
+        resolve();
+      };
+      req.onblocked = () => {
+        console.log("[rxdb-plugin] IndexedDB delete blocked (another tab open)");
+        resolve();
+      };
+    });
+  } else {
+    console.log("[rxdb-plugin] No clear needed, proceeding with existing IndexedDB");
   }
 
   if (import.meta.dev) {
@@ -379,12 +411,15 @@ export default defineNuxtPlugin(async () => {
     ? wrappedValidateAjvStorage({ storage: getRxStorageDexie() })
     : getRxStorageDexie();
 
+  console.log("[rxdb-plugin] Creating RxDB database:", DB_NAME);
   const db = await createRxDatabase<ZadaciDatabase>({
-    name: "zadaci",
+    name: DB_NAME,
     storage,
     eventReduce: true,
   });
+  console.log("[rxdb-plugin] Database created");
 
+  console.log("[rxdb-plugin] Adding collections...");
   await db.addCollections({
     tasks: {
       schema: TASK_SCHEMA,
@@ -409,6 +444,15 @@ export default defineNuxtPlugin(async () => {
     workspace_members: { schema: WORKSPACE_MEMBER_SCHEMA, migrationStrategies: {} },
     user_status: { schema: USER_STATUS_SCHEMA, migrationStrategies: {} },
   });
+  console.log("[rxdb-plugin] All collections added");
+
+  // Log initial document counts per collection
+  for (const [name, col] of Object.entries(db.collections)) {
+    const count = await col.count().exec();
+    if (count > 0) {
+      console.log(`[rxdb-plugin] Collection "${name}" has ${count} document(s)`);
+    }
+  }
 
   return {
     provide: {

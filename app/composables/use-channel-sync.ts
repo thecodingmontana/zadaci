@@ -68,20 +68,27 @@ export function useChannelSync(workspaceId: () => string | undefined) {
     const nuxtApp = useNuxtApp();
     const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
+      console.warn("[useChannelSync] No RxDB instance — aborting");
       return;
     }
 
     const collection = db.channels;
     if (!collection) {
+      console.warn("[useChannelSync] channels collection not found — aborting");
       return;
     }
 
     const activeId = workspaceId();
     if (!activeId) {
+      console.warn("[useChannelSync] No workspaceId — aborting");
       return;
     }
 
     const repId = `channels-ws-${activeId}`;
+    console.log(`[useChannelSync] Starting sync, workspace=${activeId}`);
+
+    const existingCount = await collection.count().exec();
+    console.log(`[useChannelSync] Existing local docs: ${existingCount}`);
 
     replicationState = replicateRxCollection<ChannelDocType, { updated_at: string; id: string }>({
       replicationIdentifier: repId,
@@ -100,7 +107,10 @@ export function useChannelSync(workspaceId: () => string | undefined) {
             params.set("checkpoint", JSON.stringify(checkpoint));
           }
 
+          console.log(`[useChannelSync] Pull — checkpoint:`, checkpoint, `batchSize:`, batchSize);
           const result = await requestFetch(`/api/replication/channels/pull?${params.toString()}`);
+          const docs = (result as any)?.documents ?? [];
+          console.log(`[useChannelSync] Pull returned ${docs.length} documents`);
           return result as {
             documents: ChannelDocType[];
             checkpoint: { updated_at: string; id: string } | undefined;
@@ -112,13 +122,43 @@ export function useChannelSync(workspaceId: () => string | undefined) {
         handler: async (rows) => {
           const id = workspaceId();
           if (!id) {
+            console.warn("[useChannelSync] Push — no workspace id");
             return [];
           }
 
+          // Filter out stale rows from other workspaces (can happen after
+          // useClearRxDb deletes docs — the delete write rows get picked up
+          // by the fresh replication checkpoint and pushed as _deleted:true).
+          const filtered = rows.filter((r) => {
+            if (!r.newDocumentState) return true;
+            const wsId = (r.newDocumentState as any).workspace_id;
+            // Allow docs without workspace_id (junction tables) or matching workspace
+            return wsId === undefined || wsId === id;
+          });
+          const skipped = rows.length - filtered.length;
+          if (skipped > 0) {
+            console.log(`[useChannelSync] Skipping ${skipped} stale row(s) from other workspaces`);
+          }
+          if (filtered.length === 0) return [];
+
+          console.log(`[useChannelSync] Push — ${filtered.length} row(s)`);
+          filtered.forEach((r) => {
+            console.log(
+              `[useChannelSync]   Push doc:`,
+              r.newDocumentState
+                ? JSON.stringify({
+                    id: r.newDocumentState.id,
+                    workspace_id: (r.newDocumentState as any).workspace_id,
+                  }).slice(0, 200)
+                : "deleted",
+            );
+          });
+
           const result = await requestFetch(`/api/replication/channels/push?workspace_id=${id}`, {
             method: "POST",
-            body: rows,
+            body: filtered,
           });
+          console.log(`[useChannelSync] Push completed, ${(result as any[])?.length ?? 0} results`);
           return result as ChannelDocType[];
         },
         batchSize: 50,
@@ -128,14 +168,25 @@ export function useChannelSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const sub = replicationState.error$.subscribe((err) => {
+    replicationState.active$.subscribe((active) => {
+      console.log(`[useChannelSync] Replication active:`, active);
+    });
+
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useChannelSync] ❌ Error:`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
+    cleanupFns.push(() => subErr.unsubscribe());
+
+    const subCancel = replicationState.canceled$.subscribe((canceled) => {
+      console.log(`[useChannelSync] Replication canceled:`, canceled);
+    });
+    cleanupFns.push(() => subCancel.unsubscribe());
 
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useChannelSync] Sync started`);
   }
 
   function setupRealtimeChannel() {

@@ -55,9 +55,23 @@ export function useUserStatusSync(workspaceId: () => string | undefined) {
     const requestFetch = useRequestFetch();
     const nuxtApp = useNuxtApp();
     const db = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
-    if (!db || !db.user_status) return;
+    if (!db) {
+      console.warn("[useUserStatusSync] No RxDB");
+      return;
+    }
+    if (!db.user_status) {
+      console.warn("[useUserStatusSync] No collection");
+      return;
+    }
     const activeId = workspaceId();
-    if (!activeId) return;
+    if (!activeId) {
+      console.warn("[useUserStatusSync] No wsId");
+      return;
+    }
+
+    console.log(`[useUserStatusSync] Starting, workspace=${activeId}`);
+    const existingCount = await db.user_status.count().exec();
+    console.log(`[useUserStatusSync] Existing docs: ${existingCount}`);
 
     replicationState = replicateRxCollection({
       replicationIdentifier: `user-status-ws-${activeId}`,
@@ -70,22 +84,36 @@ export function useUserStatusSync(workspaceId: () => string | undefined) {
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
           if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+          console.log(`[useUserStatusSync] Pull`, { checkpoint, batchSize });
           const result = await requestFetch(`/api/replication/user-status/pull?${params}`);
-          return result as {
-            documents: UserStatusDocType[];
-            checkpoint: { updated_at: string; id: string } | undefined;
-          };
+          const docs = (result as any)?.documents ?? [];
+          console.log(`[useUserStatusSync] Pull returned ${docs.length} docs`);
+          return result as any;
         },
         batchSize: 50,
       },
       push: {
         handler: async (rows) => {
           const id = workspaceId();
-          if (!id) return [];
-          return await requestFetch(`/api/replication/user-status/push?workspace_id=${id}`, {
-            method: "POST",
-            body: rows,
-          });
+          if (!id) {
+            console.warn("[useUserStatusSync] Push no wsId");
+            return [];
+          }
+          console.log(`[useUserStatusSync] Push ${rows.length} row(s)`);
+          rows.forEach((r) =>
+            console.log(
+              `[useUserStatusSync]   Push:`,
+              r.newDocumentState
+                ? JSON.stringify({ id: r.newDocumentState.id }).slice(0, 200)
+                : "deleted",
+            ),
+          );
+          const result = await requestFetch(
+            `/api/replication/user-status/push?workspace_id=${id}`,
+            { method: "POST", body: rows },
+          );
+          console.log(`[useUserStatusSync] Push done, ${(result as any[])?.length ?? 0} results`);
+          return result as UserStatusDocType[];
         },
         batchSize: 50,
       },
@@ -94,13 +122,20 @@ export function useUserStatusSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const sub = replicationState.error$.subscribe((err) => {
+    replicationState.active$.subscribe((a) => console.log(`[useUserStatusSync] Active:`, a));
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useUserStatusSync] ❌`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
+    cleanupFns.push(() => subErr.unsubscribe());
+    const subCancel = replicationState.canceled$.subscribe((c) =>
+      console.log(`[useUserStatusSync] Canceled:`, c),
+    );
+    cleanupFns.push(() => subCancel.unsubscribe());
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useUserStatusSync] Started`);
   }
 
   function setupRealtimeChannel() {

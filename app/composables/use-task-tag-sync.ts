@@ -59,52 +59,45 @@ export function useTaskTagSync(workspaceId: () => string | undefined) {
   }
 
   async function start() {
-    if (import.meta.server) {
-      return;
-    }
+    if (import.meta.server) return;
 
     const requestFetch = useRequestFetch();
-
     const nuxtApp = useNuxtApp();
-    const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
+    const db = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
+      console.warn("[useTaskTagSync] No RxDB");
       return;
     }
-
-    const taskTagsCollection = db.task_tags;
-    if (!taskTagsCollection) {
+    if (!db.task_tags) {
+      console.warn("[useTaskTagSync] No collection");
       return;
     }
-
     const activeId = workspaceId();
     if (!activeId) {
+      console.warn("[useTaskTagSync] No wsId");
       return;
     }
 
-    const repId = `task-tags-ws-${activeId}`;
+    console.log(`[useTaskTagSync] Starting, workspace=${activeId}`);
+    const existingCount = await db.task_tags.count().exec();
+    console.log(`[useTaskTagSync] Existing docs: ${existingCount}`);
 
     replicationState = replicateRxCollection<TaskTagDocType, { updated_at: string; id: string }>({
-      replicationIdentifier: repId,
-      collection: taskTagsCollection,
+      replicationIdentifier: `task-tags-ws-${activeId}`,
+      collection: db.task_tags,
       pull: {
         handler: async (checkpoint, batchSize) => {
           const id = workspaceId();
-          if (!id) {
-            return { documents: [], checkpoint: undefined };
-          }
-
+          if (!id) return { documents: [], checkpoint: undefined };
           const params = new URLSearchParams();
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
-          if (checkpoint) {
-            params.set("checkpoint", JSON.stringify(checkpoint));
-          }
-
-          const result = await requestFetch(`/api/replication/task-tags/pull?${params.toString()}`);
-          return result as {
-            documents: TaskTagDocType[];
-            checkpoint: { updated_at: string; id: string } | undefined;
-          };
+          if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+          console.log(`[useTaskTagSync] Pull`, { checkpoint, batchSize });
+          const result = await requestFetch(`/api/replication/task-tags/pull?${params}`);
+          const docs = (result as any)?.documents ?? [];
+          console.log(`[useTaskTagSync] Pull returned ${docs.length} docs`);
+          return result as any;
         },
         batchSize: 50,
       },
@@ -112,13 +105,23 @@ export function useTaskTagSync(workspaceId: () => string | undefined) {
         handler: async (rows) => {
           const id = workspaceId();
           if (!id) {
+            console.warn("[useTaskTagSync] Push no wsId");
             return [];
           }
-
+          console.log(`[useTaskTagSync] Push ${rows.length} row(s)`);
+          rows.forEach((r) =>
+            console.log(
+              `[useTaskTagSync]   Push:`,
+              r.newDocumentState
+                ? JSON.stringify({ id: r.newDocumentState.id }).slice(0, 200)
+                : "deleted",
+            ),
+          );
           const result = await requestFetch(`/api/replication/task-tags/push?workspace_id=${id}`, {
             method: "POST",
             body: rows,
           });
+          console.log(`[useTaskTagSync] Push done, ${(result as any[])?.length ?? 0} results`);
           return result as TaskTagDocType[];
         },
         batchSize: 50,
@@ -128,14 +131,20 @@ export function useTaskTagSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const sub = replicationState.error$.subscribe((err) => {
+    replicationState.active$.subscribe((a) => console.log(`[useTaskTagSync] Active:`, a));
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useTaskTagSync] ❌`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
-
+    cleanupFns.push(() => subErr.unsubscribe());
+    const subCancel = replicationState.canceled$.subscribe((c) =>
+      console.log(`[useTaskTagSync] Canceled:`, c),
+    );
+    cleanupFns.push(() => subCancel.unsubscribe());
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useTaskTagSync] Started`);
   }
 
   function setupRealtimeChannel() {

@@ -18,19 +18,19 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) e
 
 Must be one of:
 
-| Type       | Usage                                      |
-|------------|--------------------------------------------|
-| `feat`     | A new feature                              |
-| `fix`      | A bug fix                                  |
-| `docs`     | Documentation only changes                 |
-| `style`    | Code style changes (formatting, etc.)      |
+| Type       | Usage                                          |
+| ---------- | ---------------------------------------------- |
+| `feat`     | A new feature                                  |
+| `fix`      | A bug fix                                      |
+| `docs`     | Documentation only changes                     |
+| `style`    | Code style changes (formatting, etc.)          |
 | `refactor` | Code change that's neither a fix nor a feature |
-| `perf`     | Performance improvement                    |
-| `test`     | Adding or correcting tests                 |
-| `build`    | Build system or dependency changes         |
-| `ci`       | CI configuration changes                   |
-| `chore`    | Other changes that don't touch src or tests |
-| `revert`   | Reverts a previous commit                  |
+| `perf`     | Performance improvement                        |
+| `test`     | Adding or correcting tests                     |
+| `build`    | Build system or dependency changes             |
+| `ci`       | CI configuration changes                       |
+| `chore`    | Other changes that don't touch src or tests    |
+| `revert`   | Reverts a previous commit                      |
 
 ### Scope (optional)
 

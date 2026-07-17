@@ -57,52 +57,45 @@ export function useTeamSync(workspaceId: () => string | undefined) {
   }
 
   async function start() {
-    if (import.meta.server) {
-      return;
-    }
+    if (import.meta.server) return;
 
     const requestFetch = useRequestFetch();
-
     const nuxtApp = useNuxtApp();
-    const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
+    const db = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
+      console.warn("[useTeamSync] No RxDB");
       return;
     }
-
-    const teamsCollection = db.teams;
-    if (!teamsCollection) {
+    if (!db.teams) {
+      console.warn("[useTeamSync] No collection");
       return;
     }
-
     const activeId = workspaceId();
     if (!activeId) {
+      console.warn("[useTeamSync] No wsId");
       return;
     }
 
-    const repId = `teams-ws-${activeId}`;
+    console.log(`[useTeamSync] Starting, workspace=${activeId}`);
+    const existingCount = await db.teams.count().exec();
+    console.log(`[useTeamSync] Existing docs: ${existingCount}`);
 
     replicationState = replicateRxCollection<TeamDocType, { updated_at: string; id: string }>({
-      replicationIdentifier: repId,
-      collection: teamsCollection,
+      replicationIdentifier: `teams-ws-${activeId}`,
+      collection: db.teams,
       pull: {
         handler: async (checkpoint, batchSize) => {
           const id = workspaceId();
-          if (!id) {
-            return { documents: [], checkpoint: undefined };
-          }
-
+          if (!id) return { documents: [], checkpoint: undefined };
           const params = new URLSearchParams();
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
-          if (checkpoint) {
-            params.set("checkpoint", JSON.stringify(checkpoint));
-          }
-
-          const result = await requestFetch(`/api/replication/teams/pull?${params.toString()}`);
-          return result as {
-            documents: TeamDocType[];
-            checkpoint: { updated_at: string; id: string } | undefined;
-          };
+          if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+          console.log(`[useTeamSync] Pull`, { checkpoint, batchSize });
+          const result = await requestFetch(`/api/replication/teams/pull?${params}`);
+          const docs = (result as any)?.documents ?? [];
+          console.log(`[useTeamSync] Pull returned ${docs.length} docs`);
+          return result as any;
         },
         batchSize: 50,
       },
@@ -110,13 +103,38 @@ export function useTeamSync(workspaceId: () => string | undefined) {
         handler: async (rows) => {
           const id = workspaceId();
           if (!id) {
+            console.warn("[useTeamSync] Push no wsId");
             return [];
           }
 
+          const filtered = rows.filter((r) => {
+            if (!r.newDocumentState) return true;
+            const wsId = (r.newDocumentState as any).workspace_id;
+            return wsId === undefined || wsId === id;
+          });
+          const skipped = rows.length - filtered.length;
+          if (skipped > 0) {
+            console.log(`[useTeamSync] Skipping ${skipped} stale row(s) from other workspaces`);
+          }
+          if (filtered.length === 0) return [];
+
+          console.log(`[useTeamSync] Push ${filtered.length} row(s)`);
+          filtered.forEach((r) =>
+            console.log(
+              `[useTeamSync]   Push:`,
+              r.newDocumentState
+                ? JSON.stringify({
+                    id: r.newDocumentState.id,
+                    workspace_id: (r.newDocumentState as any).workspace_id,
+                  }).slice(0, 200)
+                : "deleted",
+            ),
+          );
           const result = await requestFetch(`/api/replication/teams/push?workspace_id=${id}`, {
             method: "POST",
-            body: rows,
+            body: filtered,
           });
+          console.log(`[useTeamSync] Push done, ${(result as any[])?.length ?? 0} results`);
           return result as TeamDocType[];
         },
         batchSize: 50,
@@ -126,14 +144,20 @@ export function useTeamSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const sub = replicationState.error$.subscribe((err) => {
+    replicationState.active$.subscribe((a) => console.log(`[useTeamSync] Active:`, a));
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useTeamSync] ❌`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
-
+    cleanupFns.push(() => subErr.unsubscribe());
+    const subCancel = replicationState.canceled$.subscribe((c) =>
+      console.log(`[useTeamSync] Canceled:`, c),
+    );
+    cleanupFns.push(() => subCancel.unsubscribe());
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useTeamSync] Started`);
   }
 
   function setupRealtimeChannel() {

@@ -66,20 +66,28 @@ export function useTaskSync(workspaceId: () => string | undefined) {
     const nuxtApp = useNuxtApp();
     const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
+      console.warn("[useTaskSync] No RxDB instance available — aborting");
       return;
     }
 
     const tasksCollection = db.tasks;
     if (!tasksCollection) {
+      console.warn("[useTaskSync] tasks collection not found — aborting");
       return;
     }
 
     const activeId = workspaceId();
     if (!activeId) {
+      console.warn("[useTaskSync] No workspaceId — aborting");
       return;
     }
 
     const repId = `tasks-ws-${activeId}`;
+    console.log(`[useTaskSync] Starting sync for workspace ${activeId}, repId=${repId}`);
+
+    // Log existing docs count before sync starts
+    const existingCount = await tasksCollection.count().exec();
+    console.log(`[useTaskSync] Existing local docs: ${existingCount}`);
 
     replicationState = replicateRxCollection<TaskDocType, { updated_at: string; id: string }>({
       replicationIdentifier: repId,
@@ -98,7 +106,10 @@ export function useTaskSync(workspaceId: () => string | undefined) {
             params.set("checkpoint", JSON.stringify(checkpoint));
           }
 
+          console.log(`[useTaskSync] Pull — checkpoint:`, checkpoint, `batchSize:`, batchSize);
           const result = await requestFetch(`/api/replication/tasks/pull?${params.toString()}`);
+          const docs = (result as any)?.documents ?? [];
+          console.log(`[useTaskSync] Pull returned ${docs.length} documents`);
           return result as {
             documents: TaskDocType[];
             checkpoint: { updated_at: string; id: string } | undefined;
@@ -110,13 +121,45 @@ export function useTaskSync(workspaceId: () => string | undefined) {
         handler: async (rows) => {
           const id = workspaceId();
           if (!id) {
+            console.warn("[useTaskSync] Push — no workspace id, returning empty");
             return [];
           }
 
+          // Filter out stale rows from other workspaces (see use-channel-sync.ts).
+          const filtered = rows.filter((r) => {
+            if (!r.newDocumentState) return true;
+            const wsId = (r.newDocumentState as any).workspace_id;
+            return wsId === undefined || wsId === id;
+          });
+          const skipped = rows.length - filtered.length;
+          if (skipped > 0) {
+            console.log(`[useTaskSync] Skipping ${skipped} stale row(s) from other workspaces`);
+          }
+          if (filtered.length === 0) return [];
+
+          console.log(`[useTaskSync] Push — ${filtered.length} row(s) being sent`);
+          filtered.forEach((r) => {
+            console.log(
+              `[useTaskSync]   Push doc:`,
+              r.newDocumentState
+                ? JSON.stringify({
+                    id: r.newDocumentState.id,
+                    title: (r.newDocumentState as any).title,
+                    workspace_id: (r.newDocumentState as any).workspace_id,
+                  }).slice(0, 200)
+                : "deleted",
+            );
+          });
+
           const result = await requestFetch(`/api/replication/tasks/push?workspace_id=${id}`, {
             method: "POST",
-            body: rows,
+            body: filtered,
           });
+          console.log(
+            `[useTaskSync] Push completed with`,
+            (result as any[])?.length ?? 0,
+            `results`,
+          );
           return result as TaskDocType[];
         },
         batchSize: 50,
@@ -126,14 +169,27 @@ export function useTaskSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const sub = replicationState.error$.subscribe((err) => {
+    // Log replication state changes
+    replicationState.active$.subscribe((active) => {
+      console.log(`[useTaskSync] Replication active:`, active);
+    });
+
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useTaskSync] ❌ Replication error:`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
+    cleanupFns.push(() => subErr.unsubscribe());
+
+    const subCancel = replicationState.canceled$.subscribe((canceled) => {
+      console.log(`[useTaskSync] Replication canceled:`, canceled);
+    });
+
+    cleanupFns.push(() => subCancel.unsubscribe());
 
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useTaskSync] Sync started successfully`);
   }
 
   function setupRealtimeChannel() {

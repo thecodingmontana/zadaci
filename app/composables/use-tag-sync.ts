@@ -57,52 +57,45 @@ export function useTagSync(workspaceId: () => string | undefined) {
   }
 
   async function start() {
-    if (import.meta.server) {
-      return;
-    }
+    if (import.meta.server) return;
 
     const requestFetch = useRequestFetch();
-
     const nuxtApp = useNuxtApp();
-    const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
+    const db = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
+      console.warn("[useTagSync] No RxDB");
       return;
     }
-
-    const tagsCollection = db.tags;
-    if (!tagsCollection) {
+    if (!db.tags) {
+      console.warn("[useTagSync] No collection");
       return;
     }
-
     const activeId = workspaceId();
     if (!activeId) {
+      console.warn("[useTagSync] No wsId");
       return;
     }
 
-    const repId = `tags-ws-${activeId}`;
+    console.log(`[useTagSync] Starting, workspace=${activeId}`);
+    const existingCount = await db.tags.count().exec();
+    console.log(`[useTagSync] Existing docs: ${existingCount}`);
 
     replicationState = replicateRxCollection<TagDocType, { updated_at: string; id: string }>({
-      replicationIdentifier: repId,
-      collection: tagsCollection,
+      replicationIdentifier: `tags-ws-${activeId}`,
+      collection: db.tags,
       pull: {
         handler: async (checkpoint, batchSize) => {
           const id = workspaceId();
-          if (!id) {
-            return { documents: [], checkpoint: undefined };
-          }
-
+          if (!id) return { documents: [], checkpoint: undefined };
           const params = new URLSearchParams();
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
-          if (checkpoint) {
-            params.set("checkpoint", JSON.stringify(checkpoint));
-          }
-
-          const result = await requestFetch(`/api/replication/tags/pull?${params.toString()}`);
-          return result as {
-            documents: TagDocType[];
-            checkpoint: { updated_at: string; id: string } | undefined;
-          };
+          if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+          console.log(`[useTagSync] Pull`, { checkpoint, batchSize });
+          const result = await requestFetch(`/api/replication/tags/pull?${params}`);
+          const docs = (result as any)?.documents ?? [];
+          console.log(`[useTagSync] Pull returned ${docs.length} docs`);
+          return result as any;
         },
         batchSize: 50,
       },
@@ -110,13 +103,38 @@ export function useTagSync(workspaceId: () => string | undefined) {
         handler: async (rows) => {
           const id = workspaceId();
           if (!id) {
+            console.warn("[useTagSync] Push no wsId");
             return [];
           }
 
+          const filtered = rows.filter((r) => {
+            if (!r.newDocumentState) return true;
+            const wsId = (r.newDocumentState as any).workspace_id;
+            return wsId === undefined || wsId === id;
+          });
+          const skipped = rows.length - filtered.length;
+          if (skipped > 0) {
+            console.log(`[useTagSync] Skipping ${skipped} stale row(s) from other workspaces`);
+          }
+          if (filtered.length === 0) return [];
+
+          console.log(`[useTagSync] Push ${filtered.length} row(s)`);
+          filtered.forEach((r) =>
+            console.log(
+              `[useTagSync]   Push:`,
+              r.newDocumentState
+                ? JSON.stringify({
+                    id: r.newDocumentState.id,
+                    workspace_id: (r.newDocumentState as any).workspace_id,
+                  }).slice(0, 200)
+                : "deleted",
+            ),
+          );
           const result = await requestFetch(`/api/replication/tags/push?workspace_id=${id}`, {
             method: "POST",
-            body: rows,
+            body: filtered,
           });
+          console.log(`[useTagSync] Push done, ${(result as any[])?.length ?? 0} results`);
           return result as TagDocType[];
         },
         batchSize: 50,
@@ -126,14 +144,20 @@ export function useTagSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const sub = replicationState.error$.subscribe((err) => {
+    replicationState.active$.subscribe((a) => console.log(`[useTagSync] Active:`, a));
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useTagSync] ❌`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
-
+    cleanupFns.push(() => subErr.unsubscribe());
+    const subCancel = replicationState.canceled$.subscribe((c) =>
+      console.log(`[useTagSync] Canceled:`, c),
+    );
+    cleanupFns.push(() => subCancel.unsubscribe());
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useTagSync] Started`);
   }
 
   function setupRealtimeChannel() {

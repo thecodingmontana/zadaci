@@ -55,9 +55,23 @@ export function useWorkspaceMemberSync(workspaceId: () => string | undefined) {
     const requestFetch = useRequestFetch();
     const nuxtApp = useNuxtApp();
     const db = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
-    if (!db || !db.workspace_members) return;
+    if (!db) {
+      console.warn("[useWsMemberSync] No RxDB");
+      return;
+    }
+    if (!db.workspace_members) {
+      console.warn("[useWsMemberSync] No collection");
+      return;
+    }
     const activeId = workspaceId();
-    if (!activeId) return;
+    if (!activeId) {
+      console.warn("[useWsMemberSync] No wsId");
+      return;
+    }
+
+    console.log(`[useWsMemberSync] Starting, workspace=${activeId}`);
+    const existingCount = await db.workspace_members.count().exec();
+    console.log(`[useWsMemberSync] Existing docs: ${existingCount}`);
 
     replicationState = replicateRxCollection({
       replicationIdentifier: `workspace-members-ws-${activeId}`,
@@ -70,22 +84,49 @@ export function useWorkspaceMemberSync(workspaceId: () => string | undefined) {
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
           if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+          console.log(`[useWsMemberSync] Pull`, { checkpoint, batchSize });
           const result = await requestFetch(`/api/replication/workspace-members/pull?${params}`);
-          return result as {
-            documents: WorkspaceMemberDocType[];
-            checkpoint: { updated_at: string; id: string } | undefined;
-          };
+          const docs = (result as any)?.documents ?? [];
+          console.log(`[useWsMemberSync] Pull returned ${docs.length} docs`);
+          return result as any;
         },
         batchSize: 50,
       },
       push: {
         handler: async (rows) => {
           const id = workspaceId();
-          if (!id) return [];
-          return await requestFetch(`/api/replication/workspace-members/push?workspace_id=${id}`, {
-            method: "POST",
-            body: rows,
+          if (!id) {
+            console.warn("[useWsMemberSync] Push no wsId");
+            return [];
+          }
+
+          // Filter out stale rows from other workspaces (see use-channel-sync.ts).
+          const filtered = rows.filter((r) => {
+            if (!r.newDocumentState) return true;
+            const wsId = (r.newDocumentState as any).workspace_id;
+            return wsId === undefined || wsId === id;
           });
+          const skipped = rows.length - filtered.length;
+          if (skipped > 0) {
+            console.log(`[useWsMemberSync] Skipping ${skipped} stale row(s) from other workspaces`);
+          }
+          if (filtered.length === 0) return [];
+
+          console.log(`[useWsMemberSync] Push ${filtered.length} row(s)`);
+          filtered.forEach((r) =>
+            console.log(
+              `[useWsMemberSync]   Push:`,
+              r.newDocumentState
+                ? JSON.stringify({ id: r.newDocumentState.id }).slice(0, 200)
+                : "deleted",
+            ),
+          );
+          const result = await requestFetch(
+            `/api/replication/workspace-members/push?workspace_id=${id}`,
+            { method: "POST", body: filtered },
+          );
+          console.log(`[useWsMemberSync] Push done, ${(result as any[])?.length ?? 0} results`);
+          return result as WorkspaceMemberDocType[];
         },
         batchSize: 50,
       },
@@ -94,13 +135,20 @@ export function useWorkspaceMemberSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const sub = replicationState.error$.subscribe((err) => {
+    replicationState.active$.subscribe((a) => console.log(`[useWsMemberSync] Active:`, a));
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useWsMemberSync] ❌`, err?.message || err);
       syncError.value = err;
     });
-    cleanupFns.push(() => sub.unsubscribe());
+    cleanupFns.push(() => subErr.unsubscribe());
+    const subCancel = replicationState.canceled$.subscribe((c) =>
+      console.log(`[useWsMemberSync] Canceled:`, c),
+    );
+    cleanupFns.push(() => subCancel.unsubscribe());
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
+    console.log(`[useWsMemberSync] Started`);
   }
 
   function setupRealtimeChannel() {
