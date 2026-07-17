@@ -13,3 +13,4 @@ trustPolicyExclude:
   - semver
 overrides:
   drizzle-orm: 1.0.0-rc.4
+  h3: 1.15.11
