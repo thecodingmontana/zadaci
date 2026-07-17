@@ -26,6 +26,7 @@ export default defineNuxtConfig({
         "@supabase/supabase-js",
         "@t3-oss/env-nuxt",
         "@tanstack/vue-hotkeys",
+        "@tanstack/vue-hotkeys-devtools",
         "@tanstack/vue-query",
         "@unhead/schema-org/vue",
         "@vee-validate/zod",

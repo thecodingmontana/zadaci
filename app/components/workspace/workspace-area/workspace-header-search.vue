@@ -180,11 +180,11 @@ function onCommandRun(row: CommandRow) {
 <template>
   <button
     type="button"
-    class="relative flex h-9 w-full max-w-sm items-center gap-2 rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/60"
+    class="relative flex h-9 items-center gap-2 rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/60 md:w-full md:max-w-sm"
     @click="commandMenuOpen = true"
   >
     <Icon name="hugeicons:search-01" size="16" />
-    <span class="flex-1 text-left">Search anything</span>
+    <span class="hidden flex-1 text-left md:block">Search anything</span>
     <KbdGroup>
       <Kbd>⌘</Kbd>
       <Kbd>K</Kbd>

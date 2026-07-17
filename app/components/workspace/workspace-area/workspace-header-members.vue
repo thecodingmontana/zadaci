@@ -59,7 +59,7 @@ const hasNotifications = ref(true);
   <DropdownMenu>
     <TooltipProvider>
       <DropdownMenuTrigger as-child>
-        <button class="flex cursor-pointer items-center gap-1.5">
+        <button class="hidden cursor-pointer items-center gap-1.5 lg:flex">
           <div class="flex -space-x-2">
             <Avatar
               v-for="member in visibleMembers"
@@ -104,7 +104,7 @@ const hasNotifications = ref(true);
   <ActionTooltip label="Add a new member" side="bottom">
     <Button size="sm" class="gap-1.5 bg-brand hover:bg-brand-secondary">
       <Icon name="hugeicons:plus-sign" size="16" />
-      Add Member
+      <span class="hidden lg:block">Add Member</span>
     </Button>
   </ActionTooltip>
 </template>
