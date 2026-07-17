@@ -1,4 +1,5 @@
 import type { Workspace } from "~/types";
+import { useWorkspaceStore } from "~/stores/use-workspace-store";
 
 export function useWorkspacePageTitle(
   pageName: string,
