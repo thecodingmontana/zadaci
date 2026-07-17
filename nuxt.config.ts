@@ -185,6 +185,7 @@ export default defineNuxtConfig({
     cookieAttrs: { "max-age": "31536000", path: "/" },
   },
   nitro: {
+    preset: "vercel",
     rollupConfig: {
       plugins: [vue()],
     },
