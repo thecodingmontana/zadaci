@@ -21,32 +21,40 @@ const teams = ref<TeamDocType[]>([]);
 const channels = ref<ChannelDocType[]>([]);
 const tasks = ref<TaskDocType[]>([]);
 
+const subscriptions: (() => void)[] = [];
+
 function subscribe<T>(
   collection: RxCollection<T> | undefined,
   selector: any,
   target: { value: T[] },
-) {
-  if (!collection) return;
+): () => void {
+  if (!collection) return () => {};
   const sub = collection.find({ selector }).$.subscribe((docs) => {
     target.value = docs;
   });
-  onUnmounted(() => sub.unsubscribe());
+  return () => sub.unsubscribe();
 }
 
 watch(
-  () => db,
-  (database) => {
-    if (!database) return;
-    const wsId = workspaceId.value;
-    if (!wsId) return;
-    subscribe(database.workspace_members as any, { workspace_id: wsId }, members);
-    subscribe(database.projects as any, { workspace_id: wsId, deleted_at: null }, projects);
-    subscribe(database.teams as any, { workspace_id: wsId, deleted_at: null }, teams);
-    subscribe(database.channels as any, { workspace_id: wsId, deleted_at: null }, channels);
-    subscribe(database.tasks as any, {}, tasks);
+  [() => db, workspaceId],
+  ([database, wsId]) => {
+    subscriptions.forEach((fn) => fn());
+    subscriptions.length = 0;
+    if (!database || !wsId) return;
+    subscriptions.push(
+      subscribe(database.workspace_members as any, { workspace_id: wsId }, members),
+      subscribe(database.projects as any, { workspace_id: wsId, deleted_at: null }, projects),
+      subscribe(database.teams as any, { workspace_id: wsId, deleted_at: null }, teams),
+      subscribe(database.channels as any, { workspace_id: wsId, deleted_at: null }, channels),
+      subscribe(database.tasks as any, {}, tasks),
+    );
   },
   { immediate: true },
 );
+
+onUnmounted(() => {
+  subscriptions.forEach((fn) => fn());
+});
 
 const commandMenuOpen = ref(false);
 

@@ -32,6 +32,7 @@ export default withNuxt(
             /^AGENTS\.md$/,
             /^Cargo\.toml$/,
             /^README\.md$/,
+            /^CONTRIBUTING\.md$/,
             /^\d{14}_[a-z]+(_[a-z]+)*$/,
             /^\[.*\]$/,
             /^OgImage$/,

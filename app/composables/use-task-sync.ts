@@ -103,7 +103,10 @@ export function useTaskSync(workspaceId: () => string | undefined) {
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
           if (checkpoint) {
-            params.set("checkpoint", JSON.stringify(checkpoint));
+            const localCount = await tasksCollection.count().exec();
+            if (localCount > 0) {
+              params.set("checkpoint", JSON.stringify(checkpoint));
+            }
           }
 
           console.log(`[useTaskSync] Pull — checkpoint:`, checkpoint, `batchSize:`, batchSize);
@@ -125,9 +128,10 @@ export function useTaskSync(workspaceId: () => string | undefined) {
             return [];
           }
 
-          // Filter out stale rows from other workspaces (see use-channel-sync.ts).
+          // Skip deletion events — they're caused by useClearRxDb clearing
+          // the database on workspace switch, and cause 403 push errors.
           const filtered = rows.filter((r) => {
-            if (!r.newDocumentState) return true;
+            if (!r.newDocumentState) return false;
             const wsId = (r.newDocumentState as any).workspace_id;
             return wsId === undefined || wsId === id;
           });

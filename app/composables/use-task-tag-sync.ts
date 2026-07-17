@@ -92,7 +92,10 @@ export function useTaskTagSync(workspaceId: () => string | undefined) {
           const params = new URLSearchParams();
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
-          if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+          if (checkpoint) {
+            const localCount = await db.task_tags.count().exec();
+            if (localCount > 0) params.set("checkpoint", JSON.stringify(checkpoint));
+          }
           console.log(`[useTaskTagSync] Pull`, { checkpoint, batchSize });
           const result = await requestFetch(`/api/replication/task-tags/pull?${params}`);
           const docs = (result as any)?.documents ?? [];

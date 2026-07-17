@@ -3,6 +3,7 @@ import type { RxCollection } from "rxdb";
 import type { ProjectDocType, TaskDocType, TeamDocType } from "~/plugins/rxdb.client";
 import { Button } from "~/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
+import { Skeleton } from "~/components/ui/skeleton";
 
 const route = useRoute();
 const workspaceId = computed(() => route.params.workspaceId as string);
@@ -13,31 +14,66 @@ const tasks = ref<TaskDocType[]>([]);
 const projects = ref<ProjectDocType[]>([]);
 const teams = ref<TeamDocType[]>([]);
 
+const subscriptions: (() => void)[] = [];
+const loading = ref(true);
+
 function subscribeToCollection<T>(
   collection: RxCollection<T> | undefined,
   selector: any,
   target: { value: T[] },
-) {
-  if (!collection) return;
+  onData?: () => void,
+): () => void {
+  if (!collection) return () => {};
   const sub = collection.find({ selector }).$.subscribe((docs) => {
     target.value = docs;
+    onData?.();
   });
-  onUnmounted(() => sub.unsubscribe());
+  return () => sub.unsubscribe();
 }
 
 watch(
-  () => db,
-  (database) => {
-    if (!database) return;
-    const wsId = workspaceId.value;
-    if (!wsId) return;
+  [() => db, workspaceId],
+  ([database, wsId]) => {
+    subscriptions.forEach((fn) => fn());
+    subscriptions.length = 0;
+    if (!database || !wsId) {
+      loading.value = true;
+      return;
+    }
+    loading.value = true;
+    let loadedCount = 0;
+    const markLoaded = () => {
+      loadedCount++;
+      if (loadedCount >= 3) loading.value = false;
+    };
 
-    subscribeToCollection(database.tasks as any, { project_id: { $ne: "" } }, tasks as any);
-    subscribeToCollection(database.projects as any, { workspace_id: wsId }, projects as any);
-    subscribeToCollection(database.teams as any, { workspace_id: wsId }, teams as any);
+    subscriptions.push(
+      subscribeToCollection(
+        database.tasks as any,
+        { project_id: { $ne: "" } },
+        tasks as any,
+        markLoaded,
+      ),
+      subscribeToCollection(
+        database.projects as any,
+        { workspace_id: wsId },
+        projects as any,
+        markLoaded,
+      ),
+      subscribeToCollection(
+        database.teams as any,
+        { workspace_id: wsId },
+        teams as any,
+        markLoaded,
+      ),
+    );
   },
   { immediate: true },
 );
+
+onUnmounted(() => {
+  subscriptions.forEach((fn) => fn());
+});
 
 interface MenuSection {
   key: string;
@@ -76,10 +112,10 @@ const handleAdd = (key: string, event: Event) => {
     <div class="space-y-1">
       <NuxtLink
         :to="`/workspace/${workspaceId}/dashboard`"
-        class="flex cursor-pointer items-center space-x-2 rounded bg-[#f2f2f2] p-1"
+        class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
       >
         <Icon name="hugeicons:dashboard-square-03" size="18" />
-        <p>Dashboard</p>
+        <p class="text-sm">Dashboard</p>
       </NuxtLink>
 
       <NuxtLink
@@ -137,7 +173,10 @@ const handleAdd = (key: string, event: Event) => {
         </div>
 
         <CollapsibleContent>
-          <div class="mt-1 ml-6 space-y-1 border-l pl-2">
+          <div v-if="loading" class="mt-1 ml-6 space-y-2 border-l pl-2">
+            <Skeleton v-for="n in 3" :key="n" class="h-4 w-[60%]" />
+          </div>
+          <div v-else class="mt-1 ml-6 space-y-1 border-l pl-2">
             <NuxtLink
               v-for="item in sectionItems[section.key]"
               :key="item.id"

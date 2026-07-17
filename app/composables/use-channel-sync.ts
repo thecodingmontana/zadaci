@@ -104,7 +104,10 @@ export function useChannelSync(workspaceId: () => string | undefined) {
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
           if (checkpoint) {
-            params.set("checkpoint", JSON.stringify(checkpoint));
+            const localCount = await collection.count().exec();
+            if (localCount > 0) {
+              params.set("checkpoint", JSON.stringify(checkpoint));
+            }
           }
 
           console.log(`[useChannelSync] Pull — checkpoint:`, checkpoint, `batchSize:`, batchSize);
@@ -126,11 +129,11 @@ export function useChannelSync(workspaceId: () => string | undefined) {
             return [];
           }
 
-          // Filter out stale rows from other workspaces (can happen after
-          // useClearRxDb deletes docs — the delete write rows get picked up
-          // by the fresh replication checkpoint and pushed as _deleted:true).
+          // Skip deletion events — caused by useClearRxDb clearing the database
+          // on workspace switch. Pushing them to the wrong workspace causes 403
+          // errors that block the entire replication.
           const filtered = rows.filter((r) => {
-            if (!r.newDocumentState) return true;
+            if (!r.newDocumentState) return false;
             const wsId = (r.newDocumentState as any).workspace_id;
             // Allow docs without workspace_id (junction tables) or matching workspace
             return wsId === undefined || wsId === id;

@@ -21,18 +21,26 @@ const db = useRxDb();
 const workspace = computed(() => store.activeWorkspace);
 
 const members = ref<WorkspaceMemberDocType[]>([]);
+let sub: any = null;
 
 watch(
-  () => db?.workspace_members,
-  (col) => {
-    if (!col) return;
-    const sub = col.find({ selector: { workspace_id: workspaceId.value } }).$.subscribe((docs) => {
+  [() => db?.workspace_members, workspaceId],
+  ([col, wsId]) => {
+    if (sub) {
+      sub.unsubscribe();
+      sub = null;
+    }
+    if (!col || !wsId) return;
+    sub = col.find({ selector: { workspace_id: wsId } }).$.subscribe((docs) => {
       members.value = docs;
     });
-    onUnmounted(() => sub.unsubscribe());
   },
   { immediate: true },
 );
+
+onUnmounted(() => {
+  if (sub) sub.unsubscribe();
+});
 
 const memberCount = computed(() => members.value.length);
 const onlineCount = computed(() => members.value.length);

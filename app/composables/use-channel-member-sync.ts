@@ -95,7 +95,10 @@ export function useChannelMemberSync(workspaceId: () => string | undefined) {
           const params = new URLSearchParams();
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
-          if (checkpoint) params.set("checkpoint", JSON.stringify(checkpoint));
+          if (checkpoint) {
+            const localCount = await db.channel_members.count().exec();
+            if (localCount > 0) params.set("checkpoint", JSON.stringify(checkpoint));
+          }
           console.log(`[useChannelMemberSync] Pull`, { checkpoint, batchSize });
           const result = await requestFetch(`/api/replication/channel-members/pull?${params}`);
           const docs = (result as any)?.documents ?? [];
@@ -112,9 +115,9 @@ export function useChannelMemberSync(workspaceId: () => string | undefined) {
             return [];
           }
 
-          // Filter out stale rows from other workspaces (see use-channel-sync.ts).
+          // Skip deletion events — caused by useClearRxDb on workspace switch.
           const filtered = rows.filter((r) => {
-            if (!r.newDocumentState) return true;
+            if (!r.newDocumentState) return false;
             const wsId = (r.newDocumentState as any).workspace_id;
             return wsId === undefined || wsId === id;
           });

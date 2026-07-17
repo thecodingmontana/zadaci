@@ -16,9 +16,6 @@ export async function useClearRxDb() {
     return;
   }
 
-  console.log("[useClearRxDb] Setting nuclear clear flag");
-  localStorage.setItem(CLEAR_KEY, "true");
-
   const collections = Object.values(db.collections);
   const counts: Record<string, number> = {};
   for (const col of collections) {

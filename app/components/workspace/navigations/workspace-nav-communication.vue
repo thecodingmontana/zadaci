@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
+import { Skeleton } from "~/components/ui/skeleton";
 
 const route = useRoute();
 const workspaceId = computed(() => route.params.workspaceId as string);
@@ -21,32 +22,62 @@ const channelMembers = ref<ChannelMemberDocType[]>([]);
 const workspaceMembers = ref<WorkspaceMemberDocType[]>([]);
 const userStatuses = ref<UserStatusDocType[]>([]);
 
+const subscriptions: (() => void)[] = [];
+const loading = ref(true);
+
 function subscribe<T>(
   collection: RxCollection<T> | undefined,
   selector: any,
   target: { value: T[] },
-) {
-  if (!collection) return;
+  onData?: () => void,
+): () => void {
+  if (!collection) return () => {};
   const sub = collection.find({ selector }).$.subscribe((docs) => {
     target.value = docs;
+    onData?.();
   });
-  onUnmounted(() => sub.unsubscribe());
+  return () => sub.unsubscribe();
 }
 
 watch(
-  () => db,
-  (database) => {
-    if (!database) return;
-    const wsId = workspaceId.value;
-    if (!wsId) return;
+  [() => db, workspaceId],
+  ([database, wsId]) => {
+    subscriptions.forEach((fn) => fn());
+    subscriptions.length = 0;
+    if (!database || !wsId) {
+      loading.value = true;
+      return;
+    }
+    loading.value = true;
+    let loadedCount = 0;
+    const markLoaded = () => {
+      loadedCount++;
+      if (loadedCount >= 4) loading.value = false;
+    };
 
-    subscribe(database.channels as any, { workspace_id: wsId, deleted_at: null }, channels);
-    subscribe(database.channel_members as any, {}, channelMembers);
-    subscribe(database.workspace_members as any, { workspace_id: wsId }, workspaceMembers);
-    subscribe(database.user_status as any, {}, userStatuses);
+    subscriptions.push(
+      subscribe(
+        database.channels as any,
+        { workspace_id: wsId, deleted_at: null },
+        channels,
+        markLoaded,
+      ),
+      subscribe(database.channel_members as any, {}, channelMembers, markLoaded),
+      subscribe(
+        database.workspace_members as any,
+        { workspace_id: wsId },
+        workspaceMembers,
+        markLoaded,
+      ),
+      subscribe(database.user_status as any, {}, userStatuses, markLoaded),
+    );
   },
   { immediate: true },
 );
+
+onUnmounted(() => {
+  subscriptions.forEach((fn) => fn());
+});
 
 const publicChannels = computed(() =>
   channels.value.filter((c) => c.type === "public" || c.type === "private"),
@@ -107,8 +138,6 @@ const handleAdd = (key: string, event: Event) => {
 function resolveMemberStatus(member?: WorkspaceMemberDocType): string {
   if (!member) return "offline";
   const status = getStatus(member.user_id);
-  // user_status row exists only when user explicitly set a status
-  // no row means they haven't set one → default to "available" (online)
   return status?.status ?? "available";
 }
 
@@ -156,7 +185,14 @@ function resolveMemberRole(member?: WorkspaceMemberDocType): string {
       </div>
 
       <CollapsibleContent>
-        <div class="mt-1 space-y-1">
+        <div v-if="loading" class="mt-1 space-y-2 pl-1">
+          <div v-for="n in 3" :key="n" class="flex items-center space-x-2 p-1">
+            <Skeleton class="h-4 w-4 rounded-sm" />
+            <Skeleton class="h-3.5 w-[55%]" />
+          </div>
+        </div>
+
+        <div v-else class="mt-1 space-y-1">
           <NuxtLink
             v-for="channel in publicChannels"
             :key="channel.id"
@@ -223,7 +259,14 @@ function resolveMemberRole(member?: WorkspaceMemberDocType): string {
       </div>
 
       <CollapsibleContent>
-        <div class="mt-1 space-y-1">
+        <div v-if="loading" class="mt-1 space-y-2 pl-1">
+          <div v-for="n in 3" :key="n" class="flex items-center space-x-2 p-1">
+            <Skeleton class="h-5 w-5 rounded-full" />
+            <Skeleton class="h-3.5 w-[45%]" />
+          </div>
+        </div>
+
+        <div v-else class="mt-1 space-y-1">
           <NuxtLink
             v-for="dm in dmMembers"
             :key="dm.id"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Workspace } from "~/types";
 import { useNetwork } from "@vueuse/core";
 import Toaster from "~/components/toast/toaster.vue";
 import NavigationSidebar from "~/components/workspace/navigations/navigation-sidebar.vue";
@@ -25,6 +26,7 @@ watch(loggedIn, (val) => {
   console.log("[workspace-layout] loggedIn changed to:", val);
   if (!val) {
     console.log("[workspace-layout] Session expired — triggering RxDB clear");
+    localStorage.setItem(CLEAR_KEY, "true");
     useClearRxDb();
   }
 });
@@ -84,8 +86,24 @@ async function startAllSyncs() {
   console.log("[workspace-layout] All syncs started");
 }
 
+const wsStore = useWorkspaceStore();
+const workspacesQuery = useWorkspaces();
+
+let switchToken = 0;
+
 onMounted(async () => {
-  console.log("[workspace-layout] onMounted — running stale-data check + starting syncs");
+  console.log("[workspace-layout] onMounted — syncing store + stale-data check + starting syncs");
+
+  const currentId = workspaceId.value;
+  if (currentId && wsStore.activeWorkspace?.id !== currentId) {
+    const found =
+      workspacesQuery.data.value?.find((w) => w.id === currentId) ??
+      (await $fetch<Workspace>(`/api/workspace/${currentId}/details`).catch(() => undefined));
+    if (found) {
+      console.log("[workspace-layout] Syncing store to current workspace:", found.name);
+      wsStore.onSetActiveWorkspace(found);
+    }
+  }
 
   usePurgeOldData();
   console.log("[workspace-layout] Calling useClearStaleDataOnUserSwitch...");
@@ -95,19 +113,27 @@ onMounted(async () => {
   await startAllSyncs();
 });
 
-const wsStore = useWorkspaceStore();
-
 watch(workspaceId, async (newId, oldId) => {
   if (!newId || newId === oldId) return;
-  console.log(`[workspace-layout] Workspace changed: ${oldId} → ${newId}. Clearing + restarting.`);
+  const token = ++switchToken;
+  console.log(`[workspace-layout] Workspace changed: ${oldId} → ${newId}. (token=${token})`);
 
-  const { data: workspaces, refresh } = useWorkspaces();
-  await refresh();
-  const found = workspaces.value?.find((w) => w.id === newId);
-  if (found) wsStore.onSetActiveWorkspace(found);
+  await workspacesQuery.refetch();
+  if (token !== switchToken) return;
+
+  const found =
+    workspacesQuery.data.value?.find((w) => w.id === newId) ??
+    (await $fetch<Workspace>(`/api/workspace/${newId}/details`).catch(() => undefined));
+  if (found) {
+    console.log("[workspace-layout] Setting active workspace:", found.name);
+    wsStore.onSetActiveWorkspace(found);
+  }
 
   allSyncs().forEach((s) => s.stop());
+
   await useClearRxDb();
+  if (token !== switchToken) return;
+
   await startAllSyncs();
 });
 
