@@ -99,7 +99,7 @@ const wsStore = useWorkspaceStore();
 
 watch(workspaceId, async (newId, oldId) => {
   if (!newId || newId === oldId) return;
-  console.log(`[workspace-layout] Workspace changed: ${oldId} → ${newId}. Restarting syncs.`);
+  console.log(`[workspace-layout] Workspace changed: ${oldId} → ${newId}. Clearing + restarting.`);
 
   const { data: workspaces, refresh } = useWorkspaces();
   await refresh();
@@ -107,6 +107,7 @@ watch(workspaceId, async (newId, oldId) => {
   if (found) wsStore.onSetActiveWorkspace(found);
 
   allSyncs().forEach((s) => s.stop());
+  await useClearRxDb();
   await startAllSyncs();
 });
 
