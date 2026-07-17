@@ -202,6 +202,9 @@ export default defineNuxtConfig({
         },
       },
     },
+    externals: {
+      inline: ["drizzle-orm", "postgres"],
+    },
   },
   evlog: {
     env: {

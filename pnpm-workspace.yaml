@@ -11,3 +11,5 @@ shellEmulator: true
 trustPolicy: no-downgrade
 trustPolicyExclude:
   - semver
+overrides:
+  drizzle-orm: 1.0.0-rc.4
