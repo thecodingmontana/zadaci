@@ -2,9 +2,15 @@
 import WorkspaceHeader from "~/components/workspace/workspace-area/workspace-header.vue";
 
 const route = useRoute();
-const { user } = useUserSession();
+const { loggedIn } = useUserSession();
 const workspaceId = computed(() => route.params.workspaceId as string | undefined);
 const wsId = () => workspaceId.value;
+
+watch(loggedIn, (val) => {
+  if (!val) {
+    useClearRxDb();
+  }
+});
 
 const taskSync = useTaskSync(wsId);
 const projectSync = useProjectSync(wsId);
@@ -18,8 +24,7 @@ const workspaceMemberSync = useWorkspaceMemberSync(wsId);
 const userStatusSync = useUserStatusSync(wsId);
 
 onMounted(async () => {
-  await useClearStaleDataOnUserSwitch(user.value?.id);
-
+  usePurgeOldData();
   await Promise.all([
     taskSync.start(),
     projectSync.start(),

@@ -1,7 +1,14 @@
-const CLEARED_KEY = "zadaci_db_cleared_for_user";
+import type { ZadaciDatabase } from "~/plugins/rxdb.client";
 
-async function clearRxDb() {
-  const db = useRxDb();
+const PURGE_DAYS = 30;
+const PURGE_KEY = "zadaci_last_purge";
+
+function getDb(): ZadaciDatabase | null {
+  return useRxDb() as unknown as ZadaciDatabase | null;
+}
+
+export async function useClearRxDb() {
+  const db = getDb();
   if (!db) return;
 
   const collections = Object.values(db.collections);
@@ -9,15 +16,30 @@ async function clearRxDb() {
 }
 
 /**
- * Call this BEFORE starting syncs on workspace mount.
- * Clears stale RxDB data if the user has changed since last visit.
+ * Purges soft-deleted documents older than PURGE_DAYS from RxDB.
+ * Runs at most once per day to keep IndexedDB lean.
  */
-export async function useClearStaleDataOnUserSwitch(userId: string | undefined) {
-  if (!userId || import.meta.server) return;
+export async function usePurgeOldData() {
+  if (import.meta.server) return;
 
-  const lastUserId = localStorage.getItem(CLEARED_KEY);
-  if (lastUserId === userId) return;
+  const lastPurge = localStorage.getItem(PURGE_KEY);
+  if (lastPurge && Date.now() - Number(lastPurge) < 86400000) return;
 
-  await clearRxDb();
-  localStorage.setItem(CLEARED_KEY, userId);
+  const db = getDb();
+  if (!db) return;
+
+  const cutoff = new Date(Date.now() - PURGE_DAYS * 86400000).toISOString();
+  const purgeable = ["tasks", "projects", "teams", "tags", "channels"] as const;
+
+  for (const name of purgeable) {
+    const col = db.collections[name];
+    if (!col) continue;
+    const docs = await col.find().exec();
+    const oldDeleted = docs.filter((d: any) => d.deleted_at && d.deleted_at < cutoff);
+    if (oldDeleted.length > 0) {
+      await col.bulkRemove(oldDeleted.map((d: any) => d.id));
+    }
+  }
+
+  localStorage.setItem(PURGE_KEY, String(Date.now()));
 }

@@ -25,6 +25,7 @@ async function onSignOut() {
     isSigninOut.value = true;
     onClose();
     await clearSession();
+    await useClearRxDb();
 
     toast.success("Signed out successfully", {
       desc: "See you again soon",
