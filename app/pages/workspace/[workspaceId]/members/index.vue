@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "Members",
+  description: "View and manage workspace members and their roles.",
+});
 </script>
 
 <template>

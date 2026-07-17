@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "Team Details",
+  description: "View and manage team details, members, and projects.",
+});
 </script>
 
 <template>

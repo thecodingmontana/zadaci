@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "All Projects",
+  description: "Browse and manage all projects in your workspace.",
+});
 </script>
 
 <template>

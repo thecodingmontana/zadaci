@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "Task Details",
+  description: "View and update task details, status, and assignments.",
+});
 </script>
 
 <template>

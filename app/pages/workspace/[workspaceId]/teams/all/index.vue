@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "All Teams",
+  description: "Browse and manage teams within your workspace.",
+});
 </script>
 
 <template>

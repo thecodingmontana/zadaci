@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "Help & Support",
+  description: "Get help and support for using Zadaci workspace features.",
+});
 </script>
 
 <template>

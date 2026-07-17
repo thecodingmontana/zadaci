@@ -11,13 +11,14 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: "onboarding",
 });
-useHead({
-  titleTemplate: "%s - Zadaci",
+useSeoMeta({
+  title: "Onboarding",
+  description: "Set up your workspace and profile to get started with Zadaci.",
 });
+
 defineOgImage("Zadaci", {
-  title: "Zadaci - Onboarding",
-  description:
-    "All-in-one project management platform built to help you and your team get things done faster",
+  title: "Onboarding",
+  description: "Set up your workspace and profile to get started with Zadaci.",
 });
 
 const workspaceStore = useWorkspaceStore();

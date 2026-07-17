@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "Dashboard",
+  description: "Workspace dashboard — overview of your projects, tasks, and team activity.",
+});
 </script>
 
 <template>

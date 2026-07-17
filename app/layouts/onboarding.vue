@@ -10,6 +10,7 @@ useHead({
   bodyAttrs: {
     class: "min-h-screen bg-background font-sans antialiased",
   },
+  titleTemplate: "%s - Zadaci",
 });
 </script>
 

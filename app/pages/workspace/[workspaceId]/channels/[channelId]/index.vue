@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "Channel",
+  description: "Workspace channel — collaborate and communicate with your team in real time.",
+});
 </script>
 
 <template>

@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "Security Settings",
+  description: "Manage your account security, password, and authentication methods.",
+});
 </script>
 
 <template>

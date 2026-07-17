@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "Calendar",
+  description: "View your workspace calendar with tasks, deadlines, and events.",
+});
 </script>
 
 <template>

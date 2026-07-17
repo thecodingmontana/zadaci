@@ -3,6 +3,11 @@ definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
+
+useSeoMeta({
+  title: "Profile Settings",
+  description: "Update your profile information, avatar, and preferences.",
+});
 </script>
 
 <template>

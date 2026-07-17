@@ -1,6 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import MotionResolver from "motion-v/resolver";
+import { defineOrganization } from "nuxt-schema-org/schema";
 import Components from "unplugin-vue-components/vite";
 import { env } from "./env";
 
@@ -70,6 +71,7 @@ export default defineNuxtConfig({
     "shadcn-nuxt",
     "nuxt-auth-utils",
     "@nuxtjs/seo",
+    "nuxt-ai-ready",
     "@vue-dnd-kit/nuxt",
     "@nuxt/icon",
     "@nuxtjs/color-mode",
@@ -86,17 +88,7 @@ export default defineNuxtConfig({
   },
 
   shadcn: {
-    /**
-     * Prefix for all the imported component.
-     * @default "Ui"
-     */
     prefix: "",
-    /**
-     * Directory that the component lives in.
-     * Will respect the Nuxt aliases.
-     * @link https://nuxt.com/docs/api/nuxt-config#alias
-     * @default "@/components/ui"
-     */
     componentDir: "@/components/ui",
   },
   runtimeConfig: {
@@ -120,33 +112,63 @@ export default defineNuxtConfig({
     hash: {
       driver: "argon2",
       argon2: {
-        variant: "id", // argon2id - resistant to both GPU cracking and side-channel attacks
-        version: 0x13, // v19, the latest and strongest version
-        iterations: 3, // OWASP baseline; raises compute cost per hash
-        memory: 65536, // 64 MiB - the actual security lever; higher = harder to brute-force at scale
-        parallelism: 4, // threads used per hash; tune to your server's CPU cores
-        saltSize: 16, // 16 bytes is standard, no need to increase
-        hashLength: 32, // 32 bytes output, standard for argon2id
+        variant: "id",
+        version: 0x13,
+        iterations: 3,
+        memory: 65536,
+        parallelism: 4,
+        saltSize: 16,
+        hashLength: 32,
       },
     },
   },
 
   site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL || "http://localhost:3001",
+    url: process.env.NUXT_PUBLIC_SITE_URL || "https://zadaci.vercel.app",
     name: process.env.NUXT_PUBLIC_SITE_NAME || "Zadaci",
-    description: "A powerful and collaborative task management platform designed for modern teams.",
+    description: "Local-first project management for small teams.",
     defaultLocale: "en",
   },
 
+  robots: {
+    disallow: ["/api", "/auth", "/test"],
+    groups: [
+      {
+        userAgent: "*",
+        allow: "/",
+        contentUsage: {
+          bots: "y",
+          "train-ai": "n",
+        },
+        contentSignal: {
+          "ai-train": "no",
+          search: "yes",
+        },
+      },
+    ],
+  },
+
+  sitemap: {
+    exclude: ["/auth/**", "/test/**", "/workspace/**"],
+  },
+
   schemaOrg: {
-    identity: {
-      type: "Organization",
+    identity: defineOrganization({
       name: "Crow Studio",
-    },
+      url: process.env.NUXT_PUBLIC_SITE_URL || "https://zadaci.vercel.app",
+      logo: "/logo.png",
+      sameAs: ["https://x.com/codewithmontana", "https://github.com/anomalyco"],
+    }),
   },
 
   routeRules: {
     "/workspace/**": {
+      robots: false,
+    },
+    "/auth/**": {
+      robots: false,
+    },
+    "/test/**": {
       robots: false,
     },
   },

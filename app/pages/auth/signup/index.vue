@@ -25,14 +25,16 @@ watch(
   },
 );
 
-useHead({
-  titleTemplate: "%s - Zadaci",
+useSeoMeta({
+  title: "Create an account",
+  description:
+    "Create your Zadaci account and start organizing your team's projects and tasks effortlessly.",
 });
 
 defineOgImage("Zadaci", {
   title: "Create an account",
   description:
-    "Zadaci is an all-in-one project management platform built to help you and your team get things done faster.",
+    "Create your Zadaci account and start organizing your team's projects and tasks effortlessly.",
 });
 
 onMounted(() => {

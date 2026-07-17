@@ -7,6 +7,7 @@ console.log("[debug] QUERY CODE VERSION 3");
 
 definePageMeta({
   middleware: ["authenticated"],
+  robots: { index: false },
 });
 
 const genId = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 16);

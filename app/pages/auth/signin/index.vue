@@ -25,14 +25,14 @@ watch(
   },
 );
 
-useHead({
-  titleTemplate: "%s - Zadaci",
+useSeoMeta({
+  title: "Sign in",
+  description: "Sign in to your Zadaci account to access your workspace, projects, and tasks.",
 });
 
 defineOgImage("Zadaci", {
   title: "Sign in",
-  description:
-    "Zadaci is an all-in-one project management platform built to help you and your team get things done faster.",
+  description: "Sign in to your Zadaci account to access your workspace, projects, and tasks.",
 });
 
 onMounted(() => {
