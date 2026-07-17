@@ -29,22 +29,48 @@ const isSubmitting = computed(() => {
   return false;
 });
 
-function setIsUploadImg(payload: boolean) {
-  isUploadingImg.value = payload;
-}
-
 function onClose() {
   modalStore.onClose();
   modalStore.setIsOpen(false);
+}
+
+async function uploadImageToCloudinary(image: string): Promise<string | undefined> {
+  isUploadingImg.value = true;
+  try {
+    const res = await $fetch("/api/workspace/upload", {
+      method: "POST",
+      body: { image },
+    });
+    return res.url;
+  } catch (error: any) {
+    const errorMessage = error?.response ? error.response._data?.statusMessage : error?.message;
+    toast.error(errorMessage ?? "Couldn't upload the image, please try again.", {
+      desc: "Check the file and try again",
+      position: "top-center",
+      action: {
+        label: "Retry",
+        icon: RotateCw,
+        onClick: () => uploadImageToCloudinary(image),
+      },
+    });
+    return undefined;
+  } finally {
+    isUploadingImg.value = false;
+  }
 }
 
 const onCreateWorkspace = form.handleSubmit(async (values) => {
   try {
     isCreatingWorkspace.value = true;
 
-    const image = values.image
-      ? values.image
-      : `https://avatar.vercel.sh/vercel.svg?text=${values.name.charAt(0).toUpperCase()}`;
+    const defaultImage = `https://avatar.vercel.sh/vercel.svg?text=${values.name.charAt(0).toUpperCase()}`;
+
+    let image: string;
+    if (values.image && values.image.startsWith("data:image/")) {
+      image = (await uploadImageToCloudinary(values.image)) || defaultImage;
+    } else {
+      image = values.image || defaultImage;
+    }
 
     const res = await $fetch("/api/workspace/create", {
       method: "POST",
@@ -115,12 +141,7 @@ const onCreateWorkspace = form.handleSubmit(async (values) => {
       <FormItem class="space-y-1">
         <FormLabel class="text-onboarding-text-300 text-sm font-medium"> Image </FormLabel>
         <FormControl>
-          <FileUpload
-            :value="value as string"
-            :handle-change="handleChange"
-            :is-upload-img="isUploadingImg"
-            :set-is-upload-img="setIsUploadImg"
-          />
+          <FileUpload :value="value as string" :handle-change="handleChange" />
           <div class="my-1.5 text-center text-xs text-muted-foreground">
             Don't think hard, a default image would be added for you.
           </div>

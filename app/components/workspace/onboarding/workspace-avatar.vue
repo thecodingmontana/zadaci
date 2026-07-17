@@ -2,11 +2,14 @@
 import { X } from "@lucide/vue";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
+import { toast } from "~/lib/toast";
 
 const props = defineProps<{
   updateWorkspaceAvatar: (avatarStr: string) => void;
   isCreateWorkspace: boolean;
 }>();
+const MAX_SIZE = 5 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const DEFAULT_AVATAR =
   "https://res.cloudinary.com/dfa1yoc1v/image/upload/v1743189693/avatars/thumbs-1743189589089_sfuswl.svg";
@@ -18,17 +21,35 @@ const previewUrl = ref<string | null>(null);
 
 watch(files, (newFiles) => {
   if (newFiles && newFiles.length > 0) {
-    fileName.value = newFiles[0]?.name ?? null;
-    previewUrl.value = newFiles[0] ? URL.createObjectURL(newFiles[0]) : null;
+    const file = newFiles[0];
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error("Invalid file type", {
+        desc: "Only JPEG, PNG, and WebP images are allowed.",
+        position: "top-center",
+      });
+      if (fileInput.value) fileInput.value.value = "";
+      return;
+    }
+
+    if (file.size > MAX_SIZE) {
+      toast.error("File too large", {
+        desc: "Maximum file size is 5 MB. Please choose a smaller image.",
+        position: "top-center",
+      });
+      if (fileInput.value) fileInput.value.value = "";
+      return;
+    }
+
+    fileName.value = file.name;
+    previewUrl.value = URL.createObjectURL(file);
     const reader = new FileReader();
     reader.onload = () => {
       if (reader.result && typeof reader.result === "string") {
         props.updateWorkspaceAvatar(reader.result);
       }
     };
-    if (newFiles[0]) {
-      reader.readAsDataURL(newFiles[0]);
-    }
+    reader.readAsDataURL(file);
   }
 });
 
@@ -70,7 +91,7 @@ function handleRemove() {
         ref="fileInput"
         type="file"
         class="hidden"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         aria-label="Upload workspace image"
         :disabled="props.isCreateWorkspace"
         @change="(e: Event) => (files = (e.target as HTMLInputElement).files)"
