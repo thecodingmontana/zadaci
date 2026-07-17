@@ -59,14 +59,10 @@ const openSections = reactive<Record<string, boolean>>({
 });
 
 const sectionItems = computed(() => ({
-  tasks: tasks.value.filter((t) => !t.deleted_at).map((t) => t.name),
-  projects: projects.value.filter((p) => !p.deleted_at).map((p) => p.title),
-  teams: teams.value.filter((t) => !t.deleted_at).map((t) => t.name),
+  tasks: tasks.value.filter((t) => !t.deleted_at).map((t) => ({ id: t.id, label: t.name })),
+  projects: projects.value.filter((p) => !p.deleted_at).map((p) => ({ id: p.id, label: p.title })),
+  teams: teams.value.filter((t) => !t.deleted_at).map((t) => ({ id: t.id, label: t.name })),
 }));
-
-const toggleSection = (key: string) => {
-  openSections[key] = !openSections[key];
-};
 
 const handleAdd = (key: string, event: Event) => {
   event.stopPropagation();
@@ -78,24 +74,29 @@ const handleAdd = (key: string, event: Event) => {
   <div class="space-y-2">
     <h3 class="font-ibm-plex-mono text-xs uppercase">Main Menu</h3>
     <div class="space-y-1">
-      <div class="flex cursor-pointer items-center space-x-2 rounded bg-[#f2f2f2] p-1">
+      <NuxtLink
+        :to="`/workspace/${workspaceId}/dashboard`"
+        class="flex cursor-pointer items-center space-x-2 rounded bg-[#f2f2f2] p-1"
+      >
         <Icon name="hugeicons:dashboard-square-03" size="18" />
         <p>Dashboard</p>
-      </div>
+      </NuxtLink>
 
-      <div
+      <NuxtLink
+        :to="`/workspace/${workspaceId}/members`"
         class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
       >
         <Icon name="hugeicons:user-multiple-02" size="18" />
         <p class="text-sm">Members</p>
-      </div>
+      </NuxtLink>
 
-      <div
+      <NuxtLink
+        :to="`/workspace/${workspaceId}/calendar`"
         class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
       >
         <Icon name="hugeicons:calendar-03" size="18" />
         <p class="text-sm">Calendar</p>
-      </div>
+      </NuxtLink>
 
       <Collapsible
         v-for="section in sections"
@@ -105,12 +106,14 @@ const handleAdd = (key: string, event: Event) => {
       >
         <div
           class="group flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
-          @click="toggleSection(section.key)"
         >
-          <div class="flex items-center space-x-2">
+          <NuxtLink
+            :to="`/workspace/${workspaceId}/${section.key}/all`"
+            class="flex flex-1 items-center space-x-2"
+          >
             <Icon :name="section.icon" size="18" />
             <p class="text-sm">{{ section.label }}</p>
-          </div>
+          </NuxtLink>
           <div class="flex items-center space-x-1">
             <Button
               variant="ghost"
@@ -135,13 +138,14 @@ const handleAdd = (key: string, event: Event) => {
 
         <CollapsibleContent>
           <div class="mt-1 ml-6 space-y-1 border-l pl-2">
-            <div
+            <NuxtLink
               v-for="item in sectionItems[section.key]"
-              :key="item"
+              :key="item.id"
+              :to="`/workspace/${workspaceId}/${section.key}/${item.id}/info`"
               class="flex cursor-pointer items-center rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
             >
-              {{ item }}
-            </div>
+              {{ item.label }}
+            </NuxtLink>
             <div
               class="flex cursor-pointer items-center space-x-1 rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
               @click="handleAdd(section.key, $event)"

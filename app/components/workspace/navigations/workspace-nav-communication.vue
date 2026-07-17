@@ -157,9 +157,10 @@ function resolveMemberRole(member?: WorkspaceMemberDocType): string {
 
       <CollapsibleContent>
         <div class="mt-1 space-y-1">
-          <div
+          <NuxtLink
             v-for="channel in publicChannels"
             :key="channel.id"
+            :to="`/workspace/${workspaceId}/channels/${channel.id}`"
             class="flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
           >
             <div class="flex items-center space-x-2">
@@ -174,7 +175,7 @@ function resolveMemberRole(member?: WorkspaceMemberDocType): string {
               />
               <p class="text-sm">{{ channel.name }}</p>
             </div>
-          </div>
+          </NuxtLink>
 
           <div
             class="flex cursor-pointer items-center space-x-2 rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
@@ -223,9 +224,10 @@ function resolveMemberRole(member?: WorkspaceMemberDocType): string {
 
       <CollapsibleContent>
         <div class="mt-1 space-y-1">
-          <div
+          <NuxtLink
             v-for="dm in dmMembers"
             :key="dm.id"
+            :to="`/workspace/${workspaceId}/conversations/${dm.user_id}`"
             class="flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
           >
             <div class="flex min-w-0 items-center space-x-2">
@@ -292,7 +294,7 @@ function resolveMemberRole(member?: WorkspaceMemberDocType): string {
                 <span v-if="dm.user_id === user?.id" class="text-muted-foreground">(You)</span>
               </p>
             </div>
-          </div>
+          </NuxtLink>
 
           <div
             class="flex cursor-pointer items-center space-x-2 rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
