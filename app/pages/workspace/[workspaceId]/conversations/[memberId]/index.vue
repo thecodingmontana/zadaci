@@ -12,9 +12,11 @@ const memberName = ref<string | null>(null);
 if (import.meta.client) {
   useRxDbSafe().then((db) => {
     if (!db) return;
-    const sub = db.workspace_members.findOne(memberId).$.subscribe((doc) => {
-      memberName.value = doc?.username ?? null;
-    });
+    const sub = db.workspace_members
+      .findOne({ selector: { user_id: memberId } })
+      .$.subscribe((doc) => {
+        memberName.value = doc?.username ?? null;
+      });
     onUnmounted(() => sub.unsubscribe());
   });
 }
