@@ -4,8 +4,9 @@ definePageMeta({
   layout: false,
 });
 
+const supportTitle = useWorkspacePageTitle("Help & Support");
 useSeoMeta({
-  title: "Help & Support",
+  title: supportTitle,
   description: "Get help and support for using Zadaci workspace features.",
 });
 </script>

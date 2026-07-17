@@ -4,8 +4,9 @@ definePageMeta({
   layout: false,
 });
 
+const dashboardTitle = useWorkspacePageTitle("Dashboard");
 useSeoMeta({
-  title: "Dashboard",
+  title: dashboardTitle,
   description: "Workspace dashboard — overview of your projects, tasks, and team activity.",
 });
 </script>

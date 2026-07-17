@@ -4,8 +4,9 @@ definePageMeta({
   layout: false,
 });
 
+const profileSettingsTitle = useWorkspacePageTitle("Profile Settings");
 useSeoMeta({
-  title: "Profile Settings",
+  title: profileSettingsTitle,
   description: "Update your profile information, avatar, and preferences.",
 });
 </script>

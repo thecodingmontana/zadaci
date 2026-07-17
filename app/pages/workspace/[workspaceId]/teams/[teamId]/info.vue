@@ -4,8 +4,24 @@ definePageMeta({
   layout: false,
 });
 
+const route = useRoute();
+const teamId = route.params.teamId as string;
+
+const teamName = ref<string | null>(null);
+
+if (import.meta.client) {
+  useRxDbSafe().then((db) => {
+    if (!db) return;
+    const sub = db.teams.findOne(teamId).$.subscribe((doc) => {
+      teamName.value = doc?.name ?? null;
+    });
+    onUnmounted(() => sub.unsubscribe());
+  });
+}
+
+const teamTitle = useWorkspacePageTitle("Team Details", teamName);
 useSeoMeta({
-  title: "Team Details",
+  title: teamTitle,
   description: "View and manage team details, members, and projects.",
 });
 </script>

@@ -4,8 +4,9 @@ definePageMeta({
   layout: false,
 });
 
+const generalSettingsTitle = useWorkspacePageTitle("General Settings");
 useSeoMeta({
-  title: "General Settings",
+  title: generalSettingsTitle,
   description: "Manage workspace general settings, name, and preferences.",
 });
 </script>

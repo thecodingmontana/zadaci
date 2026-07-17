@@ -4,8 +4,9 @@ definePageMeta({
   layout: false,
 });
 
+const calendarTitle = useWorkspacePageTitle("Calendar");
 useSeoMeta({
-  title: "Calendar",
+  title: calendarTitle,
   description: "View your workspace calendar with tasks, deadlines, and events.",
 });
 </script>

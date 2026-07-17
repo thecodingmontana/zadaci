@@ -4,8 +4,9 @@ definePageMeta({
   layout: false,
 });
 
+const teamsTitle = useWorkspacePageTitle("All Teams");
 useSeoMeta({
-  title: "All Teams",
+  title: teamsTitle,
   description: "Browse and manage teams within your workspace.",
 });
 </script>

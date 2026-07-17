@@ -4,8 +4,9 @@ definePageMeta({
   layout: false,
 });
 
+const membersTitle = useWorkspacePageTitle("Members");
 useSeoMeta({
-  title: "Members",
+  title: membersTitle,
   description: "View and manage workspace members and their roles.",
 });
 </script>

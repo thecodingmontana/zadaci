@@ -4,8 +4,24 @@ definePageMeta({
   layout: false,
 });
 
+const route = useRoute();
+const memberId = route.params.memberId as string;
+
+const memberName = ref<string | null>(null);
+
+if (import.meta.client) {
+  useRxDbSafe().then((db) => {
+    if (!db) return;
+    const sub = db.workspace_members.findOne(memberId).$.subscribe((doc) => {
+      memberName.value = doc?.username ?? null;
+    });
+    onUnmounted(() => sub.unsubscribe());
+  });
+}
+
+const conversationTitle = useWorkspacePageTitle("Conversation", memberName);
 useSeoMeta({
-  title: "Conversation",
+  title: conversationTitle,
   description: "Direct messages — chat privately with your workspace members.",
 });
 </script>

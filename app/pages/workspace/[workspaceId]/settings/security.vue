@@ -4,8 +4,9 @@ definePageMeta({
   layout: false,
 });
 
+const securitySettingsTitle = useWorkspacePageTitle("Security Settings");
 useSeoMeta({
-  title: "Security Settings",
+  title: securitySettingsTitle,
   description: "Manage your account security, password, and authentication methods.",
 });
 </script>

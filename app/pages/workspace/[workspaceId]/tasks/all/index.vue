@@ -4,8 +4,9 @@ definePageMeta({
   layout: false,
 });
 
+const tasksTitle = useWorkspacePageTitle("All Tasks");
 useSeoMeta({
-  title: "All Tasks",
+  title: tasksTitle,
   description: "View and manage all tasks across your workspace projects.",
 });
 </script>
