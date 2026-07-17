@@ -3,6 +3,8 @@ import { useNetwork } from "@vueuse/core";
 import Toaster from "~/components/toast/toaster.vue";
 import NavigationSidebar from "~/components/workspace/navigations/navigation-sidebar.vue";
 import WorkspaceWrapper from "~/components/workspace/navigations/workspace-wrapper.vue";
+import WorkspaceProvider from "~/providers/workspace-provider.vue";
+import { useWorkspaceStore } from "~/stores/use-workspace-store";
 
 const network = reactive(useNetwork());
 const wasDismissed = ref(false);
@@ -55,6 +57,33 @@ const channelMemberSync = useChannelMemberSync(wsId);
 const workspaceMemberSync = useWorkspaceMemberSync(wsId);
 const userStatusSync = useUserStatusSync(wsId);
 
+function allSyncs() {
+  return [
+    taskSync,
+    projectSync,
+    teamSync,
+    tagSync,
+    projectTagSync,
+    taskTagSync,
+    channelSync,
+    channelMemberSync,
+    workspaceMemberSync,
+    userStatusSync,
+  ] as const;
+}
+
+async function startAllSyncs() {
+  const promises = allSyncs().map(async (sync) => {
+    try {
+      await sync.start();
+    } catch (err) {
+      console.error(`[workspace-layout] Sync FAILED:`, err);
+    }
+  });
+  await Promise.all(promises);
+  console.log("[workspace-layout] All syncs started");
+}
+
 onMounted(async () => {
   console.log("[workspace-layout] onMounted — running stale-data check + starting syncs");
 
@@ -63,30 +92,22 @@ onMounted(async () => {
   await useClearStaleDataOnUserSwitch();
   console.log("[workspace-layout] Stale check done — starting syncs");
 
-  const syncs: [string, Promise<void>][] = [
-    ["taskSync", taskSync.start()],
-    ["projectSync", projectSync.start()],
-    ["teamSync", teamSync.start()],
-    ["tagSync", tagSync.start()],
-    ["projectTagSync", projectTagSync.start()],
-    ["taskTagSync", taskTagSync.start()],
-    ["channelSync", channelSync.start()],
-    ["channelMemberSync", channelMemberSync.start()],
-    ["workspaceMemberSync", workspaceMemberSync.start()],
-    ["userStatusSync", userStatusSync.start()],
-  ];
+  await startAllSyncs();
+});
 
-  await Promise.all(
-    syncs.map(async ([name, promise]) => {
-      try {
-        await promise;
-        console.log(`[workspace-layout] Sync started: ${name}`);
-      } catch (err) {
-        console.error(`[workspace-layout] Sync FAILED: ${name}`, err);
-      }
-    }),
-  );
-  console.log("[workspace-layout] All syncs started");
+const wsStore = useWorkspaceStore();
+
+watch(workspaceId, async (newId, oldId) => {
+  if (!newId || newId === oldId) return;
+  console.log(`[workspace-layout] Workspace changed: ${oldId} → ${newId}. Restarting syncs.`);
+
+  const { data: workspaces, refresh } = useWorkspaces();
+  await refresh();
+  const found = workspaces.value?.find((w) => w.id === newId);
+  if (found) wsStore.onSetActiveWorkspace(found);
+
+  allSyncs().forEach((s) => s.stop());
+  await startAllSyncs();
 });
 
 useHead({
@@ -133,5 +154,6 @@ useHead({
       </div>
     </main>
     <Toaster />
+    <WorkspaceProvider />
   </div>
 </template>
