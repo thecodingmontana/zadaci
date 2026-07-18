@@ -10,7 +10,6 @@ import {
   getSortedRowModel,
   useVueTable,
 } from "@tanstack/vue-table";
-import SkeletonLoading from "~/components/global/skeleton-loading.vue";
 import { Button } from "~/components/ui/button";
 import DataGridColumnFilter from "~/components/ui/data-grid/data-grid-column-filter.vue";
 import DataGridColumnVisibility from "~/components/ui/data-grid/data-grid-column-visibility.vue";
@@ -18,6 +17,7 @@ import DataGridPagination from "~/components/ui/data-grid/data-grid-pagination.v
 import DataGridTable from "~/components/ui/data-grid/data-grid-table.vue";
 import DataGrid from "~/components/ui/data-grid/data-grid.vue";
 import { Input } from "~/components/ui/input";
+import SkeletonLoading from "~/components/workspace/shared/skeleton-loading.vue";
 import { toast } from "~/lib/toast";
 import { cn, valueUpdater } from "~/lib/utils";
 import { useWorkspaceStore } from "~/stores/use-workspace-store";

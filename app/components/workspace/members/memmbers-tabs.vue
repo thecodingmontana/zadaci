@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import MembersTable from "./members-table.vue";
+import MembersTable from "../tables/members/members-table.vue";
 </script>
 
 <template>
