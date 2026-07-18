@@ -14,7 +14,6 @@
 alter publication supabase_realtime add table
   app_project,
   app_tasks,
-  app_subtasks,
   app_task_assignees,
   app_tasks_activity,
   app_channel,

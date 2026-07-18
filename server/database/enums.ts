@@ -8,8 +8,8 @@ export function enumToPgEnum<T extends Record<string, string>>(
 
 export enum USER_ROLE {
   OWNER = "owner",
+  MODERATOR = "moderator",
   MEMBER = "member",
-  GUEST = "guest",
 }
 
 export enum STATUS {

@@ -147,7 +147,7 @@ const commandGroups = computed<CommandGroup[]>(() => [
       kind: "person" as const,
       id: m.id,
       name: m.username,
-      role: m.role === "owner" ? "Owner" : "Team member",
+      role: m.role === "owner" ? "Owner" : m.role === "moderator" ? "Moderator" : "Member",
       avatar: m.profile_picture_url ?? undefined,
       presence: "online" as const,
     })),

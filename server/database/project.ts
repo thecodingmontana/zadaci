@@ -1,4 +1,4 @@
-import { boolean, index, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { index, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { PRIORITY, priority_enum, STATUS, status_enum } from "./enums";
 import { team } from "./team";
 import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
@@ -62,10 +62,16 @@ export const task = pgTable(
     project_id: varchar("project_id", { length: 16 })
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
+    parent_task_id: varchar("parent_task_id", { length: 16 }).references(() => task.id, {
+      onDelete: "set null",
+    }),
     due_date: timestamp("due_date", { mode: "date" }),
     ...syncable,
   },
-  (table) => [index("tasks_project_id_idx").on(table.project_id)],
+  (table) => [
+    index("tasks_project_id_idx").on(table.project_id),
+    index("tasks_parent_task_id_idx").on(table.parent_task_id),
+  ],
 );
 
 export const task_assignees = pgTable(
@@ -115,20 +121,4 @@ export const tasks_activity = pgTable(
     index("tasks_activity_task_id_idx").on(table.task_id),
     index("tasks_activity_changed_by_idx").on(table.changed_by),
   ],
-);
-
-export const subtasks = pgTable(
-  "subtasks",
-  {
-    id: varchar("id", { length: 16 })
-      .primaryKey()
-      .$defaultFn(() => generateNanoId()),
-    name: text("name").notNull(),
-    task_id: varchar("task_id", { length: 16 })
-      .notNull()
-      .references(() => task.id, { onDelete: "cascade" }),
-    is_completed: boolean("is_completed").default(false).notNull(),
-    ...syncable,
-  },
-  (table) => [index("subtasks_task_id_idx").on(table.task_id)],
 );

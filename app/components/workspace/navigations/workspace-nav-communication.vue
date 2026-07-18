@@ -142,7 +142,7 @@ function resolveMemberStatus(member?: WorkspaceMemberDocType): string {
 }
 
 function resolveMemberRole(member?: WorkspaceMemberDocType): string {
-  return member?.role === "owner" ? "Owner" : member?.role === "guest" ? "Guest" : "Team member";
+  return member?.role === "owner" ? "Owner" : member?.role === "moderator" ? "Moderator" : "Member";
 }
 </script>
 

@@ -49,8 +49,8 @@ onUnmounted(() => {
 const memberCount = computed(() => members.value.length);
 const onlineCount = computed(() => members.value.length);
 
-const isOwner = computed(() => workspace.value?.userRole === "OWNER");
-const isAdmin = computed(() => isOwner.value || workspace.value?.userRole === "ADMIN");
+const isOwner = computed(() => workspace.value?.userRole === "owner");
+const canManage = computed(() => isOwner.value || workspace.value?.userRole === "moderator");
 </script>
 
 <template>
@@ -97,7 +97,7 @@ const isAdmin = computed(() => isOwner.value || workspace.value?.userRole === "A
           <span>Invite People</span>
         </DropdownMenuItem>
 
-        <DropdownMenuItem v-if="isAdmin" class="cursor-pointer">
+        <DropdownMenuItem v-if="canManage" class="cursor-pointer">
           <Icon name="hugeicons:user-multiple-02" size="16" />
           <span>Manage Members</span>
         </DropdownMenuItem>

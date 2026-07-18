@@ -12,15 +12,12 @@ export default defineEventHandler(async (event) => {
     const workspaceId = getRouterParam(event, "workspaceId");
     const projectId = getRouterParam(event, "projectId");
     const taskId = getRouterParam(event, "taskId");
-    const { name, status, dueDate, description, priority, subtasks, assignees } = (await readBody(
-      event,
-    )) as {
+    const { name, status, dueDate, description, priority, assignees } = (await readBody(event)) as {
       description?: string;
       dueDate?: string | Date;
       name: string;
       status: Status;
       priority: Priority;
-      subtasks?: { name: string; is_completed: boolean }[];
       assignees: ProjectMembers[];
     };
     if (!session) throw createError({ statusCode: 401, statusMessage: "Unauthorized!" });
@@ -45,21 +42,6 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         statusMessage: "At least one assigned member is required!",
       });
-    if (
-      subtasks !== undefined &&
-      (!Array.isArray(subtasks) ||
-        !subtasks.every(
-          (item) =>
-            typeof item === "object" &&
-            item !== null &&
-            "name" in item &&
-            "is_completed" in item &&
-            typeof item.name === "string" &&
-            typeof item.is_completed === "boolean",
-        ))
-    ) {
-      throw createError({ statusCode: 400, statusMessage: "Invalid subtasks!" });
-    }
     for (const member of assignees) {
       if (!member || typeof member !== "object")
         throw createError({ statusCode: 400, statusMessage: "Invalid assigned member format!" });
@@ -176,19 +158,6 @@ export default defineEventHandler(async (event) => {
         status: statusValue,
         changed_at: new Date(),
       });
-    }
-    if (subtasks && subtasks.length > 0) {
-      await db.delete(tables.subtasks).where(eq(tables.subtasks.task_id, task.id));
-      const subtaskValues = subtasks.map((subtask) => ({
-        created_at: new Date(),
-        updated_at: new Date(),
-        name: subtask.name,
-        task_id: task.id,
-        is_completed: subtask.is_completed,
-      }));
-      await db.insert(tables.subtasks).values(subtaskValues);
-    } else {
-      await db.delete(tables.subtasks).where(eq(tables.subtasks.task_id, task.id));
     }
     if (assignees && assignees.length > 0) {
       const existingMembers = await db.query.project_members.findMany({

@@ -9,17 +9,16 @@ export default defineEventHandler(async (event) => {
     const session = await requireUserSession(event);
     const workspaceId = getRouterParam(event, "workspaceId");
     const projectId = getRouterParam(event, "projectId");
-    const { name, status, dueDate, description, priority, subtasks, assignees } = (await readBody(
-      event,
-    )) as {
-      description?: string;
-      dueDate?: string | Date;
-      name: string;
-      status: Status;
-      priority: Priority;
-      subtasks?: { name: string; is_completed: boolean }[];
-      assignees: ProjectMembers[];
-    };
+    const { name, status, dueDate, description, priority, parentTaskId, assignees } =
+      (await readBody(event)) as {
+        description?: string;
+        dueDate?: string | Date;
+        name: string;
+        status: Status;
+        priority: Priority;
+        parentTaskId?: string;
+        assignees: ProjectMembers[];
+      };
     if (!session) throw createError({ statusCode: 401, statusMessage: "Unauthorized!" });
     if (typeof workspaceId !== "string" || !workspaceId)
       throw createError({ statusCode: 400, statusMessage: "Invalid workspace ID!" });
@@ -109,6 +108,7 @@ export default defineEventHandler(async (event) => {
         name,
         project_id: project.id,
         description,
+        parent_task_id: parentTaskId || null,
         created_at: new Date(),
         updated_at: new Date(),
         priority: priorityValue,
@@ -121,16 +121,6 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, statusMessage: "Failed to create task!" });
     }
 
-    if (subtasks && subtasks.length > 0) {
-      const subtaskValues = subtasks.map((subtask) => ({
-        created_at: new Date(),
-        updated_at: new Date(),
-        name: subtask.name,
-        task_id: task.id,
-        is_completed: subtask.is_completed,
-      }));
-      await db.insert(tables.subtasks).values(subtaskValues);
-    }
     const assigneeValues = assignees.map((member) => ({
       task_id: task.id,
       member_id: member.member_id,

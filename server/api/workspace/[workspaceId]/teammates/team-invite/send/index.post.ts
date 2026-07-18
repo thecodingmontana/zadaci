@@ -127,7 +127,14 @@ export default defineEventHandler(async (event) => {
 
     await Promise.all(
       teammates.map(async (teammate) => {
-        const roleValue = USER_ROLE[teammate.role as keyof typeof USER_ROLE];
+        if (
+          ![USER_ROLE.OWNER, USER_ROLE.MODERATOR, USER_ROLE.MEMBER].includes(teammate.role as any)
+        ) {
+          throw createError({
+            statusCode: 400,
+            statusMessage: `Invalid role: ${teammate.role}`,
+          });
+        }
 
         const [result] = await db
           .insert(tables.workspace_invite_request)
@@ -137,7 +144,7 @@ export default defineEventHandler(async (event) => {
             status: "PENDING",
             invited_by: session.user.id,
             expires_at: addDays(new Date(), 7),
-            role: roleValue,
+            role: teammate.role,
             created_at: new Date(),
             updated_at: new Date(),
           })

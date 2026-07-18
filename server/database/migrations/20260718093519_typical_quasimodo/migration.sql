@@ -2,7 +2,7 @@ CREATE TYPE "channel_type" AS ENUM('public', 'private', 'dm');--> statement-brea
 CREATE TYPE "message_reference_type" AS ENUM('task', 'project', 'file', 'link');--> statement-breakpoint
 CREATE TYPE "priority" AS ENUM('low', 'medium', 'high', 'none', 'urgent');--> statement-breakpoint
 CREATE TYPE "status" AS ENUM('idea', 'todo', 'in_progress', 'in_review', 'completed', 'abandoned');--> statement-breakpoint
-CREATE TYPE "user_role" AS ENUM('owner', 'member', 'guest');--> statement-breakpoint
+CREATE TYPE "user_role" AS ENUM('owner', 'moderator', 'member');--> statement-breakpoint
 CREATE TYPE "user_status" AS ENUM('available', 'busy', 'away', 'dnd', 'offline');--> statement-breakpoint
 CREATE TABLE "app_channel" (
 	"id" varchar(16) PRIMARY KEY,
@@ -93,16 +93,6 @@ CREATE TABLE "app_project_members" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "app_subtasks" (
-	"id" varchar(16) PRIMARY KEY,
-	"name" text NOT NULL,
-	"task_id" varchar(16) NOT NULL,
-	"is_completed" boolean DEFAULT false NOT NULL,
-	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp(3) with time zone
-);
---> statement-breakpoint
 CREATE TABLE "app_tasks" (
 	"id" varchar(16) PRIMARY KEY,
 	"name" text NOT NULL,
@@ -110,6 +100,7 @@ CREATE TABLE "app_tasks" (
 	"status" "status" DEFAULT 'idea'::"status" NOT NULL,
 	"priority" "priority" DEFAULT 'none'::"priority" NOT NULL,
 	"project_id" varchar(16) NOT NULL,
+	"parent_task_id" varchar(16),
 	"due_date" timestamp,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
@@ -309,8 +300,8 @@ CREATE INDEX "project_workspace_id_idx" ON "app_project" ("workspace_id");--> st
 CREATE INDEX "project_team_id_idx" ON "app_project" ("team_id");--> statement-breakpoint
 CREATE INDEX "project_members_project_id_idx" ON "app_project_members" ("project_id");--> statement-breakpoint
 CREATE INDEX "project_members_member_id_idx" ON "app_project_members" ("member_id");--> statement-breakpoint
-CREATE INDEX "subtasks_task_id_idx" ON "app_subtasks" ("task_id");--> statement-breakpoint
 CREATE INDEX "tasks_project_id_idx" ON "app_tasks" ("project_id");--> statement-breakpoint
+CREATE INDEX "tasks_parent_task_id_idx" ON "app_tasks" ("parent_task_id");--> statement-breakpoint
 CREATE INDEX "task_assignees_task_id_idx" ON "app_task_assignees" ("task_id");--> statement-breakpoint
 CREATE INDEX "task_assignees_member_id_idx" ON "app_task_assignees" ("member_id");--> statement-breakpoint
 CREATE INDEX "tasks_activity_task_id_idx" ON "app_tasks_activity" ("task_id");--> statement-breakpoint
@@ -345,8 +336,8 @@ ALTER TABLE "app_project" ADD CONSTRAINT "app_project_workspace_id_app_workspace
 ALTER TABLE "app_project" ADD CONSTRAINT "app_project_team_id_app_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "app_team"("id") ON DELETE SET NULL;--> statement-breakpoint
 ALTER TABLE "app_project_members" ADD CONSTRAINT "app_project_members_project_id_app_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "app_project"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_project_members" ADD CONSTRAINT "app_project_members_member_id_app_workspace_members_id_fkey" FOREIGN KEY ("member_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "app_subtasks" ADD CONSTRAINT "app_subtasks_task_id_app_tasks_id_fkey" FOREIGN KEY ("task_id") REFERENCES "app_tasks"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_tasks" ADD CONSTRAINT "app_tasks_project_id_app_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "app_project"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_tasks" ADD CONSTRAINT "app_tasks_parent_task_id_app_tasks_id_fkey" FOREIGN KEY ("parent_task_id") REFERENCES "app_tasks"("id") ON DELETE SET NULL;--> statement-breakpoint
 ALTER TABLE "app_task_assignees" ADD CONSTRAINT "app_task_assignees_task_id_app_tasks_id_fkey" FOREIGN KEY ("task_id") REFERENCES "app_tasks"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_task_assignees" ADD CONSTRAINT "app_task_assignees_member_id_app_workspace_members_id_fkey" FOREIGN KEY ("member_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_tasks_activity" ADD CONSTRAINT "app_tasks_activity_task_id_app_tasks_id_fkey" FOREIGN KEY ("task_id") REFERENCES "app_tasks"("id") ON DELETE CASCADE;--> statement-breakpoint

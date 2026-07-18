@@ -22,7 +22,6 @@ export type {
   Project,
   ProjectMembers,
   Status,
-  Subtask,
   Task,
   Teammate,
   TeammatesWithProfile,
@@ -177,14 +176,6 @@ export const newTaskSchema = toTypedSchema(
     }),
     description: z.string().optional(),
     dueDate: z.string().optional(),
-    subtasks: z
-      .array(
-        z.object({
-          name: z.string(),
-          is_completed: z.boolean().default(false),
-        }),
-      )
-      .optional(),
   }),
 );
 
@@ -256,18 +247,18 @@ export const taskColumns = ref<IProjectColumn[]>([
 
 export const roles = [
   {
-    value: "OWNER",
+    value: "owner",
     label: "Owner",
     icon: h(QuestionMarkCircledIcon),
   },
   {
-    value: "MANAGER",
-    label: "Manager",
+    value: "moderator",
+    label: "Moderator",
     icon: h(QuestionMarkCircledIcon),
   },
   {
-    value: "EMPLOYEE",
-    label: "Employee",
+    value: "member",
+    label: "Member",
     icon: h(QuestionMarkCircledIcon),
   },
 ];

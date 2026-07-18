@@ -4,7 +4,7 @@ import { USER_ROLE } from "~~/server/database/enums";
 
 interface ITeammate {
   id: string;
-  role: "OWNER" | "MEMBER" | "GUEST";
+  role: "owner" | "moderator" | "member";
 }
 
 export default defineEventHandler(async (event) => {
@@ -27,9 +27,9 @@ export default defineEventHandler(async (event) => {
         workspace_id: workspaceId,
       },
     });
-    if (!actor || actor.role !== USER_ROLE.OWNER) {
+    if (!actor || (actor.role !== USER_ROLE.OWNER && actor.role !== USER_ROLE.MODERATOR)) {
       throw createError({
-        statusMessage: "Only workspace owners can update teammate roles!",
+        statusMessage: "Only workspace owners and moderators can update teammate roles!",
         statusCode: 400,
       });
     }
@@ -53,16 +53,23 @@ export default defineEventHandler(async (event) => {
     }
     await Promise.all(
       teammates.map((teammate) => {
-        if (teammate.role === "OWNER") {
+        if (teammate.role === "owner") {
           throw createError({
             statusCode: 400,
-            statusMessage: "You cannot assign the OWNER role.",
+            statusMessage: "You cannot assign the owner role.",
           });
         }
-        const roleValue = USER_ROLE[teammate.role as keyof typeof USER_ROLE];
+        if (
+          ![USER_ROLE.OWNER, USER_ROLE.MODERATOR, USER_ROLE.MEMBER].includes(teammate.role as any)
+        ) {
+          throw createError({
+            statusCode: 400,
+            statusMessage: `Invalid role: ${teammate.role}`,
+          });
+        }
         return db
           .update(tables.workspace_members)
-          .set({ role: roleValue, updated_at: new Date() })
+          .set({ role: teammate.role, updated_at: new Date() })
           .where(
             and(
               eq(tables.workspace_members.user_id, teammate.id),

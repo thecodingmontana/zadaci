@@ -27,7 +27,7 @@ const props = defineProps<{
         Welcome to <span class="font-bebas-neue text-[2rem]">Zadaci</span>!
       </h3>
       <p class="max-w-sm font-medium text-balance text-muted-foreground">
-        Let’s setup your profile, tell us a bit about yourself.
+        The project management platform that works offline-first with seamless sync.
       </p>
     </div>
     <ProfileForm :on-set-current-step="props.onSetCurrentStep" />

@@ -1,10 +1,5 @@
-import type { UserRole } from "~~/shared/types";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
-
-function toUserRole(role: string): UserRole {
-  return role.toUpperCase() as UserRole;
-}
 
 export default defineEventHandler(async (event) => {
   try {
@@ -35,12 +30,7 @@ export default defineEventHandler(async (event) => {
     const result = {
       username: user ? user.username : "",
       profile_completed: Boolean(user?.password),
-      workspace: workspace
-        ? {
-            ...workspace,
-            userRole: toUserRole(workspace.userRole),
-          }
-        : null,
+      workspace: workspace ?? null,
     };
 
     if (import.meta.dev) {

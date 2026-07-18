@@ -17,7 +17,7 @@ const props = defineProps<{
     <div class="mx-auto space-y-1 py-4 text-center">
       <h3 class="text-onboarding-text-100 text-3xl font-bold">Create your workspace</h3>
       <p class="max-w-sm font-medium text-balance text-muted-foreground">
-        To start using Zadaci, you need to create or join a workspace.
+        To start collaborating, you need to create or join a workspace.
       </p>
     </div>
     <WorkspaceForm :on-set-current-step="props.onSetCurrentStep" />

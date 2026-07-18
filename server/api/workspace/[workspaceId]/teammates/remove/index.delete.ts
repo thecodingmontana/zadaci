@@ -25,9 +25,9 @@ export default defineEventHandler(async (event) => {
         workspace_id: workspaceId,
       },
     });
-    if (!actor || actor.role !== USER_ROLE.OWNER) {
+    if (!actor || (actor.role !== USER_ROLE.OWNER && actor.role !== USER_ROLE.MODERATOR)) {
       throw createError({
-        statusMessage: "Only workspace owners can remove teammates!",
+        statusMessage: "Only workspace owners and moderators can remove teammates!",
       });
     }
     const removableUsers = await db.query.workspace_members.findMany({

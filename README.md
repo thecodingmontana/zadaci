@@ -4,7 +4,7 @@ Zadaci is a collaborative task management platform with real-time cross-tab sync
 
 ## 🌟 Features
 
-- 🗂 **Projects & Tasks**: Full CRUD with subtasks, statuses, priorities, tags, and teams.
+- 🗂 **Projects & Tasks**: Full CRUD with statuses, priorities, tags, teams, and hierarchical subtasks.
 - 👥 **Teams**: Group members into teams for organizational structure.
 - 🏷 **Tags**: Color-coded tags for projects and tasks.
 - 🔄 **Offline-First**: RxDB stores everything locally in IndexedDB — works without internet.

@@ -94,7 +94,7 @@ export interface Workspace {
   userRole: UserRole;
 }
 
-export type UserRole = "OWNER" | "MEMBER" | "GUEST";
+export type UserRole = "owner" | "moderator" | "member";
 
 export interface WorkspaceStore {
   isOpenSidebar: boolean;
@@ -151,7 +151,7 @@ export interface Task {
   description: string | null;
   dueDate: Date | null | string;
   projectId: string;
-  subtasks: Subtask[];
+  parentTaskId: string | null;
   assignees: ProjectMembers[];
 }
 
@@ -165,18 +165,9 @@ export interface MyTask {
   description: string | null;
   dueDate: Date | null | string;
   projectId: string;
-  subtasks: Subtask[];
+  parentTaskId: string | null;
   assignees: ProjectMembers[];
   project: IProject;
-}
-
-export interface Subtask {
-  name: string;
-  id: string;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  taskId: string;
-  is_completed: boolean;
 }
 
 export const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

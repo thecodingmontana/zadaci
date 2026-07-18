@@ -40,7 +40,7 @@ function createTeammate() {
   return {
     id: crypto.randomUUID(),
     email: "",
-    role: "MEMBER" as const,
+    role: "member" as const,
     placeholder: getRandomEmail(),
   };
 }
@@ -140,9 +140,9 @@ async function onDoItLater() {
                   <SelectValue placeholder="Choose a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="GUEST">Guest</SelectItem>
-                  <SelectItem value="MEMBER">Member</SelectItem>
-                  <SelectItem value="OWNER">Owner</SelectItem>
+                  <SelectItem value="member">Member</SelectItem>
+                  <SelectItem value="moderator">Moderator</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -172,12 +172,17 @@ async function onDoItLater() {
 
     <div class="text-center text-sm text-muted-foreground">
       <p>
-        <span class="font-semibold">Owner</span> – Full control over workspace settings and members.
+        <span class="font-semibold">Owner</span> – Full control over workspace settings, members,
+        and deletion.
       </p>
       <p>
-        <span class="font-semibold">Member</span> – Can manage projects, tasks, and team members.
+        <span class="font-semibold">Moderator</span> – Can manage projects, tasks, teams, channels,
+        and members.
       </p>
-      <p><span class="font-semibold">Guest</span> – Can view assigned tasks.</p>
+      <p>
+        <span class="font-semibold">Member</span> – Can create and manage projects and tasks they
+        are assigned to.
+      </p>
     </div>
 
     <div class="flex flex-col items-center gap-1">

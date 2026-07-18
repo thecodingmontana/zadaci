@@ -31,8 +31,14 @@ export default defineEventHandler(async (event) => {
       },
     });
 
-    if (!userWorkspace || userWorkspace.role !== USER_ROLE.OWNER) {
-      throw createError({ statusCode: 403, statusMessage: "Not authorized to update workspace!" });
+    if (
+      !userWorkspace ||
+      (userWorkspace.role !== USER_ROLE.OWNER && userWorkspace.role !== USER_ROLE.MODERATOR)
+    ) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "Only owners and moderators can update workspace settings!",
+      });
     }
 
     const [updated] = await db

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 
 export default defineEventHandler(async (event) => {
@@ -33,7 +33,6 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Verify that the project exists
     const project = await db.query.project.findFirst({
       where: {
         id: projectId,
@@ -48,7 +47,6 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // check if task already exists
     const existingTask = await db.query.task.findFirst({
       where: {
         id: taskId,
@@ -63,19 +61,35 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // delete task
+    const now = new Date();
+
+    // Collect all descendant task IDs for soft-delete cascade
+    const allTaskIds: string[] = [taskId];
+    let currentBatch = [taskId];
+    while (currentBatch.length > 0) {
+      const children = await db
+        .select({ id: tables.task.id })
+        .from(tables.task)
+        .where(inArray(tables.task.parent_task_id, currentBatch));
+      const childIds = children.map((c) => c.id);
+      allTaskIds.push(...childIds);
+      currentBatch = childIds;
+    }
+
+    // Soft-delete task and all descendants
     await db
-      .delete(tables.task)
-      .where(and(eq(tables.task.id, taskId), eq(tables.task.project_id, projectId)));
+      .update(tables.task)
+      .set({ deleted_at: now, updated_at: now })
+      .where(inArray(tables.task.id, allTaskIds));
 
     return {
-      message: "Task deleted successfully",
+      message: "Task and its subtasks deleted successfully",
     };
   } catch (error: any) {
     const errorMessage = error.error ? error.error.message : error.message;
     throw createError({
       statusCode: error.statusCode ? error.statusCode : 500,
-      statusMessage: `Create Task error: ${errorMessage}!`,
+      statusMessage: `Delete Task error: ${errorMessage}!`,
     });
   }
 });

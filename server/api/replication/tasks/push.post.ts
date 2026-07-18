@@ -13,6 +13,7 @@ interface PushRow {
     status: string;
     priority: string;
     project_id: string;
+    parent_task_id: string | null;
     due_date: string | null;
     created_at: string;
     updated_at: string;
@@ -85,6 +86,7 @@ export default defineEventHandler(async (event) => {
         status: tables.task.status,
         priority: tables.task.priority,
         project_id: tables.task.project_id,
+        parent_task_id: tables.task.parent_task_id,
         due_date: tables.task.due_date,
         created_at: tables.task.created_at,
         deleted_at: tables.task.deleted_at,
@@ -121,6 +123,7 @@ export default defineEventHandler(async (event) => {
             status: existing.status,
             priority: existing.priority,
             project_id: existing.project_id,
+            parent_task_id: existing.parent_task_id,
             due_date: existing.due_date ? existing.due_date.toISOString() : null,
             created_at: existing.created_at.toISOString(),
             updated_at: currentUpdatedAt,
@@ -151,6 +154,7 @@ export default defineEventHandler(async (event) => {
           status: doc.status as any,
           priority: doc.priority as any,
           project_id: doc.project_id,
+          parent_task_id: doc.parent_task_id,
           due_date: dueDate,
           created_at: new Date(doc.created_at),
           updated_at: new Date(doc.updated_at),
@@ -164,6 +168,7 @@ export default defineEventHandler(async (event) => {
             status: doc.status as any,
             priority: doc.priority as any,
             project_id: doc.project_id,
+            parent_task_id: doc.parent_task_id,
             due_date: dueDate,
             updated_at: new Date(doc.updated_at),
             deleted_at: deletedAt,

@@ -8,7 +8,7 @@ interface PushRow {
   } | null;
   newDocumentState: {
     id: string;
-    role: "owner" | "member" | "guest";
+    role: "owner" | "moderator" | "member";
     user_id: string;
     workspace_id: string;
     created_at: string;

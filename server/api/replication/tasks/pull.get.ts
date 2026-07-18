@@ -14,6 +14,7 @@ interface PullResponse {
     status: string;
     priority: string;
     project_id: string;
+    parent_task_id: string | null;
     due_date: string | null;
     created_at: string;
     updated_at: string;
@@ -95,6 +96,7 @@ export default defineEventHandler(async (event) => {
         status: tables.task.status,
         priority: tables.task.priority,
         project_id: tables.task.project_id,
+        parent_task_id: tables.task.parent_task_id,
         due_date: tables.task.due_date,
         created_at: tables.task.created_at,
         updated_at: tables.task.updated_at,
@@ -120,6 +122,7 @@ export default defineEventHandler(async (event) => {
       status: row.status,
       priority: row.priority,
       project_id: row.project_id,
+      parent_task_id: row.parent_task_id,
       due_date: row.due_date ? row.due_date.toISOString() : null,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),

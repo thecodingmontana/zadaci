@@ -79,7 +79,14 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.task.project_id,
       to: r.project.id,
     }),
-    subtasks: r.many.subtasks(),
+    parent_task: r.one.task({
+      from: r.task.parent_task_id,
+      to: r.task.id,
+    }),
+    subtasks: r.many.task({
+      from: r.task.id,
+      to: r.task.parent_task_id,
+    }),
     activities: r.many.tasks_activity(),
     assignees: r.many.task_assignees(),
     comments: r.many.task_comment(),
@@ -103,12 +110,6 @@ export const relations = defineRelations(schema, (r) => ({
     author: r.one.workspace_members({
       from: r.task_comment.author_id,
       to: r.workspace_members.id,
-    }),
-  },
-  subtasks: {
-    task: r.one.task({
-      from: r.subtasks.task_id,
-      to: r.task.id,
     }),
   },
   tasks_activity: {

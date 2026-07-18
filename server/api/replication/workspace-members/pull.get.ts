@@ -9,7 +9,7 @@ interface Checkpoint {
 interface PullResponse {
   documents: {
     id: string;
-    role: "owner" | "member" | "guest";
+    role: "owner" | "moderator" | "member";
     user_id: string;
     workspace_id: string;
     username: string;
@@ -91,7 +91,7 @@ export default defineEventHandler(async (event) => {
 
     const documents = rows.map((row) => ({
       id: row.id,
-      role: row.role as "owner" | "member" | "guest",
+      role: row.role as "owner" | "moderator" | "member",
       user_id: row.user_id,
       workspace_id: row.workspace_id,
       username: row.username,

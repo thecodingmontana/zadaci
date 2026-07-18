@@ -12,6 +12,7 @@ export interface TaskDocType {
   status: "idea" | "todo" | "in_progress" | "in_review" | "completed" | "abandoned";
   priority: "low" | "medium" | "high" | "none" | "urgent";
   project_id: string;
+  parent_task_id: string | null;
   due_date: string | null;
   created_at: string;
   updated_at: string;
@@ -89,7 +90,7 @@ export interface ChannelMemberDocType {
 
 export interface WorkspaceMemberDocType {
   id: string;
-  role: "owner" | "member" | "guest";
+  role: "owner" | "moderator" | "member";
   user_id: string;
   workspace_id: string;
   username: string;
@@ -125,7 +126,7 @@ export type ZadaciDatabase = RxDatabase<{
 
 const TASK_SCHEMA = {
   title: "tasks",
-  version: 2,
+  version: 3,
   type: "object",
   primaryKey: {
     key: "id",
@@ -146,13 +147,14 @@ const TASK_SCHEMA = {
       enum: ["low", "medium", "high", "none", "urgent"],
     },
     project_id: { type: "string", maxLength: 16 },
+    parent_task_id: { type: ["string", "null"], maxLength: 16 },
     due_date: { type: ["string", "null"], maxLength: 24 },
     created_at: { type: "string", maxLength: 24 },
     updated_at: { type: "string", maxLength: 24 },
     deleted_at: { type: ["string", "null"], maxLength: 24 },
   },
   required: ["id", "name", "status", "priority", "project_id", "created_at", "updated_at"],
-  indexes: ["project_id", "status", "updated_at"],
+  indexes: ["project_id", "parent_task_id", "status", "updated_at"],
 } as const;
 
 const PROJECT_SCHEMA = {
@@ -326,7 +328,7 @@ const WORKSPACE_MEMBER_SCHEMA = {
     role: {
       type: "string",
       maxLength: 10,
-      enum: ["owner", "member", "guest"],
+      enum: ["owner", "moderator", "member"],
     },
     user_id: { type: "string", maxLength: 16 },
     workspace_id: { type: "string", maxLength: 16 },
@@ -424,8 +426,9 @@ export default defineNuxtPlugin(async () => {
     tasks: {
       schema: TASK_SCHEMA,
       migrationStrategies: {
-        1: (oldDoc) => oldDoc,
-        2: (oldDoc) => oldDoc,
+        1: (oldDoc) => ({ ...oldDoc, parent_task_id: null }),
+        2: (oldDoc) => ({ ...oldDoc, parent_task_id: null }),
+        3: (oldDoc) => oldDoc,
       },
     },
     projects: {

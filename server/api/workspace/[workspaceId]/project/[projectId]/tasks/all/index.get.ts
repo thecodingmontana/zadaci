@@ -33,7 +33,6 @@ export default defineEventHandler(async (event) => {
       where: { project_id: projectId },
       orderBy: { created_at: "desc" },
       with: {
-        subtasks: true,
         assignees: {
           with: {
             member: {
@@ -55,13 +54,7 @@ export default defineEventHandler(async (event) => {
       createdAt: task.created_at.toISOString(),
       updatedAt: task.updated_at.toISOString(),
       projectId: task.project_id,
-      subtasks: task.subtasks.map((subtask) => ({
-        id: subtask.id,
-        name: subtask.name,
-        is_completed: subtask.is_completed,
-        createdAt: subtask.created_at.toISOString(),
-        updatedAt: subtask.updated_at.toISOString(),
-      })),
+      parentTaskId: task.parent_task_id,
       assignees: task.assignees
         .filter((assignee) => assignee.member?.user)
         .map((assignee) => ({
