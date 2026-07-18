@@ -41,7 +41,7 @@ export type ModalType =
   | "transferOwnership"
   | "deleteWorkspace"
   | "mobileSidebar"
-  | "inviteTeammate"
+  | "inviteMember"
   | "notificationCenter"
   | "changeTeammateRole"
   | "totpAuthentication"

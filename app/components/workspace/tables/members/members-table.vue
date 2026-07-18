@@ -129,7 +129,7 @@ async function onBulkRemove() {
 }
 
 function onAddUser() {
-  modalStore?.onOpen("inviteTeammate");
+  modalStore?.onOpen("inviteMember");
   modalStore?.setIsOpen(true);
 }
 </script>
