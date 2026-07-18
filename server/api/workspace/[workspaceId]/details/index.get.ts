@@ -1,4 +1,5 @@
-import { db } from "~~/server/database/db";
+import { eq } from "drizzle-orm";
+import { db, tables } from "~~/server/database/db";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -11,12 +12,18 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Check if workspace exists
-    const workspace = await db.query.workspace.findFirst({
-      where: {
-        id: workspaceId,
-      },
-    });
+    const [workspace] = await db
+      .select({
+        id: tables.workspace.id,
+        name: tables.workspace.name,
+        imageUrl: tables.workspace.image_url,
+        inviteCode: tables.workspace.invite_code,
+        createdAt: tables.workspace.created_at,
+        updatedAt: tables.workspace.updated_at,
+        userId: tables.workspace.user_id,
+      })
+      .from(tables.workspace)
+      .where(eq(tables.workspace.id, workspaceId));
 
     if (!workspace) {
       throw createError({

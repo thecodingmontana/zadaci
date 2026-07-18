@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ArrowRight, Loader, RotateCw } from "@lucide/vue";
+import { useQueryClient } from "@tanstack/vue-query";
 import { useForm } from "vee-validate";
 import { Button } from "~/components/ui/button";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
@@ -21,6 +22,7 @@ const form = useForm({
 });
 
 const isCreatingWorkspace = ref(false);
+const queryClient = useQueryClient();
 
 const isSubmitting = computed(() => {
   if (!form.controlledValues.value.name || form.errors.value.name || isCreatingWorkspace.value) {
@@ -91,7 +93,8 @@ const onCreateWorkspace = form.handleSubmit(async (values) => {
       });
 
       onClose();
-      await refreshNuxtData(["workspaces", "mobile_workspaces"]);
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      await refreshNuxtData(["mobile_workspaces"]);
       return navigateTo(`/workspace/${res.workspace.id}/dashboard`);
     }
   } catch (error: any) {

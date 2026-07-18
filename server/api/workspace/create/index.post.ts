@@ -89,12 +89,12 @@ export default defineEventHandler(async (event) => {
     });
 
     const newWorkspace = {
-      user_role: member.role,
+      userRole: member.role,
       id: workspace.id,
-      updated_at: workspace.updated_at,
-      created_at: workspace.created_at,
-      image_url: workspace.image_url,
-      invite_code: workspace.invite_code,
+      updatedAt: workspace.updated_at,
+      createdAt: workspace.created_at,
+      imageUrl: workspace.image_url,
+      inviteCode: workspace.invite_code,
       name: workspace.name,
     };
     return { workspace: newWorkspace };
