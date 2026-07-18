@@ -52,11 +52,34 @@ export default defineEventHandler(async (event) => {
       .from(tables.channel_members)
       .where(inArray(tables.channel_members.id, cmIds));
 
+    // Validate that referenced channels and members exist in the workspace
+    const allChannelIds = [...new Set(body.map((r) => r.newDocumentState.channel_id))];
+    const allMemberIds = [...new Set(body.map((r) => r.newDocumentState.member_id))];
+
+    const [validChannels, validMembers] = await Promise.all([
+      db
+        .select({ id: tables.channel.id })
+        .from(tables.channel)
+        .where(inArray(tables.channel.id, allChannelIds)),
+      db
+        .select({ id: tables.workspace_members.id })
+        .from(tables.workspace_members)
+        .where(inArray(tables.workspace_members.id, allMemberIds)),
+    ]);
+
+    const validChannelIds = new Set(validChannels.map((c) => c.id));
+    const validMemberIds = new Set(validMembers.map((m) => m.id));
+
     const existingMap = new Map(existing.map((c) => [c.id, c]));
     const conflicts: any[] = [];
 
     for (const row of body) {
       const doc = row.newDocumentState;
+
+      if (!validChannelIds.has(doc.channel_id) || !validMemberIds.has(doc.member_id)) {
+        continue;
+      }
+
       const existingDoc = existingMap.get(doc.id);
 
       if (existingDoc) {
