@@ -16,7 +16,10 @@ const workspaceId = computed(() => route.params.workspaceId as string);
 const db = useRxDb();
 const workspace = computed(() => store.activeWorkspace);
 
-const { canManageMembers } = usePermissions(workspace);
+const canManageMembers = computed(() => {
+  const role = workspace.value?.userRole ?? "member";
+  return role === "owner" || role === "moderator";
+});
 
 watch(
   [workspace, canManageMembers],
