@@ -74,6 +74,7 @@
     "nuxt": "^4.4.8",
     "nuxt-ai-ready": "^1.5.4",
     "nuxt-auth-utils": "0.5.29",
+    "nuxt-schema-org": "6.2.3",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "postgres": "^3.4.9",

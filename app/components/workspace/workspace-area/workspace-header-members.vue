@@ -107,11 +107,4 @@ const hasNotifications = ref(true);
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
-
-  <ActionTooltip label="Add a new member" side="bottom">
-    <Button size="sm" class="gap-1.5 bg-brand hover:bg-brand-secondary">
-      <Icon name="hugeicons:plus-sign" size="16" />
-      <span class="hidden lg:block">Add Member</span>
-    </Button>
-  </ActionTooltip>
 </template>

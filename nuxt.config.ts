@@ -81,6 +81,7 @@ export default defineNuxtConfig({
     "pinia-plugin-persistedstate/nuxt",
     "@vueuse/nuxt",
     "@vercel/analytics",
+    "nuxt-schema-org",
   ],
   eslint: {
     config: {

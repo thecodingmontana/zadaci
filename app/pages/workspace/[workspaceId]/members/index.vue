@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { WorkspaceMemberDocType } from "~/plugins/rxdb.client";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import MembersTabs from "~/components/workspace/members/memmbers-tabs.vue";
 import { useWorkspaceStore } from "~/stores/use-workspace-store";
 
 definePageMeta({
@@ -68,11 +70,17 @@ useSeoMeta({
   <NuxtLayout name="workspace">
     <NuxtLayout name="workspace-area">
       <section v-if="canManageMembers" class="space-y-4 p-3">
-        <div>
-          <h1 class="font-medium">Members Management</h1>
-          <p class="max-w-2xl text-sm text-muted-foreground">
-            Manage your team members and their account permissions access in the workspace.
-          </p>
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="font-medium">Members Management</h1>
+            <p class="max-w-2xl text-sm text-muted-foreground">
+              Manage your team members and their account permissions access in the workspace.
+            </p>
+          </div>
+          <Button class="bg-brand hover:bg-brand-secondary">
+            <Icon name="hugeicons:plus-sign" />
+            Add Member
+          </Button>
         </div>
 
         <div v-if="!membersLoaded" class="space-y-2">
@@ -86,13 +94,14 @@ useSeoMeta({
         </div>
 
         <div v-else class="grid gap-2">
+          <MembersTabs />
           <div
             v-for="member in members"
             :key="member.id"
             class="flex items-center gap-3 rounded-lg border p-3"
           >
             <Avatar class="size-10">
-              <AvatarImage :src="member.profile_picture_url ?? undefined" :alt="member.username" />
+              <AvatarImage :src="member.profile_picture_url ?? ''" :alt="member.username" />
               <AvatarFallback>{{
                 member.username?.charAt(0)?.toUpperCase() ?? "?"
               }}</AvatarFallback>
