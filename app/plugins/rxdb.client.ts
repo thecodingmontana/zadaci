@@ -154,7 +154,7 @@ const TASK_SCHEMA = {
     deleted_at: { type: ["string", "null"], maxLength: 24 },
   },
   required: ["id", "name", "status", "priority", "project_id", "created_at", "updated_at"],
-  indexes: ["project_id", "parent_task_id", "status", "updated_at"],
+  indexes: ["project_id", "status", "updated_at"],
 } as const;
 
 const PROJECT_SCHEMA = {
@@ -317,7 +317,7 @@ const CHANNEL_MEMBER_SCHEMA = {
 
 const WORKSPACE_MEMBER_SCHEMA = {
   title: "workspace_members",
-  version: 0,
+  version: 1,
   type: "object",
   primaryKey: {
     key: "id",
@@ -444,7 +444,15 @@ export default defineNuxtPlugin(async () => {
     task_tags: { schema: TASK_TAG_SCHEMA, migrationStrategies: {} },
     channels: { schema: CHANNEL_SCHEMA, migrationStrategies: {} },
     channel_members: { schema: CHANNEL_MEMBER_SCHEMA, migrationStrategies: {} },
-    workspace_members: { schema: WORKSPACE_MEMBER_SCHEMA, migrationStrategies: {} },
+    workspace_members: {
+      schema: WORKSPACE_MEMBER_SCHEMA,
+      migrationStrategies: {
+        1: (oldDoc) => {
+          const role = oldDoc.role === "guest" ? "member" : oldDoc.role;
+          return { ...oldDoc, role };
+        },
+      },
+    },
     user_status: { schema: USER_STATUS_SCHEMA, migrationStrategies: {} },
   });
   console.log("[rxdb-plugin] All collections added");
