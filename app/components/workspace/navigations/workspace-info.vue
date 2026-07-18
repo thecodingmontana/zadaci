@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Separator } from "~/components/ui/separator";
+import { Skeleton } from "~/components/ui/skeleton";
 import { useWorkspaceStore } from "~/stores/use-workspace-store";
 
 const store = useWorkspaceStore();
@@ -21,6 +22,7 @@ const db = useRxDb();
 const workspace = computed(() => store.activeWorkspace);
 
 const members = ref<WorkspaceMemberDocType[]>([]);
+const membersLoaded = ref(false);
 let sub: any = null;
 
 watch(
@@ -30,9 +32,11 @@ watch(
       sub.unsubscribe();
       sub = null;
     }
+    membersLoaded.value = false;
     if (!col || !wsId) return;
     sub = col.find({ selector: { workspace_id: wsId } }).$.subscribe((docs) => {
       members.value = docs;
+      membersLoaded.value = true;
     });
   },
   { immediate: true },
@@ -55,20 +59,31 @@ const isAdmin = computed(() => isOwner.value || workspace.value?.userRole === "A
       <button
         class="flex w-full cursor-pointer items-center gap-x-2 rounded-md py-3 pl-1 text-left transition-colors hover:bg-[#f2f2f2] hover:dark:bg-neutral-800"
       >
-        <Avatar class="size-10 shrink-0 rounded-md">
-          <AvatarImage :src="workspace?.imageUrl ?? 'https://github.com/shadcn.png'" />
-          <AvatarFallback class="rounded-md">
-            {{ workspace?.name?.charAt(0)?.toUpperCase() ?? "W" }}
-          </AvatarFallback>
-        </Avatar>
-        <div class="min-w-0 flex-1">
-          <h2 class="truncate font-semibold text-primary">{{ workspace?.name ?? "Workspace" }}</h2>
-          <div class="flex h-5 items-center space-x-4 font-ibm-plex-mono text-xs">
-            <div>Members: {{ memberCount }}</div>
-            <Separator orientation="vertical" />
-            <div>Online: {{ onlineCount }}</div>
+        <template v-if="membersLoaded || workspace">
+          <Avatar class="size-10 shrink-0 rounded-md">
+            <AvatarImage :src="workspace?.imageUrl ?? 'https://github.com/shadcn.png'" />
+            <AvatarFallback class="rounded-md">
+              {{ workspace?.name?.charAt(0)?.toUpperCase() ?? "W" }}
+            </AvatarFallback>
+          </Avatar>
+          <div class="min-w-0 flex-1">
+            <h2 class="truncate font-semibold text-primary">
+              {{ workspace?.name ?? "Workspace" }}
+            </h2>
+            <div class="flex h-5 items-center space-x-4 font-ibm-plex-mono text-xs">
+              <div>Members: {{ memberCount }}</div>
+              <Separator orientation="vertical" />
+              <div>Online: {{ onlineCount }}</div>
+            </div>
           </div>
-        </div>
+        </template>
+        <template v-else>
+          <Skeleton class="size-10 shrink-0 rounded-md" />
+          <div class="min-w-0 flex-1 space-y-2">
+            <Skeleton class="h-4 w-28" />
+            <Skeleton class="h-3 w-20" />
+          </div>
+        </template>
       </button>
     </DropdownMenuTrigger>
 

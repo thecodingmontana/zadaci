@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { Skeleton } from "~/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
 
@@ -18,13 +19,16 @@ const workspaceId = computed(() => route.params.workspaceId as string);
 const db = useRxDb();
 
 const members = ref<WorkspaceMemberDocType[]>([]);
+const membersLoaded = ref(false);
 
 watch(
   () => db?.workspace_members,
   (col) => {
+    membersLoaded.value = false;
     if (!col) return;
     const sub = col.find({ selector: { workspace_id: workspaceId.value } }).$.subscribe((docs) => {
       members.value = docs;
+      membersLoaded.value = true;
     });
     onUnmounted(() => sub.unsubscribe());
   },
@@ -60,7 +64,7 @@ const hasNotifications = ref(true);
     <TooltipProvider>
       <DropdownMenuTrigger as-child>
         <button class="hidden cursor-pointer items-center gap-1.5 lg:flex">
-          <div class="flex -space-x-2">
+          <div v-if="membersLoaded" class="flex -space-x-2">
             <Avatar
               v-for="member in visibleMembers"
               :key="member.id"
@@ -72,7 +76,10 @@ const hasNotifications = ref(true);
               </AvatarFallback>
             </Avatar>
           </div>
-          <span v-if="extraMembersCount > 0" class="text-sm text-muted-foreground"
+          <div v-else class="flex -space-x-2">
+            <Skeleton v-for="n in 3" :key="n" class="h-8 w-8 rounded-full ring-2 ring-background" />
+          </div>
+          <span v-if="membersLoaded && extraMembersCount > 0" class="text-sm text-muted-foreground"
             >+{{ extraMembersCount }}</span
           >
           <Icon name="hugeicons:arrow-down-01" size="14" class="text-muted-foreground" />

@@ -80,6 +80,7 @@ export default defineNuxtConfig({
     "@nuxt/image",
     "pinia-plugin-persistedstate/nuxt",
     "@vueuse/nuxt",
+    "@vercel/analytics",
   ],
   eslint: {
     config: {
