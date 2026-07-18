@@ -111,27 +111,51 @@ const handleAdd = (key: string, event: Event) => {
     <h3 class="font-ibm-plex-mono text-xs uppercase">Main Menu</h3>
     <div class="space-y-1">
       <NuxtLink
+        v-slot="{ isActive, href, navigate }"
         :to="`/workspace/${workspaceId}/dashboard`"
-        class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+        custom
       >
-        <Icon name="hugeicons:dashboard-square-03" size="18" />
-        <p class="text-sm">Dashboard</p>
+        <a
+          :href="href"
+          class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+          :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+          @click="navigate"
+        >
+          <Icon name="hugeicons:dashboard-square-03" size="18" />
+          <p class="text-sm">Dashboard</p>
+        </a>
       </NuxtLink>
 
       <NuxtLink
+        v-slot="{ isActive, href, navigate }"
         :to="`/workspace/${workspaceId}/members`"
-        class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+        custom
       >
-        <Icon name="hugeicons:user-multiple-02" size="18" />
-        <p class="text-sm">Members</p>
+        <a
+          :href="href"
+          class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+          :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+          @click="navigate"
+        >
+          <Icon name="hugeicons:user-multiple-02" size="18" />
+          <p class="text-sm">Members</p>
+        </a>
       </NuxtLink>
 
       <NuxtLink
+        v-slot="{ isActive, href, navigate }"
         :to="`/workspace/${workspaceId}/calendar`"
-        class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+        custom
       >
-        <Icon name="hugeicons:calendar-03" size="18" />
-        <p class="text-sm">Calendar</p>
+        <a
+          :href="href"
+          class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+          :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+          @click="navigate"
+        >
+          <Icon name="hugeicons:calendar-03" size="18" />
+          <p class="text-sm">Calendar</p>
+        </a>
       </NuxtLink>
 
       <Collapsible
@@ -144,11 +168,19 @@ const handleAdd = (key: string, event: Event) => {
           class="group flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
         >
           <NuxtLink
+            v-slot="{ isActive, href, navigate }"
             :to="`/workspace/${workspaceId}/${section.key}/all`"
-            class="flex flex-1 items-center space-x-2"
+            custom
           >
-            <Icon :name="section.icon" size="18" />
-            <p class="text-sm">{{ section.label }}</p>
+            <a
+              :href="href"
+              class="flex flex-1 items-center space-x-2"
+              :class="[isActive && 'text-primary']"
+              @click="navigate"
+            >
+              <Icon :name="section.icon" size="18" />
+              <p class="text-sm">{{ section.label }}</p>
+            </a>
           </NuxtLink>
           <div class="flex items-center space-x-1">
             <Button
@@ -180,10 +212,18 @@ const handleAdd = (key: string, event: Event) => {
             <NuxtLink
               v-for="item in sectionItems[section.key]"
               :key="item.id"
+              v-slot="{ isActive, href, navigate }"
               :to="`/workspace/${workspaceId}/${section.key}/${item.id}/info`"
-              class="flex cursor-pointer items-center rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+              custom
             >
-              {{ item.label }}
+              <a
+                :href="href"
+                class="flex cursor-pointer items-center rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+                @click="navigate"
+              >
+                {{ item.label }}
+              </a>
             </NuxtLink>
             <div
               class="flex cursor-pointer items-center space-x-1 rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"

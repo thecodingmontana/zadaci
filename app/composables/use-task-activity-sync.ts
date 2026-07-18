@@ -1,6 +1,6 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { RxReplicationState } from "rxdb/plugins/replication";
-import type { TaskTagDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
+import type { TaskActivityDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
 import { createClient } from "@supabase/supabase-js";
 import { replicateRxCollection } from "rxdb/plugins/replication";
 
@@ -35,9 +35,9 @@ function debounceReSync(fn: () => void, key: string) {
   );
 }
 
-export function useTaskTagSync(workspaceId: () => string | undefined) {
+export function useTaskActivitySync(workspaceId: () => string | undefined) {
   let replicationState: RxReplicationState<
-    TaskTagDocType,
+    TaskActivityDocType,
     { updated_at: string; id: string }
   > | null = null;
   let realtimeChannel: RealtimeChannel | null = null;
@@ -55,52 +55,67 @@ export function useTaskTagSync(workspaceId: () => string | undefined) {
       if (replicationState) {
         replicationState.reSync();
       }
-    }, "task_tags");
+    }, "tasks-activity");
   }
 
   async function start() {
-    if (import.meta.server) return;
+    if (import.meta.server) {
+      return;
+    }
 
     const requestFetch = useRequestFetch();
+
     const nuxtApp = useNuxtApp();
-    const db = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
+    const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
-      console.warn("[useTaskTagSync] No RxDB");
+      console.warn("[useTaskActivitySync] No RxDB instance available — aborting");
       return;
     }
-    if (!db.task_tags) {
-      console.warn("[useTaskTagSync] No collection");
+
+    const tasksActivityCollection = db.tasks_activity;
+    if (!tasksActivityCollection) {
+      console.warn("[useTaskActivitySync] tasks_activity collection not found — aborting");
       return;
     }
+
     const activeId = workspaceId();
     if (!activeId) {
-      console.warn("[useTaskTagSync] No wsId");
+      console.warn("[useTaskActivitySync] No workspaceId — aborting");
       return;
     }
 
-    console.log(`[useTaskTagSync] Starting, workspace=${activeId}`);
-    const existingCount = await db.task_tags.count().exec();
-    console.log(`[useTaskTagSync] Existing docs: ${existingCount}`);
+    const repId = `tasks-activity-ws-${activeId}`;
 
-    replicationState = replicateRxCollection<TaskTagDocType, { updated_at: string; id: string }>({
-      replicationIdentifier: `task-tags-ws-${activeId}`,
-      collection: db.task_tags,
+    replicationState = replicateRxCollection<
+      TaskActivityDocType,
+      { updated_at: string; id: string }
+    >({
+      replicationIdentifier: repId,
+      collection: tasksActivityCollection,
       pull: {
         handler: async (checkpoint, batchSize) => {
           const id = workspaceId();
-          if (!id) return { documents: [], checkpoint: undefined };
+          if (!id) {
+            return { documents: [], checkpoint: undefined };
+          }
+
           const params = new URLSearchParams();
           params.set("workspace_id", id);
           params.set("batch_size", String(batchSize || 50));
           if (checkpoint) {
-            const localCount = await db.task_tags.count().exec();
-            if (localCount > 0) params.set("checkpoint", JSON.stringify(checkpoint));
+            const localCount = await tasksActivityCollection.count().exec();
+            if (localCount > 0) {
+              params.set("checkpoint", JSON.stringify(checkpoint));
+            }
           }
-          console.log(`[useTaskTagSync] Pull`, { checkpoint, batchSize });
-          const result = await requestFetch(`/api/replication/task-tags/pull?${params}`);
-          const docs = (result as any)?.documents ?? [];
-          console.log(`[useTaskTagSync] Pull returned ${docs.length} docs`);
-          return result as any;
+
+          const result = await requestFetch(
+            `/api/replication/tasks-activity/pull?${params.toString()}`,
+          );
+          return result as {
+            documents: TaskActivityDocType[];
+            checkpoint: { updated_at: string; id: string } | undefined;
+          };
         },
         batchSize: 50,
       },
@@ -108,24 +123,23 @@ export function useTaskTagSync(workspaceId: () => string | undefined) {
         handler: async (rows) => {
           const id = workspaceId();
           if (!id) {
-            console.warn("[useTaskTagSync] Push no wsId");
             return [];
           }
-          console.log(`[useTaskTagSync] Push ${rows.length} row(s)`);
-          rows.forEach((r) =>
-            console.log(
-              `[useTaskTagSync]   Push:`,
-              r.newDocumentState
-                ? JSON.stringify({ id: r.newDocumentState.id }).slice(0, 200)
-                : "deleted",
-            ),
-          );
-          const result = await requestFetch(`/api/replication/task-tags/push?workspace_id=${id}`, {
-            method: "POST",
-            body: rows,
+
+          const filtered = rows.filter((r) => {
+            if (!r.newDocumentState) return false;
+            return true;
           });
-          console.log(`[useTaskTagSync] Push done, ${(result as any[])?.length ?? 0} results`);
-          return result as TaskTagDocType[];
+          if (filtered.length === 0) return [];
+
+          const result = await requestFetch(
+            `/api/replication/tasks-activity/push?workspace_id=${id}`,
+            {
+              method: "POST",
+              body: filtered,
+            },
+          );
+          return result as TaskActivityDocType[];
         },
         batchSize: 50,
       },
@@ -134,23 +148,25 @@ export function useTaskTagSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    const subActive = replicationState.active$.subscribe((a) =>
-      console.log(`[useTaskTagSync] Active:`, a),
-    );
+    const subActive = replicationState.active$.subscribe((active) => {
+      console.log(`[useTaskActivitySync] Replication active:`, active);
+    });
     cleanupFns.push(() => subActive.unsubscribe());
+
     const subErr = replicationState.error$.subscribe((err) => {
-      console.error(`[useTaskTagSync] ❌`, err?.message || err);
+      console.error(`[useTaskActivitySync] Replication error:`, err?.message || err);
       syncError.value = err;
     });
     cleanupFns.push(() => subErr.unsubscribe());
-    const subCancel = replicationState.canceled$.subscribe((c) =>
-      console.log(`[useTaskTagSync] Canceled:`, c),
-    );
+
+    const subCancel = replicationState.canceled$.subscribe((canceled) => {
+      console.log(`[useTaskActivitySync] Replication canceled:`, canceled);
+    });
     cleanupFns.push(() => subCancel.unsubscribe());
+
     setupRealtimeChannel();
     setupVisibilityListener();
     isActive.value = true;
-    console.log(`[useTaskTagSync] Started`);
   }
 
   function setupRealtimeChannel() {
@@ -160,21 +176,19 @@ export function useTaskTagSync(workspaceId: () => string | undefined) {
     }
 
     realtimeChannel = supabase
-      .channel("app_task_tags_realtime")
+      .channel("app_tasks_activity_realtime")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "app_task_tags",
+          table: "app_tasks_activity",
         },
-        (payload) => {
-          console.log("[rxdb-debug] Realtime channel fired for app_task_tags", payload);
+        () => {
           scheduleReSync();
         },
       )
       .subscribe((status) => {
-        console.log("[rxdb-debug] Realtime channel subscribe status (task_tags):", status);
         realtimeStatus.value = status;
       });
 
@@ -212,10 +226,10 @@ export function useTaskTagSync(workspaceId: () => string | undefined) {
     }
     cleanupFns = [];
 
-    const timer = debounceTimers.get("task_tags");
+    const timer = debounceTimers.get("tasks-activity");
     if (timer) {
       clearTimeout(timer);
-      debounceTimers.delete("task_tags");
+      debounceTimers.delete("tasks-activity");
     }
 
     if (realtimeChannel) {

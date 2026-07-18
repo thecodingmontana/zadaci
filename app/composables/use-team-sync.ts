@@ -148,7 +148,10 @@ export function useTeamSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    replicationState.active$.subscribe((a) => console.log(`[useTeamSync] Active:`, a));
+    const subActive = replicationState.active$.subscribe((a) =>
+      console.log(`[useTeamSync] Active:`, a),
+    );
+    cleanupFns.push(() => subActive.unsubscribe());
     const subErr = replicationState.error$.subscribe((err) => {
       console.error(`[useTeamSync] ❌`, err?.message || err);
       syncError.value = err;

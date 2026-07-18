@@ -150,7 +150,10 @@ export function useProjectSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    replicationState.active$.subscribe((a) => console.log(`[useProjectSync] Active:`, a));
+    const subActive = replicationState.active$.subscribe((a) =>
+      console.log(`[useProjectSync] Active:`, a),
+    );
+    cleanupFns.push(() => subActive.unsubscribe());
     const subErr = replicationState.error$.subscribe((err) => {
       console.error(`[useProjectSync] ❌`, err?.message || err);
       syncError.value = err;

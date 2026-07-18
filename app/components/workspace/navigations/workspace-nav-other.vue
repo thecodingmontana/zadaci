@@ -35,11 +35,19 @@ function openDonate() {
       <NuxtLink
         v-for="item in settingsItems"
         :key="item.label"
+        v-slot="{ isActive, href, navigate }"
         :to="`/workspace/${workspaceId}/${item.to}`"
-        class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+        custom
       >
-        <Icon :name="item.icon" size="18" />
-        <p class="text-sm">{{ item.label }}</p>
+        <a
+          :href="href"
+          class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+          :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+          @click="navigate"
+        >
+          <Icon :name="item.icon" size="18" />
+          <p class="text-sm">{{ item.label }}</p>
+        </a>
       </NuxtLink>
     </div>
   </div>
@@ -67,11 +75,19 @@ function openDonate() {
       </button>
 
       <NuxtLink
+        v-slot="{ isActive, href, navigate }"
         :to="`/workspace/${workspaceId}/support`"
-        class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+        custom
       >
-        <Icon name="hugeicons:help-circle" size="18" />
-        <p class="text-sm">Help & Support</p>
+        <a
+          :href="href"
+          class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+          :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+          @click="navigate"
+        >
+          <Icon name="hugeicons:help-circle" size="18" />
+          <p class="text-sm">Help & Support</p>
+        </a>
       </NuxtLink>
 
       <button

@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import type { RxCollection } from "rxdb";
-import type {
-  ChannelDocType,
-  ChannelMemberDocType,
-  UserStatusDocType,
-  WorkspaceMemberDocType,
-} from "~/plugins/rxdb.client";
+import type { ChannelDocType, ChannelMemberDocType } from "~/plugins/rxdb.client";
+import type { TeammatesWithProfile } from "~/types";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
@@ -19,8 +15,9 @@ const { user } = useUserSession();
 
 const channels = ref<ChannelDocType[]>([]);
 const channelMembers = ref<ChannelMemberDocType[]>([]);
-const workspaceMembers = ref<WorkspaceMemberDocType[]>([]);
-const userStatuses = ref<UserStatusDocType[]>([]);
+
+const { data: workspaceMembers, status: membersStatus } = useWorkspaceMembers(workspaceId);
+const { data: userStatuses } = useUserStatuses(workspaceId);
 
 const subscriptions: (() => void)[] = [];
 const loading = ref(true);
@@ -52,7 +49,7 @@ watch(
     let loadedCount = 0;
     const markLoaded = () => {
       loadedCount++;
-      if (loadedCount >= 4) loading.value = false;
+      if (loadedCount >= 2) loading.value = false;
     };
 
     subscriptions.push(
@@ -63,17 +60,14 @@ watch(
         markLoaded,
       ),
       subscribe(database.channel_members as any, {}, channelMembers, markLoaded),
-      subscribe(
-        database.workspace_members as any,
-        { workspace_id: wsId },
-        workspaceMembers,
-        markLoaded,
-      ),
-      subscribe(database.user_status as any, {}, userStatuses, markLoaded),
     );
   },
   { immediate: true },
 );
+
+watch([membersStatus], ([ms]) => {
+  if (ms === "success") loading.value = false;
+});
 
 onUnmounted(() => {
   subscriptions.forEach((fn) => fn());
@@ -83,17 +77,17 @@ const publicChannels = computed(() =>
   channels.value.filter((c) => c.type === "public" || c.type === "private"),
 );
 
-const dmMembers = computed(() => workspaceMembers.value);
+const dmMembers = computed(() => workspaceMembers.value ?? []);
 
 const statusMap = computed(() => {
-  const map = new Map<string, UserStatusDocType>();
-  for (const s of userStatuses.value) {
-    map.set(s.user_id, s);
+  const map = new Map<string, string>();
+  for (const s of userStatuses.value ?? []) {
+    map.set(s.userId, s.status);
   }
   return map;
 });
 
-function getStatus(userId: string): UserStatusDocType | undefined {
+function getStatus(userId: string): string | undefined {
   return statusMap.value.get(userId);
 }
 
@@ -135,13 +129,12 @@ const handleAdd = (key: string, event: Event) => {
   console.log("add", key);
 };
 
-function resolveMemberStatus(member?: WorkspaceMemberDocType): string {
+function resolveMemberStatus(member?: TeammatesWithProfile): string {
   if (!member) return "offline";
-  const status = getStatus(member.user_id);
-  return status?.status ?? "available";
+  return getStatus(member.userId) ?? "available";
 }
 
-function resolveMemberRole(member?: WorkspaceMemberDocType): string {
+function resolveMemberRole(member?: TeammatesWithProfile): string {
   return member?.role === "owner" ? "Owner" : member?.role === "moderator" ? "Moderator" : "Member";
 }
 </script>
@@ -196,21 +189,29 @@ function resolveMemberRole(member?: WorkspaceMemberDocType): string {
           <NuxtLink
             v-for="channel in publicChannels"
             :key="channel.id"
+            v-slot="{ isActive, href, navigate }"
             :to="`/workspace/${workspaceId}/channels/${channel.id}`"
-            class="flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+            custom
           >
-            <div class="flex items-center space-x-2">
-              <Icon
-                :name="
-                  channel.type === 'private'
-                    ? 'hugeicons:square-lock-01'
-                    : 'solar:hashtag-chat-linear'
-                "
-                size="16"
-                class="text-muted-foreground"
-              />
-              <p class="text-sm">{{ channel.name }}</p>
-            </div>
+            <a
+              :href="href"
+              class="flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+              :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+              @click="navigate"
+            >
+              <div class="flex items-center space-x-2">
+                <Icon
+                  :name="
+                    channel.type === 'private'
+                      ? 'hugeicons:square-lock-01'
+                      : 'solar:hashtag-chat-linear'
+                  "
+                  size="16"
+                  class="text-muted-foreground"
+                />
+                <p class="text-sm">{{ channel.name }}</p>
+              </div>
+            </a>
           </NuxtLink>
 
           <div
@@ -270,73 +271,87 @@ function resolveMemberRole(member?: WorkspaceMemberDocType): string {
           <NuxtLink
             v-for="dm in dmMembers"
             :key="dm.id"
-            :to="`/workspace/${workspaceId}/conversations/${dm.user_id}`"
-            class="flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+            v-slot="{ isActive, href, navigate }"
+            :to="`/workspace/${workspaceId}/conversations/${dm.userId}`"
+            custom
           >
-            <div class="flex min-w-0 items-center space-x-2">
-              <Popover>
-                <PopoverTrigger as-child @click.stop>
-                  <div class="relative shrink-0 cursor-pointer">
-                    <Avatar class="h-5 w-5">
-                      <AvatarImage :src="dm.profile_picture_url ?? ''" :alt="dm.username" />
-                      <AvatarFallback class="text-[10px]">
-                        {{ initials(dm.username) }}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span
-                      class="absolute -right-0.5 -bottom-0.5 h-2 w-2 rounded-full ring-2 ring-background"
-                      :class="statusStyles[resolveMemberStatus(dm)]"
-                    />
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent side="right" align="start" class="w-56 p-3">
-                  <div class="flex items-center space-x-3">
-                    <div class="relative shrink-0">
-                      <Avatar class="h-9 w-9">
-                        <AvatarImage :src="dm.profile_picture_url ?? ''" :alt="dm.username" />
-                        <AvatarFallback>{{ initials(dm.username) }}</AvatarFallback>
+            <a
+              :href="href"
+              class="flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+              :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+              @click="navigate"
+            >
+              <div class="flex min-w-0 items-center space-x-2">
+                <Popover>
+                  <PopoverTrigger as-child @click.stop>
+                    <div class="relative shrink-0 cursor-pointer">
+                      <Avatar class="h-5 w-5">
+                        <AvatarImage
+                          :src="dm.user.profilePictureUrl ?? ''"
+                          :alt="dm.user.username ?? ''"
+                        />
+                        <AvatarFallback class="text-[10px]">
+                          {{ initials(dm.user.username ?? "") }}
+                        </AvatarFallback>
                       </Avatar>
                       <span
-                        class="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background"
+                        class="absolute -right-0.5 -bottom-0.5 h-2 w-2 rounded-full ring-2 ring-background"
                         :class="statusStyles[resolveMemberStatus(dm)]"
                       />
                     </div>
-                    <div class="min-w-0">
-                      <p class="truncate text-sm font-semibold">
-                        {{ dm.username }}
-                        <span v-if="dm.user_id === user?.id" class="text-muted-foreground"
-                          >(You)</span
-                        >
-                      </p>
-                      <p class="truncate text-xs text-muted-foreground">
-                        {{ resolveMemberRole(dm) }}
-                      </p>
+                  </PopoverTrigger>
+                  <PopoverContent side="right" align="start" class="w-56 p-3">
+                    <div class="flex items-center space-x-3">
+                      <div class="relative shrink-0">
+                        <Avatar class="h-9 w-9">
+                          <AvatarImage
+                            :src="dm.user.profilePictureUrl ?? ''"
+                            :alt="dm.user.username ?? ''"
+                          />
+                          <AvatarFallback>{{ initials(dm.user.username ?? "") }}</AvatarFallback>
+                        </Avatar>
+                        <span
+                          class="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background"
+                          :class="statusStyles[resolveMemberStatus(dm)]"
+                        />
+                      </div>
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold">
+                          {{ dm.user.username }}
+                          <span v-if="dm.userId === user?.id" class="text-muted-foreground"
+                            >(You)</span
+                          >
+                        </p>
+                        <p class="truncate text-xs text-muted-foreground">
+                          {{ resolveMemberRole(dm) }}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div class="mt-3 flex items-center space-x-1.5 text-xs text-muted-foreground">
-                    <span
-                      class="h-1.5 w-1.5 rounded-full"
-                      :class="statusStyles[resolveMemberStatus(dm)]"
-                    />
-                    <span>{{ statusLabels[resolveMemberStatus(dm)] ?? "Offline" }}</span>
-                  </div>
-                  <div class="mt-3 flex space-x-2">
-                    <Button size="sm" class="h-7 flex-1 text-xs">
-                      <Icon name="hugeicons:message-01" size="14" class="mr-1" />
-                      Message
-                    </Button>
-                    <Button size="sm" variant="outline" class="h-7 flex-1 text-xs">
-                      <Icon name="hugeicons:call-02" size="14" class="mr-1" />
-                      Call
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <p class="truncate text-sm">
-                {{ dm.username }}
-                <span v-if="dm.user_id === user?.id" class="text-muted-foreground">(You)</span>
-              </p>
-            </div>
+                    <div class="mt-3 flex items-center space-x-1.5 text-xs text-muted-foreground">
+                      <span
+                        class="h-1.5 w-1.5 rounded-full"
+                        :class="statusStyles[resolveMemberStatus(dm)]"
+                      />
+                      <span>{{ statusLabels[resolveMemberStatus(dm)] ?? "Offline" }}</span>
+                    </div>
+                    <div class="mt-3 flex space-x-2">
+                      <Button size="sm" class="h-7 flex-1 text-xs">
+                        <Icon name="hugeicons:message-01" size="14" class="mr-1" />
+                        Message
+                      </Button>
+                      <Button size="sm" variant="outline" class="h-7 flex-1 text-xs">
+                        <Icon name="hugeicons:call-02" size="14" class="mr-1" />
+                        Call
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <p class="truncate text-sm">
+                  {{ dm.user.username }}
+                  <span v-if="dm.userId === user?.id" class="text-muted-foreground">(You)</span>
+                </p>
+              </div>
+            </a>
           </NuxtLink>
 
           <div

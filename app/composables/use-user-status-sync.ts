@@ -125,7 +125,10 @@ export function useUserStatusSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    replicationState.active$.subscribe((a) => console.log(`[useUserStatusSync] Active:`, a));
+    const subActive = replicationState.active$.subscribe((a) =>
+      console.log(`[useUserStatusSync] Active:`, a),
+    );
+    cleanupFns.push(() => subActive.unsubscribe());
     const subErr = replicationState.error$.subscribe((err) => {
       console.error(`[useUserStatusSync] ❌`, err?.message || err);
       syncError.value = err;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Row } from "@tanstack/vue-table";
-import type { TeammatesWithProfile } from "~/types";
+import type { WorkspaceInvite } from "~/types";
 import { EllipsisIcon } from "@lucide/vue";
 import { useQueryClient } from "@tanstack/vue-query";
 import { Button } from "~/components/ui/button";
@@ -12,49 +12,48 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { toast } from "~/lib/toast";
-import { useModalStore } from "~/stores/use-modal-store";
 
-const props = defineProps<{ row: Row<TeammatesWithProfile> }>();
-const modalStore = useModalStore();
+const props = defineProps<{ row: Row<WorkspaceInvite> }>();
 const queryClient = useQueryClient();
-const isRemoving = ref(false);
+const isBusy = ref(false);
 
-function onChangeRole() {
+async function onResend() {
   const original = props.row.original;
-  modalStore?.onOpen("changeTeammateRole");
-  modalStore?.setIsOpen(true);
-  modalStore?.setModalData({
-    teammates: [
-      {
-        id: original.userId,
-        role: original.role,
-        avatar: original.user.profilePictureUrl as string,
-        username: original.user.username as string,
-        email: original.user.email,
-      },
-    ],
-  });
-}
-
-async function onRemoveUser() {
-  const original = props.row.original;
-  isRemoving.value = true;
+  isBusy.value = true;
   try {
     const data = await $fetch<{ message: string }>(
-      `/api/workspace/${original.workspaceId}/teammates/remove`,
+      `/api/workspace/${original.workspaceId}/teammates/team-invite/resend`,
       {
-        method: "DELETE",
-        body: { userIds: [original.userId], workspaceId: original.workspaceId },
+        method: "PATCH",
+        body: { teammates: [{ email: original.email, role: original.role }] },
       },
     );
     toast.success(data.message);
-    queryClient.invalidateQueries({ queryKey: ["workspace-members"] });
+    queryClient.invalidateQueries({ queryKey: ["workspace-invites"] });
   } catch (error: any) {
-    toast.error(
-      error.response?._data?.statusMessage ?? error.message ?? "Failed to remove teammate",
-    );
+    toast.error(error.response?._data?.statusMessage ?? error.message ?? "Failed to resend invite");
   } finally {
-    isRemoving.value = false;
+    isBusy.value = false;
+  }
+}
+
+async function onRemove() {
+  const original = props.row.original;
+  isBusy.value = true;
+  try {
+    const data = await $fetch<{ message: string }>(
+      `/api/workspace/${original.workspaceId}/teammates/team-invite/remove`,
+      {
+        method: "DELETE",
+        body: { emails: [original.email] },
+      },
+    );
+    toast.success(data.message);
+    queryClient.invalidateQueries({ queryKey: ["workspace-invites"] });
+  } catch (error: any) {
+    toast.error(error.response?._data?.statusMessage ?? error.message ?? "Failed to remove invite");
+  } finally {
+    isBusy.value = false;
   }
 }
 </script>
@@ -67,18 +66,18 @@ async function onRemoveUser() {
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" side="bottom">
-      <DropdownMenuItem class="cursor-pointer" :disabled="isRemoving" @click="onChangeRole">
-        <Icon name="hugeicons:user-edit-01" class="size-4" />
-        Change role
+      <DropdownMenuItem class="cursor-pointer" :disabled="isBusy" @click="onResend">
+        <Icon name="hugeicons:mail-send-01" class="size-4" />
+        Resend
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
         class="cursor-pointer text-rose-600 focus:bg-rose-600 focus:text-white"
-        :disabled="isRemoving"
-        @click="onRemoveUser"
+        :disabled="isBusy"
+        @click="onRemove"
       >
         <Icon name="solar:trash-bin-minimalistic-linear" class="size-4" />
-        Remove user
+        Remove invite
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>

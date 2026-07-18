@@ -148,7 +148,10 @@ export function useTagSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    replicationState.active$.subscribe((a) => console.log(`[useTagSync] Active:`, a));
+    const subActive = replicationState.active$.subscribe((a) =>
+      console.log(`[useTagSync] Active:`, a),
+    );
+    cleanupFns.push(() => subActive.unsubscribe());
     const subErr = replicationState.error$.subscribe((err) => {
       console.error(`[useTagSync] ❌`, err?.message || err);
       syncError.value = err;

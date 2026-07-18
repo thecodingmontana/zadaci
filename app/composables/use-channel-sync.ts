@@ -171,9 +171,10 @@ export function useChannelSync(workspaceId: () => string | undefined) {
       retryTime: 5000,
     });
 
-    replicationState.active$.subscribe((active) => {
+    const subActive = replicationState.active$.subscribe((active) => {
       console.log(`[useChannelSync] Replication active:`, active);
     });
+    cleanupFns.push(() => subActive.unsubscribe());
 
     const subErr = replicationState.error$.subscribe((err) => {
       console.error(`[useChannelSync] ❌ Error:`, err?.message || err);

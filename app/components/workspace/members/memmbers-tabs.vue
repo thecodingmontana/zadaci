@@ -1,6 +1,15 @@
 <script setup lang="ts">
+import type { TeammatesWithProfile, WorkspaceInvite } from "~/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import InvitesTable from "../tables/invites/invites-table.vue";
 import MembersTable from "../tables/members/members-table.vue";
+
+defineProps<{
+  members: TeammatesWithProfile[];
+  invites: WorkspaceInvite[];
+  membersStatus: "pending" | "idle" | "success" | "error";
+  invitesStatus: "pending" | "idle" | "success" | "error";
+}>();
 </script>
 
 <template>
@@ -20,8 +29,10 @@ import MembersTable from "../tables/members/members-table.vue";
       </TabsTrigger>
     </TabsList>
     <TabsContent value="teammates">
-      <MembersTable />
+      <MembersTable :members="members" :status="membersStatus" />
     </TabsContent>
-    <TabsContent value="invites"> Invites Table </TabsContent>
+    <TabsContent value="invites">
+      <InvitesTable :invites="invites" :status="invitesStatus" />
+    </TabsContent>
   </Tabs>
 </template>

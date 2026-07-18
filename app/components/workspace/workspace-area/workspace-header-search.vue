@@ -6,7 +6,6 @@ import type {
   ProjectDocType,
   TaskDocType,
   TeamDocType,
-  WorkspaceMemberDocType,
 } from "~/plugins/rxdb.client";
 import CommandMenu from "~/components/ui/command-menu/command-menu.vue";
 import { Kbd, KbdGroup } from "~/components/ui/kbd";
@@ -15,11 +14,12 @@ const route = useRoute();
 const workspaceId = computed(() => route.params.workspaceId as string);
 const db = useRxDb();
 
-const members = ref<WorkspaceMemberDocType[]>([]);
 const projects = ref<ProjectDocType[]>([]);
 const teams = ref<TeamDocType[]>([]);
 const channels = ref<ChannelDocType[]>([]);
 const tasks = ref<TaskDocType[]>([]);
+
+const { data: members } = useWorkspaceMembers(workspaceId);
 
 const subscriptions: (() => void)[] = [];
 
@@ -42,7 +42,6 @@ watch(
     subscriptions.length = 0;
     if (!database || !wsId) return;
     subscriptions.push(
-      subscribe(database.workspace_members as any, { workspace_id: wsId }, members),
       subscribe(database.projects as any, { workspace_id: wsId, deleted_at: null }, projects),
       subscribe(database.teams as any, { workspace_id: wsId, deleted_at: null }, teams),
       subscribe(database.channels as any, { workspace_id: wsId, deleted_at: null }, channels),
@@ -143,12 +142,12 @@ const commandGroups = computed<CommandGroup[]>(() => [
   },
   {
     title: "Members",
-    rows: members.value.map((m) => ({
+    rows: (members.value ?? []).map((m) => ({
       kind: "person" as const,
       id: m.id,
-      name: m.username,
+      name: m.user.username ?? m.user.email,
       role: m.role === "owner" ? "Owner" : m.role === "moderator" ? "Moderator" : "Member",
-      avatar: m.profile_picture_url ?? undefined,
+      avatar: m.user.profilePictureUrl ?? undefined,
       presence: "online" as const,
     })),
   },

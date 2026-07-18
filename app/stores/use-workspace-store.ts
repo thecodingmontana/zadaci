@@ -25,5 +25,7 @@ export const useWorkspaceStore = defineStore("workspaceStore", {
       this.activeWorkspace = payload;
     },
   },
-  persist: true,
+  persist: {
+    pick: ["isOpenSidebar", "onboardingWorkspaceId"],
+  },
 });

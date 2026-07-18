@@ -47,7 +47,7 @@ if (import.meta.client) {
   });
 }
 
-// ── RxDB sync composables ──
+// ── RxDB sync composables (Tier 1 — offline-first) ──
 const taskSync = useTaskSync(wsId);
 const projectSync = useProjectSync(wsId);
 const teamSync = useTeamSync(wsId);
@@ -56,8 +56,15 @@ const projectTagSync = useProjectTagSync(wsId);
 const taskTagSync = useTaskTagSync(wsId);
 const channelSync = useChannelSync(wsId);
 const channelMemberSync = useChannelMemberSync(wsId);
-const workspaceMemberSync = useWorkspaceMemberSync(wsId);
-const userStatusSync = useUserStatusSync(wsId);
+const taskAssigneeSync = useTaskAssigneeSync(wsId);
+const taskActivitySync = useTaskActivitySync(wsId);
+
+// ── Tier 2: TanStack Query realtime invalidation ──
+const workspaceMembersRt = useWorkspaceMembersRealtime(wsId);
+const workspaceInvitesRt = useWorkspaceInvitesRealtime(wsId);
+const userStatusesRt = useUserStatusesRealtime(wsId);
+const workspacesRt = useWorkspacesRealtime();
+const sidebarProjectsRt = useSidebarProjectsRealtime(wsId);
 
 function allSyncs() {
   return [
@@ -69,8 +76,18 @@ function allSyncs() {
     taskTagSync,
     channelSync,
     channelMemberSync,
-    workspaceMemberSync,
-    userStatusSync,
+    taskAssigneeSync,
+    taskActivitySync,
+  ] as const;
+}
+
+function allRealtimeSubs() {
+  return [
+    workspaceMembersRt,
+    workspaceInvitesRt,
+    userStatusesRt,
+    workspacesRt,
+    sidebarProjectsRt,
   ] as const;
 }
 
@@ -82,6 +99,7 @@ async function startAllSyncs() {
       console.error(`[workspace-layout] Sync FAILED:`, err);
     }
   });
+  allRealtimeSubs().forEach((sub) => sub.start());
   await Promise.all(promises);
   console.log("[workspace-layout] All syncs started");
 }

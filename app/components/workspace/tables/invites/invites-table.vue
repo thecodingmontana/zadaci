@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ColumnFiltersState, SortingState, VisibilityState } from "@tanstack/vue-table";
-import type { TeammatesWithProfile } from "~/types";
+import type { WorkspaceInvite } from "~/types";
 import { Search as SearchIcon, ServerCrash, X as XIcon } from "@lucide/vue";
 import { MixerHorizontalIcon } from "@radix-icons/vue";
 import { useQueryClient } from "@tanstack/vue-query";
@@ -12,7 +12,6 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { Button } from "~/components/ui/button";
-import DataGridColumnFilter from "~/components/ui/data-grid/data-grid-column-filter.vue";
 import DataGridColumnVisibility from "~/components/ui/data-grid/data-grid-column-visibility.vue";
 import DataGridPagination from "~/components/ui/data-grid/data-grid-pagination.vue";
 import DataGridTable from "~/components/ui/data-grid/data-grid-table.vue";
@@ -21,22 +20,15 @@ import { Input } from "~/components/ui/input";
 import SkeletonLoading from "~/components/workspace/shared/skeleton-loading.vue";
 import { toast } from "~/lib/toast";
 import { cn, valueUpdater } from "~/lib/utils";
-import { useModalStore } from "~/stores/use-modal-store";
-import { useWorkspaceStore } from "~/stores/use-workspace-store";
-import { auth2fas, roles } from "~/types";
 import { columns } from "./columns";
 
 const props = defineProps<{
-  members: TeammatesWithProfile[];
+  invites: WorkspaceInvite[];
   status: "pending" | "idle" | "success" | "error";
 }>();
 
-const workspaceStore = useWorkspaceStore();
-const modalStore = useModalStore();
 const queryClient = useQueryClient();
-const currentActiveWorkspace = computed(() => workspaceStore.activeWorkspace);
-
-const sorting = ref<SortingState>([{ id: "createdAt", desc: true }]);
+const sorting = ref<SortingState>([{ id: "expiresAt", desc: true }]);
 const columnFilters = ref<ColumnFiltersState>([]);
 const columnVisibility = ref<VisibilityState>({});
 const rowSelection = ref({});
@@ -45,7 +37,7 @@ const isBusy = ref(false);
 
 const table = useVueTable({
   get data() {
-    return props.members;
+    return props.invites;
   },
   columns,
   getCoreRowModel: getCoreRowModel(),
@@ -79,58 +71,37 @@ watch(searchQuery, (value) => {
 async function onRefresh() {
   isBusy.value = true;
   try {
-    queryClient.invalidateQueries({ queryKey: ["workspace-members"] });
+    queryClient.invalidateQueries({ queryKey: ["workspace-invites"] });
   } finally {
     isBusy.value = false;
   }
-}
-
-function onBulkChangeRole() {
-  const rows = table.getFilteredSelectedRowModel().rows;
-  if (!rows.length) return;
-  modalStore?.onOpen("changeTeammateRole");
-  modalStore?.setIsOpen(true);
-  modalStore?.setModalData({
-    teammates: rows.map((r) => ({
-      id: r.original.userId,
-      role: r.original.role,
-      avatar: r.original.user.profilePictureUrl as string,
-      username: r.original.user.username as string,
-      email: r.original.user.email,
-    })),
-  });
 }
 
 async function onBulkRemove() {
   const rows = table.getFilteredSelectedRowModel().rows;
   if (!rows.length) return;
-  const workspaceId = currentActiveWorkspace.value?.id as string;
-  const userIds = rows.map((r) => r.original.userId);
+  const workspaceId = rows[0].original.workspaceId;
+  const emails = rows.map((r) => r.original.email);
 
   isBusy.value = true;
   try {
     const data = await $fetch<{ message: string }>(
-      `/api/workspace/${workspaceId}/teammates/remove`,
+      `/api/workspace/${workspaceId}/teammates/team-invite/remove`,
       {
         method: "DELETE",
-        body: { userIds, workspaceId },
+        body: { emails },
       },
     );
     toast.success(data.message);
-    queryClient.invalidateQueries({ queryKey: ["workspace-members"] });
+    queryClient.invalidateQueries({ queryKey: ["workspace-invites"] });
     rowSelection.value = {};
   } catch (error: any) {
     toast.error(
-      error.response?._data?.statusMessage ?? error.message ?? "Failed to remove teammates",
+      error.response?._data?.statusMessage ?? error.message ?? "Failed to remove invites",
     );
   } finally {
     isBusy.value = false;
   }
-}
-
-function onAddUser() {
-  modalStore?.onOpen("inviteTeammate");
-  modalStore?.setIsOpen(true);
 }
 </script>
 
@@ -141,14 +112,14 @@ function onAddUser() {
     <div v-else-if="props.status === 'error'" class="rounded-lg border">
       <div class="flex items-center justify-center gap-1.5 p-5 text-destructive dark:text-primary">
         <ServerCrash class="size-5" />
-        Failed to load members table data.
+        Failed to load invites data.
       </div>
     </div>
 
     <DataGrid
       v-else
       :table="table"
-      :record-count="props.members.length"
+      :record-count="props.invites.length"
       :is-loading="isBusy"
       :table-layout="{ columnsVisibility: true, headerSticky: true }"
     >
@@ -162,7 +133,7 @@ function onAddUser() {
               <Input
                 v-model="searchQuery"
                 class="w-full ps-9 dark:bg-[#1d1d1d] dark:hover:bg-muted"
-                placeholder="Filter member..."
+                placeholder="Filter inviter..."
               />
               <Button
                 v-if="searchQuery.length > 0"
@@ -173,36 +144,13 @@ function onAddUser() {
                 <XIcon class="size-4" />
               </Button>
             </div>
-            <div class="flex flex-wrap items-center gap-2.5">
-              <DataGridColumnFilter
-                v-if="table.getColumn('role')"
-                :column="table.getColumn('role') as any"
-                title="Role"
-                :options="roles"
-              />
-              <DataGridColumnFilter
-                v-if="table.getColumn('registered2FA')"
-                :column="table.getColumn('registered2FA') as any"
-                title="2FA Auth"
-                :options="auth2fas"
-              />
-            </div>
           </div>
 
           <div class="flex flex-wrap items-center justify-between gap-2.5">
             <div class="text-sm text-muted-foreground">
-              {{ props.members.length }} member{{ props.members.length === 1 ? "" : "s" }}
+              {{ props.invites.length }} invite{{ props.invites.length === 1 ? "" : "s" }}
             </div>
             <div class="flex items-center gap-2">
-              <Button
-                v-if="table.getFilteredSelectedRowModel().rows.length > 0"
-                class="h-8 bg-brand hover:bg-brand-secondary dark:bg-primary"
-                :disabled="isBusy"
-                @click="onBulkChangeRole"
-              >
-                <Icon name="hugeicons:user-edit-01" class="size-4" />
-                Change role ({{ table.getFilteredSelectedRowModel().rows.length }})
-              </Button>
               <Button
                 v-if="table.getFilteredSelectedRowModel().rows.length > 0"
                 variant="destructive"
@@ -220,14 +168,6 @@ function onAddUser() {
                 @click="onRefresh"
               >
                 <Icon name="solar:refresh-linear" :class="cn('size-4', isBusy && 'animate-spin')" />
-              </Button>
-              <Button
-                variant="outline"
-                class="h-8 dark:bg-[#1d1d1d] dark:hover:bg-muted"
-                @click="onAddUser"
-              >
-                <Icon name="hugeicons:user-add-01" class="size-4" />
-                <span class="hidden md:block">Add user(s)</span>
               </Button>
               <DataGridColumnVisibility :table="table">
                 <template #trigger>

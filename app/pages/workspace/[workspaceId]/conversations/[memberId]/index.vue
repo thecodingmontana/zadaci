@@ -5,21 +5,14 @@ definePageMeta({
 });
 
 const route = useRoute();
-const memberId = route.params.memberId as string;
+const workspaceId = computed(() => route.params.workspaceId as string);
+const memberId = computed(() => route.params.memberId as string);
 
-const memberName = ref<string | null>(null);
+const { data: members } = useWorkspaceMembers(workspaceId);
 
-if (import.meta.client) {
-  useRxDbSafe().then((db) => {
-    if (!db) return;
-    const sub = db.workspace_members
-      .findOne({ selector: { user_id: memberId } })
-      .$.subscribe((doc) => {
-        memberName.value = doc?.username ?? null;
-      });
-    onUnmounted(() => sub.unsubscribe());
-  });
-}
+const memberName = computed(() => {
+  return members.value?.find((m) => m.userId === memberId.value)?.user?.username ?? null;
+});
 
 const conversationTitle = useWorkspacePageTitle("Conversation", memberName);
 useSeoMeta({

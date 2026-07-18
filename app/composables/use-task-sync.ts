@@ -174,9 +174,10 @@ export function useTaskSync(workspaceId: () => string | undefined) {
     });
 
     // Log replication state changes
-    replicationState.active$.subscribe((active) => {
+    const subActive = replicationState.active$.subscribe((active) => {
       console.log(`[useTaskSync] Replication active:`, active);
     });
+    cleanupFns.push(() => subActive.unsubscribe());
 
     const subErr = replicationState.error$.subscribe((err) => {
       console.error(`[useTaskSync] ❌ Replication error:`, err?.message || err);

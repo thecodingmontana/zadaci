@@ -68,6 +68,16 @@ export interface TaskTagDocType {
   updated_at: string;
 }
 
+export interface TaskAssigneeDocType {
+  id: string;
+  task_id: string;
+  member_id: string;
+  assigned_at: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export interface ChannelDocType {
   id: string;
   workspace_id: string;
@@ -99,6 +109,17 @@ export interface WorkspaceMemberDocType {
   updated_at: string;
 }
 
+export interface TaskActivityDocType {
+  id: string;
+  status: "idea" | "todo" | "in_progress" | "in_review" | "completed" | "abandoned";
+  task_id: string;
+  changed_by: string;
+  changed_at: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export interface UserStatusDocType {
   id: string;
   user_id: string;
@@ -118,10 +139,12 @@ export type ZadaciDatabase = RxDatabase<{
   tags: RxCollection<TagDocType>;
   project_tags: RxCollection<ProjectTagDocType>;
   task_tags: RxCollection<TaskTagDocType>;
+  task_assignees: RxCollection<TaskAssigneeDocType>;
   channels: RxCollection<ChannelDocType>;
   channel_members: RxCollection<ChannelMemberDocType>;
   workspace_members: RxCollection<WorkspaceMemberDocType>;
   user_status: RxCollection<UserStatusDocType>;
+  tasks_activity: RxCollection<TaskActivityDocType>;
 }>;
 
 const TASK_SCHEMA = {
@@ -341,6 +364,53 @@ const WORKSPACE_MEMBER_SCHEMA = {
   indexes: ["workspace_id", "user_id", "updated_at"],
 } as const;
 
+const TASK_ACTIVITY_SCHEMA = {
+  title: "tasks_activity",
+  version: 0,
+  type: "object",
+  primaryKey: {
+    key: "id",
+    fields: ["id"],
+  },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    status: {
+      type: "string",
+      maxLength: 20,
+      enum: ["idea", "todo", "in_progress", "in_review", "completed", "abandoned"],
+    },
+    task_id: { type: "string", maxLength: 16 },
+    changed_by: { type: "string", maxLength: 16 },
+    changed_at: { type: "string", maxLength: 24 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+    deleted_at: { type: ["string", "null"], maxLength: 24 },
+  },
+  required: ["id", "status", "task_id", "changed_by", "changed_at", "created_at", "updated_at"],
+  indexes: ["task_id", "changed_by", "updated_at"],
+} as const;
+
+const TASK_ASSIGNEE_SCHEMA = {
+  title: "task_assignees",
+  version: 0,
+  type: "object",
+  primaryKey: {
+    key: "id",
+    fields: ["id"],
+  },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    task_id: { type: "string", maxLength: 16 },
+    member_id: { type: "string", maxLength: 16 },
+    assigned_at: { type: "string", maxLength: 24 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+    deleted_at: { type: ["string", "null"], maxLength: 24 },
+  },
+  required: ["id", "task_id", "member_id", "assigned_at", "created_at", "updated_at"],
+  indexes: ["task_id", "member_id", "updated_at"],
+} as const;
+
 const USER_STATUS_SCHEMA = {
   title: "user_status",
   version: 0,
@@ -442,6 +512,7 @@ export default defineNuxtPlugin(async () => {
     tags: { schema: TAG_SCHEMA, migrationStrategies: {} },
     project_tags: { schema: PROJECT_TAG_SCHEMA, migrationStrategies: {} },
     task_tags: { schema: TASK_TAG_SCHEMA, migrationStrategies: {} },
+    task_assignees: { schema: TASK_ASSIGNEE_SCHEMA, migrationStrategies: {} },
     channels: { schema: CHANNEL_SCHEMA, migrationStrategies: {} },
     channel_members: { schema: CHANNEL_MEMBER_SCHEMA, migrationStrategies: {} },
     workspace_members: {
@@ -454,6 +525,7 @@ export default defineNuxtPlugin(async () => {
       },
     },
     user_status: { schema: USER_STATUS_SCHEMA, migrationStrategies: {} },
+    tasks_activity: { schema: TASK_ACTIVITY_SCHEMA, migrationStrategies: {} },
   });
   console.log("[rxdb-plugin] All collections added");
 

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { WorkspaceMemberDocType } from "~/plugins/rxdb.client";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,39 +17,19 @@ const store = useWorkspaceStore();
 const route = useRoute();
 const workspaceId = computed(() => route.params.workspaceId as string);
 
-const db = useRxDb();
 const workspace = computed(() => store.activeWorkspace);
 
-const members = ref<WorkspaceMemberDocType[]>([]);
-const membersLoaded = ref(false);
-let sub: any = null;
+const { data: members, status } = useWorkspaceMembers(workspaceId);
 
-watch(
-  [() => db?.workspace_members, workspaceId],
-  ([col, wsId]) => {
-    if (sub) {
-      sub.unsubscribe();
-      sub = null;
-    }
-    membersLoaded.value = false;
-    if (!col || !wsId) return;
-    sub = col.find({ selector: { workspace_id: wsId } }).$.subscribe((docs) => {
-      members.value = docs;
-      membersLoaded.value = true;
-    });
-  },
-  { immediate: true },
-);
+const memberCount = computed(() => members.value?.length ?? 0);
+const loaded = computed(() => status.value !== "pending");
 
-onUnmounted(() => {
-  if (sub) sub.unsubscribe();
-});
-
-const memberCount = computed(() => members.value.length);
-const onlineCount = computed(() => members.value.length);
+console.log("workspace", workspace.value);
 
 const isOwner = computed(() => workspace.value?.userRole === "owner");
-const canManage = computed(() => isOwner.value || workspace.value?.userRole === "moderator");
+const isAdmin = computed(() => isOwner.value || workspace.value?.userRole === "moderator");
+const canManage = computed(() => isAdmin.value);
+console.log("isOwner", isOwner.value, "canManage", canManage.value, "checking");
 </script>
 
 <template>
@@ -59,7 +38,7 @@ const canManage = computed(() => isOwner.value || workspace.value?.userRole === 
       <button
         class="flex w-full cursor-pointer items-center gap-x-2 rounded-md py-3 pl-1 text-left transition-colors hover:bg-[#f2f2f2] hover:dark:bg-neutral-800"
       >
-        <template v-if="membersLoaded || workspace">
+        <template v-if="loaded || workspace">
           <Avatar class="size-10 shrink-0 rounded-md">
             <AvatarImage :src="workspace?.imageUrl ?? 'https://github.com/shadcn.png'" />
             <AvatarFallback class="rounded-md">
@@ -73,7 +52,7 @@ const canManage = computed(() => isOwner.value || workspace.value?.userRole === 
             <div class="flex h-5 items-center space-x-4 font-ibm-plex-mono text-xs">
               <div>Members: {{ memberCount }}</div>
               <Separator orientation="vertical" />
-              <div>Online: {{ onlineCount }}</div>
+              <div>Online: {{ memberCount }}</div>
             </div>
           </div>
         </template>

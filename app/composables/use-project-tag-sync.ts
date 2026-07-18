@@ -136,7 +136,10 @@ export function useProjectTagSync(workspaceId: () => string | undefined) {
       },
     );
 
-    replicationState.active$.subscribe((a) => console.log(`[useProjectTagSync] Active:`, a));
+    const subActive = replicationState.active$.subscribe((a) =>
+      console.log(`[useProjectTagSync] Active:`, a),
+    );
+    cleanupFns.push(() => subActive.unsubscribe());
     const subErr = replicationState.error$.subscribe((err) => {
       console.error(`[useProjectTagSync] ❌`, err?.message || err);
       syncError.value = err;
