@@ -11,6 +11,7 @@ import { currentUserId, dummyMembers } from "~/lib/dummy-data/channel";
 const props = defineProps<{
   messages: ChatMessage[];
   systemEvents?: SystemEvent[];
+  showThreadEntry?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -101,7 +102,7 @@ watch(
             :key="message.id"
             :message="message"
             :is-own="message.authorId === currentUserId"
-            show-thread-entry
+            :show-thread-entry="props.showThreadEntry ?? true"
             @react="(...a) => emit('react', ...a)"
             @open-thread="(id) => emit('openThread', id)"
           />

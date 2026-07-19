@@ -36,7 +36,12 @@ function onSend(content: string) {
       </Button>
     </div>
 
-    <ChannelMessages :messages="allMessages" @react="() => {}" @open-thread="() => {}" />
+    <ChannelMessages
+      :messages="allMessages"
+      :show-thread-entry="false"
+      @react="() => {}"
+      @open-thread="() => {}"
+    />
     <ChannelComposer typing-label="" placeholder="Reply in thread" @send="onSend" />
   </div>
 </template>

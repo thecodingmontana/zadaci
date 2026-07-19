@@ -28,7 +28,7 @@ function onReact(emoji: string) {
       :align="isOwn ? 'end' : 'start'"
       :variant="isOwn ? 'default' : 'secondary'"
       :class="
-        !isOwn
+        isOwn
           ? '[&>[data-slot=bubble-content]]:!bg-brand [&>[data-slot=bubble-content]]:!text-white'
           : ''
       "
