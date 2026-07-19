@@ -88,6 +88,7 @@
     "vaul-vue": "^0.4.1",
     "vee-validate": "^4.15.1",
     "vue": "^3.5.38",
+    "vue-frimousse": "^0.1.4",
     "vue-input-otp": "^0.3.2",
     "vue-router": "^5.1.0",
     "zod": "4.4.3"
@@ -98,6 +99,7 @@
     "@commitlint/config-conventional": "^21.2.0",
     "@iconify-json/devicon": "^1.2.62",
     "@iconify-json/hugeicons": "^1.2.30",
+    "@iconify-json/iconoir": "^1.2.11",
     "@iconify-json/lucide": "^1.2.116",
     "@iconify-json/solar": "^1.2.5",
     "@nuxt/eslint": "^1.16.0",

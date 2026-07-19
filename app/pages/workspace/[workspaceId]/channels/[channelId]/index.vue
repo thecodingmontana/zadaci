@@ -1,35 +1,100 @@
 <script setup lang="ts">
+import type { ChatMessage, Thread } from "~/types/chat";
+import ChannelComposer from "~/components/workspace/channels/channel-composer.vue";
+import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
+import { dummyMessages, dummySystemEvents } from "~/lib/dummy-data/channel";
+
 definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
-
 const route = useRoute();
 const channelId = route.params.channelId as string;
-
 const channelName = ref<string | null>(null);
-
+const realMessages = ref<ChatMessage[]>([]); // untouched — still just holds whatever RxDB gives it
+const messages = computed(() =>
+  realMessages.value.length > 0 ? realMessages.value : dummyMessages,
+);
+const { openThread } = useChannelPanel(channelId);
 if (import.meta.client) {
   useRxDbSafe().then((db) => {
     if (!db) return;
-    const sub = db.channels.findOne(channelId).$.subscribe((doc) => {
+    const channelSub = db.channels.findOne(channelId).$.subscribe((doc) => {
       channelName.value = doc?.name ?? null;
     });
-    onUnmounted(() => sub.unsubscribe());
+    const messagesSub = db.messages.find({ selector: { channelId } }).$.subscribe((docs) => {
+      realMessages.value = docs.map(mapDocToMessage);
+    });
+    onUnmounted(() => {
+      channelSub.unsubscribe();
+      messagesSub.unsubscribe();
+    });
   });
 }
-
+function mapDocToMessage(doc: any): ChatMessage {
+  return {
+    id: doc.id,
+    authorId: doc.authorId,
+    content: doc.content,
+    createdAt: doc.createdAt,
+    status: doc.status,
+    attachment: doc.attachment,
+    reactions: doc.reactions,
+    thread: doc.threadCount
+      ? { count: doc.threadCount, participantIds: doc.threadParticipantIds }
+      : undefined,
+  };
+}
+async function onSend(content: string) {
+  const db = await useRxDbSafe();
+  await db?.messages.insert({
+    id: crypto.randomUUID(),
+    channelId,
+    authorId: "me", // swap for the real session user id
+    content,
+    createdAt: new Date().toISOString(),
+    status: "sent",
+  });
+}
+async function onReact(messageId: string, emoji: string) {
+  const db = await useRxDbSafe();
+  const doc = await db?.messages.findOne(messageId).exec();
+  if (!doc) return;
+  const reactions = [...(doc.reactions ?? [])];
+  const existing = reactions.find((r) => r.emoji === emoji);
+  if (existing) existing.count += 1;
+  else reactions.push({ emoji, count: 1 });
+  await doc.patch({ reactions });
+}
+async function onOpenThread(messageId: string) {
+  const db = await useRxDbSafe();
+  const parent = await db?.messages.findOne(messageId).exec();
+  const replies = await db?.messages.find({ selector: { threadParentId: messageId } }).exec();
+  if (!parent) return;
+  const thread: Thread = {
+    id: `thread-${messageId}`,
+    parentMessageId: messageId,
+    parentMessage: mapDocToMessage(parent),
+    replies: (replies ?? []).map(mapDocToMessage),
+  };
+  openThread(thread);
+}
 const channelTitle = useWorkspacePageTitle("Channel", channelName);
 useSeoMeta({
   title: channelTitle,
   description: "Workspace channel — collaborate and communicate with your team in real time.",
 });
 </script>
-
 <template>
   <NuxtLayout name="workspace">
-    <NuxtLayout name="workspace-area">
-      <div>Channel</div>
+    <NuxtLayout name="workspace-channel">
+      <ChannelMessages
+        :messages="messages"
+        :system-events="dummySystemEvents"
+        @react="onReact"
+        @open-thread="onOpenThread"
+      />
+      <ChannelComposer @send="onSend" />
     </NuxtLayout>
   </NuxtLayout>
 </template>

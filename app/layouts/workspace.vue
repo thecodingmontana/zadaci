@@ -164,14 +164,14 @@ useHead({
     lang: "en",
   },
   bodyAttrs: {
-    class: "min-h-screen bg-background font-sans antialiased",
+    class: "bg-background font-sans antialiased",
   },
   titleTemplate: "%s - Zadaci",
 });
 </script>
 
 <template>
-  <div class="h-full">
+  <div class="h-full overflow-hidden">
     <NuxtLoadingIndicator />
 
     <div
