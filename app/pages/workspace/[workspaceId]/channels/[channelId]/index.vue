@@ -67,30 +67,32 @@ async function onReact(messageId: string, emoji: string) {
   await doc.patch({ reactions });
 }
 async function onOpenThread(messageId: string) {
-  const db = await useRxDbSafe();
-
-  // Try RxDB first
-  const parent = await db?.messages.findOne(messageId).exec();
-  if (parent) {
-    const replies = await db?.messages.find({ selector: { threadParentId: messageId } }).exec();
-    const thread: Thread = {
-      id: `thread-${messageId}`,
-      parentMessageId: messageId,
-      parentMessage: mapDocToMessage(parent),
-      replies: (replies ?? []).map(mapDocToMessage),
-    };
-    openThread(thread);
-    return;
+  try {
+    const db = await useRxDbSafe();
+    if (db) {
+      const parent = await db.messages.findOne(messageId).exec();
+      if (parent) {
+        const replies = await db.messages.find({ selector: { threadParentId: messageId } }).exec();
+        const thread: Thread = {
+          id: `thread-${messageId}`,
+          parentMessageId: messageId,
+          parentMessage: mapDocToMessage(parent),
+          replies: (replies ?? []).map(mapDocToMessage),
+        };
+        openThread(thread);
+        return;
+      }
+    }
+  } catch {
+    // RxDB lookup failed, fall through to dummy data
   }
 
-  // Fallback: find in dummy thread data
   const dummyThread = dummyThreads.find((t) => t.parentMessageId === messageId);
   if (dummyThread) {
     openThread(dummyThread);
     return;
   }
 
-  // Create a new thread from the dummy message
   const dummyMessage = dummyMessages.find((m) => m.id === messageId);
   if (dummyMessage) {
     const thread: Thread = {

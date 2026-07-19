@@ -24,30 +24,11 @@ function onReact(emoji: string) {
 
 <template>
   <div class="group/message relative">
-    <!-- Hover action bar -->
-    <div
-      class="absolute end-2 top-0 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-lg border bg-background p-0.5 opacity-0 shadow-sm transition-opacity group-hover/message:opacity-100"
-    >
-      <EmojiPicker @select="onReact">
-        <Button variant="ghost" size="icon-xs" aria-label="Add reaction">
-          <Icon name="lucide:smile-plus" size="14" />
-        </Button>
-      </EmojiPicker>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label="Reply in thread"
-        @click="emit('openThread', message.id)"
-      >
-        <Icon name="lucide:message-square" size="14" />
-      </Button>
-    </div>
-
     <Bubble
       :align="isOwn ? 'end' : 'start'"
       :variant="isOwn ? 'default' : 'secondary'"
       :class="
-        isOwn
+        !isOwn
           ? '[&>[data-slot=bubble-content]]:!bg-brand [&>[data-slot=bubble-content]]:!text-white'
           : ''
       "
@@ -57,12 +38,7 @@ function onReact(emoji: string) {
         <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />
       </BubbleContent>
 
-      <BubbleReactions
-        v-if="message.reactions?.length"
-        side="bottom"
-        :align="isOwn ? 'end' : 'start'"
-        class="gap-1"
-      >
+      <BubbleReactions side="bottom" :align="isOwn ? 'end' : 'start'" class="gap-1">
         <button
           v-for="reaction in message.reactions"
           :key="reaction.emoji"
@@ -72,6 +48,22 @@ function onReact(emoji: string) {
         >
           <span>{{ reaction.emoji }}</span>
           <span class="text-muted-foreground">{{ reaction.count }}</span>
+        </button>
+        <EmojiPicker @select="onReact">
+          <button
+            type="button"
+            class="flex h-6 w-6 items-center justify-center rounded-full border bg-background opacity-0 transition-opacity group-hover/message:opacity-100 hover:bg-accent"
+          >
+            <Icon name="lucide:smile-plus" size="12" />
+          </button>
+        </EmojiPicker>
+        <button
+          type="button"
+          class="flex h-6 w-6 items-center justify-center rounded-full border bg-background opacity-0 transition-opacity group-hover/message:opacity-100 hover:bg-accent"
+          aria-label="Reply in thread"
+          @click="emit('openThread', message.id)"
+        >
+          <Icon name="lucide:message-square" size="12" />
         </button>
       </BubbleReactions>
     </Bubble>

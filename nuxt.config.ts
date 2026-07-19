@@ -82,6 +82,7 @@ export default defineNuxtConfig({
     "@vueuse/nuxt",
     "@vercel/analytics",
     "nuxt-schema-org",
+    "nuxt-emoji-picker",
   ],
   eslint: {
     config: {
