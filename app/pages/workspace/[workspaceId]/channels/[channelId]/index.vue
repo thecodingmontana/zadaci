@@ -11,11 +11,19 @@ definePageMeta({
 const route = useRoute();
 const channelId = route.params.channelId as string;
 const channelName = ref<string | null>(null);
-const realMessages = ref<ChatMessage[]>([]); // untouched — still just holds whatever RxDB gives it
+const realMessages = ref<ChatMessage[]>([]);
 const messages = computed(() =>
   realMessages.value.length > 0 ? realMessages.value : dummyMessages,
 );
-const { openThread } = useChannelPanel(channelId);
+const { state, openThread, initThreadMeta } = useChannelPanel(channelId);
+
+for (const t of dummyThreads) {
+  initThreadMeta(t.parentMessageId, {
+    count: t.replies.length,
+    participantIds: t.replies.map((r) => r.authorId),
+  });
+}
+
 if (import.meta.client) {
   useRxDbSafe().then((db) => {
     if (!db) return;
@@ -50,7 +58,7 @@ async function onSend(content: string) {
   await db?.messages.insert({
     id: crypto.randomUUID(),
     channelId,
-    authorId: "me", // swap for the real session user id
+    authorId: "me",
     content,
     createdAt: new Date().toISOString(),
     status: "sent",
@@ -95,6 +103,7 @@ async function onOpenThread(messageId: string) {
 
   const dummyMessage = dummyMessages.find((m) => m.id === messageId);
   if (dummyMessage) {
+    initThreadMeta(messageId, { count: 0, participantIds: [] });
     const thread: Thread = {
       id: `thread-${messageId}`,
       parentMessageId: messageId,
@@ -116,6 +125,7 @@ useSeoMeta({
       <ChannelMessages
         :messages="messages"
         :system-events="dummySystemEvents"
+        :thread-meta="state.threadMeta"
         @react="onReact"
         @open-thread="onOpenThread"
       />

@@ -1,4 +1,3 @@
-<!-- ~/layouts/workspace-channel.vue -->
 <script setup lang="ts">
 import { AnimatePresence, motion } from "motion-v";
 import ChannelHeader from "~/components/workspace/channels/channel-header.vue";
@@ -7,7 +6,12 @@ import ThreadPanel from "~/components/workspace/channels/thread-panel.vue";
 
 const route = useRoute();
 const channelId = route.params.channelId as string;
-const { state, toggleInfo, closeThread, closeInfo } = useChannelPanel(channelId);
+const { state, toggleInfo, closeThread, closeInfo, incrementThreadMeta } =
+  useChannelPanel(channelId);
+
+function onThreadReply(parentMessageId: string) {
+  incrementThreadMeta(parentMessageId, "me");
+}
 </script>
 
 <template>
@@ -27,7 +31,12 @@ const { state, toggleInfo, closeThread, closeInfo } = useChannelPanel(channelId)
         :transition="{ duration: 0.2, ease: 'easeOut' }"
         class="h-full overflow-hidden"
       >
-        <ThreadPanel v-if="state.activeThread" :thread="state.activeThread" @close="closeThread" />
+        <ThreadPanel
+          v-if="state.activeThread"
+          :thread="state.activeThread"
+          @close="closeThread"
+          @reply-sent="onThreadReply"
+        />
         <ChannelInfoPanel v-else @close="closeInfo" />
       </motion.div>
     </AnimatePresence>

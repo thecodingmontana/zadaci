@@ -10,6 +10,7 @@ const props = defineProps<{
   message: ChatMessage;
   isOwn: boolean;
   showThreadEntry?: boolean;
+  threadMeta?: { count: number; participantIds: string[] } | null;
 }>();
 
 const emit = defineEmits<{
@@ -20,6 +21,10 @@ const emit = defineEmits<{
 function onReact(emoji: string) {
   emit("react", props.message.id, emoji);
 }
+
+const previewData = computed(() => {
+  return props.threadMeta ?? props.message.thread ?? null;
+});
 </script>
 
 <template>
@@ -86,27 +91,27 @@ function onReact(emoji: string) {
     </div>
 
     <button
-      v-if="showThreadEntry && message.thread"
+      v-if="showThreadEntry && previewData"
       type="button"
       class="mt-1.5 flex items-center gap-2 rounded-md border bg-background px-2 py-1 text-xs hover:bg-accent"
       @click="emit('openThread', message.id)"
     >
       <div class="flex -space-x-1.5">
         <Avatar
-          v-for="pid in message.thread.participantIds.slice(0, 3)"
+          v-for="pid in previewData.participantIds.slice(0, 3)"
           :key="pid"
           class="h-4 w-4 border"
         >
           <AvatarImage :src="dummyMembers.find((m) => m.id === pid)?.avatar" />
         </Avatar>
         <span
-          v-if="message.thread.participantIds.length > 3"
+          v-if="previewData.participantIds.length > 3"
           class="flex h-4 w-4 items-center justify-center rounded-full bg-muted-foreground/20 text-[10px] font-medium text-muted-foreground"
         >
-          +{{ message.thread.participantIds.length - 3 }}
+          +{{ previewData.participantIds.length - 3 }}
         </span>
       </div>
-      <span class="font-medium text-foreground">{{ message.thread.count }} Messages</span>
+      <span class="font-medium text-foreground">{{ previewData.count }} Messages</span>
       <span class="text-primary">View thread</span>
     </button>
   </div>

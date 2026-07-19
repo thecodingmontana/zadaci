@@ -5,7 +5,7 @@ import ChannelComposer from "~/components/workspace/channels/channel-composer.vu
 import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
 
 const props = defineProps<{ thread: Thread }>();
-const emit = defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: []; replySent: [messageId: string] }>();
 
 const localReplies = ref([...props.thread.replies]);
 const allMessages = computed(() => [props.thread.parentMessage, ...localReplies.value]);
@@ -18,6 +18,7 @@ function onSend(content: string) {
     createdAt: new Date().toISOString(),
     status: "sent",
   });
+  emit("replySent", props.thread.parentMessageId);
 }
 </script>
 

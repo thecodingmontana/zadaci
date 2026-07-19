@@ -12,6 +12,7 @@ const props = defineProps<{
   messages: ChatMessage[];
   systemEvents?: SystemEvent[];
   showThreadEntry?: boolean;
+  threadMeta?: Record<string, { count: number; participantIds: string[] }>;
 }>();
 
 const emit = defineEmits<{
@@ -103,6 +104,7 @@ watch(
             :message="message"
             :is-own="message.authorId === currentUserId"
             :show-thread-entry="props.showThreadEntry ?? true"
+            :thread-meta="props.threadMeta?.[message.id]"
             @react="(...a) => emit('react', ...a)"
             @open-thread="(id) => emit('openThread', id)"
           />
