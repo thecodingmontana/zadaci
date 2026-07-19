@@ -70,7 +70,7 @@ watch(
         :initial="{ opacity: 0, y: 8 }"
         :animate="{ opacity: 1, y: 0 }"
         :transition="{ duration: 0.18 }"
-        class="flex gap-2 py-2"
+        class="flex gap-2 pb-3"
         :class="[group[0].authorId === currentUserId ? 'flex-row-reverse' : '']"
       >
         <Avatar class="mt-0.5 h-8 w-8 shrink-0">

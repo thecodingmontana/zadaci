@@ -19,8 +19,12 @@ function onEmojiSelect(emoji: any) {
         </Button>
       </slot>
     </PopoverTrigger>
-    <PopoverContent class="w-[320px] p-0" align="start">
-      <NuxtEmojiPicker class="h-[340px] w-full" @select="onEmojiSelect" />
+    <PopoverContent
+      class="z-[100] w-[320px] overflow-hidden rounded-lg border bg-popover p-0 text-popover-foreground shadow-lg"
+      align="start"
+      :side-offset="8"
+    >
+      <NuxtEmojiPicker class="!h-[340px] !w-full !bg-popover" @select="onEmojiSelect" />
     </PopoverContent>
   </Popover>
 </template>
