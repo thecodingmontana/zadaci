@@ -1,25 +1,21 @@
 <script setup lang="ts">
-import type { Thread } from "~/types/chat";
-import { computed, ref } from "vue";
+import type { ChatMessage, Thread } from "~/types/chat";
 import ChannelComposer from "~/components/workspace/channels/channel-composer.vue";
 import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
 
-const props = defineProps<{ thread: Thread }>();
-const emit = defineEmits<{ close: []; replySent: [messageId: string] }>();
+const props = defineProps<{
+  thread: Thread;
+  currentMemberId: string;
+}>();
+const emit = defineEmits<{
+  close: [];
+  reply: [parentMessageId: string, content: string];
+}>();
 
-const localReplies = ref([...props.thread.replies]);
-const allMessages = computed(() => [props.thread.parentMessage, ...localReplies.value]);
-
-function onSend(content: string) {
-  localReplies.value.push({
-    id: `r${Date.now()}`,
-    authorId: "me",
-    content,
-    createdAt: new Date().toISOString(),
-    status: "sent",
-  });
-  emit("replySent", props.thread.parentMessageId);
-}
+const allMessages = computed<ChatMessage[]>(() => [
+  props.thread.parentMessage,
+  ...props.thread.replies,
+]);
 </script>
 
 <template>
@@ -30,7 +26,7 @@ function onSend(content: string) {
       </Button>
       <div class="min-w-0 flex-1">
         <p class="text-sm font-semibold">Thread</p>
-        <p class="truncate text-xs text-muted-foreground"># General</p>
+        <p class="truncate text-xs text-muted-foreground"># general</p>
       </div>
       <Button variant="ghost" size="icon-xs" aria-label="Close thread" @click="emit('close')">
         <Icon name="lucide:x" size="16" />
@@ -40,9 +36,15 @@ function onSend(content: string) {
     <ChannelMessages
       :messages="allMessages"
       :show-thread-entry="false"
-      @react="() => {}"
+      :current-member-id="currentMemberId"
+      @toggle-reaction="() => {}"
       @open-thread="() => {}"
+      @edit-message="() => {}"
     />
-    <ChannelComposer typing-label="" placeholder="Reply in thread" @send="onSend" />
+    <ChannelComposer
+      typing-label=""
+      placeholder="Reply in thread"
+      @send="(content) => emit('reply', thread.parentMessageId, content)"
+    />
   </div>
 </template>

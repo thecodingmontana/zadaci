@@ -154,11 +154,30 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.workspace_members.id,
     }),
     references: r.many.message_reference(),
+    receipts: r.many.message_receipt(),
+    parent_message: r.one.message({
+      from: r.message.parent_message_id,
+      to: r.message.id,
+    }),
+    replies: r.many.message({
+      from: r.message.id,
+      to: r.message.parent_message_id,
+    }),
   },
   message_reference: {
     message: r.one.message({
       from: r.message_reference.message_id,
       to: r.message.id,
+    }),
+  },
+  message_receipt: {
+    message: r.one.message({
+      from: r.message_receipt.message_id,
+      to: r.message.id,
+    }),
+    member: r.one.workspace_members({
+      from: r.message_receipt.member_id,
+      to: r.workspace_members.id,
     }),
   },
   passkeys: {

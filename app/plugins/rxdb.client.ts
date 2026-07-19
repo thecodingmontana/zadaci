@@ -1,9 +1,8 @@
 import type { RxCollection, RxDatabase } from "rxdb";
 import { addRxPlugin, createRxDatabase } from "rxdb";
-import { RxDBDevModePlugin } from "rxdb/plugins/dev-mode";
 import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
 import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
-import { wrappedValidateAjvStorage } from "rxdb/plugins/validate-ajv";
+import { markRaw } from "vue";
 
 export interface TaskDocType {
   id: string;
@@ -120,6 +119,31 @@ export interface TaskActivityDocType {
   deleted_at: string | null;
 }
 
+export interface MessageDocType {
+  id: string;
+  channel_id: string;
+  author_id: string;
+  content: string;
+  edited_at: string | null;
+  reactions: { emoji: string; member_ids: string[] }[];
+  parent_message_id: string | null;
+  thread_reply_count: number;
+  thread_participant_ids: string[];
+  thread_last_reply_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface MessageReceiptDocType {
+  id: string;
+  message_id: string;
+  member_id: string;
+  status: "delivered" | "seen";
+  created_at: string;
+  updated_at: string;
+}
+
 export interface UserStatusDocType {
   id: string;
   user_id: string;
@@ -132,6 +156,8 @@ export interface UserStatusDocType {
 
 export type TaskCollection = RxCollection<TaskDocType>;
 export type ProjectCollection = RxCollection<ProjectDocType>;
+export type MessageCollection = RxCollection<MessageDocType>;
+export type MessageReceiptCollection = RxCollection<MessageReceiptDocType>;
 export type ZadaciDatabase = RxDatabase<{
   tasks: TaskCollection;
   projects: ProjectCollection;
@@ -145,6 +171,8 @@ export type ZadaciDatabase = RxDatabase<{
   workspace_members: RxCollection<WorkspaceMemberDocType>;
   user_status: RxCollection<UserStatusDocType>;
   tasks_activity: RxCollection<TaskActivityDocType>;
+  messages: MessageCollection;
+  message_receipts: MessageReceiptCollection;
 }>;
 
 const TASK_SCHEMA = {
@@ -178,7 +206,7 @@ const TASK_SCHEMA = {
   },
   required: ["id", "name", "status", "priority", "project_id", "created_at", "updated_at"],
   indexes: ["project_id", "status", "updated_at"],
-} as const;
+};
 
 const PROJECT_SCHEMA = {
   title: "projects",
@@ -210,7 +238,7 @@ const PROJECT_SCHEMA = {
   },
   required: ["id", "title", "status", "priority", "workspace_id", "created_at", "updated_at"],
   indexes: ["workspace_id", "status", "updated_at"],
-} as const;
+};
 
 const TEAM_SCHEMA = {
   title: "teams",
@@ -231,7 +259,7 @@ const TEAM_SCHEMA = {
   },
   required: ["id", "workspace_id", "name", "created_at", "updated_at"],
   indexes: ["workspace_id", "updated_at"],
-} as const;
+};
 
 const TAG_SCHEMA = {
   title: "tags",
@@ -252,7 +280,7 @@ const TAG_SCHEMA = {
   },
   required: ["id", "workspace_id", "name", "created_at", "updated_at"],
   indexes: ["workspace_id", "updated_at"],
-} as const;
+};
 
 const PROJECT_TAG_SCHEMA = {
   title: "project_tags",
@@ -271,7 +299,7 @@ const PROJECT_TAG_SCHEMA = {
   },
   required: ["id", "project_id", "tag_id", "created_at", "updated_at"],
   indexes: ["project_id", "tag_id"],
-} as const;
+};
 
 const TASK_TAG_SCHEMA = {
   title: "task_tags",
@@ -290,7 +318,7 @@ const TASK_TAG_SCHEMA = {
   },
   required: ["id", "task_id", "tag_id", "created_at", "updated_at"],
   indexes: ["task_id", "tag_id"],
-} as const;
+};
 
 const CHANNEL_SCHEMA = {
   title: "channels",
@@ -316,7 +344,7 @@ const CHANNEL_SCHEMA = {
   },
   required: ["id", "workspace_id", "type", "created_by", "created_at", "updated_at"],
   indexes: ["workspace_id", "updated_at"],
-} as const;
+};
 
 const CHANNEL_MEMBER_SCHEMA = {
   title: "channel_members",
@@ -336,7 +364,7 @@ const CHANNEL_MEMBER_SCHEMA = {
   },
   required: ["id", "channel_id", "member_id", "created_at", "updated_at"],
   indexes: ["channel_id", "member_id"],
-} as const;
+};
 
 const WORKSPACE_MEMBER_SCHEMA = {
   title: "workspace_members",
@@ -362,7 +390,7 @@ const WORKSPACE_MEMBER_SCHEMA = {
   },
   required: ["id", "role", "user_id", "workspace_id", "username", "created_at", "updated_at"],
   indexes: ["workspace_id", "user_id", "updated_at"],
-} as const;
+};
 
 const TASK_ACTIVITY_SCHEMA = {
   title: "tasks_activity",
@@ -388,7 +416,7 @@ const TASK_ACTIVITY_SCHEMA = {
   },
   required: ["id", "status", "task_id", "changed_by", "changed_at", "created_at", "updated_at"],
   indexes: ["task_id", "changed_by", "updated_at"],
-} as const;
+};
 
 const TASK_ASSIGNEE_SCHEMA = {
   title: "task_assignees",
@@ -409,7 +437,86 @@ const TASK_ASSIGNEE_SCHEMA = {
   },
   required: ["id", "task_id", "member_id", "assigned_at", "created_at", "updated_at"],
   indexes: ["task_id", "member_id", "updated_at"],
-} as const;
+};
+
+const MESSAGE_SCHEMA = {
+  title: "messages",
+  version: 0,
+  type: "object",
+  primaryKey: {
+    key: "id",
+    fields: ["id"],
+  },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    channel_id: { type: "string", maxLength: 16 },
+    author_id: { type: "string", maxLength: 16 },
+    content: { type: "string" },
+    edited_at: { type: ["string", "null"], maxLength: 24 },
+    reactions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          emoji: { type: "string" },
+          member_ids: {
+            type: "array",
+            items: { type: "string", maxLength: 16 },
+            uniqueItems: true,
+          },
+        },
+        required: ["emoji", "member_ids"],
+      },
+    },
+    parent_message_id: { type: ["string", "null"], maxLength: 16 },
+    thread_reply_count: { type: "number" },
+    thread_participant_ids: {
+      type: "array",
+      items: { type: "string", maxLength: 16 },
+      uniqueItems: true,
+    },
+    thread_last_reply_at: { type: ["string", "null"], maxLength: 24 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+    deleted_at: { type: ["string", "null"], maxLength: 24 },
+  },
+  required: [
+    "id",
+    "channel_id",
+    "author_id",
+    "content",
+    "reactions",
+    "thread_reply_count",
+    "thread_participant_ids",
+    "created_at",
+    "updated_at",
+  ],
+  indexes: ["channel_id"],
+};
+
+const MESSAGE_RECEIPT_SCHEMA = {
+  title: "message_receipts",
+  version: 0,
+  type: "object",
+  primaryKey: {
+    key: "id",
+    fields: ["id"],
+  },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    message_id: { type: "string", maxLength: 16 },
+    member_id: { type: "string", maxLength: 16 },
+    status: {
+      type: "string",
+      maxLength: 10,
+      enum: ["delivered", "seen"],
+    },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+  },
+  required: ["id", "message_id", "member_id", "status", "created_at", "updated_at"],
+  indexes: ["message_id", "member_id"],
+};
 
 const USER_STATUS_SCHEMA = {
   title: "user_status",
@@ -434,7 +541,7 @@ const USER_STATUS_SCHEMA = {
   },
   required: ["id", "user_id", "status", "created_at", "updated_at"],
   indexes: ["user_id", "updated_at"],
-} as const;
+};
 
 const DB_NAME = "zadaci";
 const CLEAR_KEY = "zadaci_clear_needed";
@@ -473,15 +580,9 @@ export default defineNuxtPlugin(async () => {
     console.log("[rxdb-plugin] No clear needed, proceeding with existing IndexedDB");
   }
 
-  if (import.meta.dev) {
-    addRxPlugin(RxDBDevModePlugin);
-  }
-
   addRxPlugin(RxDBMigrationSchemaPlugin);
 
-  const storage = import.meta.dev
-    ? wrappedValidateAjvStorage({ storage: getRxStorageDexie() })
-    : getRxStorageDexie();
+  const storage = getRxStorageDexie();
 
   console.log("[rxdb-plugin] Creating RxDB database:", DB_NAME);
   const db = await createRxDatabase<ZadaciDatabase>({
@@ -526,6 +627,8 @@ export default defineNuxtPlugin(async () => {
     },
     user_status: { schema: USER_STATUS_SCHEMA, migrationStrategies: {} },
     tasks_activity: { schema: TASK_ACTIVITY_SCHEMA, migrationStrategies: {} },
+    messages: { schema: MESSAGE_SCHEMA, migrationStrategies: {} },
+    message_receipts: { schema: MESSAGE_RECEIPT_SCHEMA, migrationStrategies: {} },
   });
   console.log("[rxdb-plugin] All collections added");
 
@@ -539,7 +642,7 @@ export default defineNuxtPlugin(async () => {
 
   return {
     provide: {
-      rxdb: db,
+      rxdb: markRaw(db) as ZadaciDatabase,
     },
   };
 });

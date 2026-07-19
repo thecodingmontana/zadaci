@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import type { SystemEvent } from "~/types/chat";
-import { dummyMembers } from "~/lib/dummy-data/channel";
 
-const props = defineProps<{ event: SystemEvent }>();
-const participants = computed(() =>
-  props.event.participantIds.map((id) => dummyMembers.find((m) => m.id === id)!),
-);
-const names = computed(() => participants.value.map((p) => p.name).join(", "));
+defineProps<{ event: SystemEvent }>();
 </script>
 
 <template>
@@ -14,11 +9,11 @@ const names = computed(() => participants.value.map((p) => p.name).join(", "));
     <Icon name="lucide:phone" size="14" class="text-green-500" />
     <span class="font-medium text-foreground">Huddle ended</span>
     <div class="flex -space-x-1.5">
-      <Avatar v-for="p in participants" :key="p.id" class="h-5 w-5 border">
-        <AvatarImage :src="p.avatar" />
-        <AvatarFallback>{{ p.name[0] }}</AvatarFallback>
+      <Avatar v-for="pid in event.participantIds" :key="pid" class="h-5 w-5 border">
+        <AvatarImage />
+        <AvatarFallback>{{ pid.slice(0, 2) }}</AvatarFallback>
       </Avatar>
     </div>
-    <span>{{ names }} were in the huddle for {{ event.duration }}</span>
+    <span>{{ event.participantIds.length }} participants · {{ event.duration }}</span>
   </div>
 </template>

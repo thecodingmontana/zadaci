@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import type { MessageStatus } from "~/types/chat";
-
-const props = defineProps<{ status: MessageStatus }>();
+defineProps<{ status: "sent" | "delivered" | "seen" }>();
 </script>
 
 <template>
+  <Icon v-if="status === 'sent'" name="lucide:check" size="14" class="text-muted-foreground" />
   <Icon
-    :name="props.status === 'sent' ? 'lucide:check' : 'lucide:check-check'"
+    v-else-if="status === 'delivered'"
+    name="lucide:check-check"
     size="14"
-    :class="[props.status === 'read' ? 'text-blue-500' : 'text-muted-foreground']"
+    class="text-muted-foreground"
   />
+  <Icon v-else name="lucide:check-check" size="14" class="text-blue-500" />
 </template>

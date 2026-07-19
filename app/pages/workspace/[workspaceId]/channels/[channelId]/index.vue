@@ -1,133 +1,226 @@
 <script setup lang="ts">
-import type { ChatMessage, Thread } from "~/types/chat";
+import type { RxCollection } from "rxdb";
+import type { MessageDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
+import type { Thread } from "~/types/chat";
 import ChannelComposer from "~/components/workspace/channels/channel-composer.vue";
 import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
-import { dummyMessages, dummySystemEvents, dummyThreads } from "~/lib/dummy-data/channel";
 
 definePageMeta({
   middleware: ["authenticated"],
   layout: false,
 });
-const route = useRoute();
-const channelId = route.params.channelId as string;
-const channelName = ref<string | null>(null);
-const realMessages = ref<ChatMessage[]>([]);
-const messages = computed(() =>
-  realMessages.value.length > 0 ? realMessages.value : dummyMessages,
-);
-const { state, openThread, initThreadMeta } = useChannelPanel(channelId);
 
-for (const t of dummyThreads) {
-  initThreadMeta(t.parentMessageId, {
-    count: t.replies.length,
-    participantIds: t.replies.map((r) => r.authorId),
-  });
+const route = useRoute();
+const workspaceId = route.params.workspaceId as string;
+const channelId = route.params.channelId as string;
+
+const channelName = ref<string | null>(null);
+const currentMemberId = ref<string>("");
+
+const { state: _state, openThread } = useChannelPanel(channelId);
+
+const db = ref<ZadaciDatabase | null>(null);
+const messageCollection = ref<RxCollection<MessageDocType> | null>(null);
+
+const {
+  messages,
+  loading,
+  hasMore: _hasMore,
+  loadingMore: _loadingMore,
+  loadInitial,
+  loadOlder,
+  subscribe,
+  unsubscribe,
+  docToMessage,
+} = useMessageWindow(messageCollection, channelId);
+
+const hasLoaded = ref(false);
+const systemEvents = ref<any[]>([]);
+
+const workspaceIdRef = computed(() => workspaceId);
+const { data: members } = useWorkspaceMembers(workspaceIdRef);
+
+const messageSync = useMessageSync(() => channelId);
+// const receiptSync = useMessageReceiptSync(() => channelId);
+
+const channelSubRef = ref<{ unsubscribe: () => void } | null>(null);
+
+console.log("[index] REGISTERING onUnmounted at top level");
+onUnmounted(() => {
+  console.log("[index] onUnmounted FIRED — cleaning up");
+  channelSubRef.value?.unsubscribe();
+  unsubscribe();
+  messageSync.stop();
+  // receiptSync.stop();
+});
+
+function generateId(): string {
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  let result = "";
+  for (let i = 0; i < 16; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
-if (import.meta.client) {
-  useRxDbSafe().then((db) => {
-    if (!db) return;
-    const channelSub = db.channels.findOne(channelId).$.subscribe((doc) => {
+async function init() {
+  try {
+    const rxdb = await useRxDbSafe();
+    if (!rxdb) return;
+    db.value = rxdb;
+    messageCollection.value = rxdb.messages;
+
+    // Start RxDB sync for messages and receipts
+    try {
+      await messageSync.start();
+    } catch (e) {
+      console.error("[index] messageSync.start() threw:", e);
+    }
+    // await receiptSync.start();
+
+    // Subscribe to channel name
+    channelSubRef.value = rxdb.channels.findOne(channelId).$.subscribe((doc) => {
       channelName.value = doc?.name ?? null;
     });
-    const messagesSub = db.messages.find({ selector: { channelId } }).$.subscribe((docs) => {
-      realMessages.value = docs.map(mapDocToMessage);
-    });
-    onUnmounted(() => {
-      channelSub.unsubscribe();
-      messagesSub.unsubscribe();
-    });
-  });
+
+    // Subscribe to messages
+    await loadInitial();
+    subscribe();
+    hasLoaded.value = true;
+  } catch (e) {
+    console.error("[index] init() threw:", e);
+  }
 }
-function mapDocToMessage(doc: any): ChatMessage {
-  return {
-    id: doc.id,
-    authorId: doc.authorId,
-    content: doc.content,
-    createdAt: doc.createdAt,
-    status: doc.status,
-    attachment: doc.attachment,
-    reactions: doc.reactions,
-    thread: doc.threadCount
-      ? { count: doc.threadCount, participantIds: doc.threadParticipantIds }
-      : undefined,
+
+// Resolve current member ID once workspace members load
+const { user: authUser } = useUserSession();
+watch(
+  () => members.value,
+  (val) => {
+    if (!val || !authUser.value?.id) return;
+    const member = val.find((m: any) => m.userId === authUser.value!.id);
+    if (member) {
+      currentMemberId.value = member.id;
+    }
+  },
+  { immediate: true },
+);
+
+if (import.meta.client) {
+  window.onerror = (msg, source, line, col, err) => {
+    console.error("[global onerror]", { msg, source, line, col, err });
   };
-}
-async function onSend(content: string) {
-  const db = await useRxDbSafe();
-  await db?.messages.insert({
-    id: crypto.randomUUID(),
-    channelId,
-    authorId: "me",
-    content,
-    createdAt: new Date().toISOString(),
-    status: "sent",
+  window.addEventListener("unhandledrejection", (e) => {
+    console.error("[unhandledrejection]", e.reason);
+  });
+  init().catch((e) => {
+    console.error("[index] init() threw:", e);
   });
 }
-async function onReact(messageId: string, emoji: string) {
-  const db = await useRxDbSafe();
-  const doc = await db?.messages.findOne(messageId).exec();
+
+async function onSend(content: string) {
+  if (!db.value) return;
+  console.log("[channel] onSend:", { content, channelId, currentMemberId: currentMemberId.value });
+  const now = new Date().toISOString();
+  await db.value.messages.insert({
+    id: generateId(),
+    channel_id: channelId,
+    author_id: currentMemberId.value,
+    content,
+    edited_at: null,
+    reactions: [],
+    parent_message_id: null,
+    thread_reply_count: 0,
+    thread_participant_ids: [],
+    thread_last_reply_at: null,
+    created_at: now,
+    updated_at: now,
+    deleted_at: null,
+  });
+}
+
+async function onToggleReaction(messageId: string, emoji: string) {
+  if (!db.value) return;
+  const doc = await db.value.messages.findOne(messageId).exec();
   if (!doc) return;
+
   const reactions = [...(doc.reactions ?? [])];
   const existing = reactions.find((r) => r.emoji === emoji);
-  if (existing) existing.count += 1;
-  else reactions.push({ emoji, count: 1 });
-  await doc.patch({ reactions });
-}
-async function onOpenThread(messageId: string) {
-  try {
-    const db = await useRxDbSafe();
-    if (db) {
-      const parent = await db.messages.findOne(messageId).exec();
-      if (parent) {
-        const replies = await db.messages.find({ selector: { threadParentId: messageId } }).exec();
-        const thread: Thread = {
-          id: `thread-${messageId}`,
-          parentMessageId: messageId,
-          parentMessage: mapDocToMessage(parent),
-          replies: (replies ?? []).map(mapDocToMessage),
-        };
-        openThread(thread);
-        return;
+
+  if (existing) {
+    const idx = existing.member_ids.indexOf(currentMemberId.value);
+    if (idx !== -1) {
+      existing.member_ids.splice(idx, 1);
+      if (existing.member_ids.length === 0) {
+        const groupIdx = reactions.indexOf(existing);
+        reactions.splice(groupIdx, 1);
       }
+    } else {
+      existing.member_ids.push(currentMemberId.value);
     }
-  } catch {
-    // RxDB lookup failed, fall through to dummy data
+  } else {
+    reactions.push({ emoji, member_ids: [currentMemberId.value] });
   }
 
-  const dummyThread = dummyThreads.find((t) => t.parentMessageId === messageId);
-  if (dummyThread) {
-    openThread(dummyThread);
-    return;
-  }
-
-  const dummyMessage = dummyMessages.find((m) => m.id === messageId);
-  if (dummyMessage) {
-    initThreadMeta(messageId, { count: 0, participantIds: [] });
-    const thread: Thread = {
-      id: `thread-${messageId}`,
-      parentMessageId: messageId,
-      parentMessage: dummyMessage,
-      replies: [],
-    };
-    openThread(thread);
-  }
+  await doc.patch({ reactions, updated_at: new Date().toISOString() });
+  console.log("[channel] onToggleReaction:", { messageId, emoji, reactions });
 }
+
+async function onEditMessage(messageId: string, newContent: string) {
+  if (!db.value) return;
+  const doc = await db.value.messages.findOne(messageId).exec();
+  if (!doc) return;
+  await doc.patch({
+    content: newContent,
+    edited_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  console.log("[channel] onEditMessage:", { messageId, newContent });
+}
+
+async function onOpenThread(messageId: string) {
+  if (!db.value) return;
+
+  const parent = await db.value.messages.findOne(messageId).exec();
+  if (!parent) return;
+
+  const replies = await db.value.messages
+    .find({
+      selector: { parent_message_id: messageId, deleted_at: null },
+      sort: [{ created_at: "asc" }],
+    })
+    .exec();
+
+  const thread: Thread = {
+    id: `thread-${messageId}`,
+    parentMessageId: messageId,
+    parentMessage: docToMessage(parent),
+    replies: (replies ?? []).map(docToMessage),
+  };
+  openThread(thread);
+}
+
 const channelTitle = useWorkspacePageTitle("Channel", channelName);
 useSeoMeta({
   title: channelTitle,
   description: "Workspace channel — collaborate and communicate with your team in real time.",
 });
 </script>
+
 <template>
   <NuxtLayout name="workspace">
     <NuxtLayout name="workspace-channel">
       <ChannelMessages
         :messages="messages"
-        :system-events="dummySystemEvents"
-        :thread-meta="state.threadMeta"
-        @react="onReact"
+        :system-events="systemEvents"
+        :current-member-id="currentMemberId"
+        :channel-name="channelName ?? undefined"
+        :loading="loading"
+        :has-loaded="hasLoaded"
+        @toggle-reaction="onToggleReaction"
         @open-thread="onOpenThread"
+        @edit-message="onEditMessage"
+        @load-older="loadOlder"
       />
       <ChannelComposer @send="onSend" />
     </NuxtLayout>

@@ -4,41 +4,85 @@ import { Bubble, BubbleContent } from "~/components/ui/bubble";
 import EmojiPicker from "~/components/workspace/channels/emoji-picker.vue";
 import MessageAttachmentCard from "~/components/workspace/channels/message-attachment-card.vue";
 import MessageStatus from "~/components/workspace/channels/message-status.vue";
-import { dummyMembers } from "~/lib/dummy-data/channel";
 
 const props = defineProps<{
   message: ChatMessage;
   isOwn: boolean;
+  currentMemberId: string;
   showThreadEntry?: boolean;
-  threadMeta?: { count: number; participantIds: string[] } | null;
+  // For member display - Tier 2 data resolved at UI layer
+  memberName?: string;
+  memberAvatar?: string;
+  // Delivery status computed from receipts
+  deliveryStatus?: "sent" | "delivered" | "seen";
 }>();
 
 const emit = defineEmits<{
-  react: [messageId: string, emoji: string];
+  toggleReaction: [messageId: string, emoji: string];
   openThread: [messageId: string];
+  editMessage: [messageId: string, content: string];
 }>();
 
-function onReact(emoji: string) {
-  emit("react", props.message.id, emoji);
-}
+const isEditing = ref(false);
+const editContent = ref("");
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 const previewData = computed(() => {
-  const data = props.threadMeta ?? props.message.thread ?? null;
-  return data && data.count > 0 ? data : null;
+  if (!props.showThreadEntry) return null;
+  if (props.message.threadReplyCount > 0) {
+    return {
+      count: props.message.threadReplyCount,
+      participantIds: props.message.threadParticipantIds,
+    };
+  }
+  return null;
 });
+
+const isEdited = computed(() => {
+  return props.message.editedAt != null && props.message.editedAt !== props.message.createdAt;
+});
+
+function onEdit() {
+  isEditing.value = true;
+  editContent.value = props.message.content;
+  nextTick(() => {
+    textareaRef.value?.focus();
+    textareaRef.value?.setSelectionRange(editContent.value.length, editContent.value.length);
+  });
+}
+
+function cancelEdit() {
+  isEditing.value = false;
+  editContent.value = "";
+}
+
+function submitEdit() {
+  const trimmed = editContent.value.trim();
+  if (!trimmed || trimmed === props.message.content) {
+    cancelEdit();
+    return;
+  }
+  emit("editMessage", props.message.id, trimmed);
+  isEditing.value = false;
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    submitEdit();
+  }
+  if (e.key === "Escape") {
+    cancelEdit();
+  }
+}
 </script>
 
 <template>
-  <!--
-    Single flex-col owns ALL vertical spacing via one `gap-1`.
-    Do not add mt-* to individual children below — that's what caused
-    the large/inconsistent gaps on own messages. Every child here is a
-    normal-flow sibling, nothing absolutely positioned.
-  -->
   <div class="group/message flex flex-col gap-1" :class="[isOwn ? 'items-end' : 'items-start']">
     <Bubble
       :align="isOwn ? 'end' : 'start'"
       :variant="isOwn ? 'default' : 'secondary'"
+      :title="new Date(message.createdAt).toLocaleString()"
       :class="
         isOwn
           ? '[&>[data-slot=bubble-content]]:!bg-brand [&>[data-slot=bubble-content]]:!text-white'
@@ -46,8 +90,24 @@ const previewData = computed(() => {
       "
     >
       <BubbleContent>
-        <p class="text-sm break-words whitespace-pre-wrap">{{ message.content }}</p>
-        <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />
+        <template v-if="isEditing">
+          <textarea
+            ref="textareaRef"
+            v-model="editContent"
+            class="max-h-40 w-full resize-none bg-transparent text-sm outline-none"
+            @keydown="onKeydown"
+          />
+          <div class="mt-1 flex items-center gap-2">
+            <span class="text-[10px] text-white/60">Esc to cancel · Enter to save</span>
+          </div>
+        </template>
+        <template v-else>
+          <p class="text-sm break-words whitespace-pre-wrap">
+            {{ message.content }}
+            <span v-if="isEdited" class="ml-1 text-[10px] opacity-60">(edited)</span>
+          </p>
+          <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />
+        </template>
       </BubbleContent>
     </Bubble>
 
@@ -61,17 +121,18 @@ const previewData = computed(() => {
           :key="reaction.emoji"
           type="button"
           class="flex items-center gap-1 rounded-full border bg-background px-1.5 py-0.5 text-xs hover:bg-accent"
-          @click="onReact(reaction.emoji)"
+          @click="emit('toggleReaction', message.id, reaction.emoji)"
         >
           <span>{{ reaction.emoji }}</span>
-          <span class="text-muted-foreground">{{ reaction.count }}</span>
+          <!-- ERROR: member_ids undefined? {{ reaction }} -->
+          <span class="text-muted-foreground">?</span>
         </button>
       </div>
 
       <div
         class="flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-sm opacity-0 ring-3 ring-card transition-opacity group-hover/message:opacity-100 has-[button]:p-0"
       >
-        <EmojiPicker @select="onReact">
+        <EmojiPicker @select="(emoji) => emit('toggleReaction', message.id, emoji)">
           <button
             type="button"
             class="flex h-6 w-6 items-center justify-center rounded-full border bg-background hover:bg-accent"
@@ -87,14 +148,20 @@ const previewData = computed(() => {
         >
           <Icon name="lucide:message-square" size="12" />
         </button>
+        <button
+          v-if="isOwn && !isEditing"
+          type="button"
+          class="flex h-6 w-6 items-center justify-center rounded-full border bg-background hover:bg-accent"
+          aria-label="Edit message"
+          @click="onEdit"
+        >
+          <Icon name="lucide:pencil" size="12" />
+        </button>
       </div>
     </div>
 
-    <div
-      v-if="isOwn && message.status"
-      class="flex items-center gap-1 text-xs text-muted-foreground"
-    >
-      <MessageStatus :status="message.status" />
+    <div v-if="deliveryStatus" class="flex items-center gap-1 text-xs text-muted-foreground">
+      <MessageStatus :status="deliveryStatus" />
     </div>
 
     <button
@@ -109,7 +176,7 @@ const previewData = computed(() => {
           :key="pid"
           class="h-4 w-4 border"
         >
-          <AvatarImage :src="dummyMembers.find((m) => m.id === pid)?.avatar" />
+          <AvatarImage :src="undefined" :alt="pid" />
         </Avatar>
         <span
           v-if="previewData.participantIds.length > 3"

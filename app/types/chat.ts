@@ -18,21 +18,25 @@ export interface MessageAttachment {
 
 export interface MessageReaction {
   emoji: string;
-  count: number;
-  reacted?: boolean;
+  member_ids: string[];
 }
 
-export type MessageStatus = "sent" | "delivered" | "read";
+export type MessageStatus = "sent" | "delivered" | "seen";
 
 export interface ChatMessage {
   id: string;
+  channelId: string;
   authorId: string;
   content: string;
   createdAt: string;
-  status?: MessageStatus;
+  editedAt: string | null;
+  reactions: MessageReaction[];
+  parentMessageId: string | null;
+  threadReplyCount: number;
+  threadParticipantIds: string[];
+  threadLastReplyAt: string | null;
+  deletedAt: string | null;
   attachment?: MessageAttachment;
-  reactions?: MessageReaction[];
-  thread?: { count: number; participantIds: string[] };
 }
 
 export interface SystemEvent {
