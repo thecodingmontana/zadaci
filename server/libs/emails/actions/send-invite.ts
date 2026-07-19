@@ -32,12 +32,13 @@ export async function sendWorkspaceInvite({
     );
 
     await resend.emails.send({
-      from: "Team Zadaci <onboarding@resend.dev>",
+      from: "Team Zadaci <noreply@thegoodslab.tech>",
       to: [email],
       subject: `You've been invited to work together in ${workspace} workspace.`,
       html,
     });
+    console.log(`[email] sendWorkspaceInvite to ${email} succeeded`);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.error(`[email] sendWorkspaceInvite to ${email} failed:`, error.message);
   }
 }

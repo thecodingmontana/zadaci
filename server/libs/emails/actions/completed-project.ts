@@ -35,12 +35,13 @@ export async function sendProjectCompletionMail({
     );
 
     await resend.emails.send({
-      from: "Team Zadaci <onboarding@resend.dev>",
+      from: "Team Zadaci <noreply@thegoodslab.tech>",
       to: [email],
       subject: `✅ Your project has been marked as completed!`,
       html,
     });
+    console.log(`[email] sendProjectCompletionMail to ${email} succeeded`);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.error(`[email] sendProjectCompletionMail to ${email} failed:`, error.message);
   }
 }

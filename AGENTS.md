@@ -64,6 +64,12 @@ Resolve display info at the UI layer via the TanStack Query member list.
 | Missing `toast` imports in new components                                                     | `invite-member-form.vue`, `invite-email-tags.vue`             | Fixed.                                                                                                                                                                                                                                                                 |
 | Unsafe `!` assertion                                                                          | `add-member.vue`                                              | Fixed `workspace?.id!` → `workspace?.id ?? ''`.                                                                                                                                                                                                                        |
 
+### ✅ Fixed (2026-07-18 — email resilience)
+All 9 email action functions (`send-invite.ts`, `send-project-assignment.ts`, `send-task-assignment.ts`,
+`completed-project.ts`, `completed-task.ts`, `workspace-welcome.ts`, `workspace-decline.ts`,
+`unique-code-request.ts`, `join-waitlist.ts`) now log success/failure instead of throwing.
+Email send failures no longer crash the API request — the DB write succeeds regardless.
+
 ### ⚠️ Open items (not yet fixed)
 
 1. **RxDB collections for workspace_members and user_status still registered** in `rxdb.client.ts`. They stay empty (no sync composable runs). Safe, but should be removed in a future cleanup with an IndexedDB schema migration.

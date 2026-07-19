@@ -17,12 +17,13 @@ export async function sendWaitlistMail({ email }: Props) {
     );
 
     await resend.emails.send({
-      from: "Team Zadaci <onboarding@resend.dev>",
+      from: "Team Zadaci <noreply@thegoodslab.tech>",
       to: [email],
       subject: `You're on the waitlist!`,
       html,
     });
+    console.log(`[email] sendWaitlistMail to ${email} succeeded`);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.error(`[email] sendWaitlistMail to ${email} failed:`, error.message);
   }
 }

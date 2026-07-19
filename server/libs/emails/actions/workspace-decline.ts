@@ -26,12 +26,13 @@ export async function sendWorkspaceDeclineMail({
     );
 
     await resend.emails.send({
-      from: "Team Zadaci <onboarding@resend.dev>",
+      from: "Team Zadaci <noreply@thegoodslab.tech>",
       to: [email],
       subject: `❌ Invite Declined for ${workspace} workspace.`,
       html,
     });
+    console.log(`[email] sendWorkspaceDeclineMail to ${email} succeeded`);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.error(`[email] sendWorkspaceDeclineMail to ${email} failed:`, error.message);
   }
 }

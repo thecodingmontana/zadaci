@@ -20,12 +20,13 @@ export async function sendUniqueCodeRequest({ code, email }: Props) {
     );
 
     await resend.emails.send({
-      from: "Team Zadaci <onboarding@resend.dev>",
+      from: "Team Zadaci <noreply@thegoodslab.tech>",
       to: [email],
       subject: `Your unique Zadaci sign up code is ${code}`,
       html,
     });
+    console.log(`[email] sendUniqueCodeRequest to ${email} succeeded`);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.error(`[email] sendUniqueCodeRequest to ${email} failed:`, error.message);
   }
 }

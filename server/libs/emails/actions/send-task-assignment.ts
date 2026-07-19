@@ -39,12 +39,13 @@ export async function sendTaskAssignmentEmail({
     );
 
     await resend.emails.send({
-      from: "Team Zadaci <onboarding@resend.dev>",
+      from: "Team Zadaci <noreply@thegoodslab.tech>",
       to: [email],
       subject: `You’ve been assigned to the task in the ${workspace} workspace!`,
       html,
     });
+    console.log(`[email] sendTaskAssignmentEmail to ${email} succeeded`);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.error(`[email] sendTaskAssignmentEmail to ${email} failed:`, error.message);
   }
 }

@@ -22,12 +22,13 @@ export async function sendWorkspaceWelcomeMail({ email, link, workspace }: TeamI
     );
 
     await resend.emails.send({
-      from: "Team Zadaci <onboarding@resend.dev>",
+      from: "Team Zadaci <noreply@thegoodslab.tech>",
       to: [email],
       subject: `🎉 Welcome to ${workspace} workspace.`,
       html,
     });
+    console.log(`[email] sendWorkspaceWelcomeMail to ${email} succeeded`);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.error(`[email] sendWorkspaceWelcomeMail to ${email} failed:`, error.message);
   }
 }

@@ -36,12 +36,13 @@ export async function sendProjectAssignmentEmail({
     );
 
     await resend.emails.send({
-      from: "Team Zadaci <onboarding@resend.dev>",
+      from: "Team Zadaci <noreply@thegoodslab.tech>",
       to: [email],
       subject: `You've been added to project "${project}" on ${workspace} workspace!`,
       html,
     });
+    console.log(`[email] sendProjectAssignmentEmail to ${email} succeeded`);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.error(`[email] sendProjectAssignmentEmail to ${email} failed:`, error.message);
   }
 }

@@ -38,12 +38,13 @@ export async function sendTaskCompletionMail({
     );
 
     await resend.emails.send({
-      from: "Team Zadaci <onboarding@resend.dev>",
+      from: "Team Zadaci <noreply@thegoodslab.tech>",
       to: [email],
       subject: `✅ Your task has been marked as completed!`,
       html,
     });
+    console.log(`[email] sendTaskCompletionMail to ${email} succeeded`);
   } catch (error: any) {
-    throw new Error(error.message);
+    console.error(`[email] sendTaskCompletionMail to ${email} failed:`, error.message);
   }
 }
