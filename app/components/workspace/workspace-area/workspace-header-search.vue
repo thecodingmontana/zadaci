@@ -195,7 +195,38 @@ const commandGroups = computed<CommandGroup[]>(() => [
 ]);
 
 function onCommandRun(row: CommandRow) {
-  console.log("command run", row);
+  const wsId = workspaceId.value;
+  if (!wsId) return;
+  if (row.kind === "person") {
+    navigateTo(`/workspace/${wsId}/conversations/${row.id}`);
+    return;
+  }
+  switch (row.id) {
+    case "dashboard":
+      navigateTo(`/workspace/${wsId}/dashboard`);
+      break;
+    case "members":
+      navigateTo(`/workspace/${wsId}/members`);
+      break;
+    case "calendar":
+      navigateTo(`/workspace/${wsId}/calendar`);
+      break;
+    case "new-task":
+    case "new-project":
+    case "new-channel":
+      console.log("open modal for", row.id);
+      break;
+    default: {
+      const isProject = projects.value.some((p) => p.id === row.id);
+      const isChannel = channels.value.some((c) => c.id === row.id);
+      const isTeam = teams.value.some((t) => t.id === row.id);
+      if (isProject) navigateTo(`/workspace/${wsId}/projects/${row.id}`);
+      else if (isChannel) navigateTo(`/workspace/${wsId}/channels/${row.id}`);
+      else if (isTeam) navigateTo(`/workspace/${wsId}/teams/${row.id}`);
+      else console.log("command run", row);
+      break;
+    }
+  }
 }
 
 const projectList = computed(() => projects.value.filter((p) => !p.deleted_at));
