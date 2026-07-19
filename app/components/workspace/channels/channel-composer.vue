@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import EmojiPicker from "~/components/workspace/channels/emoji-picker.vue";
 
-defineProps<{ typingLabel?: string }>();
+defineProps<{ typingLabel?: string; placeholder?: string }>();
 const emit = defineEmits<{ send: [content: string] }>();
 const content = ref("");
 const textareaRef = ref<HTMLTextAreaElement>();
@@ -46,7 +46,7 @@ function onKeydown(e: KeyboardEvent) {
         ref="textareaRef"
         v-model="content"
         rows="1"
-        placeholder="Message #general"
+        :placeholder="placeholder ?? 'Message #general'"
         class="max-h-40 w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none"
         @keydown="onKeydown"
       />

@@ -24,7 +24,34 @@ function onReact(emoji: string) {
 
 <template>
   <div class="group/message relative">
-    <Bubble :align="isOwn ? 'end' : 'start'" :variant="isOwn ? 'default' : 'secondary'">
+    <!-- Hover action bar -->
+    <div
+      class="absolute end-2 top-0 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-lg border bg-background p-0.5 opacity-0 shadow-sm transition-opacity group-hover/message:opacity-100"
+    >
+      <EmojiPicker @select="onReact">
+        <Button variant="ghost" size="icon-xs" aria-label="Add reaction">
+          <Icon name="lucide:smile-plus" size="14" />
+        </Button>
+      </EmojiPicker>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="Reply in thread"
+        @click="emit('openThread', message.id)"
+      >
+        <Icon name="lucide:message-square" size="14" />
+      </Button>
+    </div>
+
+    <Bubble
+      :align="isOwn ? 'end' : 'start'"
+      :variant="isOwn ? 'default' : 'secondary'"
+      :class="
+        isOwn
+          ? '[&>[data-slot=bubble-content]]:!bg-brand [&>[data-slot=bubble-content]]:!text-white'
+          : ''
+      "
+    >
       <BubbleContent>
         <p class="text-sm whitespace-pre-wrap">{{ message.content }}</p>
         <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />
@@ -46,14 +73,6 @@ function onReact(emoji: string) {
           <span>{{ reaction.emoji }}</span>
           <span class="text-muted-foreground">{{ reaction.count }}</span>
         </button>
-        <EmojiPicker @select="onReact">
-          <button
-            type="button"
-            class="flex h-6 w-6 items-center justify-center rounded-full border bg-background opacity-0 transition-opacity group-hover/message:opacity-100 hover:bg-accent"
-          >
-            <Icon name="lucide:smile-plus" size="12" />
-          </button>
-        </EmojiPicker>
       </BubbleReactions>
     </Bubble>
 

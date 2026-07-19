@@ -2,7 +2,7 @@
 import type { ChatMessage, Thread } from "~/types/chat";
 import ChannelComposer from "~/components/workspace/channels/channel-composer.vue";
 import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
-import { dummyMessages, dummySystemEvents } from "~/lib/dummy-data/channel";
+import { dummyMessages, dummySystemEvents, dummyThreads } from "~/lib/dummy-data/channel";
 
 definePageMeta({
   middleware: ["authenticated"],
@@ -68,16 +68,39 @@ async function onReact(messageId: string, emoji: string) {
 }
 async function onOpenThread(messageId: string) {
   const db = await useRxDbSafe();
+
+  // Try RxDB first
   const parent = await db?.messages.findOne(messageId).exec();
-  const replies = await db?.messages.find({ selector: { threadParentId: messageId } }).exec();
-  if (!parent) return;
-  const thread: Thread = {
-    id: `thread-${messageId}`,
-    parentMessageId: messageId,
-    parentMessage: mapDocToMessage(parent),
-    replies: (replies ?? []).map(mapDocToMessage),
-  };
-  openThread(thread);
+  if (parent) {
+    const replies = await db?.messages.find({ selector: { threadParentId: messageId } }).exec();
+    const thread: Thread = {
+      id: `thread-${messageId}`,
+      parentMessageId: messageId,
+      parentMessage: mapDocToMessage(parent),
+      replies: (replies ?? []).map(mapDocToMessage),
+    };
+    openThread(thread);
+    return;
+  }
+
+  // Fallback: find in dummy thread data
+  const dummyThread = dummyThreads.find((t) => t.parentMessageId === messageId);
+  if (dummyThread) {
+    openThread(dummyThread);
+    return;
+  }
+
+  // Create a new thread from the dummy message
+  const dummyMessage = dummyMessages.find((m) => m.id === messageId);
+  if (dummyMessage) {
+    const thread: Thread = {
+      id: `thread-${messageId}`,
+      parentMessageId: messageId,
+      parentMessage: dummyMessage,
+      replies: [],
+    };
+    openThread(thread);
+  }
 }
 const channelTitle = useWorkspacePageTitle("Channel", channelName);
 useSeoMeta({
