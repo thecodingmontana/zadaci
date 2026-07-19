@@ -71,10 +71,13 @@ watch(
         :initial="{ opacity: 0, y: 8 }"
         :animate="{ opacity: 1, y: 0 }"
         :transition="{ duration: 0.18 }"
-        class="flex gap-2 pb-3"
-        :class="[group[0].authorId === currentUserId ? 'flex-row-reverse' : '']"
+        class="flex items-start gap-2 pb-3"
+        :class="[group[0].authorId === currentUserId ? 'justify-end' : '']"
       >
-        <Avatar class="mt-0.5 h-8 w-8 shrink-0">
+        <Avatar
+          class="mt-0.5 h-8 w-8 shrink-0"
+          :class="[group[0].authorId === currentUserId ? 'order-last' : '']"
+        >
           <AvatarImage :src="memberOf(group[0].authorId).avatar" />
           <AvatarFallback>{{ memberOf(group[0].authorId).name[0] }}</AvatarFallback>
         </Avatar>

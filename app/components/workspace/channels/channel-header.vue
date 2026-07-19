@@ -6,7 +6,7 @@ const emit = defineEmits<{ toggleInfo: [] }>();
 </script>
 
 <template>
-  <header class="flex items-center justify-between border-b px-4 py-3">
+  <header class="flex items-center justify-between border-b px-3 py-3">
     <div class="flex items-center gap-x-1">
       <Icon name="hugeicons:message-multiple-01" size="16" />
       <p class="text-sm text-muted-foreground">Marketing Teams</p>

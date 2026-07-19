@@ -23,12 +23,19 @@ function onReact(emoji: string) {
 }
 
 const previewData = computed(() => {
-  return props.threadMeta ?? props.message.thread ?? null;
+  const data = props.threadMeta ?? props.message.thread ?? null;
+  return data && data.count > 0 ? data : null;
 });
 </script>
 
 <template>
-  <div class="group/message">
+  <!--
+    Single flex-col owns ALL vertical spacing via one `gap-1`.
+    Do not add mt-* to individual children below — that's what caused
+    the large/inconsistent gaps on own messages. Every child here is a
+    normal-flow sibling, nothing absolutely positioned.
+  -->
+  <div class="group/message flex flex-col gap-1" :class="[isOwn ? 'items-end' : 'items-start']">
     <Bubble
       :align="isOwn ? 'end' : 'start'"
       :variant="isOwn ? 'default' : 'secondary'"
@@ -39,12 +46,12 @@ const previewData = computed(() => {
       "
     >
       <BubbleContent>
-        <p class="text-sm whitespace-pre-wrap">{{ message.content }}</p>
+        <p class="text-sm break-words whitespace-pre-wrap">{{ message.content }}</p>
         <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />
       </BubbleContent>
     </Bubble>
 
-    <div class="mt-1.5 flex items-center gap-1" :class="[isOwn ? 'justify-end' : '']">
+    <div class="flex items-center gap-1" :class="[isOwn ? 'justify-end' : '']">
       <div
         v-if="message.reactions?.length"
         class="flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-sm ring-3 ring-card"
@@ -84,16 +91,16 @@ const previewData = computed(() => {
     </div>
 
     <div
-      class="mt-1 flex items-center gap-1 text-xs text-muted-foreground"
-      :class="[isOwn ? 'justify-end' : 'justify-start']"
+      v-if="isOwn && message.status"
+      class="flex items-center gap-1 text-xs text-muted-foreground"
     >
-      <MessageStatus v-if="isOwn && message.status" :status="message.status" />
+      <MessageStatus :status="message.status" />
     </div>
 
     <button
       v-if="showThreadEntry && previewData"
       type="button"
-      class="mt-1.5 flex items-center gap-2 rounded-md border bg-background px-2 py-1 text-xs hover:bg-accent"
+      class="flex items-center gap-2 rounded-md border bg-background px-2 py-1 text-xs hover:bg-accent"
       @click="emit('openThread', message.id)"
     >
       <div class="flex -space-x-1.5">
