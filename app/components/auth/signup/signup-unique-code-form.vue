@@ -1,6 +1,6 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { ArrowRight, Loader2, RotateCw } from "@lucide/vue";
+import { ArrowRight, Loader2 } from "@lucide/vue";
 import { useForm } from "vee-validate";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { toast } from "~/lib/toast";
@@ -24,45 +24,29 @@ const sendUniqueCodeForm = useForm({
   validationSchema: sendUniqueCodeSchema,
 });
 
-const onSendUniqueCode = sendUniqueCodeForm.handleSubmit(async (values) => {
-  try {
-    isSendingCode.value = true;
-
-    const res = await $fetch("/api/auth/signup/send-unique-code", {
-      method: "POST",
-      body: {
-        email: values.email,
-      },
+const onSendUniqueCode = sendUniqueCodeForm.handleSubmit((values) => {
+  isSendingCode.value = true;
+  const promise = $fetch("/api/auth/signup/send-unique-code", {
+    method: "POST",
+    body: { email: values.email },
+  });
+  toast.promise(promise, {
+    loading: "Sending code...",
+    success: (res: any) => res.message ?? "Verification code sent",
+    error: (err: any) =>
+      err?.response?._data?.message ?? err?.message ?? "Couldn't send the code, please try again.",
+    desc: "Check your inbox for the code",
+    errorDesc: "Check your email and try again",
+    position: "top-center",
+  });
+  promise
+    .then(() => {
+      props.onResetForm({ mail: values.email, codeSent: true });
+    })
+    .catch(() => {})
+    .finally(() => {
+      isSendingCode.value = false;
     });
-
-    toast.success(res.message ?? "Verification code sent", {
-      desc: "Check your inbox for the code",
-      position: "top-center",
-      action: {
-        label: "Continue",
-        icon: ArrowRight,
-      },
-    });
-
-    props.onResetForm({
-      mail: values.email,
-      codeSent: true,
-    });
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.message : error?.message;
-
-    toast.error(errorMessage ?? "Couldn't send the code, please try again.", {
-      desc: "Check your email and try again",
-      position: "top-center",
-      action: {
-        label: "Retry",
-        icon: RotateCw,
-        onClick: onSendUniqueCode,
-      },
-    });
-  } finally {
-    isSendingCode.value = false;
-  }
 });
 </script>
 

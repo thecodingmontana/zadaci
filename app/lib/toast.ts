@@ -66,8 +66,9 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
     msg: {
       loading: string;
       success: string | ((v: Tn) => string);
-      error: string;
+      error: string | ((err: unknown) => string);
       desc?: string;
+      errorDesc?: string;
       position?: ToastPosition;
     },
   ) {
@@ -80,7 +81,13 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
           type: "success",
         }),
       )
-      .catch(() => update(id, { title: msg.error, type: "error" }));
+      .catch((err) =>
+        update(id, {
+          title: typeof msg.error === "function" ? msg.error(err) : msg.error,
+          desc: msg.errorDesc ?? msg.desc,
+          type: "error",
+        }),
+      );
     return id;
   },
 });

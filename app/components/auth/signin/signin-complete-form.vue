@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, Loader2, RotateCw } from "@lucide/vue";
+import { ArrowRight, Loader2 } from "@lucide/vue";
 import { useForm } from "vee-validate";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { toast } from "~/lib/toast";
@@ -27,49 +27,31 @@ function setIsResendingCode(payload: boolean) {
   isResendCode.value = payload;
 }
 
-const onSubmit = form.handleSubmit(async (values) => {
-  try {
-    isSigningIn.value = true;
-
-    const res = await $fetch("/api/auth/signin", {
-      method: "POST",
-      body: {
-        email: props.email,
-        code: values.code,
-      },
+const onSubmit = form.handleSubmit((values) => {
+  isSigningIn.value = true;
+  const promise = $fetch("/api/auth/signin", {
+    method: "POST",
+    body: { email: props.email, code: values.code },
+  });
+  toast.promise(promise, {
+    loading: "Signing in...",
+    success: (res: any) => res.message ?? "Signed in successfully",
+    error: (err: any) =>
+      err?.response?._data?.message ?? err?.message ?? "Sign in failed, please try again.",
+    desc: "Redirecting you to onboarding",
+    errorDesc: "Check your code and try again",
+    position: "top-center",
+  });
+  promise
+    .then(async () => {
+      props.onResetForm({ mail: "", codeSent: false });
+      await refreshSession();
+      return navigateTo("/workspace/onboarding");
+    })
+    .catch(() => {})
+    .finally(() => {
+      isSigningIn.value = false;
     });
-
-    toast.success(res.message ?? "Signed in successfully", {
-      desc: "Redirecting you to onboarding",
-      position: "top-center",
-      action: {
-        label: "Continue",
-        icon: ArrowRight,
-      },
-    });
-
-    props.onResetForm({
-      mail: "",
-      codeSent: false,
-    });
-
-    await refreshSession();
-    return navigateTo("/workspace/onboarding");
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.message : error?.message;
-
-    toast.error(errorMessage ?? "Sign in failed, please try again.", {
-      desc: "Check your code and try again",
-      position: "top-center",
-      action: {
-        label: "Retry",
-        icon: RotateCw,
-        onClick: onSubmit,
-      },
-    });
-  } finally {
-    isSigningIn.value = false;
-  }
 });
 
 function onClear() {

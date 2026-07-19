@@ -36,26 +36,27 @@ function onChangeRole() {
   });
 }
 
-async function onRemoveUser() {
+function onRemoveUser() {
   const original = props.row.original;
   isRemoving.value = true;
-  try {
-    const data = await $fetch<{ message: string }>(
-      `/api/workspace/${original.workspaceId}/teammates/remove`,
-      {
-        method: "DELETE",
-        body: { userIds: [original.userId], workspaceId: original.workspaceId },
-      },
-    );
-    toast.success(data.message);
-    queryClient.invalidateQueries({ queryKey: ["workspace-members"] });
-  } catch (error: any) {
-    toast.error(
-      error.response?._data?.statusMessage ?? error.message ?? "Failed to remove teammate",
-    );
-  } finally {
-    isRemoving.value = false;
-  }
+  const promise = $fetch<{ message: string }>(
+    `/api/workspace/${original.workspaceId}/teammates/remove`,
+    {
+      method: "DELETE",
+      body: { userIds: [original.userId], workspaceId: original.workspaceId },
+    },
+  );
+  toast.promise(promise, {
+    loading: "Removing user...",
+    success: (data) => data.message,
+    error: "Failed to remove teammate",
+  });
+  promise
+    .then(() => queryClient.invalidateQueries({ queryKey: ["workspace-members"] }))
+    .catch(() => {})
+    .finally(() => {
+      isRemoving.value = false;
+    });
 }
 </script>
 

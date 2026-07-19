@@ -16,8 +16,27 @@ const { user } = useUserSession();
 const channels = ref<ChannelDocType[]>([]);
 const channelMembers = ref<ChannelMemberDocType[]>([]);
 
-const { data: workspaceMembers, status: membersStatus } = useWorkspaceMembers(workspaceId);
+const { data: workspaceMembers } = useWorkspaceMembers(workspaceId);
 const { data: userStatuses } = useUserStatuses(workspaceId);
+const presence2 = useWorkspacePresence(() => workspaceId.value);
+const { onlineUserIds } = presence2;
+
+const publicChannels = computed(() =>
+  channels.value.filter((c) => c.type === "public" || c.type === "private"),
+);
+
+const dmMembers = computed(() => workspaceMembers.value ?? []);
+
+onMounted(() => {
+  presence2.start();
+  console.log("[nav-comm] mounted", {
+    onlineSize: onlineUserIds.value.size,
+    onlineIds: Array.from(onlineUserIds.value),
+    dmMemberCount: dmMembers.value.length,
+    dmUserIds: dmMembers.value.map((m) => m.userId),
+    currentUserId: user.value?.id,
+  });
+});
 
 const subscriptions: (() => void)[] = [];
 const loading = ref(true);
@@ -65,31 +84,28 @@ watch(
   { immediate: true },
 );
 
-watch([membersStatus], ([ms]) => {
-  if (ms === "success") loading.value = false;
-});
-
 onUnmounted(() => {
   subscriptions.forEach((fn) => fn());
 });
 
-const publicChannels = computed(() =>
-  channels.value.filter((c) => c.type === "public" || c.type === "private"),
-);
-
-const dmMembers = computed(() => workspaceMembers.value ?? []);
-
-const statusMap = computed(() => {
+const memberStatuses = computed(() => {
   const map = new Map<string, string>();
-  for (const s of userStatuses.value ?? []) {
-    map.set(s.userId, s.status);
+  const online = onlineUserIds.value;
+  const statuses = userStatuses.value ?? [];
+  const statusMap = new Map(statuses.map((s) => [s.userId, s.status]));
+  for (const member of dmMembers.value ?? []) {
+    if (online.has(member.userId)) {
+      const customStatus = statusMap.get(member.userId);
+      map.set(
+        member.userId,
+        customStatus && customStatus !== "offline" ? customStatus : "available",
+      );
+    } else {
+      map.set(member.userId, "offline");
+    }
   }
   return map;
 });
-
-function getStatus(userId: string): string | undefined {
-  return statusMap.value.get(userId);
-}
 
 const statusStyles: Record<string, string> = {
   available: "bg-green-500",
@@ -126,12 +142,35 @@ const initials = (name: string) =>
 
 const handleAdd = (key: string, event: Event) => {
   event.stopPropagation();
-  console.log("add", key);
 };
+
+watch(onlineUserIds, (ids) => {
+  console.log("[nav-comm] onlineUserIds changed:", Array.from(ids));
+});
+
+watch(
+  memberStatuses,
+  (map) => {
+    const entries: Record<string, string> = {};
+    map.forEach((v, k) => {
+      entries[k] = v;
+    });
+    console.log("[nav-comm] memberStatuses changed:", entries);
+  },
+  { deep: true },
+);
 
 function resolveMemberStatus(member?: TeammatesWithProfile): string {
   if (!member) return "offline";
-  return getStatus(member.userId) ?? "available";
+  const status = memberStatuses.value.get(member.userId) ?? "offline";
+  if (member.userId === user.value?.id) {
+    console.log("[nav-comm] resolveMemberStatus for YOU:", {
+      status,
+      memberId: member.userId,
+      currentUserId: user.value?.id,
+    });
+  }
+  return status;
 }
 
 function resolveMemberRole(member?: TeammatesWithProfile): string {
@@ -259,110 +298,113 @@ function resolveMemberRole(member?: TeammatesWithProfile): string {
         </div>
       </div>
 
-      <CollapsibleContent>
-        <div v-if="loading" class="mt-1 space-y-2 pl-1">
-          <div v-for="n in 3" :key="n" class="flex items-center space-x-2 p-1">
-            <Skeleton class="h-5 w-5 rounded-full" />
-            <Skeleton class="h-3.5 w-[45%]" />
-          </div>
-        </div>
-
-        <div v-else class="mt-1 space-y-1">
-          <NuxtLink
-            v-for="dm in dmMembers"
-            :key="dm.id"
-            v-slot="{ isActive, href, navigate }"
-            :to="`/workspace/${workspaceId}/conversations/${dm.userId}`"
-            custom
-          >
-            <a
-              :href="href"
-              class="flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
-              :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
-              @click="navigate"
+      <ClientOnly>
+        <CollapsibleContent>
+          <div class="mt-1 space-y-1">
+            <NuxtLink
+              v-for="dm in dmMembers"
+              :key="dm.id"
+              v-slot="{ isActive, href, navigate }"
+              :to="`/workspace/${workspaceId}/conversations/${dm.userId}`"
+              custom
             >
-              <div class="flex min-w-0 items-center space-x-2">
-                <Popover>
-                  <PopoverTrigger as-child @click.stop>
-                    <div class="relative shrink-0 cursor-pointer">
-                      <Avatar class="h-5 w-5">
-                        <AvatarImage
-                          :src="dm.user.profilePictureUrl ?? ''"
-                          :alt="dm.user.username ?? ''"
-                        />
-                        <AvatarFallback class="text-[10px]">
-                          {{ initials(dm.user.username ?? "") }}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span
-                        class="absolute -right-0.5 -bottom-0.5 h-2 w-2 rounded-full ring-2 ring-background"
-                        :class="statusStyles[resolveMemberStatus(dm)]"
-                      />
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent side="right" align="start" class="w-56 p-3">
-                    <div class="flex items-center space-x-3">
-                      <div class="relative shrink-0">
-                        <Avatar class="h-9 w-9">
+              <a
+                :href="href"
+                class="flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+                @click="navigate"
+              >
+                <div class="flex min-w-0 items-center space-x-2">
+                  <Popover>
+                    <PopoverTrigger as-child @click.stop>
+                      <div class="relative shrink-0 cursor-pointer">
+                        <Avatar class="h-5 w-5">
                           <AvatarImage
                             :src="dm.user.profilePictureUrl ?? ''"
                             :alt="dm.user.username ?? ''"
                           />
-                          <AvatarFallback>{{ initials(dm.user.username ?? "") }}</AvatarFallback>
+                          <AvatarFallback class="text-[10px]">
+                            {{ initials(dm.user.username ?? "") }}
+                          </AvatarFallback>
                         </Avatar>
                         <span
-                          class="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background"
+                          class="absolute -right-0.5 -bottom-0.5 h-2 w-2 rounded-full ring-2 ring-background"
                           :class="statusStyles[resolveMemberStatus(dm)]"
                         />
                       </div>
-                      <div class="min-w-0">
-                        <p class="truncate text-sm font-semibold">
-                          {{ dm.user.username }}
-                          <span v-if="dm.userId === user?.id" class="text-muted-foreground"
-                            >(You)</span
-                          >
-                        </p>
-                        <p class="truncate text-xs text-muted-foreground">
-                          {{ resolveMemberRole(dm) }}
-                        </p>
+                    </PopoverTrigger>
+                    <PopoverContent side="right" align="start" class="w-56 p-3">
+                      <div class="flex items-center space-x-3">
+                        <div class="relative shrink-0">
+                          <Avatar class="h-9 w-9">
+                            <AvatarImage
+                              :src="dm.user.profilePictureUrl ?? ''"
+                              :alt="dm.user.username ?? ''"
+                            />
+                            <AvatarFallback>{{ initials(dm.user.username ?? "") }}</AvatarFallback>
+                          </Avatar>
+                          <span
+                            class="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background"
+                            :class="statusStyles[resolveMemberStatus(dm)]"
+                          />
+                        </div>
+                        <div class="min-w-0">
+                          <p class="truncate text-sm font-semibold">
+                            {{ dm.user.username }}
+                            <span v-if="dm.userId === user?.id" class="text-muted-foreground"
+                              >(You)</span
+                            >
+                          </p>
+                          <p class="truncate text-xs text-muted-foreground">
+                            {{ resolveMemberRole(dm) }}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div class="mt-3 flex items-center space-x-1.5 text-xs text-muted-foreground">
-                      <span
-                        class="h-1.5 w-1.5 rounded-full"
-                        :class="statusStyles[resolveMemberStatus(dm)]"
-                      />
-                      <span>{{ statusLabels[resolveMemberStatus(dm)] ?? "Offline" }}</span>
-                    </div>
-                    <div class="mt-3 flex space-x-2">
-                      <Button size="sm" class="h-7 flex-1 text-xs">
-                        <Icon name="hugeicons:message-01" size="14" class="mr-1" />
-                        Message
-                      </Button>
-                      <Button size="sm" variant="outline" class="h-7 flex-1 text-xs">
-                        <Icon name="hugeicons:call-02" size="14" class="mr-1" />
-                        Call
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <p class="truncate text-sm">
-                  {{ dm.user.username }}
-                  <span v-if="dm.userId === user?.id" class="text-muted-foreground">(You)</span>
-                </p>
-              </div>
-            </a>
-          </NuxtLink>
+                      <div class="mt-3 flex items-center space-x-1.5 text-xs text-muted-foreground">
+                        <span
+                          class="h-1.5 w-1.5 rounded-full"
+                          :class="statusStyles[resolveMemberStatus(dm)]"
+                        />
+                        <span>{{ statusLabels[resolveMemberStatus(dm)] ?? "Offline" }}</span>
+                      </div>
+                      <div class="mt-3 flex space-x-2">
+                        <Button size="sm" class="h-7 flex-1 text-xs">
+                          <Icon name="hugeicons:message-01" size="14" class="mr-1" />
+                          Message
+                        </Button>
+                        <Button size="sm" variant="outline" class="h-7 flex-1 text-xs">
+                          <Icon name="hugeicons:call-02" size="14" class="mr-1" />
+                          Call
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <p class="truncate text-sm">
+                    {{ dm.user.username }}
+                    <span v-if="dm.userId === user?.id" class="text-muted-foreground">(You)</span>
+                  </p>
+                </div>
+              </a>
+            </NuxtLink>
 
-          <div
-            class="flex cursor-pointer items-center space-x-2 rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
-            @click="handleAdd('directMessage', $event)"
-          >
-            <Icon name="hugeicons:plus-sign" size="14" />
-            <span>Add new user</span>
+            <div
+              class="flex cursor-pointer items-center space-x-2 rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+              @click="handleAdd('directMessage', $event)"
+            >
+              <Icon name="hugeicons:plus-sign" size="14" />
+              <span>Add new user</span>
+            </div>
           </div>
-        </div>
-      </CollapsibleContent>
+        </CollapsibleContent>
+        <template #fallback>
+          <div class="mt-1 space-y-2 pl-1">
+            <div v-for="n in 3" :key="n" class="flex items-center space-x-2 p-1">
+              <Skeleton class="h-5 w-5 rounded-full" />
+              <Skeleton class="h-3.5 w-[45%]" />
+            </div>
+          </div>
+        </template>
+      </ClientOnly>
     </Collapsible>
   </div>
 </template>

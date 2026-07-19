@@ -66,6 +66,9 @@ const userStatusesRt = useUserStatusesRealtime(wsId);
 const workspacesRt = useWorkspacesRealtime();
 const sidebarProjectsRt = useSidebarProjectsRealtime(wsId);
 
+// ── User presence tracking (Supabase Realtime Presence) ──
+const presence = useWorkspacePresence(wsId);
+
 function allSyncs() {
   return [
     taskSync,
@@ -88,6 +91,7 @@ function allRealtimeSubs() {
     userStatusesRt,
     workspacesRt,
     sidebarProjectsRt,
+    presence,
   ] as const;
 }
 

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { RxCollection } from "rxdb";
-import type { CommandGroup, CommandRow } from "~/components/ui/command-menu/types";
+import type { CommandGroup, CommandPresence, CommandRow } from "~/components/ui/command-menu/types";
 import type {
   ChannelDocType,
   ProjectDocType,
   TaskDocType,
   TeamDocType,
 } from "~/plugins/rxdb.client";
+import { useHotkey } from "@tanstack/vue-hotkeys";
 import CommandMenu from "~/components/ui/command-menu/command-menu.vue";
 import { Kbd, KbdGroup } from "~/components/ui/kbd";
 
@@ -20,6 +21,7 @@ const channels = ref<ChannelDocType[]>([]);
 const tasks = ref<TaskDocType[]>([]);
 
 const { data: members } = useWorkspaceMembers(workspaceId);
+const presence = useWorkspacePresence(() => workspaceId.value);
 
 const subscriptions: (() => void)[] = [];
 
@@ -51,11 +53,24 @@ watch(
   { immediate: true },
 );
 
+onMounted(() => {
+  presence.start();
+});
+
 onUnmounted(() => {
   subscriptions.forEach((fn) => fn());
 });
 
 const commandMenuOpen = ref(false);
+
+const memberPresence = computed(() => {
+  const online = presence.onlineUserIds.value;
+  const map = new Map<string, CommandPresence>();
+  for (const m of members.value ?? []) {
+    map.set(m.userId, online.has(m.userId) ? "online" : "away");
+  }
+  return map;
+});
 
 const commandGroups = computed<CommandGroup[]>(() => [
   {
@@ -148,7 +163,7 @@ const commandGroups = computed<CommandGroup[]>(() => [
       name: m.user.username ?? m.user.email,
       role: m.role === "owner" ? "Owner" : m.role === "moderator" ? "Moderator" : "Member",
       avatar: m.user.profilePictureUrl ?? undefined,
-      presence: "online" as const,
+      presence: memberPresence.value.get(m.userId) ?? "away",
     })),
   },
   {
@@ -181,6 +196,87 @@ const commandGroups = computed<CommandGroup[]>(() => [
 
 function onCommandRun(row: CommandRow) {
   console.log("command run", row);
+}
+
+const projectList = computed(() => projects.value.filter((p) => !p.deleted_at));
+
+useHotkey(
+  "Mod+D",
+  () => {
+    const row = findGroupRow("dashboard");
+    if (row) onCommandRun(row);
+  },
+  { preventDefault: true },
+);
+
+useHotkey(
+  "Mod+M",
+  () => {
+    const row = findGroupRow("members");
+    if (row) onCommandRun(row);
+  },
+  { preventDefault: true },
+);
+
+useHotkey(
+  "Mod+Shift+C",
+  () => {
+    const row = findGroupRow("calendar");
+    if (row) onCommandRun(row);
+  },
+  { preventDefault: true },
+);
+
+useHotkey(
+  "Mod+T",
+  () => {
+    const row = findGroupRow("new-task");
+    if (row) onCommandRun(row);
+  },
+  { preventDefault: true },
+);
+
+useHotkey(
+  "Mod+Shift+P",
+  () => {
+    const row = findGroupRow("new-project");
+    if (row) onCommandRun(row);
+  },
+  { preventDefault: true },
+);
+
+useHotkey(
+  "Mod+Shift+N",
+  () => {
+    const row = findGroupRow("new-channel");
+    if (row) onCommandRun(row);
+  },
+  { preventDefault: true },
+);
+
+for (let i = 0; i < 9; i++) {
+  const idx = i;
+  useHotkey(
+    `Mod+${idx + 1}`,
+    () => {
+      const p = projectList.value[idx];
+      if (p) {
+        const row = findGroupRow(p.id);
+        if (row) onCommandRun(row);
+      }
+    },
+    {
+      enabled: computed(() => idx < projectList.value.length),
+      preventDefault: true,
+    },
+  );
+}
+
+function findGroupRow(id: string): CommandRow | undefined {
+  for (const group of commandGroups.value) {
+    const found = group.rows.find((r) => r.id === id);
+    if (found) return found;
+  }
 }
 </script>
 

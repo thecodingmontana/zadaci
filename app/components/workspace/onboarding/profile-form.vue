@@ -48,14 +48,8 @@ async function uploadImageToCloudinary(image: string): Promise<string | undefine
       method: "POST",
       body: { image },
     });
-
     return res.url;
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.message : error?.message;
-
-    toast.error(errorMessage ?? "Couldn't upload the image, please try again.", {
-      position: "top-center",
-    });
+  } catch {
     return undefined;
   } finally {
     isUploadingImage.value = false;
@@ -64,34 +58,39 @@ async function uploadImageToCloudinary(image: string): Promise<string | undefine
 
 const onSubmit = form.handleSubmit(async (values) => {
   isUpdatingProfile.value = true;
-  try {
-    let avatar: string = user.value ? user.value.avatar : "";
 
-    if (selectedAvatar.value) {
-      avatar = (await uploadImageToCloudinary(selectedAvatar.value)) || avatar;
-    }
-
-    await $fetch("/api/workspace/user/update", {
-      method: "POST",
-      body: {
-        username: `${values.first_name} ${values.last_name}`,
-        avatar,
-        password: password.value,
-      },
-    });
-
-    await fetchUserSession();
-    await invalidateOnboardingDetails();
-    props.onSetCurrentStep(2);
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.message : error?.message;
-
-    toast.error(errorMessage ?? "Couldn't update your profile, please try again.", {
-      position: "top-center",
-    });
-  } finally {
-    isUpdatingProfile.value = false;
+  let avatar: string = user.value ? user.value.avatar : "";
+  if (selectedAvatar.value) {
+    avatar = (await uploadImageToCloudinary(selectedAvatar.value)) || avatar;
   }
+
+  const promise = $fetch("/api/workspace/user/update", {
+    method: "POST",
+    body: {
+      username: `${values.first_name} ${values.last_name}`,
+      avatar,
+      password: password.value,
+    },
+  });
+  toast.promise(promise, {
+    loading: "Updating profile...",
+    success: "Profile updated successfully",
+    error: (err: any) =>
+      err?.response?._data?.message ??
+      err?.message ??
+      "Couldn't update your profile, please try again.",
+    position: "top-center",
+  });
+  promise
+    .then(async () => {
+      await fetchUserSession();
+      await invalidateOnboardingDetails();
+      props.onSetCurrentStep(2);
+    })
+    .catch(() => {})
+    .finally(() => {
+      isUpdatingProfile.value = false;
+    });
 });
 </script>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, ArrowRight, Loader2, Mail } from "@lucide/vue";
+import { ArrowRight, Loader2, Mail } from "@lucide/vue";
 import { useForm } from "vee-validate";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { toast } from "~/lib/toast";
@@ -17,45 +17,31 @@ const sendUniqueCodeForm = useForm({
   validationSchema: sendUniqueCodeSchema,
 });
 
-const onSendUniqueCode = sendUniqueCodeForm.handleSubmit(async (values) => {
-  try {
-    isSendingCode.value = true;
-
-    const res: { message: string } = await $fetch(props.apiUrl, {
-      method: "POST",
-      body: {
-        email: values.email,
-      },
+const onSendUniqueCode = sendUniqueCodeForm.handleSubmit((values) => {
+  isSendingCode.value = true;
+  const promise = $fetch<{ message: string }>(props.apiUrl, {
+    method: "POST",
+    body: { email: values.email },
+  });
+  toast.promise(promise, {
+    loading: "Sending code...",
+    success: (res) => res.message ?? "Verification code sent",
+    error: (err: any) =>
+      err?.response?._data?.statusMessage ??
+      err?.message ??
+      "Couldn't send the code, please try again.",
+    desc: "Check your inbox for the code",
+    errorDesc: "Something went wrong, please try again",
+    position: "top-center",
+  });
+  promise
+    .then(() => {
+      props.onResetForm({ mail: values.email, codeSent: true });
+    })
+    .catch(() => {})
+    .finally(() => {
+      isSendingCode.value = false;
     });
-
-    toast.success(res.message ?? "Verification code sent", {
-      desc: "Check your inbox for the code",
-      position: "top-center",
-      action: {
-        label: "Continue",
-        icon: ArrowRight,
-      },
-    });
-
-    props.onResetForm({
-      mail: values.email,
-      codeSent: true,
-    });
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.statusMessage : error?.message;
-
-    toast.error(errorMessage ?? "Couldn't send the code, please try again.", {
-      desc: "Something went wrong, please try again",
-      position: "top-center",
-      action: {
-        label: "Retry",
-        icon: AlertTriangle,
-        onClick: onSendUniqueCode,
-      },
-    });
-  } finally {
-    isSendingCode.value = false;
-  }
 });
 </script>
 

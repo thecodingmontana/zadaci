@@ -37,7 +37,18 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: "Workspace not found!" });
     }
 
-    const userStatuses = workspace.members.map((member) => member.user.user_status).filter(Boolean);
+    const OFFLINE_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes
+    const now = Date.now();
+
+    const userStatuses = workspace.members
+      .map((member) => member.user.user_status)
+      .filter(Boolean)
+      .map((s) => {
+        const lastSeen = s.updated_at ? new Date(s.updated_at).getTime() : 0;
+        const effectiveStatus =
+          s.status !== "offline" && now - lastSeen > OFFLINE_THRESHOLD_MS ? "offline" : s.status;
+        return { ...s, status: effectiveStatus };
+      });
 
     return userStatuses;
   } catch (error: any) {

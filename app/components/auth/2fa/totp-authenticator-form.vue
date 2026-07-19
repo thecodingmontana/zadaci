@@ -18,33 +18,33 @@ const form = useForm({
   validationSchema: twoFactorSetupSchema,
 });
 
-const onSubmit = form.handleSubmit(async (values) => {
-  try {
-    isTwoFactorSetup.value = true;
-    const res = await $fetch("/api/auth/user/2fa/totp/verify", {
-      method: "POST",
-      body: {
-        code: values.code.join(""),
-      },
+const onSubmit = form.handleSubmit((values) => {
+  isTwoFactorSetup.value = true;
+  const promise = $fetch("/api/auth/user/2fa/totp/verify", {
+    method: "POST",
+    body: { code: values.code.join("") },
+  });
+  toast.promise(promise, {
+    loading: "Verifying code...",
+    success: (res: any) => res.message ?? "Two-factor authentication verified",
+    error: (err: any) =>
+      err?.response?._data?.statusMessage ??
+      err?.message ??
+      "Verification failed, please try again.",
+    desc: "Redirecting you to onboarding",
+    errorDesc: "Double-check the code and try again",
+    position: "top-center",
+  });
+  promise
+    .then(async () => {
+      onCancel();
+      await fetchUserSession();
+      return navigateTo("/workspace/onboarding");
+    })
+    .catch(() => {})
+    .finally(() => {
+      isTwoFactorSetup.value = false;
     });
-
-    toast.success(res.message ?? "Two-factor authentication verified", {
-      desc: "Redirecting you to onboarding",
-      position: "top-center",
-    });
-
-    onCancel();
-    await fetchUserSession();
-    return navigateTo("/workspace/onboarding");
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.statusMessage : error?.message;
-    toast.error(errorMessage ?? "Verification failed, please try again.", {
-      desc: "Double-check the code and try again",
-      position: "top-center",
-    });
-  } finally {
-    isTwoFactorSetup.value = false;
-  }
 });
 
 function onCancel() {

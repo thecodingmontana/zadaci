@@ -1,6 +1,6 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { Loader2, RotateCw, SendHorizonal } from "@lucide/vue";
+import { Loader2, RotateCw } from "@lucide/vue";
 import { toast } from "~/lib/toast";
 import { cn } from "~/lib/utils";
 
@@ -48,41 +48,31 @@ function startTimer() {
 onMounted(startTimer);
 onUnmounted(clearTimer);
 
-async function onResendCode() {
-  try {
-    props.setIsResendingCode(true);
-
-    const res: { message: string } = await $fetch(props.apiUrl, {
-      method: "POST",
-      body: {
-        email: props.email,
-      },
+function onResendCode() {
+  props.setIsResendingCode(true);
+  const promise = $fetch<{ message: string }>(props.apiUrl, {
+    method: "POST",
+    body: { email: props.email },
+  });
+  toast.promise(promise, {
+    loading: "Resending code...",
+    success: (res) => res.message ?? "Code resent successfully",
+    error: (err: any) =>
+      err?.response?._data?.statusMessage ??
+      err?.message ??
+      "Couldn't resend the code, please try again.",
+    desc: "Check your inbox for the new code",
+    errorDesc: "Check your connection and try again",
+    position: "top-center",
+  });
+  promise
+    .then(() => {
+      startTimer();
+    })
+    .catch(() => {})
+    .finally(() => {
+      props.setIsResendingCode(false);
     });
-
-    toast.success(res.message ?? "Code resent successfully", {
-      desc: "Check your inbox for the new code",
-      position: "top-center",
-      action: {
-        label: "Dismiss",
-        icon: SendHorizonal,
-      },
-    });
-    startTimer();
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.statusMessage : error?.message;
-
-    toast.error(errorMessage ?? "Couldn't resend the code, please try again.", {
-      desc: "Check your connection and try again",
-      position: "top-center",
-      action: {
-        label: "Retry",
-        icon: RotateCw,
-        onClick: onResendCode,
-      },
-    });
-  } finally {
-    props.setIsResendingCode(false);
-  }
 }
 </script>
 

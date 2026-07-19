@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, Loader2, Plus, RotateCw, X } from "@lucide/vue";
+import { ArrowRight, Loader2, Plus, X } from "@lucide/vue";
 import { AnimatePresence, motion } from "motion-v";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -66,39 +66,27 @@ const isUserSelected = computed(
     teammates.value.length > 0 && teammates.value.every((teammate) => isValidEmail(teammate.email)),
 );
 
-async function onSendInvites() {
+function onSendInvites() {
   isSendingInvites.value = true;
-  try {
-    const res = await $fetch(`/api/workspace/${workspaceId.value}/teammates/team-invite/send`, {
-      method: "POST",
-      body: { teammates: teammates.value },
+  const promise = $fetch(`/api/workspace/${workspaceId.value}/teammates/team-invite/send`, {
+    method: "POST",
+    body: { teammates: teammates.value },
+  });
+  toast.promise(promise, {
+    loading: "Sending invites...",
+    success: (res: any) => res.message ?? "Invites sent successfully",
+    error: (err: any) =>
+      err?.response?._data?.message ?? err?.message ?? "Couldn't send invites, please try again.",
+    desc: "Redirecting you to your workspace",
+    errorDesc: "Check the emails and try again",
+    position: "top-center",
+  });
+  promise
+    .then(() => navigateTo(`/workspace/${workspaceId.value}/dashboard`))
+    .catch(() => {})
+    .finally(() => {
+      isSendingInvites.value = false;
     });
-
-    toast.success(res.message ?? "Invites sent successfully", {
-      desc: "Redirecting you to your workspace",
-      position: "top-center",
-      action: {
-        label: "Continue",
-        icon: ArrowRight,
-      },
-    });
-
-    return navigateTo(`/workspace/${workspaceId.value}/dashboard`);
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.message : error?.message;
-
-    toast.error(errorMessage ?? "Couldn't send invites, please try again.", {
-      desc: "Check the emails and try again",
-      position: "top-center",
-      action: {
-        label: "Retry",
-        icon: RotateCw,
-        onClick: onSendInvites,
-      },
-    });
-  } finally {
-    isSendingInvites.value = false;
-  }
 }
 
 async function onDoItLater() {

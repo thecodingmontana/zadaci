@@ -40,11 +40,7 @@ async function uploadImageToCloudinary(image: string): Promise<string | undefine
       body: { image },
     });
     return res.url;
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.message : error?.message;
-    toast.error(errorMessage ?? "Couldn't upload the image, please try again.", {
-      position: "top-center",
-    });
+  } catch {
     return undefined;
   } finally {
     isUploadingImage.value = false;
@@ -53,33 +49,37 @@ async function uploadImageToCloudinary(image: string): Promise<string | undefine
 
 const onSubmit = form.handleSubmit(async (value) => {
   isCreateWorkspace.value = true;
-  try {
-    if (selectedWorkspaceAvatar.value) {
-      workspaceImage.value =
-        (await uploadImageToCloudinary(selectedWorkspaceAvatar.value)) || workspaceImage.value;
-    }
 
-    const res = await $fetch("/api/workspace/create", {
-      method: "POST",
-      body: {
-        name: value.name,
-        image: workspaceImage.value,
-      },
-    });
-
-    if (res.workspace) {
-      workspaceStore.onSetOnboardingWorkspaceId(res.workspace.id);
-      await invalidateOnboardingDetails();
-      props.onSetCurrentStep(3);
-    }
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.message : error?.message;
-    toast.error(errorMessage ?? "Couldn't create your workspace, please try again.", {
-      position: "top-center",
-    });
-  } finally {
-    isCreateWorkspace.value = false;
+  if (selectedWorkspaceAvatar.value) {
+    workspaceImage.value =
+      (await uploadImageToCloudinary(selectedWorkspaceAvatar.value)) || workspaceImage.value;
   }
+
+  const promise = $fetch("/api/workspace/create", {
+    method: "POST",
+    body: { name: value.name, image: workspaceImage.value },
+  });
+  toast.promise(promise, {
+    loading: "Creating workspace...",
+    success: "Workspace created successfully",
+    error: (err: any) =>
+      err?.response?._data?.message ??
+      err?.message ??
+      "Couldn't create your workspace, please try again.",
+    position: "top-center",
+  });
+  promise
+    .then((res: any) => {
+      if (res?.workspace) {
+        workspaceStore.onSetOnboardingWorkspaceId(res.workspace.id);
+        invalidateOnboardingDetails();
+        props.onSetCurrentStep(3);
+      }
+    })
+    .catch(() => {})
+    .finally(() => {
+      isCreateWorkspace.value = false;
+    });
 });
 </script>
 

@@ -77,31 +77,34 @@ async function onRefresh() {
   }
 }
 
-async function onBulkRemove() {
+function onBulkRemove() {
   const rows = table.getFilteredSelectedRowModel().rows;
   if (!rows.length) return;
   const workspaceId = rows[0].original.workspaceId;
   const emails = rows.map((r) => r.original.email);
 
   isBusy.value = true;
-  try {
-    const data = await $fetch<{ message: string }>(
-      `/api/workspace/${workspaceId}/teammates/team-invite/remove`,
-      {
-        method: "DELETE",
-        body: { emails },
-      },
-    );
-    toast.success(data.message);
-    queryClient.invalidateQueries({ queryKey: ["workspace-invites"] });
-    rowSelection.value = {};
-  } catch (error: any) {
-    toast.error(
-      error.response?._data?.statusMessage ?? error.message ?? "Failed to remove invites",
-    );
-  } finally {
-    isBusy.value = false;
-  }
+  const promise = $fetch<{ message: string }>(
+    `/api/workspace/${workspaceId}/teammates/team-invite/remove`,
+    {
+      method: "DELETE",
+      body: { emails },
+    },
+  );
+  toast.promise(promise, {
+    loading: "Removing invites...",
+    success: (data) => data.message,
+    error: "Failed to remove invites",
+  });
+  promise
+    .then(() => {
+      queryClient.invalidateQueries({ queryKey: ["workspace-invites"] });
+      rowSelection.value = {};
+    })
+    .catch(() => {})
+    .finally(() => {
+      isBusy.value = false;
+    });
 }
 </script>
 

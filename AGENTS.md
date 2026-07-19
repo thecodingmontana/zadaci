@@ -53,6 +53,41 @@ Resolve display info at the UI layer via the TanStack Query member list.
 | project_members          | `use-project-members.ts`   | `use-project-members-realtime.ts`   | ✅ No RxDB sync |
 | team_members             | `use-team-members.ts`      | `use-team-members-realtime.ts`      | ✅ No RxDB sync |
 
+## Toast convention — ALWAYS use `toast.promise` for async operations
+
+Every user-triggered async operation (API call, sign-in, invite send, etc.) MUST use
+`toast.promise()` so the user sees a loading state. The pattern:
+
+```ts
+function doSomething() {
+  isBusy.value = true;
+  const promise = $fetch("/api/...", { method: "POST", body: {} });
+  toast.promise(promise, {
+    loading: "Doing something...",
+    success: (data) => data.message,
+    error: (err: any) => err?.response?._data?.statusMessage ?? err?.message ?? "Fallback message",
+    desc: "Optional success description",
+    errorDesc: "Optional error description",
+  });
+  promise
+    .then(() => {
+      /* invalidate queries, navigate, etc. */
+    })
+    .catch(() => {}) // error toast already handled by toast.promise
+    .finally(() => {
+      isBusy.value = false;
+    });
+}
+```
+
+**Never** use `toast.success` / `toast.error` for async operations — only for sync
+validation (e.g. "Email is required!") or reactive error watchers. Using both
+`toast.promise` AND a separate `toast.success`/`toast.error` creates duplicate toasts.
+
+The `error` field accepts a function `(err: unknown) => string` for extracting
+dynamic error messages. `errorDesc` provides the error-state description (falls
+back to `desc` if omitted).
+
 ### ❌ BUGS found and fixed (2026-07-18)
 
 | Bug                                                                                           | File(s)                                                       | Fix                                                                                                                                                                                                                                                                    |
@@ -63,8 +98,10 @@ Resolve display info at the UI layer via the TanStack Query member list.
 | `useSidebarProjects` TanStack Query exists but is never consumed                              | `use-sidebar-projects.ts`, `use-sidebar-projects-realtime.ts` | Left in place (harmless). The `useSidebarProjectsRealtime` still runs and invalidates a key nobody reads — minor waste, not a bug. The actual sidebar reads projects from RxDB reactively via `workspace-nav-menu.vue` subscription, which is correct Tier 1 behavior. |
 | Missing `toast` imports in new components                                                     | `invite-member-form.vue`, `invite-email-tags.vue`             | Fixed.                                                                                                                                                                                                                                                                 |
 | Unsafe `!` assertion                                                                          | `add-member.vue`                                              | Fixed `workspace?.id!` → `workspace?.id ?? ''`.                                                                                                                                                                                                                        |
+| All async toasts use `toast.success`/`toast.error` with no loading state                      | 21 .vue files across auth, workspace, onboarding, tables      | **Fixed:** replaced with `toast.promise()` so every user-triggered API call shows pending→success/error flow. Updated `toast.promise` to support `error` as function + `errorDesc`. Removed retry actions from error toasts.                                           |
 
 ### ✅ Fixed (2026-07-18 — email resilience)
+
 All 9 email action functions (`send-invite.ts`, `send-project-assignment.ts`, `send-task-assignment.ts`,
 `completed-project.ts`, `completed-task.ts`, `workspace-welcome.ts`, `workspace-decline.ts`,
 `unique-code-request.ts`, `join-waitlist.ts`) now log success/failure instead of throwing.

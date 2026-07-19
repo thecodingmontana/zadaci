@@ -19,38 +19,33 @@ const onSetEmailTags = (tags: string[]) => {
   emailTags.value = tags;
 };
 
-const onSendInvite = async () => {
+function onSendInvite() {
+  const teammates = emailTags.value.map((email) => ({
+    role: "member",
+    email,
+  }));
   isSendingInvites.value = true;
-  try {
-    const teammates = emailTags.value.map((email) => {
-      return {
-        role: "member",
-        email,
-      };
+  const promise = $fetch(`/api/workspace/${props.workspaceId}/teammates/team-invite/send`, {
+    method: "POST",
+    body: { teammates },
+  });
+  toast.promise(promise, {
+    loading: "Sending invites...",
+    success: (res: any) => res.message,
+    error: (err: any) =>
+      err.response?._data?.statusMessage ?? err.message ?? "Failed to send invites",
+    position: "top-center",
+  });
+  promise
+    .then(() => {
+      queryClient.invalidateQueries({ queryKey: workspaceInvitesKey(props.workspaceId) });
+      props.onClose();
+    })
+    .catch(() => {})
+    .finally(() => {
+      isSendingInvites.value = false;
     });
-    const res = await $fetch(`/api/workspace/${props.workspaceId}/teammates/team-invite/send`, {
-      method: "POST",
-      body: {
-        teammates,
-      },
-    });
-
-    queryClient.invalidateQueries({ queryKey: workspaceInvitesKey(props.workspaceId) });
-    props.onClose();
-
-    toast.success(res.message, {
-      position: "top-center",
-    });
-  } catch (error: any) {
-    const errorMessage = error.response ? error.response._data.statusMessage : error.message;
-
-    toast.error(errorMessage, {
-      position: "top-center",
-    });
-  } finally {
-    isSendingInvites.value = false;
-  }
-};
+}
 </script>
 
 <template>

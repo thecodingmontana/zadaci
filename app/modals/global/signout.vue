@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Loader, LogOut, RotateCw } from "@lucide/vue";
+import { Loader } from "@lucide/vue";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -20,42 +20,32 @@ const isModalOpen = computed(() => {
 
 const isSigninOut = ref(false);
 
-async function onSignOut() {
-  try {
-    isSigninOut.value = true;
-    onClose();
+function onSignOut() {
+  isSigninOut.value = true;
+  onClose();
+  const promise = (async () => {
     console.log("[signout] Signing out — setting nuclear clear flag + clearing session");
     localStorage.setItem("zadaci_clear_needed", "true");
     await clearSession();
     console.log("[signout] Session cleared, now clearing RxDB");
     await useClearRxDb();
     console.log("[signout] RxDB cleared, navigating to signin");
-
-    toast.success("Signed out successfully", {
-      desc: "See you again soon",
-      position: "top-center",
-      action: {
-        label: "Sign out",
-        icon: LogOut,
-      },
-    });
-
     return navigateTo("/auth/signin");
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.message : error?.message;
-
-    toast.error(errorMessage ?? "Couldn't sign you out, please try again.", {
-      desc: "Something went wrong on our end",
-      position: "top-center",
-      action: {
-        label: "Retry",
-        icon: RotateCw,
-        onClick: onSignOut,
-      },
+  })();
+  toast.promise(promise, {
+    loading: "Signing out...",
+    success: "Signed out successfully",
+    error: (err: any) =>
+      err?.response?._data?.message ?? err?.message ?? "Couldn't sign you out, please try again.",
+    desc: "See you again soon",
+    errorDesc: "Something went wrong on our end",
+    position: "top-center",
+  });
+  promise
+    .catch(() => {})
+    .finally(() => {
+      isSigninOut.value = false;
     });
-  } finally {
-    isSigninOut.value = false;
-  }
 }
 
 function onClose() {

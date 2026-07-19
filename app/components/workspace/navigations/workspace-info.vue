@@ -20,8 +20,12 @@ const workspaceId = computed(() => route.params.workspaceId as string);
 const workspace = computed(() => store.activeWorkspace);
 
 const { data: members, status } = useWorkspaceMembers(workspaceId);
+const presence3 = useWorkspacePresence(() => workspaceId.value);
+
+onMounted(() => presence3.start());
 
 const memberCount = computed(() => members.value?.length ?? 0);
+const onlineCount = computed(() => presence3.onlineUserIds.value.size);
 const loaded = computed(() => status.value !== "pending");
 
 console.log("workspace", workspace.value);
@@ -52,7 +56,7 @@ console.log("isOwner", isOwner.value, "canManage", canManage.value, "checking");
             <div class="flex h-5 items-center space-x-4 font-ibm-plex-mono text-xs">
               <div>Members: {{ memberCount }}</div>
               <Separator orientation="vertical" />
-              <div>Online: {{ memberCount }}</div>
+              <div>Online: {{ onlineCount }}</div>
             </div>
           </div>
         </template>

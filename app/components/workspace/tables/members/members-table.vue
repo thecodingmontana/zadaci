@@ -101,31 +101,31 @@ function onBulkChangeRole() {
   });
 }
 
-async function onBulkRemove() {
+function onBulkRemove() {
   const rows = table.getFilteredSelectedRowModel().rows;
   if (!rows.length) return;
   const workspaceId = currentActiveWorkspace.value?.id as string;
   const userIds = rows.map((r) => r.original.userId);
 
   isBusy.value = true;
-  try {
-    const data = await $fetch<{ message: string }>(
-      `/api/workspace/${workspaceId}/teammates/remove`,
-      {
-        method: "DELETE",
-        body: { userIds, workspaceId },
-      },
-    );
-    toast.success(data.message);
-    queryClient.invalidateQueries({ queryKey: ["workspace-members"] });
-    rowSelection.value = {};
-  } catch (error: any) {
-    toast.error(
-      error.response?._data?.statusMessage ?? error.message ?? "Failed to remove teammates",
-    );
-  } finally {
-    isBusy.value = false;
-  }
+  const promise = $fetch<{ message: string }>(`/api/workspace/${workspaceId}/teammates/remove`, {
+    method: "DELETE",
+    body: { userIds, workspaceId },
+  });
+  toast.promise(promise, {
+    loading: "Removing users...",
+    success: (data) => data.message,
+    error: "Failed to remove teammates",
+  });
+  promise
+    .then(() => {
+      queryClient.invalidateQueries({ queryKey: ["workspace-members"] });
+      rowSelection.value = {};
+    })
+    .catch(() => {})
+    .finally(() => {
+      isBusy.value = false;
+    });
 }
 
 function onAddUser() {

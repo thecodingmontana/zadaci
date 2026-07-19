@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, Loader, RotateCw } from "@lucide/vue";
+import { ArrowRight, Loader } from "@lucide/vue";
 import { useQueryClient } from "@tanstack/vue-query";
 import { useForm } from "vee-validate";
 import { Button } from "~/components/ui/button";
@@ -44,17 +44,7 @@ async function uploadImageToCloudinary(image: string): Promise<string | undefine
       body: { image },
     });
     return res.url;
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.statusMessage : error?.message;
-    toast.error(errorMessage ?? "Couldn't upload the image, please try again.", {
-      desc: "Check the file and try again",
-      position: "top-center",
-      action: {
-        label: "Retry",
-        icon: RotateCw,
-        onClick: () => uploadImageToCloudinary(image),
-      },
-    });
+  } catch {
     return undefined;
   } finally {
     isUploadingImg.value = false;
@@ -62,56 +52,45 @@ async function uploadImageToCloudinary(image: string): Promise<string | undefine
 }
 
 const onCreateWorkspace = form.handleSubmit(async (values) => {
-  try {
-    isCreatingWorkspace.value = true;
+  isCreatingWorkspace.value = true;
 
-    const defaultImage = `https://avatar.vercel.sh/vercel.svg?text=${values.name.charAt(0).toUpperCase()}`;
+  const defaultImage = `https://avatar.vercel.sh/vercel.svg?text=${values.name.charAt(0).toUpperCase()}`;
 
-    let image: string;
-    if (values.image && values.image.startsWith("data:image/")) {
-      image = (await uploadImageToCloudinary(values.image)) || defaultImage;
-    } else {
-      image = values.image || defaultImage;
-    }
-
-    const res = await $fetch("/api/workspace/create", {
-      method: "POST",
-      body: {
-        name: values.name,
-        image,
-      },
-    });
-
-    if (res.workspace) {
-      toast.success("Successfully created a new workspace!", {
-        desc: "Redirecting you to your workspace",
-        position: "top-center",
-        action: {
-          label: "Continue",
-          icon: ArrowRight,
-        },
-      });
-
-      onClose();
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-      await refreshNuxtData(["mobile_workspaces"]);
-      return navigateTo(`/workspace/${res.workspace.id}/dashboard`);
-    }
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.statusMessage : error?.message;
-
-    toast.error(errorMessage ?? "Couldn't create the workspace, please try again.", {
-      desc: "Check the details and try again",
-      position: "top-center",
-      action: {
-        label: "Retry",
-        icon: RotateCw,
-        onClick: onCreateWorkspace,
-      },
-    });
-  } finally {
-    isCreatingWorkspace.value = false;
+  let image: string;
+  if (values.image && values.image.startsWith("data:image/")) {
+    image = (await uploadImageToCloudinary(values.image)) || defaultImage;
+  } else {
+    image = values.image || defaultImage;
   }
+
+  const promise = $fetch("/api/workspace/create", {
+    method: "POST",
+    body: { name: values.name, image },
+  });
+  toast.promise(promise, {
+    loading: "Creating workspace...",
+    success: "Successfully created a new workspace!",
+    error: (err: any) =>
+      err?.response?._data?.statusMessage ??
+      err?.message ??
+      "Couldn't create the workspace, please try again.",
+    desc: "Redirecting you to your workspace",
+    errorDesc: "Check the details and try again",
+    position: "top-center",
+  });
+  promise
+    .then((res: any) => {
+      if (res?.workspace) {
+        onClose();
+        queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+        refreshNuxtData(["mobile_workspaces"]);
+        navigateTo(`/workspace/${res.workspace.id}/dashboard`);
+      }
+    })
+    .catch(() => {})
+    .finally(() => {
+      isCreatingWorkspace.value = false;
+    });
 });
 </script>
 

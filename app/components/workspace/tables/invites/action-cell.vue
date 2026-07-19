@@ -17,44 +17,50 @@ const props = defineProps<{ row: Row<WorkspaceInvite> }>();
 const queryClient = useQueryClient();
 const isBusy = ref(false);
 
-async function onResend() {
+function onResend() {
   const original = props.row.original;
   isBusy.value = true;
-  try {
-    const data = await $fetch<{ message: string }>(
-      `/api/workspace/${original.workspaceId}/teammates/team-invite/resend`,
-      {
-        method: "PATCH",
-        body: { teammates: [{ email: original.email, role: original.role }] },
-      },
-    );
-    toast.success(data.message);
-    queryClient.invalidateQueries({ queryKey: ["workspace-invites"] });
-  } catch (error: any) {
-    toast.error(error.response?._data?.statusMessage ?? error.message ?? "Failed to resend invite");
-  } finally {
-    isBusy.value = false;
-  }
+  const promise = $fetch<{ message: string }>(
+    `/api/workspace/${original.workspaceId}/teammates/team-invite/resend`,
+    {
+      method: "PATCH",
+      body: { teammates: [{ email: original.email, role: original.role }] },
+    },
+  );
+  toast.promise(promise, {
+    loading: "Resending invite...",
+    success: (data) => data.message,
+    error: "Failed to resend invite",
+  });
+  promise
+    .then(() => queryClient.invalidateQueries({ queryKey: ["workspace-invites"] }))
+    .catch(() => {})
+    .finally(() => {
+      isBusy.value = false;
+    });
 }
 
-async function onRemove() {
+function onRemove() {
   const original = props.row.original;
   isBusy.value = true;
-  try {
-    const data = await $fetch<{ message: string }>(
-      `/api/workspace/${original.workspaceId}/teammates/team-invite/remove`,
-      {
-        method: "DELETE",
-        body: { emails: [original.email] },
-      },
-    );
-    toast.success(data.message);
-    queryClient.invalidateQueries({ queryKey: ["workspace-invites"] });
-  } catch (error: any) {
-    toast.error(error.response?._data?.statusMessage ?? error.message ?? "Failed to remove invite");
-  } finally {
-    isBusy.value = false;
-  }
+  const promise = $fetch<{ message: string }>(
+    `/api/workspace/${original.workspaceId}/teammates/team-invite/remove`,
+    {
+      method: "DELETE",
+      body: { emails: [original.email] },
+    },
+  );
+  toast.promise(promise, {
+    loading: "Removing invite...",
+    success: (data) => data.message,
+    error: "Failed to remove invite",
+  });
+  promise
+    .then(() => queryClient.invalidateQueries({ queryKey: ["workspace-invites"] }))
+    .catch(() => {})
+    .finally(() => {
+      isBusy.value = false;
+    });
 }
 </script>
 

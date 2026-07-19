@@ -14,27 +14,27 @@ const { authenticate } = useWebAuthn({
 });
 const { fetch: fetchUserSession } = useUserSession();
 
-async function onUsePasskeys() {
+function onUsePasskeys() {
   props.onSetIsAuthenticating(true);
-  try {
+  const promise = (async () => {
     await authenticate(props.email);
     await fetchUserSession();
-
-    toast.success("Signed in with passkey", {
-      desc: "Redirecting you to onboarding",
-      position: "top-center",
+    return navigateTo("/workspace/onboarding");
+  })();
+  toast.promise(promise, {
+    loading: "Authenticating with passkey...",
+    success: "Signed in with passkey",
+    error: (err: any) =>
+      err?.response?._data?.statusMessage ?? err?.message ?? "Passkey authentication failed.",
+    desc: "Redirecting you to onboarding",
+    errorDesc: "Please try again",
+    position: "top-center",
+  });
+  promise
+    .catch(() => {})
+    .finally(() => {
+      props.onSetIsAuthenticating(false);
     });
-
-    await navigateTo("/workspace/onboarding");
-  } catch (error: any) {
-    const errorMessage = error?.response ? error.response._data?.statusMessage : error?.message;
-    toast.error(errorMessage ?? "Passkey authentication failed.", {
-      desc: "Please try again",
-      position: "top-center",
-    });
-  } finally {
-    props.onSetIsAuthenticating(false);
-  }
 }
 </script>
 
