@@ -19,6 +19,7 @@ alter publication supabase_realtime add table
   app_channel,
   app_message,
   app_message_reference,
+  app_message_receipt,
   app_task_comment,
   app_project_comment,
   app_team,

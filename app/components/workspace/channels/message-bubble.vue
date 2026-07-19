@@ -14,18 +14,14 @@ const props = defineProps<{
   memberName?: string;
   memberAvatar?: string;
   // Delivery status computed from receipts
-  deliveryStatus?: "sent" | "delivered" | "seen";
+  deliveryStatus?: "sending" | "sent" | "delivered" | "seen";
 }>();
 
 const emit = defineEmits<{
   toggleReaction: [messageId: string, emoji: string];
   openThread: [messageId: string];
-  editMessage: [messageId: string, content: string];
+  startEdit: [messageId: string, content: string];
 }>();
-
-const isEditing = ref(false);
-const editContent = ref("");
-const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 const previewData = computed(() => {
   if (!props.showThreadEntry) return null;
@@ -41,40 +37,6 @@ const previewData = computed(() => {
 const isEdited = computed(() => {
   return props.message.editedAt != null && props.message.editedAt !== props.message.createdAt;
 });
-
-function onEdit() {
-  isEditing.value = true;
-  editContent.value = props.message.content;
-  nextTick(() => {
-    textareaRef.value?.focus();
-    textareaRef.value?.setSelectionRange(editContent.value.length, editContent.value.length);
-  });
-}
-
-function cancelEdit() {
-  isEditing.value = false;
-  editContent.value = "";
-}
-
-function submitEdit() {
-  const trimmed = editContent.value.trim();
-  if (!trimmed || trimmed === props.message.content) {
-    cancelEdit();
-    return;
-  }
-  emit("editMessage", props.message.id, trimmed);
-  isEditing.value = false;
-}
-
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    submitEdit();
-  }
-  if (e.key === "Escape") {
-    cancelEdit();
-  }
-}
 </script>
 
 <template>
@@ -90,24 +52,11 @@ function onKeydown(e: KeyboardEvent) {
       "
     >
       <BubbleContent>
-        <template v-if="isEditing">
-          <textarea
-            ref="textareaRef"
-            v-model="editContent"
-            class="max-h-40 w-full resize-none bg-transparent text-sm outline-none"
-            @keydown="onKeydown"
-          />
-          <div class="mt-1 flex items-center gap-2">
-            <span class="text-[10px] text-white/60">Esc to cancel · Enter to save</span>
-          </div>
-        </template>
-        <template v-else>
-          <p class="text-sm break-words whitespace-pre-wrap">
-            {{ message.content }}
-            <span v-if="isEdited" class="ml-1 text-[10px] opacity-60">(edited)</span>
-          </p>
-          <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />
-        </template>
+        <p class="text-sm break-words whitespace-pre-wrap">
+          {{ message.content }}
+          <span v-if="isEdited" class="ml-1 text-[10px] opacity-60">(edited)</span>
+        </p>
+        <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />
       </BubbleContent>
     </Bubble>
 
@@ -149,11 +98,11 @@ function onKeydown(e: KeyboardEvent) {
           <Icon name="lucide:message-square" size="12" />
         </button>
         <button
-          v-if="isOwn && !isEditing"
+          v-if="isOwn"
           type="button"
           class="flex h-6 w-6 items-center justify-center rounded-full border bg-background hover:bg-accent"
           aria-label="Edit message"
-          @click="onEdit"
+          @click="emit('startEdit', message.id, message.content)"
         >
           <Icon name="lucide:pencil" size="12" />
         </button>

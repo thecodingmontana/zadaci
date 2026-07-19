@@ -2,6 +2,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { RxReplicationState } from "rxdb/plugins/replication";
 import type { MessageDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
 import { createClient } from "@supabase/supabase-js";
+import { replicateRxCollection } from "rxdb/plugins/replication";
 
 let supabaseClient: ReturnType<typeof createClient> | null = null;
 const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -34,7 +35,10 @@ function debounceReSync(fn: () => void, key: string) {
   );
 }
 
-export function useMessageSync(channelId: () => string | undefined) {
+export function useMessageSync(
+  channelId: () => string | undefined,
+  pendingIds?: { add: (id: string) => void; remove: (id: string) => void },
+) {
   let replicationState: RxReplicationState<
     MessageDocType,
     { updated_at: string; id: string }
@@ -45,9 +49,7 @@ export function useMessageSync(channelId: () => string | undefined) {
   const syncError = ref<Error | null>(null);
   const realtimeStatus = ref<string>("idle");
 
-  console.log("[useMessageSync] REGISTERING onUnmounted", import.meta.server ? "SERVER" : "CLIENT");
   onUnmounted(() => {
-    console.log("[useMessageSync] onUnmounted FIRED");
     stop();
   });
 
@@ -64,7 +66,7 @@ export function useMessageSync(channelId: () => string | undefined) {
       return;
     }
 
-    const _requestFetch = useRequestFetch();
+    const requestFetch = useRequestFetch();
 
     const nuxtApp = useNuxtApp();
     const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
@@ -90,11 +92,91 @@ export function useMessageSync(channelId: () => string | undefined) {
     const existingCount = await collection.count().exec();
     console.log(`[useMessageSync] Existing local docs: ${existingCount}`);
 
-    console.log(`[useMessageSync] Rep ID would be: ${repId}`);
+    replicationState = replicateRxCollection<MessageDocType, { updated_at: string; id: string }>({
+      replicationIdentifier: repId,
+      collection,
+      pull: {
+        handler: async (checkpoint, batchSize) => {
+          const id = channelId();
+          if (!id) {
+            return { documents: [], checkpoint: undefined };
+          }
+
+          const params = new URLSearchParams();
+          params.set("channel_id", id);
+          params.set("batch_size", String(batchSize || 50));
+          if (checkpoint) {
+            const localCount = await collection.count().exec();
+            if (localCount > 0) {
+              params.set("checkpoint", JSON.stringify(checkpoint));
+            }
+          }
+
+          const result = await requestFetch(`/api/replication/messages/pull?${params.toString()}`);
+          return result as {
+            documents: MessageDocType[];
+            checkpoint: { updated_at: string; id: string } | undefined;
+          };
+        },
+        batchSize: 50,
+      },
+      push: {
+        handler: async (rows) => {
+          const id = channelId();
+          if (!id) {
+            console.warn("[useMessageSync] Push — no channel id");
+            return [];
+          }
+
+          const filtered = rows.filter((r) => r.newDocumentState);
+          if (filtered.length === 0) return [];
+
+          for (const row of filtered) {
+            const docId = row.newDocumentState!.id;
+            if (docId) pendingIds?.add(docId);
+          }
+
+          const result = await requestFetch(`/api/replication/messages/push?channel_id=${id}`, {
+            method: "POST",
+            body: filtered,
+          });
+
+          for (const row of filtered) {
+            const docId = row.newDocumentState!.id;
+            if (docId) pendingIds?.remove(docId);
+          }
+
+          return result as MessageDocType[];
+        },
+        batchSize: 50,
+      },
+      live: true,
+      autoStart: true,
+      retryTime: 5000,
+    });
+
+    const subActive = replicationState.active$.subscribe((active) => {
+      console.log(`[useMessageSync] Replication active:`, active);
+    });
+    cleanupFns.push(() => subActive.unsubscribe());
+
+    const subErr = replicationState.error$.subscribe((err) => {
+      console.error(`[useMessageSync] Error:`, err?.message || err);
+      syncError.value = err;
+    });
+    cleanupFns.push(() => subErr.unsubscribe());
+
+    const subCancel = replicationState.canceled$.subscribe((canceled) => {
+      console.log(`[useMessageSync] Replication canceled:`, canceled);
+    });
+    cleanupFns.push(() => subCancel.unsubscribe());
+
+    setupRealtimeChannel();
+    setupVisibilityListener();
     isActive.value = true;
   }
 
-  function _setupRealtimeChannel() {
+  function setupRealtimeChannel() {
     const supabase = getSupabase();
     if (!supabase) {
       return;
@@ -128,7 +210,7 @@ export function useMessageSync(channelId: () => string | undefined) {
     });
   }
 
-  function _setupVisibilityListener() {
+  function setupVisibilityListener() {
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         scheduleReSync();

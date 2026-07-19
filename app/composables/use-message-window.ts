@@ -1,9 +1,10 @@
 import type { RxCollection } from "rxdb";
 import type { Ref } from "vue";
-import type { MessageDocType } from "~/plugins/rxdb.client";
+import type { MessageDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
 import type { ChatMessage, MessageReaction } from "~/types/chat";
 
 const PAGE_SIZE = 50;
+const SUBSCRIBE_LIMIT = 500;
 
 export function useMessageWindow(
   collectionRef: Ref<RxCollection<MessageDocType> | null>,
@@ -12,7 +13,9 @@ export function useMessageWindow(
   const messages = ref<ChatMessage[]>([]);
   const loading = ref(true);
   const hasMore = ref(true);
+  const hasMoreHistory = ref(true);
   const loadingMore = ref(false);
+  const loadingHistory = ref(false);
   const oldestTimestamp = ref<string | null>(null);
 
   function getCollection() {
@@ -68,7 +71,7 @@ export function useMessageWindow(
 
   async function loadOlder() {
     const col = getCollection();
-    if (!col || !hasMore.value || loadingMore.value || !oldestTimestamp.value) {
+    if (!col || loadingMore.value || !oldestTimestamp.value) {
       return;
     }
 
@@ -93,30 +96,61 @@ export function useMessageWindow(
         oldestTimestamp.value = loaded[0].createdAt;
       }
       hasMore.value = loaded.length === PAGE_SIZE;
+      console.log(
+        `[useMessageWindow] loadOlder — got ${loaded.length} docs, hasMore=${hasMore.value}`,
+      );
     } finally {
       loadingMore.value = false;
     }
   }
 
-  let sub: (() => void) | null = null;
+  async function loadHistoryFromServer(before: string, db: ZadaciDatabase) {
+    if (!before || loadingHistory.value || !hasMoreHistory.value) return;
+    loadingHistory.value = true;
+    console.log(`[useMessageWindow] loadHistoryFromServer — before=${before}`);
+    try {
+      const data: any = await $fetch(`/api/channels/${channelId}/messages/history`, {
+        query: { before, limit: PAGE_SIZE },
+      });
+      console.log(`[useMessageWindow] history API returned ${data.messages?.length} messages`);
+      if (data.messages?.length) {
+        await db.messages.bulkUpsert(data.messages);
+        console.log(
+          `[useMessageWindow] upserted ${data.messages.length} history messages into RxDB`,
+        );
+      }
+      hasMoreHistory.value = data.nextCursor != null;
+      return data.nextCursor as string | null;
+    } catch (err) {
+      console.error("[useMessageWindow] history fetch error:", err);
+      return null;
+    } finally {
+      loadingHistory.value = false;
+    }
+  }
+
+  let sub: { unsubscribe: () => void } | null = null;
 
   function subscribe() {
     const col = getCollection();
     if (!col) return;
-    sub = col
+    console.log(`[useMessageWindow] subscribe — SUBSCRIBE_LIMIT=${SUBSCRIBE_LIMIT}`);
+    const subscription = col
       .find({
         selector: { channel_id: channelId, deleted_at: null },
         sort: [{ created_at: "desc" }],
-        limit: PAGE_SIZE,
+        limit: SUBSCRIBE_LIMIT,
       })
       .$.subscribe((docs) => {
+        console.log(`[useMessageWindow] subscription fired — ${docs.length} docs`);
         const loaded = docs.map(docToMessage).reverse();
         messages.value = loaded;
         if (loaded.length > 0) {
           oldestTimestamp.value = loaded[0].createdAt;
         }
-        hasMore.value = loaded.length === PAGE_SIZE;
+        hasMore.value = loaded.length >= PAGE_SIZE;
       });
+    sub = { unsubscribe: () => subscription.unsubscribe() };
   }
 
   function unsubscribe() {
@@ -130,9 +164,13 @@ export function useMessageWindow(
     messages,
     loading,
     hasMore,
+    hasMoreHistory,
     loadingMore,
+    loadingHistory,
+    oldestTimestamp,
     loadInitial,
     loadOlder,
+    loadHistoryFromServer,
     subscribe,
     unsubscribe,
     docToMessage,

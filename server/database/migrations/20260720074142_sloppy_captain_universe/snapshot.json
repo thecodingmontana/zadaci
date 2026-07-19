@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "70f2a8c8-ec05-446a-b07f-2b845633277d",
+  "id": "34919e9e-9923-4a22-ac14-9e5293118450",
   "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
@@ -55,6 +55,12 @@
     {
       "isRlsEnabled": false,
       "name": "app_message",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "app_message_receipt",
       "entityType": "tables",
       "schema": "public"
     },
@@ -456,6 +462,71 @@
       "table": "app_message"
     },
     {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "reactions",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message"
+    },
+    {
+      "type": "varchar(16)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "parent_message_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "thread_reply_count",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "thread_participant_ids",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "thread_last_reply_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message"
+    },
+    {
       "type": "timestamp(3) with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -493,6 +564,84 @@
       "entityType": "columns",
       "schema": "public",
       "table": "app_message"
+    },
+    {
+      "type": "varchar(16)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "type": "varchar(16)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "message_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "type": "varchar(16)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "member_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "type": "varchar(20)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'delivered'",
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message_receipt"
     },
     {
       "type": "varchar(16)",
@@ -2909,6 +3058,118 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "parent_message_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "message_parent_message_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "app_message"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "thread_last_reply_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "message_thread_last_reply_at_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "app_message"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "message_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "message_receipt_message_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "member_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "message_receipt_member_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "message_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "member_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "message_receipt_message_member_unique",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "message_id",
           "isExpression": false,
           "asc": true,
@@ -3587,6 +3848,45 @@
     },
     {
       "nameExplicit": false,
+      "columns": ["parent_message_id"],
+      "schemaTo": "public",
+      "tableTo": "app_message",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "app_message_parent_message_id_app_message_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "app_message"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["message_id"],
+      "schemaTo": "public",
+      "tableTo": "app_message",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "app_message_receipt_message_id_app_message_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["member_id"],
+      "schemaTo": "public",
+      "tableTo": "app_workspace_members",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "app_message_receipt_member_id_app_workspace_members_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "nameExplicit": false,
       "columns": ["message_id"],
       "schemaTo": "public",
       "tableTo": "app_message",
@@ -4049,6 +4349,14 @@
       "name": "app_message_pkey",
       "schema": "public",
       "table": "app_message",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "app_message_receipt_pkey",
+      "schema": "public",
+      "table": "app_message_receipt",
       "entityType": "pks"
     },
     {

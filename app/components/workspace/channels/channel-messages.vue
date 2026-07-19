@@ -15,12 +15,13 @@ const props = defineProps<{
   showThreadEntry?: boolean;
   loading?: boolean;
   hasLoaded?: boolean;
+  messageStatuses?: Map<string, "sending" | "sent" | "delivered" | "seen">;
 }>();
 
 const emit = defineEmits<{
   toggleReaction: [messageId: string, emoji: string];
   openThread: [messageId: string];
-  editMessage: [messageId: string, content: string];
+  startEdit: [messageId: string, content: string];
   loadOlder: [];
 }>();
 
@@ -179,9 +180,10 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
               :is-own="isOwn(message.authorId)"
               :current-member-id="currentMemberId"
               :show-thread-entry="props.showThreadEntry ?? true"
+              :delivery-status="props.messageStatuses?.get(message.id)"
               @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
               @open-thread="(id) => emit('openThread', id)"
-              @edit-message="(...a) => emit('editMessage', ...a)"
+              @start-edit="(...a) => emit('startEdit', ...a)"
             />
           </div>
         </motion.div>

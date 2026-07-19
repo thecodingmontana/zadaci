@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { RxCollection } from "rxdb";
-import type { MessageDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
+import type { MessageDocType, MessageReceiptDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
 import type { Thread } from "~/types/chat";
 import ChannelComposer from "~/components/workspace/channels/channel-composer.vue";
 import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
@@ -21,18 +21,35 @@ const { state: _state, openThread } = useChannelPanel(channelId);
 
 const db = ref<ZadaciDatabase | null>(null);
 const messageCollection = ref<RxCollection<MessageDocType> | null>(null);
+const receiptCollection = ref<RxCollection<MessageReceiptDocType> | null>(null);
+
+const pendingSendIds = ref(new Set<string>());
+
+function addPending(id: string) {
+  pendingSendIds.value = new Set(pendingSendIds.value).add(id);
+}
+function removePending(id: string) {
+  const next = new Set(pendingSendIds.value);
+  next.delete(id);
+  pendingSendIds.value = next;
+}
 
 const {
   messages,
   loading,
-  hasMore: _hasMore,
-  loadingMore: _loadingMore,
+  hasMore,
+  hasMoreHistory,
+  oldestTimestamp,
   loadInitial,
   loadOlder,
+  loadHistoryFromServer,
   subscribe,
   unsubscribe,
   docToMessage,
-} = useMessageWindow(messageCollection, channelId);
+} = useMessageWindow(messageCollection as Ref<RxCollection<MessageDocType> | null>, channelId);
+
+const editingMessageId = ref<string | null>(null);
+const editingContent = ref("");
 
 const hasLoaded = ref(false);
 const systemEvents = ref<any[]>([]);
@@ -40,19 +57,115 @@ const systemEvents = ref<any[]>([]);
 const workspaceIdRef = computed(() => workspaceId);
 const { data: members } = useWorkspaceMembers(workspaceIdRef);
 
-const messageSync = useMessageSync(() => channelId);
-// const receiptSync = useMessageReceiptSync(() => channelId);
+const messageSync = useMessageSync(() => channelId, {
+  add: addPending,
+  remove: removePending,
+});
+const receiptSync = useMessageReceiptSync(() => channelId);
 
 const channelSubRef = ref<{ unsubscribe: () => void } | null>(null);
 
-console.log("[index] REGISTERING onUnmounted at top level");
 onUnmounted(() => {
-  console.log("[index] onUnmounted FIRED — cleaning up");
   channelSubRef.value?.unsubscribe();
   unsubscribe();
   messageSync.stop();
-  // receiptSync.stop();
+  receiptSync.stop();
 });
+
+// Receipt subscription — rebuild when receipts change for delivery status
+const receiptSub = ref<{ unsubscribe: () => void } | null>(null);
+
+// Compute delivery status for each own message from receipts
+const messageStatuses = ref<Map<string, "sending" | "sent" | "delivered" | "seen">>(new Map());
+let lastReceiptQuery = 0;
+
+function buildMessageStatuses() {
+  const now = Date.now();
+  console.log(`[channel] buildMessageStatuses — ${now}, messages count: ${messages.value.length}`);
+  const statuses = new Map<string, "sending" | "sent" | "delivered" | "seen">();
+  const col = receiptCollection.value;
+  const ownMsgs = messages.value.filter((m) => m.authorId === currentMemberId.value);
+  console.log(`[channel] buildMessageStatuses — ${ownMsgs.length} own messages`);
+  for (const msg of ownMsgs) {
+    if (pendingSendIds.value.has(msg.id)) {
+      statuses.set(msg.id, "sending");
+      console.log(`[channel] msg ${msg.id.slice(0, 8)} → sending (pending)`);
+      continue;
+    }
+    statuses.set(msg.id, "sent");
+  }
+  // Override with receipt data if receipts are loaded
+  if (col && lastReceiptQuery > 0) {
+    console.log("[channel] buildMessageStatuses — checking receipts for status override");
+    const allReceipts = col.find({ selector: {} }).exec();
+    allReceipts.then((receiptDocs) => {
+      for (const msg of ownMsgs) {
+        const msgReceipts = receiptDocs.filter(
+          (r) => r.message_id === msg.id && r.member_id !== currentMemberId.value,
+        );
+        if (msgReceipts.length === 0) continue;
+        const hasSeen = msgReceipts.some((r) => r.status === "seen");
+        const hasDelivered = msgReceipts.some((r) => r.status === "delivered");
+        if (hasSeen) {
+          statuses.set(msg.id, "seen");
+          console.log(`[channel] msg ${msg.id.slice(0, 8)} → seen`);
+        } else if (hasDelivered) {
+          statuses.set(msg.id, "delivered");
+          console.log(`[channel] msg ${msg.id.slice(0, 8)} → delivered`);
+        }
+      }
+      messageStatuses.value = statuses;
+    });
+    return;
+  }
+  messageStatuses.value = statuses;
+  console.log(`[channel] buildMessageStatuses done — ${statuses.size} statuses computed`);
+}
+
+function subscribeReceipts() {
+  const col = receiptCollection.value;
+  if (!col) {
+    console.warn("[channel] subscribeReceipts — no receipt collection yet");
+    return;
+  }
+  receiptSub.value?.unsubscribe();
+  console.log(`[channel] subscribeReceipts — subscribing to message_receipts`);
+  receiptSub.value = col
+    .find({
+      selector: {},
+      sort: [{ updated_at: "desc" }],
+      limit: 200,
+    })
+    .$.subscribe(async (docs) => {
+      console.log(`[channel] receipt subscription fired — ${docs.length} docs`);
+      for (const r of docs) {
+        console.log(
+          `[channel]   receipt: msg=${r.message_id.slice(0, 8)} member=${r.member_id.slice(0, 8)} status=${r.status}`,
+        );
+      }
+      // Auto-mark new delivered receipts as "seen" for current user
+      if (currentMemberId.value) {
+        const myNewDelivered = docs.filter(
+          (r) => r.member_id === currentMemberId.value && r.status === "delivered",
+        );
+        if (myNewDelivered.length > 0) {
+          console.log(`[channel] auto-marking ${myNewDelivered.length} receipts as seen`);
+          for (const r of myNewDelivered) {
+            try {
+              await r.patch({ status: "seen", updated_at: new Date().toISOString() });
+            } catch (e) {
+              console.warn("[channel] failed to mark receipt as seen:", e);
+            }
+          }
+          console.log(`[channel] auto-marked ${myNewDelivered.length} as seen`);
+        }
+      }
+      if (docs.length > 0) {
+        lastReceiptQuery = Date.now();
+        buildMessageStatuses();
+      }
+    });
+}
 
 function generateId(): string {
   const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -64,31 +177,87 @@ function generateId(): string {
 }
 
 async function init() {
+  console.log("[channel] init() started");
   try {
     const rxdb = await useRxDbSafe();
-    if (!rxdb) return;
+    if (!rxdb) {
+      console.warn("[channel] init — no RxDB");
+      return;
+    }
     db.value = rxdb;
     messageCollection.value = rxdb.messages;
+    receiptCollection.value = rxdb.message_receipts;
+    console.log("[channel] init — collections acquired");
 
-    // Start RxDB sync for messages and receipts
+    // Start RxDB sync for messages
     try {
+      console.log("[channel] starting messageSync...");
       await messageSync.start();
+      console.log("[channel] messageSync started");
     } catch (e) {
-      console.error("[index] messageSync.start() threw:", e);
+      console.error("[channel] messageSync.start() threw:", e);
     }
-    // await receiptSync.start();
+
+    // Start RxDB sync for receipts
+    try {
+      console.log("[channel] starting receiptSync...");
+      await receiptSync.start();
+      console.log("[channel] receiptSync started");
+    } catch (e) {
+      console.error("[channel] receiptSync.start() threw:", e);
+    }
 
     // Subscribe to channel name
+    console.log("[channel] subscribing to channel name");
     channelSubRef.value = rxdb.channels.findOne(channelId).$.subscribe((doc) => {
+      console.log("[channel] channel name update:", doc?.name);
       channelName.value = doc?.name ?? null;
     });
 
+    // Subscribe to receipts
+    subscribeReceipts();
+
     // Subscribe to messages
+    console.log("[channel] loading initial messages");
     await loadInitial();
     subscribe();
     hasLoaded.value = true;
+    console.log("[channel] init() complete");
+
+    // Mark unread messages as "seen" for this user
+    markMessagesAsSeen();
   } catch (e) {
-    console.error("[index] init() threw:", e);
+    console.error("[channel] init() threw:", e);
+  }
+}
+
+async function markMessagesAsSeen() {
+  if (!db.value || !currentMemberId.value) {
+    console.log("[channel] markMessagesAsSeen — no db or memberId yet");
+    return;
+  }
+  console.log("[channel] markMessagesAsSeen — started");
+  try {
+    const receipts = await db.value.message_receipts
+      .find({
+        selector: {
+          member_id: currentMemberId.value,
+          status: "delivered",
+        },
+      })
+      .exec();
+    console.log(
+      `[channel] markMessagesAsSeen — found ${receipts.length} delivered receipts to mark seen`,
+    );
+    for (const receipt of receipts) {
+      await receipt.patch({
+        status: "seen",
+        updated_at: new Date().toISOString(),
+      });
+    }
+    console.log(`[channel] markMessagesAsSeen — marked ${receipts.length} as seen`);
+  } catch (e) {
+    console.warn("[channel] markMessagesAsSeen — error:", e);
   }
 }
 
@@ -119,11 +288,42 @@ if (import.meta.client) {
 }
 
 async function onSend(content: string) {
-  if (!db.value) return;
-  console.log("[channel] onSend:", { content, channelId, currentMemberId: currentMemberId.value });
+  if (!db.value) {
+    console.warn("[channel] onSend — no db");
+    return;
+  }
+  if (!currentMemberId.value) {
+    console.warn("[channel] onSend — no currentMemberId yet");
+    return;
+  }
+
+  // If in edit mode, patch existing message instead of inserting
+  if (editingMessageId.value) {
+    console.log("[channel] onSend — edit mode, patching", editingMessageId.value);
+    const doc = await db.value.messages.findOne(editingMessageId.value).exec();
+    if (doc) {
+      await doc.patch({
+        content,
+        edited_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      console.log("[channel] onSend — edit patch done");
+    }
+    editingMessageId.value = null;
+    editingContent.value = "";
+    return;
+  }
+
+  const id = generateId();
+  console.log("[channel] onSend — inserting msg locally", { id, content });
   const now = new Date().toISOString();
+  pendingSendIds.value = new Set(pendingSendIds.value).add(id);
+  console.log(
+    "[channel] onSend — pending IDs now:",
+    [...pendingSendIds.value].map((s) => s.slice(0, 8)),
+  );
   await db.value.messages.insert({
-    id: generateId(),
+    id,
     channel_id: channelId,
     author_id: currentMemberId.value,
     content,
@@ -137,7 +337,47 @@ async function onSend(content: string) {
     updated_at: now,
     deleted_at: null,
   });
+  console.log("[channel] onSend — insert done");
+  buildMessageStatuses();
 }
+
+async function onEditMessageFromBubble(messageId: string, content: string) {
+  console.log("[channel] onEditMessageFromBubble — loading into composer", { messageId, content });
+  editingMessageId.value = messageId;
+  editingContent.value = content;
+}
+
+function cancelEdit() {
+  console.log("[channel] cancelEdit");
+  editingMessageId.value = null;
+  editingContent.value = "";
+}
+
+async function onLoadOlder() {
+  console.log(
+    "[channel] onLoadOlder — hasMore:",
+    hasMore.value,
+    "hasMoreHistory:",
+    hasMoreHistory.value,
+  );
+  if (hasMore.value) {
+    await loadOlder();
+  } else if (hasMoreHistory.value && oldestTimestamp.value && db.value) {
+    console.log("[channel] onLoadOlder — fetching from history API");
+    await loadHistoryFromServer(oldestTimestamp.value, db.value);
+  } else {
+    console.log("[channel] onLoadOlder — nothing more to load");
+  }
+}
+
+// Rebuild statuses whenever messages, pending IDs, or member ID change
+watch(
+  [messages, pendingSendIds, currentMemberId],
+  () => {
+    buildMessageStatuses();
+  },
+  { deep: true },
+);
 
 async function onToggleReaction(messageId: string, emoji: string) {
   if (!db.value) return;
@@ -164,18 +404,6 @@ async function onToggleReaction(messageId: string, emoji: string) {
 
   await doc.patch({ reactions, updated_at: new Date().toISOString() });
   console.log("[channel] onToggleReaction:", { messageId, emoji, reactions });
-}
-
-async function onEditMessage(messageId: string, newContent: string) {
-  if (!db.value) return;
-  const doc = await db.value.messages.findOne(messageId).exec();
-  if (!doc) return;
-  await doc.patch({
-    content: newContent,
-    edited_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-  console.log("[channel] onEditMessage:", { messageId, newContent });
 }
 
 async function onOpenThread(messageId: string) {
@@ -217,12 +445,18 @@ useSeoMeta({
         :channel-name="channelName ?? undefined"
         :loading="loading"
         :has-loaded="hasLoaded"
+        :message-statuses="messageStatuses"
         @toggle-reaction="onToggleReaction"
         @open-thread="onOpenThread"
-        @edit-message="onEditMessage"
-        @load-older="loadOlder"
+        @start-edit="onEditMessageFromBubble"
+        @load-older="onLoadOlder"
       />
-      <ChannelComposer @send="onSend" />
+      <ChannelComposer
+        :editing-message-id="editingMessageId"
+        :editing-content="editingContent"
+        @send="onSend"
+        @cancel-edit="cancelEdit"
+      />
     </NuxtLayout>
   </NuxtLayout>
 </template>

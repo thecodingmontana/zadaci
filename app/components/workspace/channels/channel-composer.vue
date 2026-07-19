@@ -1,10 +1,45 @@
 <script setup lang="ts">
 import EmojiPicker from "~/components/workspace/channels/emoji-picker.vue";
 
-defineProps<{ typingLabel?: string; placeholder?: string }>();
-const emit = defineEmits<{ send: [content: string] }>();
+const props = defineProps<{
+  typingLabel?: string;
+  placeholder?: string;
+  editingMessageId?: string | null;
+  editingContent?: string;
+}>();
+const emit = defineEmits<{
+  send: [content: string];
+  cancelEdit: [];
+}>();
 const content = ref("");
 const textareaRef = ref<HTMLTextAreaElement>();
+
+// Watch for edit mode — load content into composer
+watch(
+  () => props.editingContent,
+  (val) => {
+    if (val && props.editingMessageId) {
+      console.log("[composer] edit mode activated, content:", val?.slice(0, 50));
+      content.value = val;
+      nextTick(() => {
+        textareaRef.value?.focus();
+        textareaRef.value?.setSelectionRange(content.value.length, content.value.length);
+      });
+    }
+  },
+  { immediate: true },
+);
+
+// Clear composer when edit mode is cancelled
+watch(
+  () => props.editingMessageId,
+  (val) => {
+    if (!val) {
+      console.log("[composer] edit cancelled, clearing");
+    }
+  },
+  { immediate: true },
+);
 
 function insertEmoji(emoji: string) {
   content.value += emoji;
@@ -14,14 +49,23 @@ function insertEmoji(emoji: string) {
 function send() {
   const value = content.value.trim();
   if (!value) return;
+  console.log("[composer] send:", { value, editing: props.editingMessageId });
   emit("send", value);
   content.value = "";
+}
+
+function cancelEdit() {
+  content.value = "";
+  emit("cancelEdit");
 }
 
 function onKeydown(e: KeyboardEvent) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     send();
+  }
+  if (e.key === "Escape" && props.editingMessageId) {
+    cancelEdit();
   }
 }
 </script>
@@ -41,12 +85,30 @@ function onKeydown(e: KeyboardEvent) {
       {{ typingLabel }}
     </p>
 
-    <div class="rounded-lg border focus-within:ring-1 focus-within:ring-ring">
+    <div
+      v-if="editingMessageId"
+      class="mb-1 flex items-center gap-2 rounded-t-lg border border-b-0 bg-accent/50 px-3 py-1.5 text-xs text-muted-foreground"
+    >
+      <Icon name="lucide:pencil" size="12" />
+      <span>Editing message</span>
+      <button
+        type="button"
+        class="ml-auto font-medium text-primary hover:underline"
+        @click="cancelEdit"
+      >
+        Cancel
+      </button>
+    </div>
+
+    <div
+      class="rounded-lg border focus-within:ring-1 focus-within:ring-ring"
+      :class="[editingMessageId ? 'rounded-t-none' : '']"
+    >
       <textarea
         ref="textareaRef"
         v-model="content"
         rows="1"
-        :placeholder="placeholder ?? 'Message #general'"
+        :placeholder="placeholder ?? (editingMessageId ? 'Edit message...' : 'Message #general')"
         class="max-h-40 w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none"
         @keydown="onKeydown"
       />

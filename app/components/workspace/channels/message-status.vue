@@ -1,9 +1,10 @@
 <script setup lang="ts">
-defineProps<{ status: "sent" | "delivered" | "seen" }>();
+defineProps<{ status: "sending" | "sent" | "delivered" | "seen" }>();
 </script>
 
 <template>
-  <Icon v-if="status === 'sent'" name="lucide:check" size="14" class="text-muted-foreground" />
+  <Icon v-if="status === 'sending'" name="lucide:clock" size="14" class="text-muted-foreground" />
+  <Icon v-else-if="status === 'sent'" name="lucide:check" size="14" class="text-muted-foreground" />
   <Icon
     v-else-if="status === 'delivered'"
     name="lucide:check-check"
