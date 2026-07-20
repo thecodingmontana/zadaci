@@ -130,20 +130,22 @@ export function useMessageWindow(
     }
   }
 
-  let sub: { unsubscribe: () => void } | null = null;
+  let subs: { unsubscribe: () => void }[] = [];
 
   function subscribe() {
     const col = getCollection();
     if (!col) return;
     console.log(`[useMessageWindow] subscribe — SUBSCRIBE_LIMIT=${SUBSCRIBE_LIMIT}`);
-    const subscription = col
+
+    // Primary subscription — re-emits when docs enter/leave the result set
+    const querySub = col
       .find({
         selector: { channel_id: channelId, deleted_at: null, parent_message_id: null },
         sort: [{ created_at: "desc" }],
         limit: SUBSCRIBE_LIMIT,
       })
       .$.subscribe((docs) => {
-        console.log(`[useMessageWindow] subscription fired — ${docs.length} docs`);
+        console.log(`[useMessageWindow] query subscription fired — ${docs.length} docs`);
         const loaded = docs.map(docToMessage).reverse();
         messages.value = loaded;
         if (loaded.length > 0) {
@@ -151,14 +153,42 @@ export function useMessageWindow(
         }
         hasMore.value = loaded.length >= PAGE_SIZE;
       });
-    sub = { unsubscribe: () => subscription.unsubscribe() };
+
+    // Fallback — RxDB v17 query .$ may skip field-level updates
+    // that don't change sort position. Listen to raw event stream
+    // so thread-reply count, reactions, edits update in-place.
+    const eventSub = col.eventBulks$.subscribe((bulk: any) => {
+      for (const event of bulk.events ?? []) {
+        if (event.operation === "UPDATE" && event.documentId) {
+          const idx = messages.value.findIndex((m) => m.id === event.documentId);
+          if (idx !== -1) {
+            col
+              .findOne(event.documentId)
+              .exec()
+              .then((doc: any) => {
+                if (doc && doc.channel_id === channelId) {
+                  const idx2 = messages.value.findIndex((m) => m.id === event.documentId);
+                  if (idx2 !== -1) {
+                    messages.value[idx2] = docToMessage(doc);
+                  }
+                }
+              });
+          }
+        }
+      }
+    });
+
+    subs = [
+      { unsubscribe: () => querySub.unsubscribe() },
+      { unsubscribe: () => eventSub.unsubscribe() },
+    ];
   }
 
   function unsubscribe() {
-    if (sub) {
-      sub.unsubscribe();
-      sub = null;
+    for (const s of subs) {
+      s.unsubscribe();
     }
+    subs = [];
   }
 
   return {

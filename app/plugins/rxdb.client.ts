@@ -640,6 +640,27 @@ export default defineNuxtPlugin(async () => {
     }
   }
 
+  // Expose clear function globally for debugging/fresh-start scenarios
+  (window as any).clearRxDb = async function clearRxDb() {
+    console.log("[clearRxDb] Cancelling replications...");
+    for (const [, col] of Object.entries(db.collections)) {
+      try {
+        const reps = await (col as any).getReplicationStates();
+        for (const rep of reps ?? []) {
+          await rep.cancel();
+        }
+      } catch {
+        // best effort
+      }
+    }
+    console.log("[clearRxDb] Destroying database...");
+    await db.destroy();
+    console.log("[clearRxDb] Setting clear flag for next load...");
+    localStorage.setItem(CLEAR_KEY, "true");
+    console.log("[clearRxDb] Reloading page...");
+    window.location.reload();
+  };
+
   return {
     provide: {
       rxdb: markRaw(db) as ZadaciDatabase,
