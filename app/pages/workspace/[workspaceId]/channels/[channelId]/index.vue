@@ -52,6 +52,7 @@ const editingMessageId = ref<string | null>(null);
 const editingContent = ref("");
 
 const hasLoaded = ref(false);
+const hasError = ref(false);
 const systemEvents = ref<any[]>([]);
 
 const workspaceIdRef = computed(() => workspaceId);
@@ -178,10 +179,12 @@ function generateId(): string {
 
 async function init() {
   console.log("[channel] init() started");
+  hasError.value = false;
   try {
     const rxdb = await useRxDbSafe();
     if (!rxdb) {
       console.warn("[channel] init — no RxDB");
+      hasError.value = true;
       return;
     }
     db.value = rxdb;
@@ -196,6 +199,7 @@ async function init() {
       console.log("[channel] messageSync started");
     } catch (e) {
       console.error("[channel] messageSync.start() threw:", e);
+      hasError.value = true;
     }
 
     // Start RxDB sync for receipts
@@ -228,6 +232,7 @@ async function init() {
     markMessagesAsSeen();
   } catch (e) {
     console.error("[channel] init() threw:", e);
+    hasError.value = true;
   }
 }
 
@@ -341,6 +346,17 @@ async function onSend(content: string) {
   buildMessageStatuses();
 }
 
+async function onDelete(messageId: string) {
+  if (!db.value) return;
+  const doc = await db.value.messages.findOne(messageId).exec();
+  if (!doc) return;
+  await doc.incrementalModify((data: any) => {
+    data.deleted_at = new Date().toISOString();
+    data.updated_at = data.deleted_at;
+    return data;
+  });
+}
+
 async function onEditMessageFromBubble(messageId: string, content: string) {
   console.log("[channel] onEditMessageFromBubble — loading into composer", { messageId, content });
   editingMessageId.value = messageId;
@@ -384,26 +400,38 @@ async function onToggleReaction(messageId: string, emoji: string) {
   const doc = await db.value.messages.findOne(messageId).exec();
   if (!doc) return;
 
-  const reactions = [...(doc.reactions ?? [])];
-  const existing = reactions.find((r) => r.emoji === emoji);
+  const now = new Date().toISOString();
+  await doc.incrementalModify((data: any) => {
+    const reactions = data.reactions ?? [];
+    const userReaction = reactions.find((r: any) => r.member_ids.includes(currentMemberId.value));
+    const existingGroup = reactions.find((r: any) => r.emoji === emoji);
 
-  if (existing) {
-    const idx = existing.member_ids.indexOf(currentMemberId.value);
-    if (idx !== -1) {
-      existing.member_ids.splice(idx, 1);
-      if (existing.member_ids.length === 0) {
-        const groupIdx = reactions.indexOf(existing);
-        reactions.splice(groupIdx, 1);
+    if (userReaction?.emoji === emoji) {
+      const idx = userReaction.member_ids.indexOf(currentMemberId.value);
+      userReaction.member_ids.splice(idx, 1);
+      if (userReaction.member_ids.length === 0) {
+        reactions.splice(reactions.indexOf(userReaction), 1);
       }
     } else {
-      existing.member_ids.push(currentMemberId.value);
+      if (userReaction) {
+        const idx = userReaction.member_ids.indexOf(currentMemberId.value);
+        userReaction.member_ids.splice(idx, 1);
+        if (userReaction.member_ids.length === 0) {
+          reactions.splice(reactions.indexOf(userReaction), 1);
+        }
+      }
+      if (existingGroup) {
+        existingGroup.member_ids.push(currentMemberId.value);
+      } else {
+        reactions.push({ emoji, member_ids: [currentMemberId.value] });
+      }
     }
-  } else {
-    reactions.push({ emoji, member_ids: [currentMemberId.value] });
-  }
 
-  await doc.patch({ reactions, updated_at: new Date().toISOString() });
-  console.log("[channel] onToggleReaction:", { messageId, emoji, reactions });
+    data.reactions = reactions;
+    data.updated_at = now;
+    return data;
+  });
+  console.log("[channel] onToggleReaction:", { messageId, emoji });
 }
 
 async function onOpenThread(messageId: string) {
@@ -445,10 +473,12 @@ useSeoMeta({
         :channel-name="channelName ?? undefined"
         :loading="loading"
         :has-loaded="hasLoaded"
+        :error="hasError"
         :message-statuses="messageStatuses"
         @toggle-reaction="onToggleReaction"
         @open-thread="onOpenThread"
         @start-edit="onEditMessageFromBubble"
+        @delete="onDelete"
         @load-older="onLoadOlder"
       />
       <ChannelComposer

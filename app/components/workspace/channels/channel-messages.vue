@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import type { ChatMessage, SystemEvent } from "~/types/chat";
 import { motion } from "motion-v";
+
 import { ScrollArea } from "~/components/ui/scroll-area";
+import { Skeleton } from "~/components/ui/skeleton";
 import ChannelEmptyState from "~/components/workspace/channels/channel-empty-state.vue";
 import HuddleEvent from "~/components/workspace/channels/huddle-event.vue";
 import MessageBubble from "~/components/workspace/channels/message-bubble.vue";
 import MessagesDivider from "~/components/workspace/channels/messages-divider.vue";
-
 const props = defineProps<{
+  error?: boolean;
   messages: ChatMessage[];
   systemEvents?: SystemEvent[];
   currentMemberId: string;
   channelName?: string;
   showThreadEntry?: boolean;
+  hideThreadReply?: boolean;
+  hideEmptyState?: boolean;
   loading?: boolean;
   hasLoaded?: boolean;
   messageStatuses?: Map<string, "sending" | "sent" | "delivered" | "seen">;
@@ -22,6 +26,7 @@ const emit = defineEmits<{
   toggleReaction: [messageId: string, emoji: string];
   openThread: [messageId: string];
   startEdit: [messageId: string, content: string];
+  delete: [messageId: string];
   loadOlder: [];
 }>();
 
@@ -126,7 +131,7 @@ function onScroll() {
 }
 
 const showEmptyState = computed(() => {
-  return props.hasLoaded && props.messages.length === 0 && !props.loading;
+  return !props.hideEmptyState && props.hasLoaded && props.messages.length === 0 && !props.loading;
 });
 
 const channelNameDisplay = computed(() => props.channelName ?? "general");
@@ -135,6 +140,33 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
 <template>
   <div class="relative flex min-h-0 flex-1 flex-col">
     <ScrollArea ref="scrollAreaRef" class="flex-1 px-4 py-3" @scroll="onScroll">
+      <div v-if="loading && !hasLoaded" class="flex flex-col gap-4 py-4">
+        <div
+          v-for="n in 6"
+          :key="n"
+          class="flex w-full gap-2"
+          :class="n % 2 === 0 ? 'items-end justify-end' : 'items-start'"
+        >
+          <Skeleton v-if="n % 2 !== 0" class="mt-0.5 h-8 w-8 shrink-0 rounded-full" />
+          <div class="flex flex-col gap-2" :class="n % 2 === 0 ? 'items-end' : 'items-start'">
+            <Skeleton class="h-3 w-24" />
+            <Skeleton
+              class="h-8 rounded-xl"
+              :class="[n % 2 === 0 ? 'w-56 rounded-br-md' : 'w-64 rounded-bl-md']"
+            />
+            <Skeleton
+              v-if="n % 3 === 0"
+              class="h-8 w-48 rounded-xl"
+              :class="n % 2 === 0 ? 'rounded-br-md' : 'rounded-bl-md'"
+            />
+          </div>
+          <Skeleton v-if="n % 2 === 0" class="order-last mt-0.5 h-8 w-8 shrink-0 rounded-full" />
+        </div>
+      </div>
+      <div v-else-if="error" class="flex flex-1 flex-col items-center justify-center py-8">
+        <Icon name="lucide:server-crash" size="28" class="text-muted-foreground" />
+        <p class="mt-2 text-sm text-muted-foreground">Something went wrong loading messages</p>
+      </div>
       <HuddleEvent v-for="event in systemEvents" :key="event.id" :event="event" />
 
       <template v-for="(day, di) in dayGroups" :key="di">
@@ -146,8 +178,8 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
           :initial="{ opacity: 0, y: 8 }"
           :animate="{ opacity: 1, y: 0 }"
           :transition="{ duration: 0.18 }"
-          class="flex items-start gap-2 pb-3"
-          :class="[isOwn(group[0].authorId) ? 'justify-end' : '']"
+          class="flex w-full gap-2 pb-3"
+          :class="[isOwn(group[0].authorId) ? 'items-end justify-end' : 'items-start']"
         >
           <Avatar
             class="mt-0.5 h-8 w-8 shrink-0"
@@ -158,19 +190,11 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
             class="flex max-w-[80%] min-w-0 flex-col gap-1"
             :class="[isOwn(group[0].authorId) ? 'items-end' : 'items-start']"
           >
-            <div v-if="!isOwn(group[0].authorId)" class="flex items-baseline gap-2 px-1 text-xs">
-              <span class="font-semibold">{{ group[0].authorId }}</span>
-              <span
-                class="text-muted-foreground"
-                :title="new Date(group[0].createdAt).toLocaleString()"
-              >
-                {{
-                  new Date(group[0].createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                }}
-              </span>
+            <div class="px-1 text-xs">
+              <span v-if="!isOwn(group[0].authorId)" class="font-semibold">{{
+                group[0].authorId
+              }}</span>
+              <span v-else class="font-semibold text-muted-foreground">You</span>
             </div>
 
             <MessageBubble
@@ -180,10 +204,12 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
               :is-own="isOwn(message.authorId)"
               :current-member-id="currentMemberId"
               :show-thread-entry="props.showThreadEntry ?? true"
+              :hide-thread-reply="props.hideThreadReply ?? false"
               :delivery-status="props.messageStatuses?.get(message.id)"
               @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
               @open-thread="(id) => emit('openThread', id)"
               @start-edit="(...a) => emit('startEdit', ...a)"
+              @delete="(id) => emit('delete', id)"
             />
           </div>
         </motion.div>

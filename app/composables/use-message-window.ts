@@ -51,7 +51,7 @@ export function useMessageWindow(
 
       const docs = await col
         .find({
-          selector: { channel_id: channelId, deleted_at: null },
+          selector: { channel_id: channelId, deleted_at: null, parent_message_id: null },
           sort: [{ created_at: "desc" }],
           limit: PAGE_SIZE,
         })
@@ -82,6 +82,7 @@ export function useMessageWindow(
           selector: {
             channel_id: channelId,
             deleted_at: null,
+            parent_message_id: null,
             created_at: { $lt: oldestTimestamp.value },
           },
           sort: [{ created_at: "desc" }],
@@ -137,7 +138,7 @@ export function useMessageWindow(
     console.log(`[useMessageWindow] subscribe — SUBSCRIBE_LIMIT=${SUBSCRIBE_LIMIT}`);
     const subscription = col
       .find({
-        selector: { channel_id: channelId, deleted_at: null },
+        selector: { channel_id: channelId, deleted_at: null, parent_message_id: null },
         sort: [{ created_at: "desc" }],
         limit: SUBSCRIBE_LIMIT,
       })

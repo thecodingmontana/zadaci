@@ -13,9 +13,6 @@ const emit = defineEmits<{ toggleInfo: [] }>();
     </div>
 
     <div class="flex items-center gap-2">
-      <Button variant="ghost" size="icon-xs" aria-label="Notifications">
-        <Icon name="lucide:bell" size="16" />
-      </Button>
       <Button
         :variant="infoOpen ? 'secondary' : 'ghost'"
         size="icon-xs"
@@ -23,9 +20,6 @@ const emit = defineEmits<{ toggleInfo: [] }>();
         @click="emit('toggleInfo')"
       >
         <Icon name="lucide:panel-right" size="16" />
-      </Button>
-      <Button variant="ghost" size="icon-xs" aria-label="More options">
-        <Icon name="lucide:more-vertical" size="16" />
       </Button>
     </div>
   </header>

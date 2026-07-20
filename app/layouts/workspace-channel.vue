@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ChatMessage, Thread } from "~/types/chat";
 import { AnimatePresence, motion } from "motion-v";
 import ChannelHeader from "~/components/workspace/channels/channel-header.vue";
 import ChannelInfoPanel from "~/components/workspace/channels/channel-info-panel.vue";
@@ -6,7 +7,7 @@ import ThreadPanel from "~/components/workspace/channels/thread-panel.vue";
 
 const route = useRoute();
 const channelId = route.params.channelId as string;
-const { state, toggleInfo, closeThread, closeInfo } = useChannelPanel(channelId);
+const { state, toggleInfo, openThread, closeThread, closeInfo } = useChannelPanel(channelId);
 
 const currentMemberId = ref("me");
 
@@ -34,6 +35,109 @@ function generateId(): string {
   return result;
 }
 
+async function onToggleReaction(messageId: string, emoji: string) {
+  const db = await useRxDbSafe();
+  if (!db) return;
+  const doc = await db.messages.findOne(messageId).exec();
+  if (!doc) return;
+
+  const now = new Date().toISOString();
+  await doc.incrementalModify((data: any) => {
+    const reactions = data.reactions ?? [];
+    const userReaction = reactions.find((r: any) => r.member_ids.includes(currentMemberId.value));
+    const existingGroup = reactions.find((r: any) => r.emoji === emoji);
+
+    if (userReaction?.emoji === emoji) {
+      const idx = userReaction.member_ids.indexOf(currentMemberId.value);
+      userReaction.member_ids.splice(idx, 1);
+      if (userReaction.member_ids.length === 0) {
+        reactions.splice(reactions.indexOf(userReaction), 1);
+      }
+    } else {
+      if (userReaction) {
+        const idx = userReaction.member_ids.indexOf(currentMemberId.value);
+        userReaction.member_ids.splice(idx, 1);
+        if (userReaction.member_ids.length === 0) {
+          reactions.splice(reactions.indexOf(userReaction), 1);
+        }
+      }
+      if (existingGroup) {
+        existingGroup.member_ids.push(currentMemberId.value);
+      } else {
+        reactions.push({ emoji, member_ids: [currentMemberId.value] });
+      }
+    }
+
+    data.reactions = reactions;
+    data.updated_at = now;
+    return data;
+  });
+}
+
+function docToMessage(doc: any): ChatMessage {
+  return {
+    id: doc.id,
+    channelId: doc.channel_id,
+    authorId: doc.author_id,
+    content: doc.content,
+    createdAt: doc.created_at,
+    editedAt: doc.edited_at,
+    reactions: (doc.reactions ?? []) as any,
+    parentMessageId: doc.parent_message_id,
+    threadReplyCount: doc.thread_reply_count ?? 0,
+    threadParticipantIds: doc.thread_participant_ids ?? [],
+    threadLastReplyAt: doc.thread_last_reply_at,
+    deletedAt: doc.deleted_at,
+  };
+}
+
+async function onOpenThreadFromThread(messageId: string) {
+  const db = await useRxDbSafe();
+  if (!db) return;
+  const parent = await db.messages.findOne(messageId).exec();
+  if (!parent) return;
+  const replies = await db.messages
+    .find({
+      selector: { parent_message_id: messageId, deleted_at: null },
+      sort: [{ created_at: "asc" }],
+    })
+    .exec();
+  const thread: Thread = {
+    id: `thread-${messageId}`,
+    parentMessageId: messageId,
+    parentMessage: docToMessage(parent),
+    replies: (replies ?? []).map(docToMessage),
+  };
+  openThread(thread);
+}
+
+async function onDeleteMessage(messageId: string) {
+  const db = await useRxDbSafe();
+  if (!db) return;
+  const doc = await db.messages.findOne(messageId).exec();
+  if (!doc) return;
+
+  const parentMessageId = doc.parent_message_id;
+
+  await doc.incrementalModify((data: any) => {
+    data.deleted_at = new Date().toISOString();
+    data.updated_at = data.deleted_at;
+    return data;
+  });
+
+  // If this was a thread reply, decrement parent's reply count
+  if (parentMessageId) {
+    const parent = await db.messages.findOne(parentMessageId).exec();
+    if (parent) {
+      await parent.incrementalModify((data: any) => {
+        data.thread_reply_count = Math.max(0, (data.thread_reply_count ?? 0) - 1);
+        data.updated_at = new Date().toISOString();
+        return data;
+      });
+    }
+  }
+}
+
 async function onReply(parentMessageId: string, content: string) {
   if (!currentMemberId.value) return;
   const db = await useRxDbSafe();
@@ -58,15 +162,17 @@ async function onReply(parentMessageId: string, content: string) {
     deleted_at: null,
   });
 
-  // Update parent message thread metadata
   const parent = await db.messages.findOne(parentMessageId).exec();
   if (parent) {
-    const participantIds = [...new Set([...parent.thread_participant_ids, currentMemberId.value])];
-    await parent.patch({
-      thread_reply_count: parent.thread_reply_count + 1,
-      thread_participant_ids: participantIds,
-      thread_last_reply_at: now,
-      updated_at: now,
+    await parent.incrementalModify((data: any) => {
+      const participantIds = [
+        ...new Set([...(data.thread_participant_ids ?? []), currentMemberId.value]),
+      ];
+      data.thread_reply_count = (data.thread_reply_count ?? 0) + 1;
+      data.thread_participant_ids = participantIds;
+      data.thread_last_reply_at = now;
+      data.updated_at = now;
+      return data;
     });
   }
 }
@@ -95,6 +201,9 @@ async function onReply(parentMessageId: string, content: string) {
           :current-member-id="currentMemberId"
           @close="closeThread"
           @reply="onReply"
+          @toggle-reaction="onToggleReaction"
+          @open-thread="onOpenThreadFromThread"
+          @delete="onDeleteMessage"
         />
         <ChannelInfoPanel
           v-else
