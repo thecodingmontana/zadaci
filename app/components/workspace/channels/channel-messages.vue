@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import type { ChatMessage, SystemEvent } from "~/types/chat";
 import { motion } from "motion-v";
-
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Skeleton } from "~/components/ui/skeleton";
 import ChannelEmptyState from "~/components/workspace/channels/channel-empty-state.vue";
 import HuddleEvent from "~/components/workspace/channels/huddle-event.vue";
 import MessageBubble from "~/components/workspace/channels/message-bubble.vue";
 import MessagesDivider from "~/components/workspace/channels/messages-divider.vue";
+
+interface MemberInfo {
+  name: string;
+  avatar: string | null;
+}
+
 const props = defineProps<{
   error?: boolean;
   messages: ChatMessage[];
@@ -20,6 +26,8 @@ const props = defineProps<{
   loading?: boolean;
   hasLoaded?: boolean;
   messageStatuses?: Map<string, "sending" | "sent" | "delivered" | "seen">;
+  // Resolved member directory (memberId -> name/avatar) for rendering author info
+  members?: Map<string, MemberInfo>;
 }>();
 
 const emit = defineEmits<{
@@ -30,9 +38,16 @@ const emit = defineEmits<{
   loadOlder: [];
 }>();
 
+function memberInfo(authorId: string): MemberInfo {
+  return props.members?.get(authorId) ?? { name: authorId, avatar: null };
+}
+
+function initials(name: string): string {
+  return (name.trim()[0] ?? "?").toUpperCase();
+}
+
 const isOwn = (authorId: string) => authorId === props.currentMemberId;
 
-// Group messages by author (same author within ~5 min)
 const groups = computed(() => {
   const result: ChatMessage[][] = [];
   for (const message of props.messages) {
@@ -52,7 +67,6 @@ const groups = computed(() => {
   return result;
 });
 
-// Compute day boundaries for date dividers
 interface DayGroup {
   dateLabel: string;
   groups: ChatMessage[][];
@@ -139,7 +153,7 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
 
 <template>
   <div class="relative flex min-h-0 flex-1 flex-col">
-    <ScrollArea ref="scrollAreaRef" class="flex-1 px-4 py-3" @scroll="onScroll">
+    <ScrollArea ref="scrollAreaRef" class="min-h-0 flex-1 px-4 py-3" @scroll="onScroll">
       <div v-if="loading && !hasLoaded" class="flex flex-col gap-4 py-4">
         <div
           v-for="n in 6"
@@ -181,10 +195,13 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
           class="flex w-full gap-2 pb-3"
           :class="[isOwn(group[0].authorId) ? 'items-end justify-end' : 'items-start']"
         >
-          <Avatar
-            class="mt-0.5 h-8 w-8 shrink-0"
-            :class="[isOwn(group[0].authorId) ? 'order-last' : '']"
-          />
+          <Avatar v-if="!isOwn(group[0].authorId)" class="mt-0.5 h-8 w-8 shrink-0">
+            <AvatarImage
+              :src="memberInfo(group[0].authorId).avatar ?? undefined"
+              :alt="memberInfo(group[0].authorId).name"
+            />
+            <AvatarFallback>{{ initials(memberInfo(group[0].authorId).name) }}</AvatarFallback>
+          </Avatar>
 
           <div
             class="flex max-w-[80%] min-w-0 flex-col gap-1"
@@ -192,7 +209,7 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
           >
             <div class="px-1 text-xs">
               <span v-if="!isOwn(group[0].authorId)" class="font-semibold">{{
-                group[0].authorId
+                memberInfo(group[0].authorId).name
               }}</span>
               <span v-else class="font-semibold text-muted-foreground">You</span>
             </div>
@@ -203,6 +220,7 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
               :message="message"
               :is-own="isOwn(message.authorId)"
               :current-member-id="currentMemberId"
+              :members="props.members"
               :show-thread-entry="props.showThreadEntry ?? true"
               :hide-thread-reply="props.hideThreadReply ?? false"
               :delivery-status="props.messageStatuses?.get(message.id)"

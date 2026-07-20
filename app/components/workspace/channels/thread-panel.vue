@@ -6,9 +6,15 @@ import ChannelComposer from "~/components/workspace/channels/channel-composer.vu
 import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
 import MessageBubble from "~/components/workspace/channels/message-bubble.vue";
 
+interface MemberInfo {
+  name: string;
+  avatar: string | null;
+}
+
 const props = defineProps<{
   thread: Thread;
   currentMemberId: string;
+  members?: Map<string, MemberInfo>;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -195,6 +201,7 @@ async function onComposerSend(content: string) {
         :current-member-id="currentMemberId"
         :show-thread-entry="false"
         :hide-actions="true"
+        :members="members"
       />
     </div>
 
@@ -207,6 +214,7 @@ async function onComposerSend(content: string) {
       :loading="loading"
       :has-loaded="!loading"
       :message-statuses="messageStatuses"
+      :members="members"
       @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
       @open-thread="(id) => emit('openThread', id)"
       @start-edit="onStartEditFromReply"

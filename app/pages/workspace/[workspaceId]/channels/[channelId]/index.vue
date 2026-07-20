@@ -14,6 +14,11 @@ const route = useRoute();
 const workspaceId = route.params.workspaceId as string;
 const channelId = route.params.channelId as string;
 
+interface MemberInfo {
+  name: string;
+  avatar: string | null;
+}
+
 const channelName = ref<string | null>(null);
 const currentMemberId = ref<string>("");
 
@@ -57,6 +62,17 @@ const systemEvents = ref<any[]>([]);
 
 const workspaceIdRef = computed(() => workspaceId);
 const { data: members } = useWorkspaceMembers(workspaceIdRef);
+const membersMap = computed(() => {
+  if (!members.value) return new Map<string, MemberInfo>();
+  const map = new Map<string, MemberInfo>();
+  for (const m of members.value) {
+    map.set(m.id, {
+      name: m.user.username ?? m.user.email ?? m.id,
+      avatar: m.user.profilePictureUrl,
+    });
+  }
+  return map;
+});
 
 const messageSync = useMessageSync(() => channelId, {
   add: addPending,
@@ -475,6 +491,7 @@ useSeoMeta({
         :has-loaded="hasLoaded"
         :error="hasError"
         :message-statuses="messageStatuses"
+        :members="membersMap"
         @toggle-reaction="onToggleReaction"
         @open-thread="onOpenThread"
         @start-edit="onEditMessageFromBubble"

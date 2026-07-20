@@ -6,6 +6,11 @@ import EmojiPicker from "~/components/workspace/channels/emoji-picker.vue";
 import MessageAttachmentCard from "~/components/workspace/channels/message-attachment-card.vue";
 import MessageStatus from "~/components/workspace/channels/message-status.vue";
 
+interface MemberInfo {
+  name: string;
+  avatar: string | null;
+}
+
 const props = defineProps<{
   message: ChatMessage;
   isOwn: boolean;
@@ -16,6 +21,9 @@ const props = defineProps<{
   // For member display - Tier 2 data resolved at UI layer
   memberName?: string;
   memberAvatar?: string;
+  // Resolved member directory (memberId -> name/avatar), used to render
+  // real avatars/initials for thread-reply participants
+  members?: Map<string, MemberInfo>;
   // Delivery status computed from receipts
   deliveryStatus?: "sending" | "sent" | "delivered" | "seen";
 }>();
@@ -26,6 +34,14 @@ const emit = defineEmits<{
   startEdit: [messageId: string, content: string];
   delete: [messageId: string];
 }>();
+
+function memberInfo(memberId: string): MemberInfo {
+  return props.members?.get(memberId) ?? { name: memberId, avatar: null };
+}
+
+function initials(name: string): string {
+  return (name.trim()[0] ?? "?").toUpperCase();
+}
 
 const previewData = computed(() => {
   if (!props.showThreadEntry) return null;
@@ -75,12 +91,12 @@ const messageTime = computed(() => {
       :variant="isOwn ? 'default' : 'secondary'"
       :class="
         isOwn
-          ? '[&>[data-slot=bubble-content]]:!bg-brand [&>[data-slot=bubble-content]]:!text-white'
+          ? '*:data-[slot=bubble-content]:bg-brand! *:data-[slot=bubble-content]:text-white!'
           : ''
       "
     >
       <BubbleContent>
-        <p class="text-sm break-words whitespace-pre-wrap">
+        <p class="text-sm wrap-break-word whitespace-pre-wrap">
           {{ message.content }}
           <span v-if="isEdited" class="ml-1 text-[10px] opacity-60">(edited)</span>
         </p>
@@ -171,7 +187,8 @@ const messageTime = computed(() => {
           :key="pid"
           class="h-4 w-4 border"
         >
-          <AvatarImage :src="undefined" :alt="pid" />
+          <AvatarImage :src="memberInfo(pid).avatar ?? undefined" :alt="memberInfo(pid).name" />
+          <AvatarFallback class="text-[8px]">{{ initials(memberInfo(pid).name) }}</AvatarFallback>
         </Avatar>
         <span
           v-if="previewData.participantIds.length > 3"

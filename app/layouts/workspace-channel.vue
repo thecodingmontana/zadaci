@@ -11,10 +11,26 @@ const { state, toggleInfo, openThread, closeThread, closeInfo } = useChannelPane
 
 const currentMemberId = ref("me");
 
+interface MemberInfo {
+  name: string;
+  avatar: string | null;
+}
+
 // Resolve current member from workspace members
 const workspaceId = route.params.workspaceId as string;
 const workspaceIdRef = computed(() => workspaceId);
 const { data: members } = useWorkspaceMembers(workspaceIdRef);
+const membersMap = computed(() => {
+  if (!members.value) return new Map<string, MemberInfo>();
+  const map = new Map<string, MemberInfo>();
+  for (const m of members.value) {
+    map.set(m.id, {
+      name: m.user.username ?? m.user.email ?? m.id,
+      avatar: m.user.profilePictureUrl,
+    });
+  }
+  return map;
+});
 const { user: authUser } = useUserSession();
 watch(
   () => members.value,
@@ -199,6 +215,7 @@ async function onReply(parentMessageId: string, content: string) {
           v-if="state.activeThread"
           :thread="state.activeThread"
           :current-member-id="currentMemberId"
+          :members="membersMap"
           @close="closeThread"
           @reply="onReply"
           @toggle-reaction="onToggleReaction"
