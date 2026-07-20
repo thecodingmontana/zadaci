@@ -152,6 +152,10 @@ watch(
   },
 );
 
+function getScrollEl(): Element | null {
+  return scrollAreaRef.value?.$el?.querySelector?.("[data-radix-scroll-area-viewport]") ?? null;
+}
+
 // Track scroll position
 function onScroll() {
   wasNearBottom.value = isNearBottom();
@@ -159,9 +163,19 @@ function onScroll() {
     showNewMessages.value = false;
   }
 
-  const el = scrollAreaRef.value?.$el?.querySelector?.("[data-radix-scroll-area-viewport]");
-  if (!el || loadingOlder.value || loadOlderGuard || !props.hasLoaded) return;
-  if (isNearTop(el) && props.messages.length > 0) {
+  const el = getScrollEl();
+  if (!el) return;
+
+  if (
+    isNearTop(el) &&
+    !loadingOlder.value &&
+    !loadOlderGuard &&
+    props.hasLoaded &&
+    props.messages.length > 0
+  ) {
+    console.log(
+      `[channel-messages] SCROLL NEAR TOP — scrollTop=${el.scrollTop}, loadingOlder=${loadingOlder.value}, guard=${loadOlderGuard}, hasLoaded=${props.hasLoaded}, msgs=${props.messages.length}, loadingMore=${props.loadingMore}`,
+    );
     loadOlderGuard = true;
     emit("loadOlder");
     nextTick(() => {
@@ -267,6 +281,14 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
 
       <div ref="bottomAnchorRef" />
     </ScrollArea>
+
+    <!-- Debug: message count badge -->
+    <div
+      class="pointer-events-none absolute bottom-2 left-2 rounded bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+      title="Messages loaded"
+    >
+      {{ props.messages.length }} msgs
+    </div>
 
     <ChannelEmptyState
       v-if="showEmptyState"

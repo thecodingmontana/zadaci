@@ -392,14 +392,39 @@ async function onLoadOlder() {
     hasMore.value,
     "hasMoreHistory:",
     hasMoreHistory.value,
+    "oldestTimestamp:",
+    oldestTimestamp.value,
   );
   if (hasMore.value) {
     await loadOlder();
+    console.log(
+      "[channel] onLoadOlder — after loadOlder, hasMore:",
+      hasMore.value,
+      "total msgs:",
+      messages.value.length,
+    );
   } else if (hasMoreHistory.value && oldestTimestamp.value && db.value) {
     console.log("[channel] onLoadOlder — fetching from history API");
-    await loadHistoryFromServer(oldestTimestamp.value, db.value);
+    const cursor = await loadHistoryFromServer(oldestTimestamp.value, db.value);
+    console.log(
+      "[channel] onLoadOlder — after history fetch, cursor:",
+      cursor,
+      "hasMoreHistory:",
+      hasMoreHistory.value,
+      "total msgs:",
+      messages.value.length,
+    );
   } else {
-    console.log("[channel] onLoadOlder — nothing more to load");
+    console.log(
+      "[channel] onLoadOlder — nothing more to load (hasMore=",
+      hasMore.value,
+      "hasMoreHistory=",
+      hasMoreHistory.value,
+      "oldestTimestamp=",
+      oldestTimestamp.value,
+      "db=",
+      !!db.value,
+    );
   }
 }
 

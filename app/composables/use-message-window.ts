@@ -64,6 +64,9 @@ export function useMessageWindow(
         oldestTimestamp.value = loaded[0].createdAt;
       }
       hasMore.value = loaded.length === PAGE_SIZE;
+      console.log(
+        `[useMessageWindow] loadInitial — loaded ${loaded.length} messages, hasMore=${hasMore.value}, oldest=${oldestTimestamp.value}`,
+      );
     } finally {
       loading.value = false;
     }
@@ -71,19 +74,26 @@ export function useMessageWindow(
 
   async function loadOlder() {
     const col = getCollection();
+    console.log(
+      `[useMessageWindow] loadOlder — CALLED, loadingMore=${loadingMore.value}, oldestTimestamp=${oldestTimestamp.value}, hasMore=${hasMore.value}, hasMoreHistory=${hasMoreHistory.value}`,
+    );
     if (!col || loadingMore.value || !oldestTimestamp.value) {
+      console.log(
+        `[useMessageWindow] loadOlder — SKIP (col=${!!col}, loadingMore=${loadingMore.value}, oldest=${oldestTimestamp.value})`,
+      );
       return;
     }
 
     loadingMore.value = true;
     try {
+      const before = oldestTimestamp.value;
       const docs = await col
         .find({
           selector: {
             channel_id: channelId,
             deleted_at: null,
             parent_message_id: null,
-            created_at: { $lt: oldestTimestamp.value },
+            created_at: { $lt: before },
           },
           sort: [{ created_at: "desc" }],
           limit: PAGE_SIZE,
@@ -91,39 +101,58 @@ export function useMessageWindow(
         .exec();
 
       const loaded = docs.map(docToMessage).reverse();
-      messages.value = [...loaded, ...messages.value];
+      console.log(
+        `[useMessageWindow] loadOlder — RxDB returned ${loaded.length} docs before ${before}, msgs before=${messages.value.length}`,
+      );
 
       if (loaded.length > 0) {
+        messages.value = [...loaded, ...messages.value];
         oldestTimestamp.value = loaded[0].createdAt;
+        console.log(
+          `[useMessageWindow] loadOlder — new oldest=${oldestTimestamp.value}, total msgs now=${messages.value.length}`,
+        );
+      } else {
+        console.log(
+          `[useMessageWindow] loadOlder — NO MORE local docs, falling through to hasMoreHistory=${hasMoreHistory.value}`,
+        );
       }
       hasMore.value = loaded.length === PAGE_SIZE;
-      console.log(
-        `[useMessageWindow] loadOlder — got ${loaded.length} docs, hasMore=${hasMore.value}`,
-      );
     } finally {
       loadingMore.value = false;
     }
   }
 
   async function loadHistoryFromServer(before: string, db: ZadaciDatabase) {
-    if (!before || loadingHistory.value || !hasMoreHistory.value) return;
+    console.log(
+      `[useMessageWindow] loadHistoryFromServer — CALLED before=${before}, loadingHistory=${loadingHistory.value}, hasMoreHistory=${hasMoreHistory.value}`,
+    );
+    if (!before || loadingHistory.value || !hasMoreHistory.value) {
+      console.log(
+        `[useMessageWindow] loadHistoryFromServer — SKIP (before=${before}, loadingHistory=${loadingHistory.value}, hasMoreHistory=${hasMoreHistory.value})`,
+      );
+      return;
+    }
     loadingHistory.value = true;
-    console.log(`[useMessageWindow] loadHistoryFromServer — before=${before}`);
     try {
+      console.log(
+        `[useMessageWindow] loadHistoryFromServer — fetching /api/channels/${channelId}/messages/history`,
+      );
       const data: any = await $fetch(`/api/channels/${channelId}/messages/history`, {
         query: { before, limit: PAGE_SIZE },
       });
-      console.log(`[useMessageWindow] history API returned ${data.messages?.length} messages`);
+      console.log(
+        `[useMessageWindow] loadHistoryFromServer — API returned ${data.messages?.length} messages, nextCursor=${data.nextCursor}`,
+      );
       if (data.messages?.length) {
         await db.messages.bulkUpsert(data.messages);
         console.log(
-          `[useMessageWindow] upserted ${data.messages.length} history messages into RxDB`,
+          `[useMessageWindow] loadHistoryFromServer — upserted ${data.messages.length} history messages into RxDB, total msgs before upsert=${messages.value.length}`,
         );
       }
       hasMoreHistory.value = data.nextCursor != null;
       return data.nextCursor as string | null;
     } catch (err) {
-      console.error("[useMessageWindow] history fetch error:", err);
+      console.error("[useMessageWindow] loadHistoryFromServer — FETCH ERROR:", err);
       return null;
     } finally {
       loadingHistory.value = false;
