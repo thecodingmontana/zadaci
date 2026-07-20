@@ -25,6 +25,7 @@ const props = defineProps<{
   hideEmptyState?: boolean;
   loading?: boolean;
   hasLoaded?: boolean;
+  loadingMore?: boolean;
   messageStatuses?: Map<string, "sending" | "sent" | "delivered" | "seen">;
   // Resolved member directory (memberId -> name/avatar) for rendering author info
   members?: Map<string, MemberInfo>;
@@ -105,8 +106,10 @@ const dayGroups = computed(() => {
 
 const scrollAreaRef = ref<InstanceType<typeof ScrollArea>>();
 const bottomAnchorRef = ref<HTMLElement>();
+const topAnchorRef = ref<HTMLElement>();
 const showNewMessages = ref(false);
 const wasNearBottom = ref(true);
+const loadingOlder = ref(false);
 
 function isNearBottom(): boolean {
   const el = scrollAreaRef.value?.$el?.querySelector?.("[data-radix-scroll-area-viewport]");
@@ -136,11 +139,34 @@ watch(
   { immediate: true },
 );
 
+function isNearTop(el: Element): boolean {
+  return el.scrollTop < 150;
+}
+
+let loadOlderGuard = false;
+
+watch(
+  () => props.loadingMore,
+  (v) => {
+    loadingOlder.value = !!v;
+  },
+);
+
 // Track scroll position
 function onScroll() {
   wasNearBottom.value = isNearBottom();
   if (wasNearBottom.value) {
     showNewMessages.value = false;
+  }
+
+  const el = scrollAreaRef.value?.$el?.querySelector?.("[data-radix-scroll-area-viewport]");
+  if (!el || loadingOlder.value || loadOlderGuard || !props.hasLoaded) return;
+  if (isNearTop(el) && props.messages.length > 0) {
+    loadOlderGuard = true;
+    emit("loadOlder");
+    nextTick(() => {
+      loadOlderGuard = false;
+    });
   }
 }
 
@@ -182,6 +208,12 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
         <p class="mt-2 text-sm text-muted-foreground">Something went wrong loading messages</p>
       </div>
       <HuddleEvent v-for="event in systemEvents" :key="event.id" :event="event" />
+
+      <div ref="topAnchorRef" />
+
+      <div v-if="loadingMore" class="flex justify-center py-3">
+        <Icon name="lucide:loader-2" size="16" class="animate-spin text-muted-foreground" />
+      </div>
 
       <template v-for="(day, di) in dayGroups" :key="di">
         <MessagesDivider :label="day.dateLabel" />

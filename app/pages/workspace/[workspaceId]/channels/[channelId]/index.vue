@@ -42,6 +42,7 @@ function removePending(id: string) {
 const {
   messages,
   loading,
+  loadingMore,
   hasMore,
   hasMoreHistory,
   oldestTimestamp,
@@ -489,6 +490,7 @@ useSeoMeta({
         :channel-name="channelName ?? undefined"
         :loading="loading"
         :has-loaded="hasLoaded"
+        :loading-more="loadingMore"
         :error="hasError"
         :message-statuses="messageStatuses"
         :members="membersMap"
