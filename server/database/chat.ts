@@ -1,16 +1,19 @@
-import { index, integer, jsonb, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import {
-  CHANNEL_TYPE,
-  channel_type_enum,
-  MESSAGE_REFERENCE_TYPE,
-  message_reference_type_enum,
-} from "./enums";
+  index,
+  integer,
+  jsonb,
+  pgPolicy,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { channel_type_enum } from "./enums";
 import { user } from "./user";
 import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
-// A DM is just a channel with type "dm" and exactly 2 members —
-// no separate DM table needed.
 export const channel = pgTable(
   "channel",
   {
@@ -20,14 +23,17 @@ export const channel = pgTable(
     workspace_id: varchar("workspace_id", { length: 16 })
       .notNull()
       .references(() => workspace.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 255 }), // null for dm
-    type: channel_type_enum("type").notNull().default(CHANNEL_TYPE.PUBLIC),
+    name: varchar("name", { length: 255 }).notNull(),
+    type: channel_type_enum("type").notNull().default("public"),
     created_by: varchar("created_by", { length: 16 })
       .notNull()
       .references(() => user.id),
     ...syncable,
   },
-  (table) => [index("channel_workspace_id_idx").on(table.workspace_id)],
+  (table) => [
+    index("channel_workspace_id_idx").on(table.workspace_id),
+    pgPolicy("allow_anon_select_channel", { for: "select", to: "anon", using: sql`true` }),
+  ],
 );
 
 export const channel_members = pgTable(
@@ -42,7 +48,6 @@ export const channel_members = pgTable(
     member_id: varchar("member_id", { length: 16 })
       .notNull()
       .references(() => workspace_members.id, { onDelete: "cascade" }),
-    // drives unread badges — messages after this timestamp are "unread"
     last_read_at: timestamp("last_read_at", {
       mode: "date",
       precision: 3,
@@ -53,6 +58,7 @@ export const channel_members = pgTable(
   (table) => [
     index("channel_members_channel_id_idx").on(table.channel_id),
     index("channel_members_member_id_idx").on(table.member_id),
+    pgPolicy("allow_anon_select_channel_members", { for: "select", to: "anon", using: sql`true` }),
   ],
 );
 
@@ -74,9 +80,7 @@ export const message = pgTable(
       precision: 3,
       withTimezone: true,
     }),
-    // Grouped reactions: [{ emoji: string, member_ids: string[] }]
     reactions: jsonb("reactions").notNull().default([]),
-    // Thread support
     parent_message_id: varchar("parent_message_id", { length: 16 }).references(() => message.id, {
       onDelete: "set null",
     }),
@@ -93,6 +97,7 @@ export const message = pgTable(
     index("message_channel_id_idx").on(table.channel_id),
     index("message_parent_message_id_idx").on(table.parent_message_id),
     index("message_thread_last_reply_at_idx").on(table.thread_last_reply_at),
+    pgPolicy("allow_anon_select_message", { for: "select", to: "anon", using: sql`true` }),
   ],
 );
 
@@ -115,13 +120,10 @@ export const message_receipt = pgTable(
     index("message_receipt_message_id_idx").on(table.message_id),
     index("message_receipt_member_id_idx").on(table.member_id),
     uniqueIndex("message_receipt_message_member_unique").on(table.message_id, table.member_id),
+    pgPolicy("allow_anon_select_message_receipt", { for: "select", to: "anon", using: sql`true` }),
   ],
 );
 
-// Lets a message carry a pointer to a task/project/file/link instead of
-// duplicating that entity's data. `snapshot` caches title/status/url at
-// share-time so the reference card renders instantly without a join —
-// it's a display cache, not the source of truth.
 export const message_reference = pgTable(
   "message_reference",
   {
@@ -131,12 +133,17 @@ export const message_reference = pgTable(
     message_id: varchar("message_id", { length: 16 })
       .notNull()
       .references(() => message.id, { onDelete: "cascade" }),
-    ref_type: message_reference_type_enum("ref_type")
-      .notNull()
-      .default(MESSAGE_REFERENCE_TYPE.LINK),
-    ref_id: varchar("ref_id", { length: 16 }), // null for plain 'link' type
-    snapshot: text("snapshot"), // JSON string: cached title/status/url
+    ref_type: varchar("ref_type", { length: 20 }).notNull().default("link"),
+    ref_id: varchar("ref_id", { length: 16 }),
+    snapshot: text("snapshot"),
     ...timestamps,
   },
-  (table) => [index("message_reference_message_id_idx").on(table.message_id)],
+  (table) => [
+    index("message_reference_message_id_idx").on(table.message_id),
+    pgPolicy("allow_anon_select_message_reference", {
+      for: "select",
+      to: "anon",
+      using: sql`true`,
+    }),
+  ],
 );

@@ -9,12 +9,10 @@ interface PullResponse {
   documents: {
     id: string;
     workspace_id: string;
-    name: string;
-    type: "public" | "private";
-    created_by: string;
+    member_one_id: string;
+    member_two_id: string;
     created_at: string;
     updated_at: string;
-    deleted_at: string | null;
   }[];
   checkpoint: Checkpoint | null;
 }
@@ -50,39 +48,30 @@ export default defineEventHandler(async (event) => {
     }
 
     const conditions = [
-      eq(tables.channel.workspace_id, workspaceId),
+      eq(tables.conversation.workspace_id, workspaceId),
       or(
-        eq(tables.channel.type, "public"),
-        sql`EXISTS (SELECT 1 FROM ${tables.channel_members} WHERE channel_id = ${tables.channel.id} AND member_id = ${membership.id})`,
+        eq(tables.conversation.member_one_id, membership.id),
+        eq(tables.conversation.member_two_id, membership.id),
       ),
     ];
 
     if (checkpoint) {
       conditions.push(
         or(
-          gt(tables.channel.updated_at, new Date(checkpoint.updated_at)),
+          gt(tables.conversation.updated_at, new Date(checkpoint.updated_at)),
           and(
-            sql`${tables.channel.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
-            gt(tables.channel.id, checkpoint.id),
+            sql`${tables.conversation.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
+            gt(tables.conversation.id, checkpoint.id),
           ),
         ),
       );
     }
 
     const rows = await db
-      .select({
-        id: tables.channel.id,
-        workspace_id: tables.channel.workspace_id,
-        name: tables.channel.name,
-        type: tables.channel.type,
-        created_by: tables.channel.created_by,
-        created_at: tables.channel.created_at,
-        updated_at: tables.channel.updated_at,
-        deleted_at: tables.channel.deleted_at,
-      })
-      .from(tables.channel)
+      .select()
+      .from(tables.conversation)
       .where(and(...conditions))
-      .orderBy(asc(tables.channel.updated_at), asc(tables.channel.id))
+      .orderBy(asc(tables.conversation.updated_at), asc(tables.conversation.id))
       .limit(batchSize);
 
     const lastRow = rows[rows.length - 1];
@@ -93,12 +82,10 @@ export default defineEventHandler(async (event) => {
     const documents = rows.map((row) => ({
       id: row.id,
       workspace_id: row.workspace_id,
-      name: row.name!,
-      type: row.type as "public" | "private",
-      created_by: row.created_by,
+      member_one_id: row.member_one_id,
+      member_two_id: row.member_two_id,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
-      deleted_at: row.deleted_at ? row.deleted_at.toISOString() : null,
     }));
 
     return { documents, checkpoint: nextCheckpoint } satisfies PullResponse;
@@ -106,7 +93,7 @@ export default defineEventHandler(async (event) => {
     if (error?.statusCode) throw error;
     throw createError({
       statusCode: 500,
-      statusMessage: `Pull failed: ${error.message || "Unknown error"}`,
+      statusMessage: `Conversation pull failed: ${error.message || "Unknown error"}`,
     });
   }
 });

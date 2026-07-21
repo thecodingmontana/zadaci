@@ -9,8 +9,8 @@ interface PullResponse {
   documents: {
     id: string;
     workspace_id: string;
-    name: string;
-    type: "public" | "private";
+    title: string;
+    content: string | null;
     created_by: string;
     created_at: string;
     updated_at: string;
@@ -36,9 +36,7 @@ export default defineEventHandler(async (event) => {
     const membership = await db.query.workspace_members.findFirst({
       where: { user_id: userId, workspace_id: workspaceId },
     });
-    if (!membership) {
-      throw createError({ statusCode: 403, statusMessage: "Access denied" });
-    }
+    if (!membership) throw createError({ statusCode: 403, statusMessage: "Access denied" });
 
     let checkpoint: Checkpoint | null = null;
     if (checkpointParam) {
@@ -49,52 +47,37 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const conditions = [
-      eq(tables.channel.workspace_id, workspaceId),
-      or(
-        eq(tables.channel.type, "public"),
-        sql`EXISTS (SELECT 1 FROM ${tables.channel_members} WHERE channel_id = ${tables.channel.id} AND member_id = ${membership.id})`,
-      ),
-    ];
+    const conditions = [eq(tables.note.workspace_id, workspaceId)];
 
     if (checkpoint) {
       conditions.push(
         or(
-          gt(tables.channel.updated_at, new Date(checkpoint.updated_at)),
+          gt(tables.note.updated_at, new Date(checkpoint.updated_at)),
           and(
-            sql`${tables.channel.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
-            gt(tables.channel.id, checkpoint.id),
+            sql`${tables.note.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
+            gt(tables.note.id, checkpoint.id),
           ),
         ),
       );
     }
 
     const rows = await db
-      .select({
-        id: tables.channel.id,
-        workspace_id: tables.channel.workspace_id,
-        name: tables.channel.name,
-        type: tables.channel.type,
-        created_by: tables.channel.created_by,
-        created_at: tables.channel.created_at,
-        updated_at: tables.channel.updated_at,
-        deleted_at: tables.channel.deleted_at,
-      })
-      .from(tables.channel)
+      .select()
+      .from(tables.note)
       .where(and(...conditions))
-      .orderBy(asc(tables.channel.updated_at), asc(tables.channel.id))
+      .orderBy(asc(tables.note.updated_at), asc(tables.note.id))
       .limit(batchSize);
 
     const lastRow = rows[rows.length - 1];
-    const nextCheckpoint: Checkpoint | null = lastRow
+    const nextCheckpoint = lastRow
       ? { updated_at: lastRow.updated_at.toISOString(), id: lastRow.id }
       : null;
 
     const documents = rows.map((row) => ({
       id: row.id,
       workspace_id: row.workspace_id,
-      name: row.name!,
-      type: row.type as "public" | "private",
+      title: row.title,
+      content: row.content,
       created_by: row.created_by,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
@@ -106,7 +89,7 @@ export default defineEventHandler(async (event) => {
     if (error?.statusCode) throw error;
     throw createError({
       statusCode: 500,
-      statusMessage: `Pull failed: ${error.message || "Unknown error"}`,
+      statusMessage: `Note pull failed: ${error.message || "Unknown error"}`,
     });
   }
 });

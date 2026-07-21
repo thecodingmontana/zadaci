@@ -5,7 +5,6 @@ interface Checkpoint {
   updated_at: string;
   id: string;
 }
-
 interface PullResponse {
   documents: {
     id: string;
@@ -48,7 +47,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const conditions = [eq(tables.channel.workspace_id, workspaceId)];
+    const conditions = [eq(tables.channel_members.member_id, membership.id)];
 
     if (checkpoint) {
       conditions.push(
@@ -78,11 +77,8 @@ export default defineEventHandler(async (event) => {
       .limit(batchSize);
 
     const lastRow = rows[rows.length - 1];
-    const nextCheckpoint: Checkpoint | null = lastRow
-      ? {
-          updated_at: lastRow.updated_at.toISOString(),
-          id: lastRow.id,
-        }
+    const nextCheckpoint = lastRow
+      ? { updated_at: lastRow.updated_at.toISOString(), id: lastRow.id }
       : null;
 
     const documents = rows.map((row) => ({
@@ -96,9 +92,7 @@ export default defineEventHandler(async (event) => {
 
     return { documents, checkpoint: nextCheckpoint } satisfies PullResponse;
   } catch (error: any) {
-    if (error?.statusCode) {
-      throw error;
-    }
+    if (error?.statusCode) throw error;
     throw createError({
       statusCode: 500,
       statusMessage: `Pull failed: ${error.message || "Unknown error"}`,

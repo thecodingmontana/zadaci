@@ -1,4 +1,5 @@
-import { index, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { index, pgPolicy, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { USER_ROLE, user_role_enum } from "./enums";
 import { user } from "./user";
 import { generateNanoId, pgTable, timestamps } from "./utils";
@@ -20,6 +21,7 @@ export const workspace = pgTable(
   (table) => [
     index("workspace_user_id_idx").on(table.user_id),
     index("workspace_name_id_idx").on(table.name, table.id),
+    pgPolicy("allow_anon_select_workspace", { for: "select", to: "anon", using: sql`true` }),
   ],
 );
 
@@ -41,6 +43,11 @@ export const workspace_members = pgTable(
   (table) => [
     index("workspace_members_user_id_idx").on(table.user_id),
     index("workspace_members_workspace_id_idx").on(table.workspace_id),
+    pgPolicy("allow_anon_select_workspace_members", {
+      for: "select",
+      to: "anon",
+      using: sql`true`,
+    }),
   ],
 );
 
@@ -68,5 +75,6 @@ export const workspace_invite_request = pgTable(
   (table) => [
     index("workspace_invite_workspace_id_idx").on(table.workspace_id),
     index("workspace_invite_invited_by_idx").on(table.invited_by),
+    pgPolicy("allow_anon_select_workspace_invite", { for: "select", to: "anon", using: sql`true` }),
   ],
 );

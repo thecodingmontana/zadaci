@@ -7,29 +7,28 @@ export default defineEventHandler(async (event) => {
     const userId = session.user.id;
 
     const channelId = getRouterParam(event, "channelId");
-    if (!channelId) {
-      throw createError({ statusCode: 400, statusMessage: "channelId is required" });
-    }
+    if (!channelId) throw createError({ statusCode: 400, statusMessage: "channelId is required" });
 
     const query = getQuery(event);
     const before = query.before as string | undefined;
     const limit = Math.min(Number(query.limit) || 50, 100);
 
-    console.log(`[history] channel=${channelId} before=${before} limit=${limit}`);
-
     const channel = await db.query.channel.findFirst({
       where: { id: channelId },
       with: { workspace: true },
     });
-    if (!channel) {
-      throw createError({ statusCode: 404, statusMessage: "Channel not found" });
-    }
+    if (!channel) throw createError({ statusCode: 404, statusMessage: "Channel not found" });
 
     const membership = await db.query.workspace_members.findFirst({
       where: { user_id: userId, workspace_id: channel.workspace_id },
     });
-    if (!membership) {
-      throw createError({ statusCode: 403, statusMessage: "Access denied" });
+    if (!membership) throw createError({ statusCode: 403, statusMessage: "Access denied" });
+
+    const channelMembership = await db.query.channel_members.findFirst({
+      where: { channel_id: channelId, member_id: membership.id },
+    });
+    if (!channelMembership && channel.type !== "public") {
+      throw createError({ statusCode: 403, statusMessage: "Not a channel member" });
     }
 
     const conditions = [eq(tables.message.channel_id, channelId)];
@@ -66,12 +65,9 @@ export default defineEventHandler(async (event) => {
     const nextCursor =
       rows.length === limit && rows.length > 0 && rows[0] ? rows[0].created_at.toISOString() : null;
 
-    console.log(`[history] returned ${messages.length} messages, nextCursor=${nextCursor}`);
-
     return { messages, nextCursor };
   } catch (error: any) {
     if (error?.statusCode) throw error;
-    console.error("[history] error:", error);
     throw createError({
       statusCode: 500,
       statusMessage: `History fetch failed: ${error.message || "Unknown error"}`,

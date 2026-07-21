@@ -21,6 +21,8 @@ export const relations = defineRelations(schema, (r) => ({
     channels: r.many.channel(),
     teams: r.many.team(),
     tags: r.many.tag(),
+    conversations: r.many.conversation(),
+    notes: r.many.note(),
   },
   workspace_members: {
     user: r.one.user({
@@ -36,9 +38,18 @@ export const relations = defineRelations(schema, (r) => ({
     project_memberships: r.many.project_members(),
     channel_memberships: r.many.channel_members(),
     messages: r.many.message(),
-    task_comments: r.many.task_comment(),
-    project_comments: r.many.project_comment(),
+    comments: r.many.comment(),
     team_memberships: r.many.team_members(),
+    direct_messages: r.many.direct_message(),
+    conversations_initiated: r.many.conversation({
+      from: r.workspace_members.id,
+      to: r.conversation.member_one_id,
+    }),
+    conversations_received: r.many.conversation({
+      from: r.workspace_members.id,
+      to: r.conversation.member_two_id,
+    }),
+    dm_receipts: r.many.direct_message_receipt(),
   },
   project: {
     workspace: r.one.workspace({
@@ -51,7 +62,6 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     tasks: r.many.task(),
     members: r.many.project_members(),
-    comments: r.many.project_comment(),
     project_tags: r.many.project_tags(),
   },
   project_members: {
@@ -61,16 +71,6 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     member: r.one.workspace_members({
       from: r.project_members.member_id,
-      to: r.workspace_members.id,
-    }),
-  },
-  project_comment: {
-    project: r.one.project({
-      from: r.project_comment.project_id,
-      to: r.project.id,
-    }),
-    author: r.one.workspace_members({
-      from: r.project_comment.author_id,
       to: r.workspace_members.id,
     }),
   },
@@ -89,7 +89,6 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     activities: r.many.tasks_activity(),
     assignees: r.many.task_assignees(),
-    comments: r.many.task_comment(),
     task_tags: r.many.task_tags(),
   },
   task_assignees: {
@@ -99,16 +98,6 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     member: r.one.workspace_members({
       from: r.task_assignees.member_id,
-      to: r.workspace_members.id,
-    }),
-  },
-  task_comment: {
-    task: r.one.task({
-      from: r.task_comment.task_id,
-      to: r.task.id,
-    }),
-    author: r.one.workspace_members({
-      from: r.task_comment.author_id,
       to: r.workspace_members.id,
     }),
   },
@@ -258,6 +247,62 @@ export const relations = defineRelations(schema, (r) => ({
     user: r.one.user({
       from: r.user_status.user_id,
       to: r.user.id,
+    }),
+  },
+  conversation: {
+    workspace: r.one.workspace({
+      from: r.conversation.workspace_id,
+      to: r.workspace.id,
+    }),
+    member_one: r.one.workspace_members({
+      from: r.conversation.member_one_id,
+      to: r.workspace_members.id,
+    }),
+    member_two: r.one.workspace_members({
+      from: r.conversation.member_two_id,
+      to: r.workspace_members.id,
+    }),
+    messages: r.many.direct_message(),
+  },
+  direct_message: {
+    conversation: r.one.conversation({
+      from: r.direct_message.conversation_id,
+      to: r.conversation.id,
+    }),
+    author: r.one.workspace_members({
+      from: r.direct_message.author_id,
+      to: r.workspace_members.id,
+    }),
+    receipts: r.many.direct_message_receipt(),
+  },
+  direct_message_receipt: {
+    direct_message: r.one.direct_message({
+      from: r.direct_message_receipt.direct_message_id,
+      to: r.direct_message.id,
+    }),
+    member: r.one.workspace_members({
+      from: r.direct_message_receipt.member_id,
+      to: r.workspace_members.id,
+    }),
+  },
+  note: {
+    workspace: r.one.workspace({
+      from: r.note.workspace_id,
+      to: r.workspace.id,
+    }),
+  },
+  comment: {
+    author: r.one.workspace_members({
+      from: r.comment.author_id,
+      to: r.workspace_members.id,
+    }),
+    parent: r.one.comment({
+      from: r.comment.parent_id,
+      to: r.comment.id,
+    }),
+    replies: r.many.comment({
+      from: r.comment.id,
+      to: r.comment.parent_id,
     }),
   },
 }));

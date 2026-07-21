@@ -1,4 +1,5 @@
-import { index, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { index, pgPolicy, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { PRIORITY, priority_enum, STATUS, status_enum } from "./enums";
 import { team } from "./team";
 import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
@@ -26,6 +27,7 @@ export const project = pgTable(
   (table) => [
     index("project_workspace_id_idx").on(table.workspace_id),
     index("project_team_id_idx").on(table.team_id),
+    pgPolicy("allow_anon_select_project", { for: "select", to: "anon", using: sql`true` }),
   ],
 );
 
@@ -46,6 +48,7 @@ export const project_members = pgTable(
   (table) => [
     index("project_members_project_id_idx").on(table.project_id),
     index("project_members_member_id_idx").on(table.member_id),
+    pgPolicy("allow_anon_select_project_members", { for: "select", to: "anon", using: sql`true` }),
   ],
 );
 
@@ -71,6 +74,7 @@ export const task = pgTable(
   (table) => [
     index("tasks_project_id_idx").on(table.project_id),
     index("tasks_parent_task_id_idx").on(table.parent_task_id),
+    pgPolicy("allow_anon_select_task", { for: "select", to: "anon", using: sql`true` }),
   ],
 );
 
@@ -95,6 +99,7 @@ export const task_assignees = pgTable(
   (table) => [
     index("task_assignees_task_id_idx").on(table.task_id),
     index("task_assignees_member_id_idx").on(table.member_id),
+    pgPolicy("allow_anon_select_task_assignees", { for: "select", to: "anon", using: sql`true` }),
   ],
 );
 
@@ -120,5 +125,6 @@ export const tasks_activity = pgTable(
   (table) => [
     index("tasks_activity_task_id_idx").on(table.task_id),
     index("tasks_activity_changed_by_idx").on(table.changed_by),
+    pgPolicy("allow_anon_select_tasks_activity", { for: "select", to: "anon", using: sql`true` }),
   ],
 );

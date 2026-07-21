@@ -10,7 +10,7 @@ interface PushRow {
     id: string;
     workspace_id: string;
     name: string | null;
-    type: "public" | "private" | "dm";
+    type: "public" | "private";
     created_by: string;
     created_at: string;
     updated_at: string;

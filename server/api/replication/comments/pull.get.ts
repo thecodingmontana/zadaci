@@ -8,10 +8,11 @@ interface Checkpoint {
 interface PullResponse {
   documents: {
     id: string;
-    workspace_id: string;
-    name: string;
-    type: "public" | "private";
-    created_by: string;
+    entity_type: string;
+    entity_id: string;
+    author_id: string;
+    content: string;
+    parent_id: string | null;
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
@@ -26,6 +27,8 @@ export default defineEventHandler(async (event) => {
 
     const query = getQuery(event);
     const workspaceId = query.workspace_id as string | undefined;
+    const entityType = query.entity_type as string | undefined;
+    const entityId = query.entity_id as string | undefined;
     const checkpointParam = query.checkpoint as string | undefined;
     const batchSize = Math.min(Number(query.batch_size) || 50, 100);
 
@@ -36,9 +39,7 @@ export default defineEventHandler(async (event) => {
     const membership = await db.query.workspace_members.findFirst({
       where: { user_id: userId, workspace_id: workspaceId },
     });
-    if (!membership) {
-      throw createError({ statusCode: 403, statusMessage: "Access denied" });
-    }
+    if (!membership) throw createError({ statusCode: 403, statusMessage: "Access denied" });
 
     let checkpoint: Checkpoint | null = null;
     if (checkpointParam) {
@@ -49,53 +50,46 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const conditions = [
-      eq(tables.channel.workspace_id, workspaceId),
-      or(
-        eq(tables.channel.type, "public"),
-        sql`EXISTS (SELECT 1 FROM ${tables.channel_members} WHERE channel_id = ${tables.channel.id} AND member_id = ${membership.id})`,
-      ),
-    ];
+    const conditions = [] as any[];
+
+    if (entityType && entityId) {
+      conditions.push(
+        eq(tables.comment.entity_type, entityType),
+        eq(tables.comment.entity_id, entityId),
+      );
+    }
 
     if (checkpoint) {
       conditions.push(
         or(
-          gt(tables.channel.updated_at, new Date(checkpoint.updated_at)),
+          gt(tables.comment.updated_at, new Date(checkpoint.updated_at)),
           and(
-            sql`${tables.channel.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
-            gt(tables.channel.id, checkpoint.id),
+            sql`${tables.comment.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
+            gt(tables.comment.id, checkpoint.id),
           ),
         ),
       );
     }
 
     const rows = await db
-      .select({
-        id: tables.channel.id,
-        workspace_id: tables.channel.workspace_id,
-        name: tables.channel.name,
-        type: tables.channel.type,
-        created_by: tables.channel.created_by,
-        created_at: tables.channel.created_at,
-        updated_at: tables.channel.updated_at,
-        deleted_at: tables.channel.deleted_at,
-      })
-      .from(tables.channel)
-      .where(and(...conditions))
-      .orderBy(asc(tables.channel.updated_at), asc(tables.channel.id))
+      .select()
+      .from(tables.comment)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(asc(tables.comment.updated_at), asc(tables.comment.id))
       .limit(batchSize);
 
     const lastRow = rows[rows.length - 1];
-    const nextCheckpoint: Checkpoint | null = lastRow
+    const nextCheckpoint = lastRow
       ? { updated_at: lastRow.updated_at.toISOString(), id: lastRow.id }
       : null;
 
     const documents = rows.map((row) => ({
       id: row.id,
-      workspace_id: row.workspace_id,
-      name: row.name!,
-      type: row.type as "public" | "private",
-      created_by: row.created_by,
+      entity_type: row.entity_type,
+      entity_id: row.entity_id,
+      author_id: row.author_id,
+      content: row.content,
+      parent_id: row.parent_id,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
       deleted_at: row.deleted_at ? row.deleted_at.toISOString() : null,
@@ -106,7 +100,7 @@ export default defineEventHandler(async (event) => {
     if (error?.statusCode) throw error;
     throw createError({
       statusCode: 500,
-      statusMessage: `Pull failed: ${error.message || "Unknown error"}`,
+      statusMessage: `Comment pull failed: ${error.message || "Unknown error"}`,
     });
   }
 });

@@ -1,20 +1,25 @@
-import { boolean, index, integer, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, index, integer, pgPolicy, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { USER_STATUS, user_status_enum } from "./enums";
 import { generateNanoId, pgTable, timestamps } from "./utils";
 
-export const user = pgTable("user", {
-  id: varchar("id", { length: 16 })
-    .primaryKey()
-    .$defaultFn(() => generateNanoId()),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  username: varchar("username", { length: 255 }).notNull(),
-  password: text("password"),
-  email_verified: boolean("email_verified").notNull().default(false),
-  registered_2fa: boolean("registered_2fa").notNull().default(false),
-  recovery_code: text("recovery_code").notNull(),
-  profile_picture_url: text("profile_picture_url"),
-  ...timestamps,
-});
+export const user = pgTable(
+  "user",
+  {
+    id: varchar("id", { length: 16 })
+      .primaryKey()
+      .$defaultFn(() => generateNanoId()),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    username: varchar("username", { length: 255 }).notNull(),
+    password: text("password"),
+    email_verified: boolean("email_verified").notNull().default(false),
+    registered_2fa: boolean("registered_2fa").notNull().default(false),
+    recovery_code: text("recovery_code").notNull(),
+    profile_picture_url: text("profile_picture_url"),
+    ...timestamps,
+  },
+  (_table) => [pgPolicy("allow_anon_select_user", { for: "select", to: "anon", using: sql`true` })],
+);
 
 export const unique_code = pgTable("unique_code_request", {
   id: varchar("id", { length: 16 })
@@ -107,22 +112,28 @@ export const oauth_account = pgTable(
   (table) => [index("provider_user_unique").on(table.provider, table.provider_user_id)],
 );
 
-export const user_status = pgTable("user_status", {
-  id: varchar("id", { length: 16 })
-    .primaryKey()
-    .$defaultFn(() => generateNanoId()),
-  user_id: varchar("user_id", { length: 16 })
-    .notNull()
-    .unique()
-    .references(() => user.id, { onDelete: "cascade" }),
-  status: user_status_enum("status").notNull().default(USER_STATUS.AVAILABLE),
-  custom_message: text("custom_message"), // e.g. "In a meeting"
-  // Explicit expiry for temporary statuses (e.g. "Away for 30 min") —
-  // nullable, null means the status persists until manually changed.
-  status_expires_at: timestamp("status_expires_at", {
-    mode: "date",
-    precision: 3,
-    withTimezone: true,
-  }),
-  ...timestamps,
-});
+export const user_status = pgTable(
+  "user_status",
+  {
+    id: varchar("id", { length: 16 })
+      .primaryKey()
+      .$defaultFn(() => generateNanoId()),
+    user_id: varchar("user_id", { length: 16 })
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: user_status_enum("status").notNull().default(USER_STATUS.AVAILABLE),
+    custom_message: text("custom_message"), // e.g. "In a meeting"
+    // Explicit expiry for temporary statuses (e.g. "Away for 30 min") —
+    // nullable, null means the status persists until manually changed.
+    status_expires_at: timestamp("status_expires_at", {
+      mode: "date",
+      precision: 3,
+      withTimezone: true,
+    }),
+    ...timestamps,
+  },
+  (_table) => [
+    pgPolicy("allow_anon_select_user_status", { for: "select", to: "anon", using: sql`true` }),
+  ],
+);

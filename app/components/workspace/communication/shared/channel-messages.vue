@@ -23,6 +23,9 @@ const props = defineProps<{
   showThreadEntry?: boolean;
   hideThreadReply?: boolean;
   hideEmptyState?: boolean;
+  emptyStateType?: "discussion" | "conversation";
+  emptyStateAvatarUrl?: string | null;
+  isSelfChat?: boolean;
   loading?: boolean;
   hasLoaded?: boolean;
   loadingMore?: boolean;
@@ -321,7 +324,9 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
     <ChannelEmptyState
       v-if="showEmptyState"
       :name="channelNameDisplay"
-      type="discussion"
+      :type="emptyStateType ?? 'discussion'"
+      :is-self-chat="isSelfChat"
+      :avatar-url="emptyStateAvatarUrl"
       class="px-4 pb-4"
     />
 

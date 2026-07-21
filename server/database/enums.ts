@@ -32,14 +32,6 @@ export enum PRIORITY {
 export enum CHANNEL_TYPE {
   PUBLIC = "public",
   PRIVATE = "private",
-  DM = "dm",
-}
-
-export enum MESSAGE_REFERENCE_TYPE {
-  TASK = "task",
-  PROJECT = "project",
-  FILE = "file",
-  LINK = "link",
 }
 
 export enum USER_STATUS {
@@ -50,12 +42,15 @@ export enum USER_STATUS {
   OFFLINE = "offline",
 }
 
+export enum COMMENT_ENTITY_TYPE {
+  TASK = "task",
+  SUBTASK = "subtask",
+  PROJECT = "project",
+  NOTE = "note",
+}
+
 export const user_role_enum = pgEnum("user_role", enumToPgEnum(USER_ROLE));
 export const status_enum = pgEnum("status", enumToPgEnum(STATUS));
 export const priority_enum = pgEnum("priority", enumToPgEnum(PRIORITY));
 export const channel_type_enum = pgEnum("channel_type", enumToPgEnum(CHANNEL_TYPE));
-export const message_reference_type_enum = pgEnum(
-  "message_reference_type",
-  enumToPgEnum(MESSAGE_REFERENCE_TYPE),
-);
 export const user_status_enum = pgEnum("user_status", enumToPgEnum(USER_STATUS));

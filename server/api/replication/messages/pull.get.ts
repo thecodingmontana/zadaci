@@ -5,7 +5,6 @@ interface Checkpoint {
   updated_at: string;
   id: string;
 }
-
 interface PullResponse {
   documents: {
     id: string;
@@ -54,6 +53,13 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403, statusMessage: "Access denied" });
     }
 
+    const channelMembership = await db.query.channel_members.findFirst({
+      where: { channel_id: channelId, member_id: membership.id },
+    });
+    if (!channelMembership && channel.type !== "public") {
+      throw createError({ statusCode: 403, statusMessage: "Not a channel member" });
+    }
+
     let checkpoint: Checkpoint | null = null;
     if (checkpointParam) {
       try {
@@ -86,10 +92,7 @@ export default defineEventHandler(async (event) => {
 
     const lastRow = rows[rows.length - 1];
     const nextCheckpoint: Checkpoint | null = lastRow
-      ? {
-          updated_at: lastRow.updated_at.toISOString(),
-          id: lastRow.id,
-        }
+      ? { updated_at: lastRow.updated_at.toISOString(), id: lastRow.id }
       : null;
 
     const documents = rows.map((row) => ({
@@ -112,9 +115,7 @@ export default defineEventHandler(async (event) => {
 
     return { documents, checkpoint: nextCheckpoint } satisfies PullResponse;
   } catch (error: any) {
-    if (error?.statusCode) {
-      throw error;
-    }
+    if (error?.statusCode) throw error;
     throw createError({
       statusCode: 500,
       statusMessage: `Pull failed: ${error.message || "Unknown error"}`,

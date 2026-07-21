@@ -126,7 +126,9 @@ export function useMessageSync(
             return [];
           }
 
-          const filtered = rows.filter((r) => r.newDocumentState);
+          const filtered = rows.filter(
+            (r) => r.newDocumentState && r.newDocumentState.channel_id === id,
+          );
           if (filtered.length === 0) return [];
 
           console.log(`[useMessageSync] Push — ${filtered.length} doc(s) being sent`);

@@ -163,11 +163,11 @@ async function onReply(parentMessageId: string, content: string) {
   const db = await useRxDbSafe();
   if (!db) return;
 
+  const id = generateId();
   const now = new Date().toISOString();
 
-  // Insert reply message
   await db.messages.insert({
-    id: generateId(),
+    id,
     channel_id: channelId,
     author_id: currentMemberId.value,
     content,
@@ -194,6 +194,35 @@ async function onReply(parentMessageId: string, content: string) {
       data.updated_at = now;
       return data;
     });
+  }
+
+  try {
+    const pushBody = [
+      {
+        assumedMasterState: null,
+        newDocumentState: {
+          id,
+          channel_id: channelId,
+          author_id: currentMemberId.value,
+          content,
+          edited_at: null,
+          reactions: [],
+          parent_message_id: parentMessageId,
+          thread_reply_count: 0,
+          thread_participant_ids: [],
+          thread_last_reply_at: null,
+          created_at: now,
+          updated_at: now,
+          deleted_at: null,
+        },
+      },
+    ];
+    await $fetch(`/api/replication/messages/push?channel_id=${channelId}`, {
+      method: "POST",
+      body: pushBody,
+    });
+  } catch {
+    // ignore
   }
 }
 </script>

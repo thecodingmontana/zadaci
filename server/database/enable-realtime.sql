@@ -1,4 +1,4 @@
--- Enable Realtime on Tier 1 tables for cross-tab sync.
+-- Enable Realtime on tables for cross-tab sync.
 -- Run this via: pnpm run db:realtime
 -- Or manually: psql "$DATABASE_URL" -f server/database/enable-realtime.sql
 --
@@ -20,8 +20,11 @@ alter publication supabase_realtime add table
   app_message,
   app_message_reference,
   app_message_receipt,
-  app_task_comment,
-  app_project_comment,
+  app_comment,
+  app_note,
+  app_conversation,
+  app_direct_message,
+  app_direct_message_receipt,
   app_team,
   app_tag,
   app_project_tags,

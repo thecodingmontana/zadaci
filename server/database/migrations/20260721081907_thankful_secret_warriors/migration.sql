@@ -1,5 +1,4 @@
-CREATE TYPE "channel_type" AS ENUM('public', 'private', 'dm');--> statement-breakpoint
-CREATE TYPE "message_reference_type" AS ENUM('task', 'project', 'file', 'link');--> statement-breakpoint
+CREATE TYPE "channel_type" AS ENUM('public', 'private');--> statement-breakpoint
 CREATE TYPE "priority" AS ENUM('low', 'medium', 'high', 'none', 'urgent');--> statement-breakpoint
 CREATE TYPE "status" AS ENUM('idea', 'todo', 'in_progress', 'in_review', 'completed', 'abandoned');--> statement-breakpoint
 CREATE TYPE "user_role" AS ENUM('owner', 'moderator', 'member');--> statement-breakpoint
@@ -7,7 +6,7 @@ CREATE TYPE "user_status" AS ENUM('available', 'busy', 'away', 'dnd', 'offline')
 CREATE TABLE "app_channel" (
 	"id" varchar(16) PRIMARY KEY,
 	"workspace_id" varchar(16) NOT NULL,
-	"name" varchar(255),
+	"name" varchar(255) NOT NULL,
 	"type" "channel_type" DEFAULT 'public'::"channel_type" NOT NULL,
 	"created_by" varchar(16) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
@@ -52,37 +51,70 @@ CREATE TABLE "app_message_receipt" (
 CREATE TABLE "app_message_reference" (
 	"id" varchar(16) PRIMARY KEY,
 	"message_id" varchar(16) NOT NULL,
-	"ref_type" "message_reference_type" DEFAULT 'link'::"message_reference_type" NOT NULL,
+	"ref_type" varchar(20) DEFAULT 'link' NOT NULL,
 	"ref_id" varchar(16),
 	"snapshot" text,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "app_project_comment" (
+CREATE TABLE "app_comment" (
 	"id" varchar(16) PRIMARY KEY,
-	"project_id" varchar(16) NOT NULL,
+	"entity_type" varchar(50) NOT NULL,
+	"entity_id" varchar(16) NOT NULL,
 	"author_id" varchar(16) NOT NULL,
 	"content" text NOT NULL,
+	"parent_id" varchar(16),
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
-CREATE TABLE "app_task_comment" (
+CREATE TABLE "app_conversation" (
 	"id" varchar(16) PRIMARY KEY,
-	"task_id" varchar(16) NOT NULL,
+	"workspace_id" varchar(16) NOT NULL,
+	"member_one_id" varchar(16) NOT NULL,
+	"member_two_id" varchar(16) NOT NULL,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "app_direct_message" (
+	"id" varchar(16) PRIMARY KEY,
+	"conversation_id" varchar(16) NOT NULL,
 	"author_id" varchar(16) NOT NULL,
 	"content" text NOT NULL,
+	"edited_at" timestamp(3) with time zone,
+	"reactions" jsonb DEFAULT '[]' NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp(3) with time zone
+);
+--> statement-breakpoint
+CREATE TABLE "app_direct_message_receipt" (
+	"id" varchar(16) PRIMARY KEY,
+	"direct_message_id" varchar(16) NOT NULL,
+	"member_id" varchar(16) NOT NULL,
+	"status" varchar(20) DEFAULT 'delivered' NOT NULL,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "cron_jobs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"message" text,
 	"created_at" timestamp with time zone DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "app_note" (
+	"id" varchar(16) PRIMARY KEY,
+	"workspace_id" varchar(16) NOT NULL,
+	"title" text NOT NULL,
+	"content" text,
+	"created_by" varchar(16) NOT NULL,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "app_project" (
@@ -313,8 +345,19 @@ CREATE INDEX "message_receipt_message_id_idx" ON "app_message_receipt" ("message
 CREATE INDEX "message_receipt_member_id_idx" ON "app_message_receipt" ("member_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "message_receipt_message_member_unique" ON "app_message_receipt" ("message_id","member_id");--> statement-breakpoint
 CREATE INDEX "message_reference_message_id_idx" ON "app_message_reference" ("message_id");--> statement-breakpoint
-CREATE INDEX "project_comment_project_id_idx" ON "app_project_comment" ("project_id");--> statement-breakpoint
-CREATE INDEX "task_comment_task_id_idx" ON "app_task_comment" ("task_id");--> statement-breakpoint
+CREATE INDEX "comment_entity_idx" ON "app_comment" ("entity_type","entity_id");--> statement-breakpoint
+CREATE INDEX "comment_author_id_idx" ON "app_comment" ("author_id");--> statement-breakpoint
+CREATE INDEX "comment_parent_id_idx" ON "app_comment" ("parent_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "conversation_pair_unique" ON "app_conversation" ("member_one_id","member_two_id");--> statement-breakpoint
+CREATE INDEX "conversation_workspace_id_idx" ON "app_conversation" ("workspace_id");--> statement-breakpoint
+CREATE INDEX "conversation_member_one_id_idx" ON "app_conversation" ("member_one_id");--> statement-breakpoint
+CREATE INDEX "conversation_member_two_id_idx" ON "app_conversation" ("member_two_id");--> statement-breakpoint
+CREATE INDEX "direct_message_conversation_id_idx" ON "app_direct_message" ("conversation_id");--> statement-breakpoint
+CREATE INDEX "direct_message_author_id_idx" ON "app_direct_message" ("author_id");--> statement-breakpoint
+CREATE INDEX "dm_receipt_message_id_idx" ON "app_direct_message_receipt" ("direct_message_id");--> statement-breakpoint
+CREATE INDEX "dm_receipt_member_id_idx" ON "app_direct_message_receipt" ("member_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "dm_receipt_message_member_unique" ON "app_direct_message_receipt" ("direct_message_id","member_id");--> statement-breakpoint
+CREATE INDEX "note_workspace_id_idx" ON "app_note" ("workspace_id");--> statement-breakpoint
 CREATE INDEX "project_workspace_id_idx" ON "app_project" ("workspace_id");--> statement-breakpoint
 CREATE INDEX "project_team_id_idx" ON "app_project" ("team_id");--> statement-breakpoint
 CREATE INDEX "project_members_project_id_idx" ON "app_project_members" ("project_id");--> statement-breakpoint
@@ -350,10 +393,16 @@ ALTER TABLE "app_message" ADD CONSTRAINT "app_message_parent_message_id_app_mess
 ALTER TABLE "app_message_receipt" ADD CONSTRAINT "app_message_receipt_message_id_app_message_id_fkey" FOREIGN KEY ("message_id") REFERENCES "app_message"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_message_receipt" ADD CONSTRAINT "app_message_receipt_member_id_app_workspace_members_id_fkey" FOREIGN KEY ("member_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_message_reference" ADD CONSTRAINT "app_message_reference_message_id_app_message_id_fkey" FOREIGN KEY ("message_id") REFERENCES "app_message"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "app_project_comment" ADD CONSTRAINT "app_project_comment_project_id_app_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "app_project"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "app_project_comment" ADD CONSTRAINT "app_project_comment_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id");--> statement-breakpoint
-ALTER TABLE "app_task_comment" ADD CONSTRAINT "app_task_comment_task_id_app_tasks_id_fkey" FOREIGN KEY ("task_id") REFERENCES "app_tasks"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "app_task_comment" ADD CONSTRAINT "app_task_comment_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id");--> statement-breakpoint
+ALTER TABLE "app_comment" ADD CONSTRAINT "app_comment_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id");--> statement-breakpoint
+ALTER TABLE "app_comment" ADD CONSTRAINT "app_comment_parent_id_app_comment_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "app_comment"("id") ON DELETE SET NULL;--> statement-breakpoint
+ALTER TABLE "app_conversation" ADD CONSTRAINT "app_conversation_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_conversation" ADD CONSTRAINT "app_conversation_member_one_id_app_workspace_members_id_fkey" FOREIGN KEY ("member_one_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_conversation" ADD CONSTRAINT "app_conversation_member_two_id_app_workspace_members_id_fkey" FOREIGN KEY ("member_two_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_direct_message" ADD CONSTRAINT "app_direct_message_conversation_id_app_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "app_conversation"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_direct_message" ADD CONSTRAINT "app_direct_message_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id");--> statement-breakpoint
+ALTER TABLE "app_direct_message_receipt" ADD CONSTRAINT "app_direct_message_receipt_Hg5ChsgZATC8_fkey" FOREIGN KEY ("direct_message_id") REFERENCES "app_direct_message"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_direct_message_receipt" ADD CONSTRAINT "app_direct_message_receipt_NEUYKDqPyHWL_fkey" FOREIGN KEY ("member_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_note" ADD CONSTRAINT "app_note_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_project" ADD CONSTRAINT "app_project_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_project" ADD CONSTRAINT "app_project_team_id_app_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "app_team"("id") ON DELETE SET NULL;--> statement-breakpoint
 ALTER TABLE "app_project_members" ADD CONSTRAINT "app_project_members_project_id_app_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "app_project"("id") ON DELETE CASCADE;--> statement-breakpoint

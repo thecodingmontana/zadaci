@@ -104,7 +104,7 @@ async function useClearStaleWorkspaceData() {
     return;
   }
 
-  const wsCols = ["channels", "tasks", "projects", "teams", "tags", "workspace_members"] as const;
+  const wsCols = ["channels", "tasks", "projects", "teams", "tags"] as const;
 
   let total = 0;
   let match = 0;

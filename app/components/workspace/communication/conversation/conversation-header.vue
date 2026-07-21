@@ -6,6 +6,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 defineProps<{
   member: TeammatesWithProfile | null;
   status: string;
+  isSelfChat?: boolean;
 }>();
 
 const initials = (name: string) =>
@@ -52,7 +53,9 @@ const statusLabels: Record<string, string> = {
         />
       </div>
       <div class="min-w-0">
-        <p class="text-sm font-semibold">{{ member.user.username }}</p>
+        <p class="text-sm font-semibold">
+          {{ member.user.username }}<template v-if="isSelfChat"> (You)</template>
+        </p>
         <p class="text-xs text-muted-foreground">
           {{ statusLabels[status] ?? "Offline" }}
         </p>

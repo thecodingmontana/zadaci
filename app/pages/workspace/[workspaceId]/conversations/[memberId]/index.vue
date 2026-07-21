@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import type { RxCollection } from "rxdb";
-import type { MessageDocType, MessageReceiptDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
+import type {
+  DirectMessageDocType,
+  DirectMessageReceiptDocType,
+  ZadaciDatabase,
+} from "~/plugins/rxdb.client";
 import type { TeammatesWithProfile } from "~/types";
-import type { ChatMessage, MessageReaction, Thread } from "~/types/chat";
-import { AnimatePresence, motion } from "motion-v";
+import type { ChatMessage, MessageReaction } from "~/types/chat";
 import ConversationHeader from "~/components/workspace/communication/conversation/conversation-header.vue";
 import ChannelComposer from "~/components/workspace/communication/shared/channel-composer.vue";
 import ChannelMessages from "~/components/workspace/communication/shared/channel-messages.vue";
-import ThreadPanel from "~/components/workspace/communication/shared/thread-panel.vue";
 import { queryWithRetry } from "~/utils/rxdb-helpers";
 
 definePageMeta({
@@ -19,12 +21,14 @@ const route = useRoute();
 const workspaceId = route.params.workspaceId as string;
 const targetUserId = route.params.memberId as string;
 
+const { user: authUser } = useUserSession();
+
+const isSelfChat = computed(() => authUser.value?.id === targetUserId);
+
 interface MemberInfo {
   name: string;
   avatar: string | null;
 }
-
-const { user: authUser } = useUserSession();
 const workspaceIdRef = computed(() => workspaceId);
 const { data: members } = useWorkspaceMembers(workspaceIdRef);
 
@@ -33,12 +37,12 @@ const { data: userStatuses } = useUserStatuses(workspaceIdRef);
 
 const currentMemberId = ref<string>("");
 const targetMember = ref<TeammatesWithProfile | null>(null);
-const channelId = ref<string>("");
-const channelResolved = ref(false);
+const conversationId = ref<string>("");
+const conversationResolved = ref(false);
 
 const db = ref<ZadaciDatabase | null>(null);
-const messageCollection = ref<RxCollection<MessageDocType> | null>(null);
-const receiptCollection = ref<RxCollection<MessageReceiptDocType> | null>(null);
+const directMessageCollection = ref<RxCollection<DirectMessageDocType> | null>(null);
+const receiptCollection = ref<RxCollection<DirectMessageReceiptDocType> | null>(null);
 
 const pendingSendIds = ref(new Set<string>());
 
@@ -51,8 +55,6 @@ function removePending(id: string) {
   pendingSendIds.value = next;
 }
 
-// Inline message window — useMessageWindow takes a static channelId,
-// but DM channelId is resolved asynchronously.
 const messages = ref<ChatMessage[]>([]);
 const loading = ref(true);
 const hasMore = ref(true);
@@ -61,19 +63,19 @@ const loadingMore = ref(false);
 const oldestTimestamp = ref<string | null>(null);
 let messageSubs: { unsubscribe: () => void }[] = [];
 
-function docToMessage(doc: MessageDocType): ChatMessage {
+function docToMessage(doc: DirectMessageDocType): ChatMessage {
   return {
     id: doc.id,
-    channelId: doc.channel_id,
+    channelId: doc.conversation_id,
     authorId: doc.author_id,
     content: doc.content,
     createdAt: doc.created_at,
     editedAt: doc.edited_at,
     reactions: (doc.reactions ?? []) as MessageReaction[],
-    parentMessageId: doc.parent_message_id,
-    threadReplyCount: doc.thread_reply_count ?? 0,
-    threadParticipantIds: doc.thread_participant_ids ?? [],
-    threadLastReplyAt: doc.thread_last_reply_at,
+    parentMessageId: null,
+    threadReplyCount: 0,
+    threadParticipantIds: [],
+    threadLastReplyAt: null,
     deletedAt: doc.deleted_at,
   };
 }
@@ -81,7 +83,7 @@ function docToMessage(doc: MessageDocType): ChatMessage {
 async function loadInitialMessages() {
   loading.value = true;
   try {
-    const col = messageCollection.value;
+    const col = directMessageCollection.value;
     if (!col) {
       messages.value = [];
       hasMore.value = false;
@@ -90,7 +92,7 @@ async function loadInitialMessages() {
     const docs = await queryWithRetry(() =>
       col
         .find({
-          selector: { channel_id: channelId.value, deleted_at: null, parent_message_id: null },
+          selector: { conversation_id: conversationId.value, deleted_at: null },
           sort: [{ created_at: "desc" }],
           limit: 50,
         })
@@ -106,7 +108,7 @@ async function loadInitialMessages() {
 }
 
 async function loadOlderMessages() {
-  const col = messageCollection.value;
+  const col = directMessageCollection.value;
   if (!col || loadingMore.value || !oldestTimestamp.value) return;
   loadingMore.value = true;
   try {
@@ -115,9 +117,8 @@ async function loadOlderMessages() {
       col
         .find({
           selector: {
-            channel_id: channelId.value,
+            conversation_id: conversationId.value,
             deleted_at: null,
-            parent_message_id: null,
             created_at: { $lt: before },
           },
           sort: [{ created_at: "desc" }],
@@ -139,27 +140,12 @@ async function loadOlderMessages() {
   }
 }
 
-async function loadHistoryFromServer(before: string) {
-  if (!before || !db.value) return;
-  try {
-    const data: any = await $fetch(`/api/channels/${channelId.value}/messages/history`, {
-      query: { before, limit: 50 },
-    });
-    if (data.messages?.length) {
-      await db.value.messages.bulkUpsert(data.messages);
-    }
-    hasMoreHistory.value = data.nextCursor != null;
-  } catch {
-    // ignore
-  }
-}
-
 function subscribeMessages() {
-  const col = messageCollection.value;
+  const col = directMessageCollection.value;
   if (!col) return;
   const querySub = col
     .find({
-      selector: { channel_id: channelId.value, deleted_at: null, parent_message_id: null },
+      selector: { conversation_id: conversationId.value, deleted_at: null },
       sort: [{ created_at: "desc" }],
     })
     .$.subscribe((docs) => {
@@ -181,13 +167,12 @@ const editingContent = ref("");
 
 const hasLoaded = ref(false);
 const hasError = ref(false);
-const systemEvents = ref<any[]>([]);
 
-const messageSync = useMessageSync(() => channelId.value, {
+const dmSync = useDirectMessageSync(() => conversationId.value, {
   add: addPending,
   remove: removePending,
 });
-const receiptSync = useMessageReceiptSync(() => channelId.value);
+const dmReceiptSync = useDirectMessageReceiptSync(() => conversationId.value);
 
 const membersMap = computed(() => {
   if (!members.value) return new Map<string, MemberInfo>();
@@ -201,13 +186,10 @@ const membersMap = computed(() => {
   return map;
 });
 
-const channelSubRef = ref<{ unsubscribe: () => void } | null>(null);
-
 onUnmounted(() => {
-  channelSubRef.value?.unsubscribe();
   unsubscribeMessages();
-  messageSync.stop();
-  receiptSync.stop();
+  dmSync.stop();
+  dmReceiptSync.stop();
 });
 
 const receiptSub = ref<{ unsubscribe: () => void } | null>(null);
@@ -233,7 +215,7 @@ function buildMessageStatuses() {
       const updated = new Map(messageStatuses.value);
       for (const msg of ownMsgs) {
         const msgReceipts = receiptDocs.filter(
-          (r) => r.message_id === msg.id && r.member_id !== currentMemberId.value,
+          (r) => r.direct_message_id === msg.id && r.member_id !== currentMemberId.value,
         );
         if (msgReceipts.length === 0) continue;
         const hasSeen = msgReceipts.some((r) => r.status === "seen");
@@ -294,17 +276,17 @@ function generateId(): string {
   return result;
 }
 
-async function findOrCreateDmChannel(): Promise<string> {
+async function findOrCreateDmConversation(): Promise<string> {
   try {
-    const data: any = await $fetch("/api/channels/dm", {
+    const data: any = await $fetch("/api/conversations/dm", {
       query: {
         workspace_id: workspaceId,
         targetUserId,
       },
     });
-    return data.channelId as string;
+    return data.conversationId as string;
   } catch (err: any) {
-    console.error("[dm] findOrCreateDmChannel failed:", err?.message ?? err);
+    console.error("[dm] findOrCreateDmConversation failed:", err?.message ?? err);
     throw err;
   }
 }
@@ -319,46 +301,24 @@ async function init() {
     }
     db.value = rxdb;
 
-    // Find or create DM channel
-    const dmChannelId = await findOrCreateDmChannel();
-    channelId.value = dmChannelId;
-    channelResolved.value = true;
+    const dmConversationId = await findOrCreateDmConversation();
+    conversationId.value = dmConversationId;
+    conversationResolved.value = true;
 
-    // Insert channel into RxDB if not already there (sync will pick it up too)
-    const existingChannel = await queryWithRetry(() => rxdb.channels.findOne(dmChannelId).exec());
-    if (!existingChannel) {
-      const ts = new Date().toISOString();
-      try {
-        await rxdb.channels.insert({
-          id: dmChannelId,
-          workspace_id: workspaceId,
-          name: null,
-          type: "dm",
-          created_by: authUser.value?.id ?? "",
-          created_at: ts,
-          updated_at: ts,
-          deleted_at: null,
-        });
-      } catch {
-        // Ignore duplicate insert errors
-      }
-    }
+    directMessageCollection.value = rxdb.direct_messages;
+    receiptCollection.value = rxdb.direct_message_receipts;
 
-    messageCollection.value = rxdb.messages;
-    receiptCollection.value = rxdb.message_receipts;
-
-    // Start syncs
     try {
-      await messageSync.start();
+      await dmSync.start();
     } catch (e) {
-      console.error("[dm] messageSync.start() threw:", e);
+      console.error("[dm] dmSync.start() threw:", e);
       hasError.value = true;
     }
 
     try {
-      await receiptSync.start();
+      await dmReceiptSync.start();
     } catch (e) {
-      console.error("[dm] receiptSync.start() threw:", e);
+      console.error("[dm] dmReceiptSync.start() threw:", e);
     }
 
     subscribeReceipts();
@@ -378,7 +338,7 @@ async function markMessagesAsSeen() {
   try {
     const receipts = await queryWithRetry(() =>
       db
-        .value!.message_receipts.find({
+        .value!.direct_message_receipts.find({
           selector: {
             member_id: currentMemberId.value,
             status: "delivered",
@@ -397,7 +357,6 @@ async function markMessagesAsSeen() {
   }
 }
 
-// Resolve current member ID and target member once workspace members load
 watch(
   () => members.value,
   (val) => {
@@ -410,12 +369,11 @@ watch(
   { immediate: true },
 );
 
-// Wait for members and currentMemberId before starting init
 watch(
   [() => members.value, currentMemberId],
   async ([m, memberId]) => {
     if (!m || memberId === "me" || !memberId) return;
-    if (!channelResolved.value && !hasError.value) {
+    if (!conversationResolved.value && !hasError.value) {
       presence.start();
       await init();
     }
@@ -438,7 +396,7 @@ async function onSend(content: string) {
 
   if (editingMessageId.value) {
     const doc = await queryWithRetry(() =>
-      db.value!.messages.findOne(editingMessageId.value!).exec(),
+      db.value!.direct_messages.findOne(editingMessageId.value!).exec(),
     );
     if (doc) {
       await doc.patch({
@@ -455,17 +413,13 @@ async function onSend(content: string) {
   const id = generateId();
   const now = new Date().toISOString();
   pendingSendIds.value = new Set(pendingSendIds.value).add(id);
-  await db.value.messages.insert({
+  await db.value.direct_messages.insert({
     id,
-    channel_id: channelId.value,
+    conversation_id: conversationId.value,
     author_id: currentMemberId.value,
     content,
     edited_at: null,
     reactions: [],
-    parent_message_id: null,
-    thread_reply_count: 0,
-    thread_participant_ids: [],
-    thread_last_reply_at: null,
     created_at: now,
     updated_at: now,
     deleted_at: null,
@@ -473,29 +427,24 @@ async function onSend(content: string) {
   buildMessageStatuses();
 
   try {
-    const pushBody = [
-      {
-        assumedMasterState: null,
-        newDocumentState: {
-          id,
-          channel_id: channelId.value,
-          author_id: currentMemberId.value,
-          content,
-          edited_at: null,
-          reactions: [],
-          parent_message_id: null,
-          thread_reply_count: 0,
-          thread_participant_ids: [],
-          thread_last_reply_at: null,
-          created_at: now,
-          updated_at: now,
-          deleted_at: null,
-        },
-      },
-    ];
-    await $fetch(`/api/replication/messages/push?channel_id=${channelId.value}`, {
+    await $fetch(`/api/replication/direct-messages/push?conversation_id=${conversationId.value}`, {
       method: "POST",
-      body: pushBody,
+      body: [
+        {
+          assumedMasterState: null,
+          newDocumentState: {
+            id,
+            conversation_id: conversationId.value,
+            author_id: currentMemberId.value,
+            content,
+            edited_at: null,
+            reactions: [],
+            created_at: now,
+            updated_at: now,
+            deleted_at: null,
+          },
+        },
+      ],
     });
   } catch (err: any) {
     console.warn("[dm] onSend — push to server failed:", err?.message ?? err);
@@ -507,7 +456,7 @@ async function onSend(content: string) {
 
 async function onDelete(messageId: string) {
   if (!db.value) return;
-  const doc = await queryWithRetry(() => db.value!.messages.findOne(messageId).exec());
+  const doc = await queryWithRetry(() => db.value!.direct_messages.findOne(messageId).exec());
   if (!doc) return;
   await doc.incrementalModify((data: any) => {
     data.deleted_at = new Date().toISOString();
@@ -530,7 +479,7 @@ async function onLoadOlder() {
   if (hasMore.value) {
     await loadOlderMessages();
   } else if (hasMoreHistory.value && oldestTimestamp.value) {
-    await loadHistoryFromServer(oldestTimestamp.value);
+    hasMoreHistory.value = false;
     await loadOlderMessages();
   }
 }
@@ -545,7 +494,7 @@ watch(
 
 async function onToggleReaction(messageId: string, emoji: string) {
   if (!db.value) return;
-  const doc = await queryWithRetry(() => db.value!.messages.findOne(messageId).exec());
+  const doc = await queryWithRetry(() => db.value!.direct_messages.findOne(messageId).exec());
   if (!doc) return;
 
   const now = new Date().toISOString();
@@ -581,152 +530,6 @@ async function onToggleReaction(messageId: string, emoji: string) {
   });
 }
 
-// Thread panel state
-const activeThread = ref<Thread | null>(null);
-
-function closeThread() {
-  activeThread.value = null;
-}
-
-async function onOpenThread(messageId: string) {
-  if (!db.value) return;
-
-  const parent = await queryWithRetry(() => db.value!.messages.findOne(messageId).exec());
-  if (!parent) return;
-
-  const replies = await queryWithRetry(() =>
-    db
-      .value!.messages.find({
-        selector: { parent_message_id: messageId, deleted_at: null },
-        sort: [{ created_at: "asc" }],
-        limit: 50,
-      })
-      .exec(),
-  );
-
-  const thread: Thread = {
-    id: `thread-${messageId}`,
-    parentMessageId: messageId,
-    parentMessage: docToMessage(parent),
-    replies: (replies ?? []).map(docToMessage),
-  };
-  activeThread.value = thread;
-}
-
-async function onReply(parentMessageId: string, content: string) {
-  if (!currentMemberId.value || !db.value) return;
-
-  const now = new Date().toISOString();
-
-  await db.value.messages.insert({
-    id: generateId(),
-    channel_id: channelId.value,
-    author_id: currentMemberId.value,
-    content,
-    edited_at: null,
-    reactions: [],
-    parent_message_id: parentMessageId,
-    thread_reply_count: 0,
-    thread_participant_ids: [],
-    thread_last_reply_at: null,
-    created_at: now,
-    updated_at: now,
-    deleted_at: null,
-  });
-
-  const parent = await queryWithRetry(() => db.value!.messages.findOne(parentMessageId).exec());
-  if (parent) {
-    await parent.incrementalModify((data: any) => {
-      const participantIds = [
-        ...new Set([...(data.thread_participant_ids ?? []), currentMemberId.value]),
-      ];
-      data.thread_reply_count = (data.thread_reply_count ?? 0) + 1;
-      data.thread_participant_ids = participantIds;
-      data.thread_last_reply_at = now;
-      data.updated_at = now;
-      return data;
-    });
-  }
-
-  try {
-    const pushBody = [
-      {
-        assumedMasterState: null,
-        newDocumentState: {
-          id: generateId(),
-          channel_id: channelId.value,
-          author_id: currentMemberId.value,
-          content,
-          edited_at: null,
-          reactions: [],
-          parent_message_id: parentMessageId,
-          thread_reply_count: 0,
-          thread_participant_ids: [],
-          thread_last_reply_at: null,
-          created_at: now,
-          updated_at: now,
-          deleted_at: null,
-        },
-      },
-    ];
-    await $fetch(`/api/replication/messages/push?channel_id=${channelId.value}`, {
-      method: "POST",
-      body: pushBody,
-    });
-  } catch {
-    // ignore
-  }
-}
-
-async function onOpenThreadFromThread(messageId: string) {
-  const rxdb = await useRxDbSafe();
-  if (!rxdb) return;
-  const parent = await queryWithRetry(() => rxdb.messages.findOne(messageId).exec());
-  if (!parent) return;
-  const replies = await queryWithRetry(() =>
-    rxdb.messages
-      .find({
-        selector: { parent_message_id: messageId, deleted_at: null },
-        sort: [{ created_at: "asc" }],
-        limit: 50,
-      })
-      .exec(),
-  );
-  const thread: Thread = {
-    id: `thread-${messageId}`,
-    parentMessageId: messageId,
-    parentMessage: docToMessage(parent),
-    replies: (replies ?? []).map(docToMessage),
-  };
-  activeThread.value = thread;
-}
-
-async function onDeleteMessage(messageId: string) {
-  if (!db.value) return;
-  const doc = await queryWithRetry(() => db.value!.messages.findOne(messageId).exec());
-  if (!doc) return;
-
-  const parentMessageId = doc.parent_message_id;
-
-  await doc.incrementalModify((data: any) => {
-    data.deleted_at = new Date().toISOString();
-    data.updated_at = data.deleted_at;
-    return data;
-  });
-
-  if (parentMessageId) {
-    const parent = await queryWithRetry(() => db.value!.messages.findOne(parentMessageId).exec());
-    if (parent) {
-      await parent.incrementalModify((data: any) => {
-        data.thread_reply_count = Math.max(0, (data.thread_reply_count ?? 0) - 1);
-        data.updated_at = new Date().toISOString();
-        return data;
-      });
-    }
-  }
-}
-
-// Compute the other member's status for the header
 const memberStatus = computed(() => {
   if (!targetMember.value) return "offline";
   const online = presence.onlineUserIds.value;
@@ -739,7 +542,6 @@ const memberStatus = computed(() => {
   return "offline";
 });
 
-// Channel name for empty state — use target member's username
 const displayName = computed(() => targetMember.value?.user?.username ?? null);
 
 const conversationTitle = useWorkspacePageTitle(
@@ -756,22 +558,27 @@ useSeoMeta({
   <NuxtLayout name="workspace">
     <div class="flex h-full min-h-0 overflow-hidden">
       <div class="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <ConversationHeader :member="targetMember" :status="memberStatus" />
+        <ConversationHeader
+          :member="targetMember"
+          :status="memberStatus"
+          :is-self-chat="isSelfChat"
+        />
         <ChannelMessages
           :messages="messages"
-          :system-events="systemEvents"
           :current-member-id="currentMemberId"
           :channel-name="displayName ?? undefined"
           :loading="loading"
           :has-loaded="hasLoaded"
           :loading-more="loadingMore"
           :has-more="hasMore"
-          :has-more-history="hasMoreHistory"
           :error="hasError"
           :message-statuses="messageStatuses"
           :members="membersMap"
+          :hide-thread-reply="true"
+          empty-state-type="conversation"
+          :empty-state-avatar-url="targetMember?.user?.profilePictureUrl ?? null"
+          :is-self-chat="isSelfChat"
           @toggle-reaction="onToggleReaction"
-          @open-thread="onOpenThread"
           @start-edit="onEditMessageFromBubble"
           @delete="onDelete"
           @load-older="onLoadOlder"
@@ -779,34 +586,11 @@ useSeoMeta({
         <ChannelComposer
           :editing-message-id="editingMessageId"
           :editing-content="editingContent"
-          :placeholder="`Message @${displayName ?? 'user'}`"
+          :placeholder="isSelfChat ? 'Message yourself' : `Message @${displayName ?? 'user'}`"
           @send="onSend"
           @cancel-edit="cancelEdit"
         />
       </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          v-if="activeThread"
-          key="thread"
-          :initial="{ width: 0, opacity: 0 }"
-          :animate="{ width: 360, opacity: 1 }"
-          :exit="{ width: 0, opacity: 0 }"
-          :transition="{ duration: 0.2, ease: 'easeOut' }"
-          class="h-full overflow-hidden"
-        >
-          <ThreadPanel
-            :thread="activeThread"
-            :current-member-id="currentMemberId"
-            :members="membersMap"
-            @close="closeThread"
-            @reply="onReply"
-            @toggle-reaction="onToggleReaction"
-            @open-thread="onOpenThreadFromThread"
-            @delete="onDeleteMessage"
-          />
-        </motion.div>
-      </AnimatePresence>
     </div>
   </NuxtLayout>
 </template>

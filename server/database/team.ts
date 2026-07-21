@@ -1,4 +1,5 @@
-import { index, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { index, pgPolicy, varchar } from "drizzle-orm/pg-core";
 import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
@@ -15,7 +16,10 @@ export const team = pgTable(
     color: varchar("color", { length: 20 }),
     ...syncable,
   },
-  (table) => [index("team_workspace_id_idx").on(table.workspace_id)],
+  (table) => [
+    index("team_workspace_id_idx").on(table.workspace_id),
+    pgPolicy("allow_anon_select_team", { for: "select", to: "anon", using: sql`true` }),
+  ],
 );
 
 export const team_members = pgTable(
@@ -35,5 +39,6 @@ export const team_members = pgTable(
   (table) => [
     index("team_members_team_id_idx").on(table.team_id),
     index("team_members_member_id_idx").on(table.member_id),
+    pgPolicy("allow_anon_select_team_members", { for: "select", to: "anon", using: sql`true` }),
   ],
 );

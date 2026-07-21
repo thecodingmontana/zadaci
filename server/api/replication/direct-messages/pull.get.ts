@@ -8,10 +8,11 @@ interface Checkpoint {
 interface PullResponse {
   documents: {
     id: string;
-    workspace_id: string;
-    name: string;
-    type: "public" | "private";
-    created_by: string;
+    conversation_id: string;
+    author_id: string;
+    content: string;
+    edited_at: string | null;
+    reactions: { emoji: string; member_ids: string[] }[];
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
@@ -25,19 +26,31 @@ export default defineEventHandler(async (event) => {
     const userId = session.user.id;
 
     const query = getQuery(event);
-    const workspaceId = query.workspace_id as string | undefined;
+    const conversationId = query.conversation_id as string | undefined;
     const checkpointParam = query.checkpoint as string | undefined;
     const batchSize = Math.min(Number(query.batch_size) || 50, 100);
 
-    if (!workspaceId) {
+    if (!conversationId) {
       return { documents: [], checkpoint: null } satisfies PullResponse;
     }
 
+    const conversation = await db.query.conversation.findFirst({ where: { id: conversationId } });
+    if (!conversation) {
+      throw createError({ statusCode: 404, statusMessage: "Conversation not found" });
+    }
+
     const membership = await db.query.workspace_members.findFirst({
-      where: { user_id: userId, workspace_id: workspaceId },
+      where: { user_id: userId, workspace_id: conversation.workspace_id },
     });
     if (!membership) {
       throw createError({ statusCode: 403, statusMessage: "Access denied" });
+    }
+
+    if (
+      membership.id !== conversation.member_one_id &&
+      membership.id !== conversation.member_two_id
+    ) {
+      throw createError({ statusCode: 403, statusMessage: "Not a conversation participant" });
     }
 
     let checkpoint: Checkpoint | null = null;
@@ -49,40 +62,25 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const conditions = [
-      eq(tables.channel.workspace_id, workspaceId),
-      or(
-        eq(tables.channel.type, "public"),
-        sql`EXISTS (SELECT 1 FROM ${tables.channel_members} WHERE channel_id = ${tables.channel.id} AND member_id = ${membership.id})`,
-      ),
-    ];
+    const conditions = [eq(tables.direct_message.conversation_id, conversationId)];
 
     if (checkpoint) {
       conditions.push(
         or(
-          gt(tables.channel.updated_at, new Date(checkpoint.updated_at)),
+          gt(tables.direct_message.updated_at, new Date(checkpoint.updated_at)),
           and(
-            sql`${tables.channel.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
-            gt(tables.channel.id, checkpoint.id),
+            sql`${tables.direct_message.updated_at} = ${checkpoint.updated_at}::timestamp with time zone`,
+            gt(tables.direct_message.id, checkpoint.id),
           ),
         ),
       );
     }
 
     const rows = await db
-      .select({
-        id: tables.channel.id,
-        workspace_id: tables.channel.workspace_id,
-        name: tables.channel.name,
-        type: tables.channel.type,
-        created_by: tables.channel.created_by,
-        created_at: tables.channel.created_at,
-        updated_at: tables.channel.updated_at,
-        deleted_at: tables.channel.deleted_at,
-      })
-      .from(tables.channel)
+      .select()
+      .from(tables.direct_message)
       .where(and(...conditions))
-      .orderBy(asc(tables.channel.updated_at), asc(tables.channel.id))
+      .orderBy(asc(tables.direct_message.updated_at), asc(tables.direct_message.id))
       .limit(batchSize);
 
     const lastRow = rows[rows.length - 1];
@@ -92,10 +90,11 @@ export default defineEventHandler(async (event) => {
 
     const documents = rows.map((row) => ({
       id: row.id,
-      workspace_id: row.workspace_id,
-      name: row.name!,
-      type: row.type as "public" | "private",
-      created_by: row.created_by,
+      conversation_id: row.conversation_id,
+      author_id: row.author_id,
+      content: row.content,
+      edited_at: row.edited_at ? row.edited_at.toISOString() : null,
+      reactions: row.reactions as { emoji: string; member_ids: string[] }[],
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
       deleted_at: row.deleted_at ? row.deleted_at.toISOString() : null,
@@ -106,7 +105,7 @@ export default defineEventHandler(async (event) => {
     if (error?.statusCode) throw error;
     throw createError({
       statusCode: 500,
-      statusMessage: `Pull failed: ${error.message || "Unknown error"}`,
+      statusMessage: `Direct message pull failed: ${error.message || "Unknown error"}`,
     });
   }
 });

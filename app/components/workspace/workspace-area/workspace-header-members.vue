@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { WorkspaceMemberDocType } from "~/plugins/rxdb.client";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import {
@@ -16,27 +15,10 @@ import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
 
 const route = useRoute();
 const workspaceId = computed(() => route.params.workspaceId as string);
-const db = useRxDb();
+const { data: members, isLoading } = useWorkspaceMembers(workspaceId as any);
 
-const members = ref<WorkspaceMemberDocType[]>([]);
-const membersLoaded = ref(false);
-
-watch(
-  () => db?.workspace_members,
-  (col) => {
-    membersLoaded.value = false;
-    if (!col) return;
-    const sub = col.find({ selector: { workspace_id: workspaceId.value } }).$.subscribe((docs) => {
-      members.value = docs;
-      membersLoaded.value = true;
-    });
-    onUnmounted(() => sub.unsubscribe());
-  },
-  { immediate: true },
-);
-
-const extraMembersCount = computed(() => Math.max(0, members.value.length - 3));
-const visibleMembers = computed(() => members.value.slice(0, 3));
+const extraMembersCount = computed(() => Math.max(0, (members.value?.length ?? 0) - 3));
+const visibleMembers = computed(() => (members.value ?? []).slice(0, 3));
 
 const initials = (name: string) =>
   name
@@ -64,22 +46,22 @@ const hasNotifications = ref(true);
     <TooltipProvider>
       <DropdownMenuTrigger as-child>
         <button class="hidden cursor-pointer items-center gap-1.5 lg:flex">
-          <div v-if="membersLoaded" class="flex -space-x-2">
+          <div v-if="!isLoading" class="flex -space-x-2">
             <Avatar
               v-for="member in visibleMembers"
               :key="member.id"
               class="h-8 w-8 ring-2 ring-background"
             >
-              <AvatarImage :src="member.profile_picture_url ?? ''" :alt="member.username" />
+              <AvatarImage :src="member.user.profilePictureUrl ?? ''" :alt="member.user.username" />
               <AvatarFallback class="text-xs">
-                {{ initials(member.username) }}
+                {{ initials(member.user.username) }}
               </AvatarFallback>
             </Avatar>
           </div>
           <div v-else class="flex -space-x-2">
             <Skeleton v-for="n in 3" :key="n" class="h-8 w-8 rounded-full ring-2 ring-background" />
           </div>
-          <span v-if="membersLoaded && extraMembersCount > 0" class="text-sm text-muted-foreground"
+          <span v-if="!isLoading && extraMembersCount > 0" class="text-sm text-muted-foreground"
             >+{{ extraMembersCount }}</span
           >
           <Icon name="hugeicons:arrow-down-01" size="14" class="text-muted-foreground" />
@@ -96,14 +78,14 @@ const hasNotifications = ref(true);
     <DropdownMenuContent align="end" class="w-56">
       <DropdownMenuLabel>Members</DropdownMenuLabel>
       <DropdownMenuSeparator />
-      <DropdownMenuItem v-for="member in members" :key="member.id" class="gap-2">
+      <DropdownMenuItem v-for="member in members ?? []" :key="member.id" class="gap-2">
         <Avatar class="h-6 w-6">
-          <AvatarImage :src="member.profile_picture_url ?? ''" :alt="member.username" />
+          <AvatarImage :src="member.user.profilePictureUrl ?? ''" :alt="member.user.username" />
           <AvatarFallback class="text-[10px]">
-            {{ initials(member.username) }}
+            {{ initials(member.user.username) }}
           </AvatarFallback>
         </Avatar>
-        <span class="text-sm">{{ member.username }}</span>
+        <span class="text-sm">{{ member.user.username }}</span>
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
