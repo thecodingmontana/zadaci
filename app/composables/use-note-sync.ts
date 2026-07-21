@@ -39,7 +39,7 @@ export function useNoteSync(workspaceId: () => string | undefined) {
           }
 
           const result = await $fetch(`/api/replication/notes/pull?${params.toString()}`);
-          return result as {
+          return JSON.parse(JSON.stringify(result)) as {
             documents: NoteDocType[];
             checkpoint: { updated_at: string; id: string } | undefined;
           };
@@ -55,10 +55,11 @@ export function useNoteSync(workspaceId: () => string | undefined) {
           if (filtered.length === 0) return [];
 
           try {
-            return await $fetch(`/api/replication/notes/push?workspace_id=${id}`, {
+            const result = await $fetch(`/api/replication/notes/push?workspace_id=${id}`, {
               method: "POST",
               body: filtered,
             });
+            return JSON.parse(JSON.stringify(result)) as NoteDocType[];
           } catch {
             throw new Error("Note push failed");
           }

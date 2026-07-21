@@ -111,7 +111,7 @@ export function useMessageSync(
           }
 
           const result = await $fetch(`/api/replication/messages/pull?${params.toString()}`);
-          return result as {
+          return JSON.parse(JSON.stringify(result)) as {
             documents: MessageDocType[];
             checkpoint: { updated_at: string; id: string } | undefined;
           };
@@ -141,14 +141,13 @@ export function useMessageSync(
               method: "POST",
               body: filtered,
             });
-            console.log(
-              `[useMessageSync] Push succeeded, result length: ${(result as any[])?.length ?? 0}`,
-            );
+            const plain = JSON.parse(JSON.stringify(result)) as MessageDocType[];
+            console.log(`[useMessageSync] Push succeeded, result length: ${plain.length ?? 0}`);
             for (const row of filtered) {
               const docId = row.newDocumentState!.id;
               if (docId) pendingIds?.remove(docId);
             }
-            return result as MessageDocType[];
+            return plain;
           } catch (err: any) {
             console.warn(`[useMessageSync] Push failed:`, err?.message ?? err);
             throw err;

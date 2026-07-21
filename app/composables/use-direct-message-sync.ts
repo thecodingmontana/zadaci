@@ -79,7 +79,7 @@ export function useDirectMessageSync(
           }
 
           const result = await $fetch(`/api/replication/direct-messages/pull?${params.toString()}`);
-          return result as {
+          return JSON.parse(JSON.stringify(result)) as {
             documents: DirectMessageDocType[];
             checkpoint: { updated_at: string; id: string } | undefined;
           };
@@ -108,7 +108,7 @@ export function useDirectMessageSync(
               const docId = row.newDocumentState!.id;
               if (docId) pendingIds?.remove(docId);
             }
-            return result as DirectMessageDocType[];
+            return JSON.parse(JSON.stringify(result)) as DirectMessageDocType[];
           } catch {
             throw new Error("DM push failed");
           }

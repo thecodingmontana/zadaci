@@ -41,7 +41,7 @@ export function useCommentSync(workspaceId: () => string | undefined) {
           }
 
           const result = await $fetch(`/api/replication/comments/pull?${params.toString()}`);
-          return result as {
+          return JSON.parse(JSON.stringify(result)) as {
             documents: CommentDocType[];
             checkpoint: { updated_at: string; id: string } | undefined;
           };
@@ -57,10 +57,11 @@ export function useCommentSync(workspaceId: () => string | undefined) {
           if (filtered.length === 0) return [];
 
           try {
-            return await $fetch(`/api/replication/comments/push?workspace_id=${id}`, {
+            const result = await $fetch(`/api/replication/comments/push?workspace_id=${id}`, {
               method: "POST",
               body: filtered,
             });
+            return JSON.parse(JSON.stringify(result)) as CommentDocType[];
           } catch {
             throw new Error("Comment push failed");
           }

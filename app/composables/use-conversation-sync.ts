@@ -41,7 +41,7 @@ export function useConversationSync(workspaceId: () => string | undefined) {
           }
 
           const result = await $fetch(`/api/replication/conversations/pull?${params.toString()}`);
-          return result as {
+          return JSON.parse(JSON.stringify(result)) as {
             documents: ConversationDocType[];
             checkpoint: { updated_at: string; id: string } | undefined;
           };
@@ -57,10 +57,11 @@ export function useConversationSync(workspaceId: () => string | undefined) {
           if (filtered.length === 0) return [];
 
           try {
-            return await $fetch(`/api/replication/conversations/push?workspace_id=${id}`, {
+            const result = await $fetch(`/api/replication/conversations/push?workspace_id=${id}`, {
               method: "POST",
               body: filtered,
             });
+            return JSON.parse(JSON.stringify(result)) as ConversationDocType[];
           } catch {
             throw new Error("Conversation push failed");
           }
