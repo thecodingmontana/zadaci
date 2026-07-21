@@ -116,6 +116,7 @@ async function onOpenThreadFromThread(messageId: string) {
     .find({
       selector: { parent_message_id: messageId, deleted_at: null },
       sort: [{ created_at: "asc" }],
+      limit: 50,
     })
     .exec();
   const thread: Thread = {

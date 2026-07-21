@@ -387,44 +387,11 @@ function cancelEdit() {
 }
 
 async function onLoadOlder() {
-  console.log(
-    "[channel] onLoadOlder — hasMore:",
-    hasMore.value,
-    "hasMoreHistory:",
-    hasMoreHistory.value,
-    "oldestTimestamp:",
-    oldestTimestamp.value,
-  );
   if (hasMore.value) {
     await loadOlder();
-    console.log(
-      "[channel] onLoadOlder — after loadOlder, hasMore:",
-      hasMore.value,
-      "total msgs:",
-      messages.value.length,
-    );
   } else if (hasMoreHistory.value && oldestTimestamp.value && db.value) {
-    console.log("[channel] onLoadOlder — fetching from history API");
-    const cursor = await loadHistoryFromServer(oldestTimestamp.value, db.value);
-    console.log(
-      "[channel] onLoadOlder — after history fetch, cursor:",
-      cursor,
-      "hasMoreHistory:",
-      hasMoreHistory.value,
-      "total msgs:",
-      messages.value.length,
-    );
-  } else {
-    console.log(
-      "[channel] onLoadOlder — nothing more to load (hasMore=",
-      hasMore.value,
-      "hasMoreHistory=",
-      hasMoreHistory.value,
-      "oldestTimestamp=",
-      oldestTimestamp.value,
-      "db=",
-      !!db.value,
-    );
+    await loadHistoryFromServer(oldestTimestamp.value, db.value);
+    await loadOlder();
   }
 }
 
@@ -482,10 +449,12 @@ async function onOpenThread(messageId: string) {
   const parent = await db.value.messages.findOne(messageId).exec();
   if (!parent) return;
 
+  // Load only first batch — thread panel handles its own pagination
   const replies = await db.value.messages
     .find({
       selector: { parent_message_id: messageId, deleted_at: null },
       sort: [{ created_at: "asc" }],
+      limit: 50,
     })
     .exec();
 
@@ -516,6 +485,8 @@ useSeoMeta({
         :loading="loading"
         :has-loaded="hasLoaded"
         :loading-more="loadingMore"
+        :has-more="hasMore"
+        :has-more-history="hasMoreHistory"
         :error="hasError"
         :message-statuses="messageStatuses"
         :members="membersMap"

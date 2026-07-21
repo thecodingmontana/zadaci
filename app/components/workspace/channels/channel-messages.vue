@@ -26,8 +26,9 @@ const props = defineProps<{
   loading?: boolean;
   hasLoaded?: boolean;
   loadingMore?: boolean;
+  hasMore?: boolean;
+  hasMoreHistory?: boolean;
   messageStatuses?: Map<string, "sending" | "sent" | "delivered" | "seen">;
-  // Resolved member directory (memberId -> name/avatar) for rendering author info
   members?: Map<string, MemberInfo>;
 }>();
 
@@ -57,7 +58,7 @@ const groups = computed(() => {
       const prev = last.at(-1)!;
       const sameAuthor = prev.authorId === message.authorId;
       const timeDiff = new Date(message.createdAt).getTime() - new Date(prev.createdAt).getTime();
-      const withinWindow = timeDiff < 5 * 60 * 1000; // 5 minutes
+      const withinWindow = timeDiff < 5 * 60 * 1000;
       if (sameAuthor && withinWindow) {
         last.push(message);
         continue;
@@ -110,6 +111,7 @@ const topAnchorRef = ref<HTMLElement>();
 const showNewMessages = ref(false);
 const wasNearBottom = ref(true);
 const loadingOlder = ref(false);
+const hasInitialized = ref(false);
 
 function isNearBottom(): boolean {
   const el = scrollAreaRef.value?.$el?.querySelector?.("[data-radix-scroll-area-viewport]");
@@ -123,12 +125,23 @@ function scrollToBottom(behavior: ScrollBehavior = "smooth") {
   wasNearBottom.value = true;
 }
 
-// Auto-scroll on new messages only if already near bottom
+function onLoadOlderClick() {
+  loadingOlder.value = true;
+  emit("loadOlder");
+}
+
 watch(
   () => props.messages.length,
   async (newLen, oldLen) => {
     await nextTick();
-    if (oldLen === 0 || newLen === 0) {
+    if (loadingOlder.value) {
+      loadingOlder.value = false;
+      return;
+    }
+    if (oldLen === 0 && newLen > 0 && !hasInitialized.value) {
+      hasInitialized.value = true;
+      setTimeout(scrollToBottom, 100, "auto");
+    } else if (oldLen === 0 || newLen === 0) {
       scrollToBottom("auto");
     } else if (wasNearBottom.value) {
       scrollToBottom("auto");
@@ -156,7 +169,6 @@ function getScrollEl(): Element | null {
   return scrollAreaRef.value?.$el?.querySelector?.("[data-radix-scroll-area-viewport]") ?? null;
 }
 
-// Track scroll position
 function onScroll() {
   wasNearBottom.value = isNearBottom();
   if (wasNearBottom.value) {
@@ -173,9 +185,6 @@ function onScroll() {
     props.hasLoaded &&
     props.messages.length > 0
   ) {
-    console.log(
-      `[channel-messages] SCROLL NEAR TOP — scrollTop=${el.scrollTop}, loadingOlder=${loadingOlder.value}, guard=${loadOlderGuard}, hasLoaded=${props.hasLoaded}, msgs=${props.messages.length}, loadingMore=${props.loadingMore}`,
-    );
     loadOlderGuard = true;
     emit("loadOlder");
     nextTick(() => {
@@ -186,6 +195,10 @@ function onScroll() {
 
 const showEmptyState = computed(() => {
   return !props.hideEmptyState && props.hasLoaded && props.messages.length === 0 && !props.loading;
+});
+
+const canLoadMore = computed(() => {
+  return props.hasLoaded && (props.hasMore || props.hasMoreHistory);
 });
 
 const channelNameDisplay = computed(() => props.channelName ?? "general");
@@ -227,6 +240,18 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
 
       <div v-if="loadingMore" class="flex justify-center py-3">
         <Icon name="lucide:loader-2" size="16" class="animate-spin text-muted-foreground" />
+      </div>
+
+      <div v-if="canLoadMore && !loadingMore" class="flex items-center gap-2 py-2">
+        <div class="h-px flex-1 border-t border-dotted" />
+        <button
+          type="button"
+          class="shrink-0 rounded-full border px-4 py-1 text-xs text-muted-foreground hover:text-foreground"
+          @click="onLoadOlderClick"
+        >
+          Load older messages
+        </button>
+        <div class="h-px flex-1 border-t border-dotted" />
       </div>
 
       <template v-for="(day, di) in dayGroups" :key="di">

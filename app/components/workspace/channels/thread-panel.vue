@@ -6,16 +6,12 @@ import ChannelComposer from "~/components/workspace/channels/channel-composer.vu
 import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
 import MessageBubble from "~/components/workspace/channels/message-bubble.vue";
 
-interface MemberInfo {
-  name: string;
-  avatar: string | null;
-}
-
 const props = defineProps<{
   thread: Thread;
   currentMemberId: string;
   members?: Map<string, MemberInfo>;
 }>();
+
 const emit = defineEmits<{
   close: [];
   reply: [parentMessageId: string, content: string];
@@ -24,9 +20,18 @@ const emit = defineEmits<{
   openThread: [messageId: string];
 }>();
 
+const PAGE_SIZE = 50;
+
+interface MemberInfo {
+  name: string;
+  avatar: string | null;
+}
+
 const parentMessage = ref<ChatMessage>(props.thread.parentMessage);
-const replies = ref<ChatMessage[]>(props.thread.replies);
+const replies = ref<ChatMessage[]>([]);
 const loading = ref(true);
+const loadingMore = ref(false);
+const hasMore = ref(false);
 const editingMessageId = ref<string | null>(null);
 const editingContent = ref("");
 const messageStatuses = ref<Map<string, "sending" | "sent" | "delivered" | "seen">>(new Map());
@@ -98,6 +103,52 @@ function subscribeReceipts(rxdb: ZadaciDatabase) {
 
 let subs: { unsubscribe: () => void }[] = [];
 
+async function loadInitialReplies(rxdb: ZadaciDatabase) {
+  loading.value = true;
+  try {
+    const docs = await rxdb.messages
+      .find({
+        selector: { parent_message_id: props.thread.parentMessageId, deleted_at: null },
+        sort: [{ created_at: "desc" }],
+        limit: PAGE_SIZE,
+      })
+      .exec();
+    const loaded = docs.map(docToMessage).reverse();
+    replies.value = loaded;
+    hasMore.value = loaded.length === PAGE_SIZE;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadOlderReplies() {
+  if (loadingMore.value || replies.value.length === 0) return;
+  loadingMore.value = true;
+  try {
+    const rxdb = await useRxDbSafe();
+    if (!rxdb) return;
+    const oldest = replies.value[0].createdAt;
+    const docs = await rxdb.messages
+      .find({
+        selector: {
+          parent_message_id: props.thread.parentMessageId,
+          deleted_at: null,
+          created_at: { $lt: oldest },
+        },
+        sort: [{ created_at: "desc" }],
+        limit: PAGE_SIZE,
+      })
+      .exec();
+    const loaded = docs.map(docToMessage).reverse();
+    if (loaded.length > 0) {
+      replies.value = [...loaded, ...replies.value];
+    }
+    hasMore.value = loaded.length === PAGE_SIZE;
+  } finally {
+    loadingMore.value = false;
+  }
+}
+
 async function init() {
   const rxdb = await useRxDbSafe();
   if (!rxdb) return;
@@ -109,17 +160,35 @@ async function init() {
   });
   subs.push(parentSub);
 
-  const repliesSub = rxdb.messages
-    .find({
-      selector: { parent_message_id: props.thread.parentMessageId, deleted_at: null },
-      sort: [{ created_at: "asc" }],
-    })
-    .$.subscribe((docs) => {
-      replies.value = docs.map(docToMessage);
-      loading.value = false;
-      buildMessageStatuses();
-    });
-  subs.push(repliesSub);
+  await loadInitialReplies(rxdb);
+
+  const eventSub = rxdb.messages.eventBulks$.subscribe((bulk: any) => {
+    if (!bulk?.events?.length) return;
+    for (const event of bulk.events) {
+      if (event.operation === "INSERT") {
+        const doc = event.data;
+        if (!doc || doc.parent_message_id !== props.thread.parentMessageId || doc.deleted_at)
+          continue;
+        if (replies.value.some((m) => m.id === doc.id)) continue;
+        replies.value = [...replies.value, docToMessage(doc)];
+      } else if (event.operation === "UPDATE") {
+        const idx = replies.value.findIndex((m) => m.id === event.documentId);
+        if (idx === -1) continue;
+        const doc = event.data;
+        if (!doc) continue;
+        if (doc.deleted_at) {
+          replies.value = replies.value.filter((m) => m.id !== event.documentId);
+        } else {
+          replies.value[idx] = docToMessage(doc);
+        }
+      } else if (event.operation === "DELETE") {
+        replies.value = replies.value.filter((m) => m.id !== event.documentId);
+      }
+    }
+  });
+  subs.push({ unsubscribe: () => eventSub.unsubscribe() });
+
+  buildMessageStatuses();
 }
 
 function cleanup() {
@@ -134,8 +203,9 @@ watch(
   (newThread) => {
     cleanup();
     parentMessage.value = newThread.parentMessage;
-    replies.value = newThread.replies;
+    replies.value = [];
     loading.value = true;
+    hasMore.value = false;
     init();
   },
 );
@@ -209,16 +279,20 @@ async function onComposerSend(content: string) {
     <ChannelMessages
       :messages="replies"
       :show-thread-entry="false"
+      :hide-thread-reply="true"
       :hide-empty-state="true"
       :current-member-id="currentMemberId"
       :loading="loading"
       :has-loaded="!loading"
+      :loading-more="loadingMore"
+      :has-more="hasMore"
       :message-statuses="messageStatuses"
       :members="members"
       @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
       @open-thread="(id) => emit('openThread', id)"
       @start-edit="onStartEditFromReply"
       @delete="(id) => emit('delete', id)"
+      @load-older="loadOlderReplies"
     />
 
     <ChannelComposer
