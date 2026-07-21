@@ -2,9 +2,9 @@
 import type { RxCollection } from "rxdb";
 import type { MessageDocType, MessageReceiptDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
 import type { ChatMessage, Thread } from "~/types/chat";
-import ChannelComposer from "~/components/workspace/channels/channel-composer.vue";
-import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
-import MessageBubble from "~/components/workspace/channels/message-bubble.vue";
+import ChannelComposer from "~/components/workspace/communication/shared/channel-composer.vue";
+import ChannelMessages from "~/components/workspace/communication/shared/channel-messages.vue";
+import MessageBubble from "~/components/workspace/communication/shared/message-bubble.vue";
 import { queryWithRetry } from "~/utils/rxdb-helpers";
 
 const props = defineProps<{
@@ -250,7 +250,6 @@ async function onComposerSend(content: string) {
       </Button>
     </div>
 
-    <!-- Root message — pinned style, no actions -->
     <div class="border-b bg-muted/30 px-4 py-3">
       <MessageBubble
         :message="parentMessage"
@@ -262,7 +261,6 @@ async function onComposerSend(content: string) {
       />
     </div>
 
-    <!-- Replies -->
     <ChannelMessages
       :messages="replies"
       :show-thread-entry="false"

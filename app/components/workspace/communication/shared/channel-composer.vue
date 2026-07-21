@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import EmojiPicker from "~/components/workspace/channels/emoji-picker.vue";
+import EmojiPicker from "~/components/workspace/communication/shared/emoji-picker.vue";
 
 const props = defineProps<{
   typingLabel?: string;
@@ -14,12 +14,10 @@ const emit = defineEmits<{
 const content = ref("");
 const textareaRef = ref<HTMLTextAreaElement>();
 
-// Watch for edit mode — load content into composer
 watch(
   () => props.editingContent,
   (val) => {
     if (val && props.editingMessageId) {
-      console.log("[composer] edit mode activated, content:", val?.slice(0, 50));
       content.value = val;
       nextTick(() => {
         textareaRef.value?.focus();
@@ -30,14 +28,9 @@ watch(
   { immediate: true },
 );
 
-// Clear composer when edit mode is cancelled
 watch(
   () => props.editingMessageId,
-  (val) => {
-    if (!val) {
-      console.log("[composer] edit cancelled, clearing");
-    }
-  },
+  () => {},
   { immediate: true },
 );
 
@@ -49,7 +42,6 @@ function insertEmoji(emoji: string) {
 function send() {
   const value = content.value.trim();
   if (!value) return;
-  console.log("[composer] send:", { value, editing: props.editingMessageId });
   emit("send", value);
   content.value = "";
 }

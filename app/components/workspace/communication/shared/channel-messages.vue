@@ -4,10 +4,10 @@ import { motion } from "motion-v";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Skeleton } from "~/components/ui/skeleton";
-import ChannelEmptyState from "~/components/workspace/channels/channel-empty-state.vue";
-import HuddleEvent from "~/components/workspace/channels/huddle-event.vue";
-import MessageBubble from "~/components/workspace/channels/message-bubble.vue";
-import MessagesDivider from "~/components/workspace/channels/messages-divider.vue";
+import ChannelEmptyState from "~/components/workspace/communication/channel/channel-empty-state.vue";
+import HuddleEvent from "~/components/workspace/communication/shared/huddle-event.vue";
+import MessageBubble from "~/components/workspace/communication/shared/message-bubble.vue";
+import MessagesDivider from "~/components/workspace/communication/shared/messages-divider.vue";
 
 interface MemberInfo {
   name: string;
@@ -325,7 +325,6 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
       class="px-4 pb-4"
     />
 
-    <!-- Scroll-to-top button -->
     <motion.button
       v-if="showScrollTop"
       type="button"
@@ -338,7 +337,6 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
       <Icon name="lucide:chevron-up" size="16" />
     </motion.button>
 
-    <!-- New messages button -->
     <motion.button
       v-if="showNewMessages"
       type="button"
@@ -352,7 +350,6 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
       New messages
     </motion.button>
 
-    <!-- Bottom scroll-to button when scrolled up (no new messages) -->
     <motion.button
       v-if="!showNewMessages && !wasNearBottom && hasInitialized"
       type="button"

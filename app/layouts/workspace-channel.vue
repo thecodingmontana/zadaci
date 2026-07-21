@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { ChatMessage, Thread } from "~/types/chat";
 import { AnimatePresence, motion } from "motion-v";
-import ChannelHeader from "~/components/workspace/channels/channel-header.vue";
-import ChannelInfoPanel from "~/components/workspace/channels/channel-info-panel.vue";
-import ThreadPanel from "~/components/workspace/channels/thread-panel.vue";
+import ChannelHeader from "~/components/workspace/communication/channel/channel-header.vue";
+import ChannelInfoPanel from "~/components/workspace/communication/channel/channel-info-panel.vue";
+import ThreadPanel from "~/components/workspace/communication/shared/thread-panel.vue";
 import { queryWithRetry } from "~/utils/rxdb-helpers";
 
 const route = useRoute();

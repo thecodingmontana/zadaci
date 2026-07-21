@@ -2,9 +2,9 @@
 import type { ChatMessage } from "~/types/chat";
 import { formatDistanceToNow } from "date-fns";
 import { Bubble, BubbleContent } from "~/components/ui/bubble";
-import EmojiPicker from "~/components/workspace/channels/emoji-picker.vue";
-import MessageAttachmentCard from "~/components/workspace/channels/message-attachment-card.vue";
-import MessageStatus from "~/components/workspace/channels/message-status.vue";
+import EmojiPicker from "~/components/workspace/communication/shared/emoji-picker.vue";
+import MessageAttachmentCard from "~/components/workspace/communication/shared/message-attachment-card.vue";
+import MessageStatus from "~/components/workspace/communication/shared/message-status.vue";
 
 interface MemberInfo {
   name: string;
@@ -18,13 +18,9 @@ const props = defineProps<{
   showThreadEntry?: boolean;
   hideActions?: boolean;
   hideThreadReply?: boolean;
-  // For member display - Tier 2 data resolved at UI layer
   memberName?: string;
   memberAvatar?: string;
-  // Resolved member directory (memberId -> name/avatar), used to render
-  // real avatars/initials for thread-reply participants
   members?: Map<string, MemberInfo>;
-  // Delivery status computed from receipts
   deliveryStatus?: "sending" | "sent" | "delivered" | "seen";
 }>();
 

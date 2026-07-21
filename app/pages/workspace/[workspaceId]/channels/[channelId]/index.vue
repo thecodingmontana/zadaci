@@ -2,8 +2,8 @@
 import type { RxCollection } from "rxdb";
 import type { MessageDocType, MessageReceiptDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
 import type { Thread } from "~/types/chat";
-import ChannelComposer from "~/components/workspace/channels/channel-composer.vue";
-import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
+import ChannelComposer from "~/components/workspace/communication/shared/channel-composer.vue";
+import ChannelMessages from "~/components/workspace/communication/shared/channel-messages.vue";
 import { queryWithRetry } from "~/utils/rxdb-helpers";
 
 definePageMeta({
