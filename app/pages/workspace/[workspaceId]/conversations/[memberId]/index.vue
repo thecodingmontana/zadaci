@@ -58,7 +58,7 @@ function removePending(id: string) {
 const messages = ref<ChatMessage[]>([]);
 const loading = ref(true);
 const hasMore = ref(true);
-const hasMoreHistory = ref(true);
+const hasMoreHistory = ref(false);
 const loadingMore = ref(false);
 const oldestTimestamp = ref<string | null>(null);
 let messageSubs: { unsubscribe: () => void }[] = [];
@@ -102,6 +102,14 @@ async function loadInitialMessages() {
     messages.value = loaded;
     if (loaded.length > 0) oldestTimestamp.value = loaded[0]!.createdAt;
     hasMore.value = loaded.length === 50;
+    console.log(
+      "[loadInitialMessages] loaded:",
+      loaded.length,
+      "hasMore:",
+      hasMore.value,
+      "hasMoreHistory:",
+      hasMoreHistory.value,
+    );
   } finally {
     loading.value = false;
   }
@@ -153,6 +161,14 @@ function subscribeMessages() {
       messages.value = loaded;
       if (loaded.length > 0) oldestTimestamp.value = loaded[0]!.createdAt;
       hasMore.value = loaded.length >= 50;
+      console.log(
+        "[subscribeMessages] docs.len:",
+        docs.length,
+        "hasMore:",
+        hasMore.value,
+        "hasMoreHistory:",
+        hasMoreHistory.value,
+      );
     });
   messageSubs = [{ unsubscribe: () => querySub.unsubscribe() }];
 }

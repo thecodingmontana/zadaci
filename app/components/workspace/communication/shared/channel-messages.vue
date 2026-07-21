@@ -212,7 +212,15 @@ const showEmptyState = computed(() => {
 });
 
 const canLoadMore = computed(() => {
-  return props.hasLoaded && (props.hasMore || props.hasMoreHistory);
+  const val = props.hasLoaded && (props.hasMore || props.hasMoreHistory);
+  console.log("[canLoadMore]", {
+    hasLoaded: props.hasLoaded,
+    hasMore: props.hasMore,
+    hasMoreHistory: props.hasMoreHistory,
+    val,
+    msgLen: props.messages.length,
+  });
+  return val;
 });
 
 const channelNameDisplay = computed(() => props.channelName ?? "general");
