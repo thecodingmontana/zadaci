@@ -151,6 +151,7 @@ watch(workspaceId, async (newId, oldId) => {
     wsStore.onSetActiveWorkspace(found);
   }
 
+  allRealtimeSubs().forEach((sub) => sub.stop());
   allSyncs().forEach((s) => s.stop());
 
   await useClearRxDb();

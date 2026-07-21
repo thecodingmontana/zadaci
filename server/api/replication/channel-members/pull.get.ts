@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const conditions = [eq(tables.channel_members.member_id, membership.id)];
+    const conditions = [eq(tables.channel.workspace_id, workspaceId)];
 
     if (checkpoint) {
       conditions.push(

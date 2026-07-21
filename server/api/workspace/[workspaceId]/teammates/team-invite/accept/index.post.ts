@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
+import { CHANNEL_TYPE } from "~~/server/database/enums";
 import { isValidEmail } from "~~/server/libs/validations";
 
 export default defineEventHandler(async (event) => {
@@ -105,13 +106,37 @@ export default defineEventHandler(async (event) => {
         });
       }
 
-      await db.insert(tables.workspace_members).values({
-        user_id: session.user.id,
-        workspace_id: workspace.id,
-        role: invite.role,
-        created_at: new Date(),
-        updated_at: new Date(),
-      });
+      const [newMember] = await db
+        .insert(tables.workspace_members)
+        .values({
+          user_id: session.user.id,
+          workspace_id: workspace.id,
+          role: invite.role,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning();
+
+      const publicChannels = await db
+        .select({ id: tables.channel.id })
+        .from(tables.channel)
+        .where(
+          and(
+            eq(tables.channel.workspace_id, workspace.id),
+            eq(tables.channel.type, CHANNEL_TYPE.PUBLIC),
+          ),
+        );
+
+      if (publicChannels.length > 0) {
+        await db.insert(tables.channel_members).values(
+          publicChannels.map((ch) => ({
+            channel_id: ch.id,
+            member_id: newMember.id,
+            created_at: new Date(),
+            updated_at: new Date(),
+          })),
+        );
+      }
 
       await db
         .delete(tables.workspace_invite_request)

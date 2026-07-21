@@ -1,6 +1,7 @@
 import { faker } from "@faker-js/faker";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
+import { CHANNEL_TYPE } from "~~/server/database/enums";
 import { sendWorkspaceWelcomeMail } from "~~/server/libs/emails/actions/workspace-welcome";
 import { encryptString } from "~~/server/libs/encryption";
 import { generateRandomRecoveryCode } from "~~/server/libs/utils";
@@ -70,7 +71,7 @@ export default defineEventHandler(async (event) => {
         });
       }
 
-      await db
+      const [newMember] = await db
         .insert(tables.workspace_members)
         .values({
           role: invite.role,
@@ -80,8 +81,29 @@ export default defineEventHandler(async (event) => {
           updated_at: new Date(),
         })
         .returning();
+
+      const publicChannels = await db
+        .select({ id: tables.channel.id })
+        .from(tables.channel)
+        .where(
+          and(
+            eq(tables.channel.workspace_id, workspace.id),
+            eq(tables.channel.type, CHANNEL_TYPE.PUBLIC),
+          ),
+        );
+
+      if (publicChannels.length > 0) {
+        await db.insert(tables.channel_members).values(
+          publicChannels.map((ch) => ({
+            channel_id: ch.id,
+            member_id: newMember.id,
+            created_at: new Date(),
+            updated_at: new Date(),
+          })),
+        );
+      }
     } else {
-      await db
+      const [newMember] = await db
         .insert(tables.workspace_members)
         .values({
           role: invite.role,
@@ -91,6 +113,27 @@ export default defineEventHandler(async (event) => {
           updated_at: new Date(),
         })
         .returning();
+
+      const publicChannels = await db
+        .select({ id: tables.channel.id })
+        .from(tables.channel)
+        .where(
+          and(
+            eq(tables.channel.workspace_id, workspace.id),
+            eq(tables.channel.type, CHANNEL_TYPE.PUBLIC),
+          ),
+        );
+
+      if (publicChannels.length > 0) {
+        await db.insert(tables.channel_members).values(
+          publicChannels.map((ch) => ({
+            channel_id: ch.id,
+            member_id: newMember.id,
+            created_at: new Date(),
+            updated_at: new Date(),
+          })),
+        );
+      }
     }
     await db
       .delete(tables.workspace_invite_request)

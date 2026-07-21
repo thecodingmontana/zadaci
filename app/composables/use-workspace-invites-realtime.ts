@@ -28,12 +28,21 @@ export function useWorkspaceInvitesRealtime(workspaceId: () => string | undefine
   function start() {
     if (import.meta.server) return;
     const supabase = getSupabase();
-    if (!supabase) return;
+    if (!supabase) {
+      console.warn("[workspace-invites-realtime] No Supabase client — skipping");
+      return;
+    }
     const id = workspaceId();
-    if (!id) return;
+    if (!id) {
+      console.warn("[workspace-invites-realtime] No workspace ID — skipping");
+      return;
+    }
+
+    // Stop any existing subscription before creating a new one
+    stop();
 
     channel = supabase
-      .channel(`app_workspace_invites_realtime`)
+      .channel(`app_workspace_invites_realtime_${id}`)
       .on(
         "postgres_changes",
         {
@@ -43,19 +52,14 @@ export function useWorkspaceInvitesRealtime(workspaceId: () => string | undefine
           filter: `workspace_id=eq.${id}`,
         },
         () => {
+          console.log("[workspace-invites-realtime] Change detected — invalidating query");
           queryClient.invalidateQueries({ queryKey: workspaceInvitesKey(id) });
         },
       )
       .subscribe((status) => {
         realtimeStatus.value = status;
+        console.log("[workspace-invites-realtime] Subscription status:", status);
       });
-
-    cleanupFns.push(() => {
-      if (channel) {
-        getSupabase()?.removeChannel(channel);
-        channel = null;
-      }
-    });
   }
 
   function stop() {

@@ -13,6 +13,7 @@ export function useWorkspaceInvites(
 
   return useQuery<WorkspaceInvite[], Error>({
     queryKey: computed(() => workspaceInvitesKey(workspaceId.value)),
+    refetchInterval: 30_000,
     queryFn: async () => {
       const data = await requestFetch<any[]>(
         `/api/workspace/${workspaceId.value}/teammates/team-invite/sent`,

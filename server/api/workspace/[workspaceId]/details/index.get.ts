@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 
 export default defineEventHandler(async (event) => {
@@ -12,6 +12,8 @@ export default defineEventHandler(async (event) => {
       });
     }
 
+    const session = await requireUserSession(event);
+
     const [workspace] = await db
       .select({
         id: tables.workspace.id,
@@ -21,8 +23,16 @@ export default defineEventHandler(async (event) => {
         createdAt: tables.workspace.created_at,
         updatedAt: tables.workspace.updated_at,
         userId: tables.workspace.user_id,
+        userRole: tables.workspace_members.role,
       })
       .from(tables.workspace)
+      .innerJoin(
+        tables.workspace_members,
+        and(
+          eq(tables.workspace_members.workspace_id, tables.workspace.id),
+          eq(tables.workspace_members.user_id, session.user.id),
+        ),
+      )
       .where(eq(tables.workspace.id, workspaceId));
 
     if (!workspace) {
