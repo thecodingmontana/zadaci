@@ -14,6 +14,7 @@ CREATE TABLE "app_channel" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_channel" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_channel_members" (
 	"id" varchar(16) PRIMARY KEY,
 	"channel_id" varchar(16) NOT NULL,
@@ -23,6 +24,7 @@ CREATE TABLE "app_channel_members" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_channel_members" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_message" (
 	"id" varchar(16) PRIMARY KEY,
 	"channel_id" varchar(16) NOT NULL,
@@ -39,6 +41,7 @@ CREATE TABLE "app_message" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_message" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_message_receipt" (
 	"id" varchar(16) PRIMARY KEY,
 	"message_id" varchar(16) NOT NULL,
@@ -48,6 +51,7 @@ CREATE TABLE "app_message_receipt" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_message_receipt" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_message_reference" (
 	"id" varchar(16) PRIMARY KEY,
 	"message_id" varchar(16) NOT NULL,
@@ -58,6 +62,7 @@ CREATE TABLE "app_message_reference" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_message_reference" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_comment" (
 	"id" varchar(16) PRIMARY KEY,
 	"entity_type" varchar(50) NOT NULL,
@@ -70,6 +75,7 @@ CREATE TABLE "app_comment" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_comment" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_conversation" (
 	"id" varchar(16) PRIMARY KEY,
 	"workspace_id" varchar(16) NOT NULL,
@@ -79,6 +85,7 @@ CREATE TABLE "app_conversation" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_conversation" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_direct_message" (
 	"id" varchar(16) PRIMARY KEY,
 	"conversation_id" varchar(16) NOT NULL,
@@ -91,6 +98,7 @@ CREATE TABLE "app_direct_message" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_direct_message" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_direct_message_receipt" (
 	"id" varchar(16) PRIMARY KEY,
 	"direct_message_id" varchar(16) NOT NULL,
@@ -100,6 +108,7 @@ CREATE TABLE "app_direct_message_receipt" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_direct_message_receipt" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "cron_jobs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"message" text,
@@ -117,6 +126,7 @@ CREATE TABLE "app_note" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_note" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_project" (
 	"id" varchar(16) PRIMARY KEY,
 	"title" text NOT NULL,
@@ -131,6 +141,7 @@ CREATE TABLE "app_project" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_project" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_project_members" (
 	"id" varchar(16) PRIMARY KEY,
 	"project_id" varchar(16) NOT NULL,
@@ -139,6 +150,7 @@ CREATE TABLE "app_project_members" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_project_members" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_tasks" (
 	"id" varchar(16) PRIMARY KEY,
 	"name" text NOT NULL,
@@ -153,6 +165,7 @@ CREATE TABLE "app_tasks" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_tasks" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_task_assignees" (
 	"id" varchar(16) PRIMARY KEY,
 	"task_id" varchar(16) NOT NULL,
@@ -163,6 +176,7 @@ CREATE TABLE "app_task_assignees" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_task_assignees" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_tasks_activity" (
 	"id" varchar(16) PRIMARY KEY,
 	"status" "status" DEFAULT 'idea'::"status" NOT NULL,
@@ -174,6 +188,7 @@ CREATE TABLE "app_tasks_activity" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_tasks_activity" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_project_tags" (
 	"id" varchar(16) PRIMARY KEY,
 	"project_id" varchar(16) NOT NULL,
@@ -182,6 +197,7 @@ CREATE TABLE "app_project_tags" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_project_tags" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_tag" (
 	"id" varchar(16) PRIMARY KEY,
 	"workspace_id" varchar(16) NOT NULL,
@@ -192,6 +208,7 @@ CREATE TABLE "app_tag" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_tag" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_task_tags" (
 	"id" varchar(16) PRIMARY KEY,
 	"task_id" varchar(16) NOT NULL,
@@ -200,6 +217,7 @@ CREATE TABLE "app_task_tags" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_task_tags" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_team" (
 	"id" varchar(16) PRIMARY KEY,
 	"workspace_id" varchar(16) NOT NULL,
@@ -210,6 +228,7 @@ CREATE TABLE "app_team" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+ALTER TABLE "app_team" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_team_members" (
 	"id" varchar(16) PRIMARY KEY,
 	"team_id" varchar(16) NOT NULL,
@@ -218,6 +237,7 @@ CREATE TABLE "app_team_members" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_team_members" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_oauth_account" (
 	"id" varchar(16) PRIMARY KEY,
 	"user_id" varchar(16) NOT NULL,
@@ -294,6 +314,7 @@ CREATE TABLE "app_user" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_user" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_user_status" (
 	"id" varchar(16) PRIMARY KEY,
 	"user_id" varchar(16) NOT NULL UNIQUE,
@@ -304,6 +325,7 @@ CREATE TABLE "app_user_status" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_user_status" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_workspace" (
 	"id" varchar(16) PRIMARY KEY,
 	"name" varchar(255) NOT NULL,
@@ -314,6 +336,7 @@ CREATE TABLE "app_workspace" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_workspace" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_workspace_invite_request" (
 	"id" varchar(16) PRIMARY KEY,
 	"email" varchar(255) NOT NULL,
@@ -326,6 +349,7 @@ CREATE TABLE "app_workspace_invite_request" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_workspace_invite_request" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "app_workspace_members" (
 	"id" varchar(16) PRIMARY KEY,
 	"role" "user_role" DEFAULT 'member'::"user_role" NOT NULL,
@@ -335,6 +359,7 @@ CREATE TABLE "app_workspace_members" (
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "app_workspace_members" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE INDEX "channel_workspace_id_idx" ON "app_channel" ("workspace_id");--> statement-breakpoint
 CREATE INDEX "channel_members_channel_id_idx" ON "app_channel_members" ("channel_id");--> statement-breakpoint
 CREATE INDEX "channel_members_member_id_idx" ON "app_channel_members" ("member_id");--> statement-breakpoint
@@ -431,4 +456,29 @@ ALTER TABLE "app_workspace" ADD CONSTRAINT "app_workspace_user_id_app_user_id_fk
 ALTER TABLE "app_workspace_invite_request" ADD CONSTRAINT "app_workspace_invite_request_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_workspace_invite_request" ADD CONSTRAINT "app_workspace_invite_request_invited_by_app_user_id_fkey" FOREIGN KEY ("invited_by") REFERENCES "app_user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_workspace_members" ADD CONSTRAINT "app_workspace_members_user_id_app_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app_user"("id");--> statement-breakpoint
-ALTER TABLE "app_workspace_members" ADD CONSTRAINT "app_workspace_members_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;
+ALTER TABLE "app_workspace_members" ADD CONSTRAINT "app_workspace_members_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
+CREATE POLICY "allow_anon_select_channel" ON "app_channel" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_channel_members" ON "app_channel_members" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_message" ON "app_message" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_message_receipt" ON "app_message_receipt" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_message_reference" ON "app_message_reference" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_comment" ON "app_comment" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_conversation" ON "app_conversation" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_direct_message" ON "app_direct_message" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_dm_receipt" ON "app_direct_message_receipt" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_note" ON "app_note" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_project" ON "app_project" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_project_members" ON "app_project_members" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_task" ON "app_tasks" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_task_assignees" ON "app_task_assignees" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_tasks_activity" ON "app_tasks_activity" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_project_tags" ON "app_project_tags" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_tag" ON "app_tag" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_task_tags" ON "app_task_tags" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_team" ON "app_team" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_team_members" ON "app_team_members" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_user" ON "app_user" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_user_status" ON "app_user_status" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_workspace" ON "app_workspace" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_workspace_invite" ON "app_workspace_invite_request" AS PERMISSIVE FOR SELECT TO "anon" USING (true);--> statement-breakpoint
+CREATE POLICY "allow_anon_select_workspace_members" ON "app_workspace_members" AS PERMISSIVE FOR SELECT TO "anon" USING (true);

@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "6b2e9521-9934-4e78-adfc-b022f4936079",
+  "id": "7199c98b-ae1e-492f-af0e-903b6264e223",
   "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
@@ -35,55 +35,55 @@
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_channel",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_channel_members",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_message",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_message_receipt",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_message_reference",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_comment",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_conversation",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_direct_message",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_direct_message_receipt",
       "entityType": "tables",
       "schema": "public"
@@ -95,67 +95,67 @@
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_note",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_project",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_project_members",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_tasks",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_task_assignees",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_tasks_activity",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_project_tags",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_tag",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_task_tags",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_team",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_team_members",
       "entityType": "tables",
       "schema": "public"
@@ -197,31 +197,31 @@
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_user",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_user_status",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_workspace",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_workspace_invite_request",
       "entityType": "tables",
       "schema": "public"
     },
     {
-      "isRlsEnabled": false,
+      "isRlsEnabled": true,
       "name": "app_workspace_members",
       "entityType": "tables",
       "schema": "public"
@@ -5272,6 +5272,281 @@
       "schema": "public",
       "table": "app_workspace",
       "entityType": "uniques"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_channel",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_channel"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_channel_members",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_channel_members"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_message",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_message"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_message_receipt",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_message_reference",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_message_reference"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_comment",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_comment"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_conversation",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_conversation"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_direct_message",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_direct_message"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_dm_receipt",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_direct_message_receipt"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_note",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_note"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_project",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_project"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_project_members",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_project_members"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_task",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_tasks"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_task_assignees",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_task_assignees"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_tasks_activity",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_tasks_activity"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_project_tags",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_project_tags"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_tag",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_tag"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_task_tags",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_task_tags"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_team",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_team"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_team_members",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_team_members"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_user",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_user"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_user_status",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_user_status"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_workspace",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_workspace"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_workspace_invite",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_workspace_invite_request"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": ["anon"],
+      "using": "true",
+      "withCheck": null,
+      "name": "allow_anon_select_workspace_members",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "app_workspace_members"
     }
   ],
   "renames": []
