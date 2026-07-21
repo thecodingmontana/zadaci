@@ -13,7 +13,7 @@ export function useMessageWindow(
   const messages = ref<ChatMessage[]>([]);
   const loading = ref(true);
   const hasMore = ref(true);
-  const hasMoreHistory = ref(true);
+  const hasMoreHistory = ref(false);
   const loadingMore = ref(false);
   const loadingHistory = ref(false);
   const oldestTimestamp = ref<string | null>(null);
