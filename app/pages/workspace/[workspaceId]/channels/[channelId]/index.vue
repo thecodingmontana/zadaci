@@ -4,6 +4,7 @@ import type { MessageDocType, MessageReceiptDocType, ZadaciDatabase } from "~/pl
 import type { Thread } from "~/types/chat";
 import ChannelComposer from "~/components/workspace/channels/channel-composer.vue";
 import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
+import { queryWithRetry } from "~/utils/rxdb-helpers";
 
 definePageMeta({
   middleware: ["authenticated"],
@@ -112,11 +113,14 @@ function buildMessageStatuses() {
     }
     statuses.set(msg.id, "sent");
   }
-  // Override with receipt data if receipts are loaded
+  // Always set synchronous status first (sending/sent)
+  messageStatuses.value = statuses;
+
+  // Then asynchronously override with receipt data if loaded
   if (col && lastReceiptQuery > 0) {
     console.log("[channel] buildMessageStatuses — checking receipts for status override");
-    const allReceipts = col.find({ selector: {} }).exec();
-    allReceipts.then((receiptDocs) => {
+    queryWithRetry(() => col.find({ selector: {} }).exec()).then((receiptDocs) => {
+      const updated = new Map(messageStatuses.value);
       for (const msg of ownMsgs) {
         const msgReceipts = receiptDocs.filter(
           (r) => r.message_id === msg.id && r.member_id !== currentMemberId.value,
@@ -125,18 +129,17 @@ function buildMessageStatuses() {
         const hasSeen = msgReceipts.some((r) => r.status === "seen");
         const hasDelivered = msgReceipts.some((r) => r.status === "delivered");
         if (hasSeen) {
-          statuses.set(msg.id, "seen");
+          updated.set(msg.id, "seen");
           console.log(`[channel] msg ${msg.id.slice(0, 8)} → seen`);
         } else if (hasDelivered) {
-          statuses.set(msg.id, "delivered");
+          updated.set(msg.id, "delivered");
           console.log(`[channel] msg ${msg.id.slice(0, 8)} → delivered`);
         }
       }
-      messageStatuses.value = statuses;
+      messageStatuses.value = updated;
     });
     return;
   }
-  messageStatuses.value = statuses;
   console.log(`[channel] buildMessageStatuses done — ${statuses.size} statuses computed`);
 }
 
@@ -170,7 +173,11 @@ function subscribeReceipts() {
           console.log(`[channel] auto-marking ${myNewDelivered.length} receipts as seen`);
           for (const r of myNewDelivered) {
             try {
-              await r.patch({ status: "seen", updated_at: new Date().toISOString() });
+              await r.incrementalModify((d: any) => {
+                d.status = "seen";
+                d.updated_at = new Date().toISOString();
+                return d;
+              });
             } catch (e) {
               console.warn("[channel] failed to mark receipt as seen:", e);
             }
@@ -260,14 +267,16 @@ async function markMessagesAsSeen() {
   }
   console.log("[channel] markMessagesAsSeen — started");
   try {
-    const receipts = await db.value.message_receipts
-      .find({
-        selector: {
-          member_id: currentMemberId.value,
-          status: "delivered",
-        },
-      })
-      .exec();
+    const receipts = await queryWithRetry(() =>
+      db
+        .value!.message_receipts.find({
+          selector: {
+            member_id: currentMemberId.value,
+            status: "delivered",
+          },
+        })
+        .exec(),
+    );
     console.log(
       `[channel] markMessagesAsSeen — found ${receipts.length} delivered receipts to mark seen`,
     );
@@ -322,7 +331,9 @@ async function onSend(content: string) {
   // If in edit mode, patch existing message instead of inserting
   if (editingMessageId.value) {
     console.log("[channel] onSend — edit mode, patching", editingMessageId.value);
-    const doc = await db.value.messages.findOne(editingMessageId.value).exec();
+    const doc = await queryWithRetry(() =>
+      db.value!.messages.findOne(editingMessageId.value!).exec(),
+    );
     if (doc) {
       await doc.patch({
         content,
@@ -361,11 +372,45 @@ async function onSend(content: string) {
   });
   console.log("[channel] onSend — insert done");
   buildMessageStatuses();
+
+  // Push to server directly (bypass RxDB replication push which may not fire)
+  try {
+    const pushBody = [
+      {
+        assumedMasterState: null,
+        newDocumentState: {
+          id,
+          channel_id: channelId,
+          author_id: currentMemberId.value,
+          content,
+          edited_at: null,
+          reactions: [],
+          parent_message_id: null,
+          thread_reply_count: 0,
+          thread_participant_ids: [],
+          thread_last_reply_at: null,
+          created_at: now,
+          updated_at: now,
+          deleted_at: null,
+        },
+      },
+    ];
+    await $fetch(`/api/replication/messages/push?channel_id=${channelId}`, {
+      method: "POST",
+      body: pushBody,
+    });
+    console.log("[channel] onSend — push to server succeeded");
+  } catch (err: any) {
+    console.warn("[channel] onSend — push to server failed:", err?.message ?? err);
+  } finally {
+    removePending(id);
+    buildMessageStatuses();
+  }
 }
 
 async function onDelete(messageId: string) {
   if (!db.value) return;
-  const doc = await db.value.messages.findOne(messageId).exec();
+  const doc = await queryWithRetry(() => db.value!.messages.findOne(messageId).exec());
   if (!doc) return;
   await doc.incrementalModify((data: any) => {
     data.deleted_at = new Date().toISOString();
@@ -406,7 +451,7 @@ watch(
 
 async function onToggleReaction(messageId: string, emoji: string) {
   if (!db.value) return;
-  const doc = await db.value.messages.findOne(messageId).exec();
+  const doc = await queryWithRetry(() => db.value!.messages.findOne(messageId).exec());
   if (!doc) return;
 
   const now = new Date().toISOString();
@@ -446,17 +491,19 @@ async function onToggleReaction(messageId: string, emoji: string) {
 async function onOpenThread(messageId: string) {
   if (!db.value) return;
 
-  const parent = await db.value.messages.findOne(messageId).exec();
+  const parent = await queryWithRetry(() => db.value!.messages.findOne(messageId).exec());
   if (!parent) return;
 
   // Load only first batch — thread panel handles its own pagination
-  const replies = await db.value.messages
-    .find({
-      selector: { parent_message_id: messageId, deleted_at: null },
-      sort: [{ created_at: "asc" }],
-      limit: 50,
-    })
-    .exec();
+  const replies = await queryWithRetry(() =>
+    db
+      .value!.messages.find({
+        selector: { parent_message_id: messageId, deleted_at: null },
+        sort: [{ created_at: "asc" }],
+        limit: 50,
+      })
+      .exec(),
+  );
 
   const thread: Thread = {
     id: `thread-${messageId}`,

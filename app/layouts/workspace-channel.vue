@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion-v";
 import ChannelHeader from "~/components/workspace/channels/channel-header.vue";
 import ChannelInfoPanel from "~/components/workspace/channels/channel-info-panel.vue";
 import ThreadPanel from "~/components/workspace/channels/thread-panel.vue";
+import { queryWithRetry } from "~/utils/rxdb-helpers";
 
 const route = useRoute();
 const channelId = route.params.channelId as string;
@@ -54,7 +55,7 @@ function generateId(): string {
 async function onToggleReaction(messageId: string, emoji: string) {
   const db = await useRxDbSafe();
   if (!db) return;
-  const doc = await db.messages.findOne(messageId).exec();
+  const doc = await queryWithRetry(() => db.messages.findOne(messageId).exec());
   if (!doc) return;
 
   const now = new Date().toISOString();
@@ -110,15 +111,17 @@ function docToMessage(doc: any): ChatMessage {
 async function onOpenThreadFromThread(messageId: string) {
   const db = await useRxDbSafe();
   if (!db) return;
-  const parent = await db.messages.findOne(messageId).exec();
+  const parent = await queryWithRetry(() => db.messages.findOne(messageId).exec());
   if (!parent) return;
-  const replies = await db.messages
-    .find({
-      selector: { parent_message_id: messageId, deleted_at: null },
-      sort: [{ created_at: "asc" }],
-      limit: 50,
-    })
-    .exec();
+  const replies = await queryWithRetry(() =>
+    db.messages
+      .find({
+        selector: { parent_message_id: messageId, deleted_at: null },
+        sort: [{ created_at: "asc" }],
+        limit: 50,
+      })
+      .exec(),
+  );
   const thread: Thread = {
     id: `thread-${messageId}`,
     parentMessageId: messageId,
@@ -131,7 +134,7 @@ async function onOpenThreadFromThread(messageId: string) {
 async function onDeleteMessage(messageId: string) {
   const db = await useRxDbSafe();
   if (!db) return;
-  const doc = await db.messages.findOne(messageId).exec();
+  const doc = await queryWithRetry(() => db.messages.findOne(messageId).exec());
   if (!doc) return;
 
   const parentMessageId = doc.parent_message_id;
@@ -144,7 +147,7 @@ async function onDeleteMessage(messageId: string) {
 
   // If this was a thread reply, decrement parent's reply count
   if (parentMessageId) {
-    const parent = await db.messages.findOne(parentMessageId).exec();
+    const parent = await queryWithRetry(() => db.messages.findOne(parentMessageId).exec());
     if (parent) {
       await parent.incrementalModify((data: any) => {
         data.thread_reply_count = Math.max(0, (data.thread_reply_count ?? 0) - 1);
@@ -179,7 +182,7 @@ async function onReply(parentMessageId: string, content: string) {
     deleted_at: null,
   });
 
-  const parent = await db.messages.findOne(parentMessageId).exec();
+  const parent = await queryWithRetry(() => db.messages.findOne(parentMessageId).exec());
   if (parent) {
     await parent.incrementalModify((data: any) => {
       const participantIds = [

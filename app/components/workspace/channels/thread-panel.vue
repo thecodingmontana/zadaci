@@ -5,6 +5,7 @@ import type { ChatMessage, Thread } from "~/types/chat";
 import ChannelComposer from "~/components/workspace/channels/channel-composer.vue";
 import ChannelMessages from "~/components/workspace/channels/channel-messages.vue";
 import MessageBubble from "~/components/workspace/channels/message-bubble.vue";
+import { queryWithRetry } from "~/utils/rxdb-helpers";
 
 const props = defineProps<{
   thread: Thread;
@@ -64,7 +65,7 @@ function buildMessageStatuses() {
     statuses.set(msg.id, "sent");
   }
   if (col && ownMsgs.length > 0) {
-    const allReceipts = col.find({ selector: {} }).exec();
+    const allReceipts = queryWithRetry(() => col.find({ selector: {} }).exec());
     allReceipts.then((receiptDocs) => {
       for (const msg of ownMsgs) {
         const msgReceipts = receiptDocs.filter(
@@ -162,31 +163,17 @@ async function init() {
 
   await loadInitialReplies(rxdb);
 
-  const eventSub = rxdb.messages.eventBulks$.subscribe((bulk: any) => {
-    if (!bulk?.events?.length) return;
-    for (const event of bulk.events) {
-      if (event.operation === "INSERT") {
-        const doc = event.data;
-        if (!doc || doc.parent_message_id !== props.thread.parentMessageId || doc.deleted_at)
-          continue;
-        if (replies.value.some((m) => m.id === doc.id)) continue;
-        replies.value = [...replies.value, docToMessage(doc)];
-      } else if (event.operation === "UPDATE") {
-        const idx = replies.value.findIndex((m) => m.id === event.documentId);
-        if (idx === -1) continue;
-        const doc = event.data;
-        if (!doc) continue;
-        if (doc.deleted_at) {
-          replies.value = replies.value.filter((m) => m.id !== event.documentId);
-        } else {
-          replies.value[idx] = docToMessage(doc);
-        }
-      } else if (event.operation === "DELETE") {
-        replies.value = replies.value.filter((m) => m.id !== event.documentId);
-      }
-    }
-  });
-  subs.push({ unsubscribe: () => eventSub.unsubscribe() });
+  const repliesSub = rxdb.messages
+    .find({
+      selector: { parent_message_id: props.thread.parentMessageId, deleted_at: null },
+      sort: [{ created_at: "asc" }],
+    })
+    .$.subscribe((docs) => {
+      replies.value = docs.map(docToMessage);
+      loading.value = false;
+      buildMessageStatuses();
+    });
+  subs.push({ unsubscribe: () => repliesSub.unsubscribe() });
 
   buildMessageStatuses();
 }
@@ -232,7 +219,7 @@ async function onComposerSend(content: string) {
   if (editingMessageId.value) {
     const rxdb = await useRxDbSafe();
     if (!rxdb) return;
-    const doc = await rxdb.messages.findOne(editingMessageId.value).exec();
+    const doc = await queryWithRetry(() => rxdb.messages.findOne(editingMessageId.value!).exec());
     if (doc) {
       await doc.patch({
         content,

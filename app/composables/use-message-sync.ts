@@ -66,8 +66,6 @@ export function useMessageSync(
       return;
     }
 
-    const requestFetch = useRequestFetch();
-
     const nuxtApp = useNuxtApp();
     const db: ZadaciDatabase | null = (nuxtApp.$rxdb as ZadaciDatabase) ?? null;
     if (!db) {
@@ -112,7 +110,7 @@ export function useMessageSync(
             }
           }
 
-          const result = await requestFetch(`/api/replication/messages/pull?${params.toString()}`);
+          const result = await $fetch(`/api/replication/messages/pull?${params.toString()}`);
           return result as {
             documents: MessageDocType[];
             checkpoint: { updated_at: string; id: string } | undefined;
@@ -131,22 +129,28 @@ export function useMessageSync(
           const filtered = rows.filter((r) => r.newDocumentState);
           if (filtered.length === 0) return [];
 
+          console.log(`[useMessageSync] Push — ${filtered.length} doc(s) being sent`);
           for (const row of filtered) {
-            const docId = row.newDocumentState!.id;
-            if (docId) pendingIds?.add(docId);
+            console.log(`[useMessageSync]   Push doc: ${row.newDocumentState!.id}`);
           }
 
-          const result = await requestFetch(`/api/replication/messages/push?channel_id=${id}`, {
-            method: "POST",
-            body: filtered,
-          });
-
-          for (const row of filtered) {
-            const docId = row.newDocumentState!.id;
-            if (docId) pendingIds?.remove(docId);
+          try {
+            const result = await $fetch(`/api/replication/messages/push?channel_id=${id}`, {
+              method: "POST",
+              body: filtered,
+            });
+            console.log(
+              `[useMessageSync] Push succeeded, result length: ${(result as any[])?.length ?? 0}`,
+            );
+            for (const row of filtered) {
+              const docId = row.newDocumentState!.id;
+              if (docId) pendingIds?.remove(docId);
+            }
+            return result as MessageDocType[];
+          } catch (err: any) {
+            console.warn(`[useMessageSync] Push failed:`, err?.message ?? err);
+            throw err;
           }
-
-          return result as MessageDocType[];
         },
         batchSize: 50,
       },

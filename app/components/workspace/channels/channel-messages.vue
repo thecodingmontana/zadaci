@@ -109,6 +109,7 @@ const scrollAreaRef = ref<InstanceType<typeof ScrollArea>>();
 const bottomAnchorRef = ref<HTMLElement>();
 const topAnchorRef = ref<HTMLElement>();
 const showNewMessages = ref(false);
+const showScrollTop = ref(false);
 const wasNearBottom = ref(true);
 const loadingOlder = ref(false);
 const hasInitialized = ref(false);
@@ -123,6 +124,14 @@ function scrollToBottom(behavior: ScrollBehavior = "smooth") {
   bottomAnchorRef.value?.scrollIntoView({ behavior, block: "end" });
   showNewMessages.value = false;
   wasNearBottom.value = true;
+}
+
+function scrollToTop(behavior: ScrollBehavior = "smooth") {
+  const el = getScrollEl();
+  if (el) {
+    el.scrollTo({ top: 0, behavior });
+  }
+  showScrollTop.value = false;
 }
 
 function onLoadOlderClick() {
@@ -177,6 +186,8 @@ function onScroll() {
 
   const el = getScrollEl();
   if (!el) return;
+
+  showScrollTop.value = el.scrollTop > 600;
 
   if (
     isNearTop(el) &&
@@ -307,14 +318,6 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
       <div ref="bottomAnchorRef" />
     </ScrollArea>
 
-    <!-- Debug: message count badge -->
-    <div
-      class="pointer-events-none absolute bottom-2 left-2 rounded bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
-      title="Messages loaded"
-    >
-      {{ props.messages.length }} msgs
-    </div>
-
     <ChannelEmptyState
       v-if="showEmptyState"
       :name="channelNameDisplay"
@@ -322,28 +325,44 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
       class="px-4 pb-4"
     />
 
-    <Transition name="fade">
-      <button
-        v-if="showNewMessages"
-        type="button"
-        class="absolute right-4 bottom-3 flex items-center gap-1 rounded-full border bg-background px-3 py-1 text-xs font-medium shadow-sm hover:bg-accent"
-        @click="() => scrollToBottom()"
-      >
-        New messages
-        <Icon name="lucide:arrow-down" size="12" />
-      </button>
-    </Transition>
+    <!-- Scroll-to-top button -->
+    <motion.button
+      v-if="showScrollTop"
+      type="button"
+      :initial="{ opacity: 0, scale: 0.8 }"
+      :animate="{ opacity: 1, scale: 1 }"
+      :transition="{ duration: 0.15 }"
+      class="absolute top-3 right-4 z-10 flex size-9 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-accent"
+      @click="scrollToTop()"
+    >
+      <Icon name="lucide:chevron-up" size="16" />
+    </motion.button>
+
+    <!-- New messages button -->
+    <motion.button
+      v-if="showNewMessages"
+      type="button"
+      :initial="{ opacity: 0, y: 8 }"
+      :animate="{ opacity: 1, y: 0 }"
+      :transition="{ duration: 0.15 }"
+      class="absolute right-4 bottom-3 z-10 flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-accent"
+      @click="() => scrollToBottom()"
+    >
+      <Icon name="lucide:arrow-down" size="14" />
+      New messages
+    </motion.button>
+
+    <!-- Bottom scroll-to button when scrolled up (no new messages) -->
+    <motion.button
+      v-if="!showNewMessages && !wasNearBottom && hasInitialized"
+      type="button"
+      :initial="{ opacity: 0, scale: 0.8 }"
+      :animate="{ opacity: 1, scale: 1 }"
+      :transition="{ duration: 0.15 }"
+      class="absolute right-4 bottom-3 z-10 flex size-9 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-accent"
+      @click="() => scrollToBottom()"
+    >
+      <Icon name="lucide:chevron-down" size="16" />
+    </motion.button>
   </div>
 </template>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

@@ -589,6 +589,7 @@ export default defineNuxtPlugin(async () => {
     name: DB_NAME,
     storage,
     eventReduce: true,
+    multiInstance: false,
   });
   console.log("[rxdb-plugin] Database created");
 
