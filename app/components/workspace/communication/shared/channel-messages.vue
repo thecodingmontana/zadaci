@@ -33,6 +33,8 @@ const props = defineProps<{
   hasMoreHistory?: boolean;
   messageStatuses?: Map<string, "sending" | "sent" | "delivered" | "seen">;
   members?: Map<string, MemberInfo>;
+  /** Names currently typing. Display-only for now — no live wiring yet. */
+  typingUsers?: string[];
 }>();
 
 const emit = defineEmits<{
@@ -224,6 +226,16 @@ const canLoadMore = computed(() => {
 });
 
 const channelNameDisplay = computed(() => props.channelName ?? "general");
+
+// Display-only typing indicator (Image 2 style). Wire this up later by
+// passing real names via the `typingUsers` prop from the parent page.
+const typingLabel = computed(() => {
+  const names = props.typingUsers ?? [];
+  if (names.length === 0) return "";
+  if (names.length === 1) return `${names[0]} is typing...`;
+  if (names.length === 2) return `${names[0]} and ${names[1]} are typing...`;
+  return `${names[0]} and ${names.length - 1} others are typing...`;
+});
 </script>
 
 <template>
@@ -300,20 +312,15 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
             class="flex max-w-[80%] min-w-0 flex-col gap-1"
             :class="[isOwn(group[0].authorId) ? 'items-end' : 'items-start']"
           >
-            <div class="px-1 text-xs">
-              <span v-if="!isOwn(group[0].authorId)" class="font-semibold">{{
-                memberInfo(group[0].authorId).name
-              }}</span>
-              <span v-else class="font-semibold text-muted-foreground">You</span>
-            </div>
-
             <MessageBubble
-              v-for="message in group"
+              v-for="(message, mi) in group"
               :key="message.id"
               :message="message"
               :is-own="isOwn(message.authorId)"
               :current-member-id="currentMemberId"
               :members="props.members"
+              :member-name="memberInfo(message.authorId).name"
+              :show-header="mi === 0"
               :show-thread-entry="props.showThreadEntry ?? true"
               :hide-thread-reply="props.hideThreadReply ?? false"
               :delivery-status="props.messageStatuses?.get(message.id)"
@@ -325,6 +332,22 @@ const channelNameDisplay = computed(() => props.channelName ?? "general");
           </div>
         </motion.div>
       </template>
+
+      <div
+        v-if="typingLabel"
+        class="flex items-center gap-2 px-1 pt-1 text-xs text-muted-foreground"
+      >
+        <span class="flex gap-0.5">
+          <span
+            class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]"
+          />
+          <span
+            class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]"
+          />
+          <span class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground" />
+        </span>
+        {{ typingLabel }}
+      </div>
 
       <div ref="bottomAnchorRef" />
     </ScrollArea>

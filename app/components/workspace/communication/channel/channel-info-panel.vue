@@ -82,7 +82,7 @@ const showMembersLoading = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-full w-80 flex-col border-l">
+  <div class="flex h-full w-full flex-col border-l">
     <div class="flex items-center justify-between border-b px-4 py-3">
       <div>
         <p class="text-sm font-semibold"># {{ channelDoc?.name ?? "Channel" }}</p>
@@ -94,10 +94,31 @@ const showMembersLoading = computed(() => {
     </div>
 
     <Tabs default-value="info" class="flex min-h-0 flex-1 flex-col">
-      <TabsList class="mx-4 mt-3">
-        <TabsTrigger value="info" class="flex-1">Info</TabsTrigger>
-        <TabsTrigger value="files" class="flex-1">Files</TabsTrigger>
-        <TabsTrigger value="links" class="flex-1">Links</TabsTrigger>
+      <TabsList class="mx-4 mt-3 rounded-lg bg-muted p-1">
+        <TabsTrigger
+          value="info"
+          class="flex-1 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
+        >
+          Info
+        </TabsTrigger>
+        <TabsTrigger
+          value="pins"
+          class="flex-1 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
+        >
+          Pins
+        </TabsTrigger>
+        <TabsTrigger
+          value="files"
+          class="flex-1 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
+        >
+          Files
+        </TabsTrigger>
+        <TabsTrigger
+          value="links"
+          class="flex-1 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
+        >
+          Links
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="info" class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
@@ -176,6 +197,10 @@ const showMembersLoading = computed(() => {
             </div>
           </div>
         </div>
+      </TabsContent>
+
+      <TabsContent value="pins" class="flex-1 px-4 py-3 text-sm text-muted-foreground">
+        No pinned messages yet.
       </TabsContent>
 
       <TabsContent value="files" class="flex-1 px-4 py-3 text-sm text-muted-foreground">

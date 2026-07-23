@@ -6,10 +6,12 @@ const props = defineProps<{
   placeholder?: string;
   editingMessageId?: string | null;
   editingContent?: string;
+  replyingTo?: string | null;
 }>();
 const emit = defineEmits<{
   send: [content: string];
   cancelEdit: [];
+  cancelReply: [];
 }>();
 const content = ref("");
 const textareaRef = ref<HTMLTextAreaElement>();
@@ -78,6 +80,23 @@ function onKeydown(e: KeyboardEvent) {
     </p>
 
     <div
+      v-if="replyingTo"
+      class="mb-1 flex items-center gap-2 rounded-t-lg border border-b-0 bg-primary/5 px-3 py-1.5 text-xs text-muted-foreground"
+    >
+      <Icon name="lucide:reply" size="12" class="text-primary" />
+      <span
+        >Replying to <span class="font-semibold text-foreground">{{ replyingTo }}</span></span
+      >
+      <button
+        type="button"
+        class="ml-auto font-medium text-primary hover:underline"
+        @click="emit('cancelReply')"
+      >
+        Cancel
+      </button>
+    </div>
+
+    <div
       v-if="editingMessageId"
       class="mb-1 flex items-center gap-2 rounded-t-lg border border-b-0 bg-accent/50 px-3 py-1.5 text-xs text-muted-foreground"
     >
@@ -94,7 +113,7 @@ function onKeydown(e: KeyboardEvent) {
 
     <div
       class="rounded-lg border focus-within:ring-1 focus-within:ring-ring"
-      :class="[editingMessageId ? 'rounded-t-none' : '']"
+      :class="[editingMessageId || replyingTo ? 'rounded-t-none' : '']"
     >
       <textarea
         ref="textareaRef"

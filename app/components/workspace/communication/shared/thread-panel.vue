@@ -3,7 +3,6 @@ import type { RxCollection } from "rxdb";
 import type { MessageDocType, MessageReceiptDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
 import type { ChatMessage, Thread } from "~/types/chat";
 import ChannelComposer from "~/components/workspace/communication/shared/channel-composer.vue";
-import ChannelMessages from "~/components/workspace/communication/shared/channel-messages.vue";
 import MessageBubble from "~/components/workspace/communication/shared/message-bubble.vue";
 import { queryWithRetry } from "~/utils/rxdb-helpers";
 
@@ -203,7 +202,38 @@ onUnmounted(() => {
   cleanup();
 });
 
-const isParentOwn = computed(() => parentMessage.value.authorId === props.currentMemberId);
+function memberInfo(authorId: string): MemberInfo {
+  return props.members?.get(authorId) ?? { name: authorId, avatar: null };
+}
+
+function initials(name: string): string {
+  return (name.trim()[0] ?? "?").toUpperCase();
+}
+
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
+interface TimelineItem {
+  message: ChatMessage;
+  isParent: boolean;
+}
+
+const timelineItems = computed<TimelineItem[]>(() => [
+  { message: parentMessage.value, isParent: true },
+  ...replies.value.map((message) => ({ message, isParent: false })),
+]);
+
+function isOwnMessage(message: ChatMessage): boolean {
+  return message.authorId === props.currentMemberId;
+}
 
 function onStartEditFromReply(messageId: string, content: string) {
   editingMessageId.value = messageId;
@@ -236,57 +266,104 @@ async function onComposerSend(content: string) {
 </script>
 
 <template>
-  <div class="flex h-full w-[360px] flex-col border-l">
-    <div class="flex items-center gap-2 border-b px-4 py-3">
-      <Button variant="ghost" size="icon-xs" aria-label="Back to channel" @click="emit('close')">
-        <Icon name="lucide:chevron-left" size="16" />
-      </Button>
-      <div class="min-w-0 flex-1">
-        <p class="text-sm font-semibold">Thread</p>
-        <p class="truncate text-xs text-muted-foreground">Thread</p>
-      </div>
+  <div class="flex h-full w-full flex-col border-l">
+    <div class="flex items-center justify-between border-b px-4 py-3">
+      <p class="text-base font-semibold">Thread</p>
       <Button variant="ghost" size="icon-xs" aria-label="Close thread" @click="emit('close')">
-        <Icon name="lucide:x" size="16" />
+        <Icon name="lucide:x" size="18" />
       </Button>
     </div>
 
-    <div class="border-b bg-muted/30 px-4 py-3">
-      <MessageBubble
-        :message="parentMessage"
-        :is-own="isParentOwn"
-        :current-member-id="currentMemberId"
-        :show-thread-entry="false"
-        :hide-actions="true"
-        :members="members"
-      />
-    </div>
+    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div v-if="hasMore" class="mb-3 flex justify-center">
+        <button
+          type="button"
+          class="rounded-full border px-4 py-1 text-xs text-muted-foreground hover:text-foreground"
+          @click="loadOlderReplies"
+        >
+          Load earlier replies
+        </button>
+      </div>
 
-    <ChannelMessages
-      :messages="replies"
-      :show-thread-entry="false"
-      :hide-thread-reply="true"
-      :hide-empty-state="true"
-      :current-member-id="currentMemberId"
-      :loading="loading"
-      :has-loaded="!loading"
-      :loading-more="loadingMore"
-      :has-more="hasMore"
-      :message-statuses="messageStatuses"
-      :members="members"
-      @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
-      @open-thread="(id) => emit('openThread', id)"
-      @start-edit="onStartEditFromReply"
-      @delete="(id) => emit('delete', id)"
-      @load-older="loadOlderReplies"
-    />
+      <div
+        v-for="(item, index) in timelineItems"
+        :key="item.message.id"
+        class="relative flex gap-3"
+        :class="[
+          index < timelineItems.length - 1 ? 'pb-5' : '',
+          item.isParent ? '-mx-3 rounded-lg bg-red-300/20 px-3 py-2' : '',
+        ]"
+      >
+        <!-- Connector: a single clean, straight line from the bottom of this
+             avatar to the top of the next one. (A bowed/bezier curve was tried
+             here but distorts badly once rows have very different heights —
+             this is also what Slack, Twitter/X, and GitHub actually use.) -->
+        <div
+          v-if="index < timelineItems.length - 1"
+          class="absolute top-9 bottom-0 left-[18px] w-0.5 -translate-x-1/2 bg-border"
+        />
+
+        <div class="shrink-0">
+          <Avatar class="relative z-10 h-9 w-9">
+            <AvatarImage
+              :src="memberInfo(item.message.authorId).avatar ?? undefined"
+              :alt="memberInfo(item.message.authorId).name"
+            />
+            <AvatarFallback>{{ initials(memberInfo(item.message.authorId).name) }}</AvatarFallback>
+          </Avatar>
+        </div>
+
+        <div class="group/message min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-baseline gap-2">
+              <span class="text-sm font-semibold">{{
+                isOwnMessage(item.message) ? "You" : memberInfo(item.message.authorId).name
+              }}</span>
+              <span class="text-xs text-muted-foreground">{{
+                formatTime(item.message.createdAt)
+              }}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label="More message options"
+              class="opacity-0 transition-opacity group-hover/message:opacity-100"
+            >
+              <Icon name="lucide:more-vertical" size="14" />
+            </Button>
+          </div>
+
+          <MessageBubble
+            :message="item.message"
+            :is-own="isOwnMessage(item.message)"
+            :current-member-id="currentMemberId"
+            :show-thread-entry="false"
+            :hide-thread-reply="item.isParent ? false : true"
+            :show-header="false"
+            :members="members"
+            :delivery-status="!item.isParent ? messageStatuses.get(item.message.id) : undefined"
+            @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
+            @open-thread="(id) => emit('openThread', id)"
+            @start-edit="onStartEditFromReply"
+            @delete="(id) => emit('delete', id)"
+          />
+        </div>
+      </div>
+
+      <div v-if="loading" class="py-3 text-center text-xs text-muted-foreground">
+        Loading replies...
+      </div>
+    </div>
 
     <ChannelComposer
       :editing-message-id="editingMessageId"
       :editing-content="editingContent"
+      :replying-to="editingMessageId ? undefined : memberInfo(parentMessage.authorId).name"
       typing-label=""
       placeholder="Reply in thread"
       @send="onComposerSend"
       @cancel-edit="cancelEdit"
+      @cancel-reply="cancelEdit"
     />
   </div>
 </template>

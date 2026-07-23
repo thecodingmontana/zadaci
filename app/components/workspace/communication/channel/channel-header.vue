@@ -5,11 +5,11 @@ const emit = defineEmits<{ toggleInfo: [] }>();
 
 <template>
   <header class="flex items-center justify-between border-b px-3 py-3">
-    <div class="flex items-center gap-x-1">
-      <Icon name="hugeicons:message-multiple-01" size="16" />
-      <p class="text-sm text-muted-foreground">Channels</p>
-      <Icon name="iconoir:slash" size="16" class="text-muted-foreground" />
+    <div>
       <p class="text-sm font-semibold"># General</p>
+      <p class="text-xs text-muted-foreground">
+        12 Members · <span class="text-green-600">4 Online</span>
+      </p>
     </div>
 
     <div class="flex items-center gap-2">

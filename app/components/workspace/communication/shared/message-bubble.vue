@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { ChatMessage } from "~/types/chat";
 import { formatDistanceToNow } from "date-fns";
-import { Bubble, BubbleContent } from "~/components/ui/bubble";
 import EmojiPicker from "~/components/workspace/communication/shared/emoji-picker.vue";
 import MessageAttachmentCard from "~/components/workspace/communication/shared/message-attachment-card.vue";
 import MessageStatus from "~/components/workspace/communication/shared/message-status.vue";
@@ -18,6 +17,7 @@ const props = defineProps<{
   showThreadEntry?: boolean;
   hideActions?: boolean;
   hideThreadReply?: boolean;
+  showHeader?: boolean;
   memberName?: string;
   memberAvatar?: string;
   members?: Map<string, MemberInfo>;
@@ -38,6 +38,11 @@ function memberInfo(memberId: string): MemberInfo {
 function initials(name: string): string {
   return (name.trim()[0] ?? "?").toUpperCase();
 }
+
+const displayName = computed(() => {
+  if (props.isOwn) return "You";
+  return props.memberName ?? memberInfo(props.message.authorId).name;
+});
 
 const previewData = computed(() => {
   if (!props.showThreadEntry) return null;
@@ -81,31 +86,28 @@ const messageTime = computed(() => {
 </script>
 
 <template>
-  <div class="group/message flex flex-col" :class="[isOwn ? 'items-end' : 'items-start']">
-    <Bubble
-      :align="isOwn ? 'end' : 'start'"
-      :variant="isOwn ? 'default' : 'secondary'"
-      :class="
-        isOwn
-          ? '*:data-[slot=bubble-content]:bg-brand! *:data-[slot=bubble-content]:text-white!'
-          : ''
-      "
+  <div class="group/message flex w-full flex-col" :class="[isOwn ? 'items-end' : 'items-start']">
+    <div v-if="showHeader" class="flex items-baseline gap-2 px-1 text-xs">
+      <span class="font-semibold text-foreground">{{ displayName }}</span>
+      <span class="text-muted-foreground">{{ messageTime }}</span>
+    </div>
+
+    <div class="max-w-full px-1">
+      <p class="text-sm wrap-break-word whitespace-pre-wrap text-foreground">
+        {{ message.content }}
+        <span v-if="isEdited" class="ml-1 text-[10px] opacity-60">(edited)</span>
+      </p>
+      <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />
+    </div>
+
+    <div
+      v-if="!hideActions"
+      class="flex items-center gap-1 px-1"
+      :class="[isOwn ? 'justify-end' : '']"
     >
-      <BubbleContent>
-        <p class="text-sm wrap-break-word whitespace-pre-wrap">
-          {{ message.content }}
-          <span v-if="isEdited" class="ml-1 text-[10px] opacity-60">(edited)</span>
-        </p>
-        <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />
-      </BubbleContent>
-    </Bubble>
-
-    <span class="px-1 text-[10px] text-muted-foreground">{{ messageTime }}</span>
-
-    <div v-if="!hideActions" class="flex items-center gap-1" :class="[isOwn ? 'justify-end' : '']">
       <div
         v-if="message.reactions?.length"
-        class="flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-sm ring-3 ring-card"
+        class="flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-sm"
       >
         <button
           v-for="reaction in message.reactions"
@@ -167,37 +169,37 @@ const messageTime = computed(() => {
       </div>
     </div>
 
-    <div v-if="deliveryStatus" class="flex items-center gap-1 text-xs text-muted-foreground">
+    <div v-if="deliveryStatus" class="flex items-center gap-1 px-1 text-xs text-muted-foreground">
       <MessageStatus :status="deliveryStatus" />
     </div>
 
+    <!-- Thread reply preview — matches Image 1: avatar(s) + "N reply/replies" + relative time -->
     <button
       v-if="showThreadEntry && previewData"
       type="button"
-      class="flex items-center gap-2 rounded-md border bg-background px-2 py-1 text-xs hover:bg-accent"
+      class="mt-1 flex items-center gap-2 rounded-md px-1 py-1 text-xs hover:bg-accent"
       @click="emit('openThread', message.id)"
     >
       <div class="flex -space-x-1.5">
         <Avatar
           v-for="pid in previewData.participantIds.slice(0, 3)"
           :key="pid"
-          class="h-4 w-4 border"
+          class="h-5 w-5 border-2 border-background"
         >
           <AvatarImage :src="memberInfo(pid).avatar ?? undefined" :alt="memberInfo(pid).name" />
-          <AvatarFallback class="text-[8px]">{{ initials(memberInfo(pid).name) }}</AvatarFallback>
+          <AvatarFallback class="text-[9px]">{{ initials(memberInfo(pid).name) }}</AvatarFallback>
         </Avatar>
         <span
           v-if="previewData.participantIds.length > 3"
-          class="flex h-4 w-4 items-center justify-center rounded-full bg-muted-foreground/20 text-[10px] font-medium text-muted-foreground"
+          class="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/20 text-[9px] font-medium text-muted-foreground"
         >
           +{{ previewData.participantIds.length - 3 }}
         </span>
       </div>
-      <span class="font-medium text-foreground">{{ previewData.label }}</span>
+      <span class="font-semibold text-primary">{{ previewData.label }}</span>
       <span v-if="previewData.timeLabel" class="text-muted-foreground">{{
         previewData.timeLabel
       }}</span>
-      <span class="text-primary">View thread</span>
     </button>
   </div>
 </template>
