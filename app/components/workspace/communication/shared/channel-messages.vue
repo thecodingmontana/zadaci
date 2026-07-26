@@ -251,7 +251,7 @@ const typingLabel = computed(() => {
             :initial="{ opacity: 0, y: 8 }"
             :animate="{ opacity: 1, y: 0 }"
             :exit="{ opacity: 0, x: 120 }"
-            :transition="{ duration: 0.18 }"
+            :transition="{ type: 'tween', duration: 0.18, exit: { duration: 0.5 } }"
           >
             <MessageCard
               :message="message"

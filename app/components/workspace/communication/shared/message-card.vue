@@ -3,10 +3,10 @@ import type { ChatMessage } from "~/types/chat";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import EmojiPicker from "~/components/workspace/communication/shared/emoji-picker.vue";
 import MessageAttachmentCard from "~/components/workspace/communication/shared/message-attachment-card.vue";
-import MessageStatus from "~/components/workspace/communication/shared/message-status.vue";
 import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
 
 interface MemberInfo {
@@ -168,11 +168,20 @@ const previewData = computed(() => {
               <Icon name="hugeicons:delete-03" size="16" />
             </Button>
           </ActionTooltip>
+          <ActionTooltip v-if="deliveryStatus" label="Message info" side="bottom">
+            <Popover>
+              <PopoverTrigger as-child>
+                <Button variant="ghost" size="icon" class="size-7 hover:bg-white">
+                  <Icon name="solar:info-circle-outline" size="16" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="end" class="w-48 p-3 text-sm">
+                <p class="font-medium">Message status</p>
+                <p class="mt-1 text-xs text-muted-foreground capitalize">{{ deliveryStatus }}</p>
+              </PopoverContent>
+            </Popover>
+          </ActionTooltip>
         </div>
-      </div>
-
-      <div v-if="deliveryStatus" class="flex items-center gap-1 text-xs text-muted-foreground">
-        <MessageStatus :status="deliveryStatus" />
       </div>
 
       <button
