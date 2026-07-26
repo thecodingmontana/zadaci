@@ -123,11 +123,13 @@ const previewData = computed(() => {
           </button>
         </div>
         <div class="flex items-center">
-          <EmojiPicker @select="(emoji) => emit('toggleReaction', message.id, emoji)">
-            <Button variant="ghost" size="icon" class="size-7 hover:bg-white">
-              <Icon name="lucide:smile-plus" size="16" />
-            </Button>
-          </EmojiPicker>
+          <ActionTooltip label="Add reaction" side="bottom">
+            <EmojiPicker @select="(emoji) => emit('toggleReaction', message.id, emoji)">
+              <Button variant="ghost" size="icon" class="size-7 hover:bg-white">
+                <Icon name="lucide:smile-plus" size="16" />
+              </Button>
+            </EmojiPicker>
+          </ActionTooltip>
           <ActionTooltip v-if="!hideThreadReply" label="Reply" side="bottom">
             <Button
               variant="ghost"

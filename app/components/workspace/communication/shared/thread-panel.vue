@@ -275,7 +275,7 @@ async function onComposerSend(content: string) {
         :key="item.message.id"
         :class="[
           index < timelineItems.length - 1 ? 'pb-5' : '',
-          item.isParent ? '-mx-3 rounded-lg bg-red-300/20 px-3 py-2' : '',
+          item.isParent ? '-mx-3 rounded-lg px-3 py-2' : '',
         ]"
       >
         <MessageCard
