@@ -3,7 +3,7 @@ import type { RxCollection } from "rxdb";
 import type { MessageDocType, MessageReceiptDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
 import type { ChatMessage, Thread } from "~/types/chat";
 import ChannelComposer from "~/components/workspace/communication/shared/channel-composer.vue";
-import MessageBubble from "~/components/workspace/communication/shared/message-bubble.vue";
+import MessageCard from "~/components/workspace/communication/shared/message-card.vue";
 import { queryWithRetry } from "~/utils/rxdb-helpers";
 
 const props = defineProps<{
@@ -206,21 +206,6 @@ function memberInfo(authorId: string): MemberInfo {
   return props.members?.get(authorId) ?? { name: authorId, avatar: null };
 }
 
-function initials(name: string): string {
-  return (name.trim()[0] ?? "?").toUpperCase();
-}
-
-function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  } catch {
-    return "";
-  }
-}
-
 interface TimelineItem {
   message: ChatMessage;
   isParent: boolean;
@@ -288,57 +273,24 @@ async function onComposerSend(content: string) {
       <div
         v-for="(item, index) in timelineItems"
         :key="item.message.id"
-        class="relative flex gap-3"
         :class="[
           index < timelineItems.length - 1 ? 'pb-5' : '',
           item.isParent ? '-mx-3 rounded-lg bg-red-300/20 px-3 py-2' : '',
         ]"
       >
-        <div class="shrink-0">
-          <Avatar class="relative z-10 h-9 w-9">
-            <AvatarImage
-              :src="memberInfo(item.message.authorId).avatar ?? ''"
-              :alt="memberInfo(item.message.authorId).name"
-            />
-            <AvatarFallback>{{ initials(memberInfo(item.message.authorId).name) }}</AvatarFallback>
-          </Avatar>
-        </div>
-
-        <div class="group/message min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-baseline gap-2">
-              <span class="text-sm font-semibold">{{
-                isOwnMessage(item.message) ? "You" : memberInfo(item.message.authorId).name
-              }}</span>
-              <span class="text-xs text-muted-foreground">{{
-                formatTime(item.message.createdAt)
-              }}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="More message options"
-              class="opacity-0 transition-opacity group-hover/message:opacity-100"
-            >
-              <Icon name="lucide:more-vertical" size="14" />
-            </Button>
-          </div>
-
-          <MessageBubble
-            :message="item.message"
-            :is-own="isOwnMessage(item.message)"
-            :current-member-id="currentMemberId"
-            :show-thread-entry="false"
-            :hide-thread-reply="item.isParent ? false : true"
-            :show-header="false"
-            :members="members"
-            :delivery-status="!item.isParent ? messageStatuses.get(item.message.id) : undefined"
-            @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
-            @open-thread="(id) => emit('openThread', id)"
-            @start-edit="onStartEditFromReply"
-            @delete="(id) => emit('delete', id)"
-          />
-        </div>
+        <MessageCard
+          :message="item.message"
+          :is-own="isOwnMessage(item.message)"
+          :current-member-id="currentMemberId"
+          :members="members"
+          :show-thread-entry="false"
+          :hide-thread-reply="item.isParent ? false : true"
+          :delivery-status="!item.isParent ? messageStatuses.get(item.message.id) : undefined"
+          @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
+          @open-thread="(id) => emit('openThread', id)"
+          @start-edit="onStartEditFromReply"
+          @delete="(id) => emit('delete', id)"
+        />
       </div>
 
       <div v-if="loading" class="py-3 text-center text-xs text-muted-foreground">
