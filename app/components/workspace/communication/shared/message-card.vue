@@ -3,6 +3,7 @@ import type { ChatMessage } from "~/types/chat";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import EmojiPicker from "~/components/workspace/communication/shared/emoji-picker.vue";
 import MessageAttachmentCard from "~/components/workspace/communication/shared/message-attachment-card.vue";
 import MessageStatus from "~/components/workspace/communication/shared/message-status.vue";
@@ -123,13 +124,20 @@ const previewData = computed(() => {
           </button>
         </div>
         <div class="flex items-center">
-          <ActionTooltip label="Add reaction" side="bottom">
-            <EmojiPicker @select="(emoji) => emit('toggleReaction', message.id, emoji)">
-              <Button variant="ghost" size="icon" class="size-7 hover:bg-white">
-                <Icon name="lucide:smile-plus" size="16" />
-              </Button>
-            </EmojiPicker>
-          </ActionTooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <EmojiPicker @select="(emoji) => emit('toggleReaction', message.id, emoji)">
+                  <Button variant="ghost" size="icon" class="size-7 hover:bg-white">
+                    <Icon name="lucide:smile-plus" size="16" />
+                  </Button>
+                </EmojiPicker>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p class="text-sm font-semibold capitalize">add reaction</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <ActionTooltip v-if="!hideThreadReply" label="Reply" side="bottom">
             <Button
               variant="ghost"
