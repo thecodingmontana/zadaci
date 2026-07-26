@@ -2,26 +2,27 @@ import type { EditorConfig, LexicalNode, NodeKey, SerializedTextNode } from "lex
 import { TextNode } from "lexical";
 
 export class MentionNode extends TextNode {
-  __memberId: string;
+  __mentionName: string;
+  __userId: string;
 
   static override getType(): string {
     return "mention";
   }
 
   static override clone(node: MentionNode): MentionNode {
-    return new MentionNode(node.__memberId, node.__text, node.__key);
+    return new MentionNode(node.__mentionName, node.__userId, node.__text, node.__key);
   }
 
-  constructor(memberId: string, text?: string, key?: NodeKey) {
-    super(text ?? "@unknown", key);
-    this.__memberId = memberId;
+  constructor(mentionName: string, userId: string, text?: string, key?: NodeKey) {
+    super(text ?? `@${mentionName}`, key);
+    this.__mentionName = mentionName;
+    this.__userId = userId;
   }
 
   override createDOM(config: EditorConfig): HTMLElement {
     const dom = super.createDOM(config);
-    dom.style.backgroundColor = "rgba(59, 130, 246, 0.15)";
-    dom.style.borderRadius = "3px";
-    dom.style.padding = "0 2px";
+    dom.className = "mention-pill";
+    dom.dataset.userId = this.__userId;
     return dom;
   }
 
@@ -29,26 +30,33 @@ export class MentionNode extends TextNode {
     return false;
   }
 
-  static override importJSON(serializedNode: SerializedTextNode): MentionNode {
-    const node = $createMentionNode("");
-    node.setTextContent(serializedNode.text);
-    return node;
+  static override importJSON(
+    serializedNode: SerializedTextNode & { mentionName: string; userId: string },
+  ): MentionNode {
+    return $createMentionNode(serializedNode.mentionName, serializedNode.userId);
   }
 
-  override exportJSON(): SerializedTextNode {
+  override exportJSON() {
     return {
       ...super.exportJSON(),
+      mentionName: this.__mentionName,
+      userId: this.__userId,
       type: "mention",
+      version: 1,
     };
+  }
+
+  isTextEntity(): true {
+    return true;
   }
 }
 
-export function $createMentionNode(memberId: string, mentionName?: string): MentionNode {
-  const node = new MentionNode(memberId, `@${mentionName ?? "unknown"}`);
-  node.setMode("segmented").toggleDirectionless();
+export function $createMentionNode(mentionName: string, userId: string): MentionNode {
+  const node = new MentionNode(mentionName, userId);
+  node.setMode("segmented");
   return node;
 }
 
-export function $isMentionNode(node: LexicalNode | null | undefined): node is MentionNode {
+export function $isMentionNode(node?: LexicalNode | null): node is MentionNode {
   return node instanceof MentionNode;
 }

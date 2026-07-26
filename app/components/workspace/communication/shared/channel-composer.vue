@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { LexicalEditor } from "lexical";
-import { CodeHighlightNode, CodeNode, registerCodeHighlighting } from "@lexical/code";
+import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { MarkNode } from "@lexical/mark";
@@ -17,9 +17,10 @@ import { OnChangePlugin } from "lexical-vue/LexicalOnChangePlugin";
 import { RichTextPlugin } from "lexical-vue/LexicalRichTextPlugin";
 import { Button } from "~/components/ui/button";
 import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
-import ComposerMentions from "./composer-mentions.vue";
+import CodeHighlightPlugin from "./code-highlight-plugin.vue";
 import ComposerToolbar from "./composer-toolbar.vue";
 import { MentionNode } from "./mention-node";
+import MentionsPlugin from "./mentions-plugin.vue";
 
 interface MemberInfo {
   name: string;
@@ -47,7 +48,6 @@ const contentText = ref("");
 const editorRef = ref<LexicalEditor | null>(null);
 const isRichMode = ref(false);
 let typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-let codeHighlightRegistered = false;
 
 const initialConfig = {
   namespace: "MessageComposer",
@@ -86,10 +86,6 @@ const initialConfig = {
 
 function onChange(editorState?: any, editor?: any) {
   editorRef.value = editor as LexicalEditor;
-  if (editorRef.value && !codeHighlightRegistered) {
-    codeHighlightRegistered = true;
-    registerCodeHighlighting(editorRef.value);
-  }
   const text = (editorState as any).read
     ? (editorState as any).read(() => $getRoot().getTextContent())
     : "";
@@ -218,7 +214,8 @@ watch(
           :transformers="[...ELEMENT_TRANSFORMERS, ...TEXT_FORMAT_TRANSFORMERS]"
         />
         <OnChangePlugin @change="onChange" />
-        <ComposerMentions
+        <CodeHighlightPlugin :enabled="isRichMode" />
+        <MentionsPlugin
           v-if="!disableMentions"
           :members="members"
           :current-member-id="currentMemberId ?? ''"
