@@ -4,7 +4,6 @@ import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import EmojiPicker from "~/components/workspace/communication/shared/emoji-picker.vue";
 import MessageAttachmentCard from "~/components/workspace/communication/shared/message-attachment-card.vue";
 import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
@@ -124,20 +123,13 @@ const previewData = computed(() => {
           </button>
         </div>
         <div class="flex items-center opacity-0 transition-opacity group-hover/card:opacity-100">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <EmojiPicker @select="(emoji) => emit('toggleReaction', message.id, emoji)">
-                  <Button variant="ghost" size="icon" class="size-7 hover:bg-white">
-                    <Icon name="lucide:smile-plus" size="16" />
-                  </Button>
-                </EmojiPicker>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <p class="text-sm font-semibold capitalize">add reaction</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <ActionTooltip label="Add reaction" side="bottom">
+            <EmojiPicker @select="(emoji) => emit('toggleReaction', message.id, emoji)">
+              <Button variant="ghost" size="icon" class="size-7 hover:bg-white">
+                <Icon name="lucide:smile-plus" size="16" />
+              </Button>
+            </EmojiPicker>
+          </ActionTooltip>
           <ActionTooltip v-if="!hideThreadReply" label="Reply" side="bottom">
             <Button
               variant="ghost"
@@ -214,7 +206,7 @@ const previewData = computed(() => {
             :key="pid"
             class="h-5 w-5 border-2 border-background"
           >
-            <AvatarImage :src="memberInfo(pid).avatar ?? undefined" :alt="memberInfo(pid).name" />
+            <AvatarImage :src="memberInfo(pid).avatar ?? ''" :alt="memberInfo(pid).name" />
             <AvatarFallback class="text-[9px]">{{ initials(memberInfo(pid).name) }}</AvatarFallback>
           </Avatar>
           <span

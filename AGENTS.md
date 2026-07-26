@@ -139,6 +139,13 @@ Email send failures no longer crash the API request — the DB write succeeds re
 | **Missing real-time typing indicator** | New `use-typing-indicator.ts`, `channel-composer.vue`, channel/DM pages | Supabase Realtime broadcast, 3s debounce, 4s auto-remove, reactive `typingNames` per room. |
 | **Dead components** | `message-bubble.vue`, `message-status.vue` | Deleted — fully replaced by `MessageCard`. |
 
+### ✅ Fixed (2026-07-26 — lexical-vue rich text editor + action tooltips)
+
+| Change | File(s) | Notes |
+|---|---|---|
+| **Rich text editor** | `channel-composer.vue`, new `composer-toolbar.vue` | Replaced textarea with Lexical (`RichTextPlugin`) — bold, italic, underline, strikethrough, emoji insertion, undo/redo. Plain text extracted on send. |
+| **Action tooltips** | `composer-toolbar.vue`, `message-card.vue` | All toolbar buttons (bold, italic, underline, strikethrough, emoji, attach, mic, send) wrapped with `ActionTooltip`. MessageCard emoji reaction tooltip switched from manual `Tooltip` to `ActionTooltip`. |
+
 ### ✅ All channel-header props updated
 
 `workspace-channel.vue` layout now passes `channelId` and `workspaceId` to `<ChannelHeader>`. The header is now self-contained: it starts its own presence, subscribes to RxDB, and displays live data.

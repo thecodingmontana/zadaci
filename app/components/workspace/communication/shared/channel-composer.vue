@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import EmojiPicker from "~/components/workspace/communication/shared/emoji-picker.vue";
+import type { EditorState, LexicalEditor } from "lexical";
+import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
+import { LexicalComposer } from "lexical-vue/LexicalComposer";
+import { ContentEditable } from "lexical-vue/LexicalContentEditable";
+import { HistoryPlugin } from "lexical-vue/LexicalHistoryPlugin";
+import { OnChangePlugin } from "lexical-vue/LexicalOnChangePlugin";
+import { RichTextPlugin } from "lexical-vue/LexicalRichTextPlugin";
+import ComposerToolbar from "./composer-toolbar.vue";
 
 const props = defineProps<{
   typingLabel?: string;
@@ -14,80 +21,74 @@ const emit = defineEmits<{
   cancelReply: [];
   typing: [];
 }>();
-const content = ref("");
-const textareaRef = ref<HTMLTextAreaElement>();
+
+const contentText = ref("");
+const editorRef = ref<LexicalEditor | null>(null);
 let typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-function onInput() {
-  autoResize();
-  if (!content.value.trim()) return;
-  emit("typing");
-  if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
-  typingDebounceTimer = setTimeout(() => {
+const initialConfig = {
+  namespace: "MessageComposer",
+  theme: {
+    paragraph: "mb-0",
+    text: {
+      bold: "font-bold",
+      italic: "italic",
+      underline: "underline",
+      strikethrough: "line-through",
+      underlineStrikethrough: "underline line-through",
+    },
+  },
+  onError: (error: Error) => {
+    console.error("Lexical error:", error);
+  },
+};
+
+function onChange(editorState?: any, editor?: any) {
+  editorRef.value = editor as LexicalEditor;
+  contentText.value = (editorState as EditorState).read(() => $getRoot().getTextContent());
+  if (contentText.value.trim()) {
     emit("typing");
-  }, 3000);
+    if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
+    typingDebounceTimer = setTimeout(() => {
+      emit("typing");
+    }, 3000);
+  }
 }
 
-function autoResize() {
-  const el = textareaRef.value;
-  if (!el) return;
-  el.style.height = "auto";
-  const target = Math.max(36, Math.min(el.scrollHeight, 128));
-  el.style.height = `${target}px`;
-  el.style.overflowY = el.scrollHeight > 128 ? "auto" : "hidden";
+function send() {
+  const value = contentText.value.trim();
+  if (!value) return;
+  emit("send", value);
+  editorRef.value?.update(() => {
+    $getRoot().clear();
+  });
+  contentText.value = "";
 }
 
-watch(content, () => nextTick(autoResize), { flush: "post" });
+function cancelEdit() {
+  contentText.value = "";
+  emit("cancelEdit");
+}
+
+function onCancelReply() {
+  emit("cancelReply");
+}
 
 watch(
-  () => props.editingContent,
-  (val) => {
-    if (val && props.editingMessageId) {
-      content.value = val;
-      nextTick(() => {
-        autoResize();
-        textareaRef.value?.focus();
-        textareaRef.value?.setSelectionRange(content.value.length, content.value.length);
+  [() => props.editingContent, () => props.editingMessageId, editorRef],
+  ([content, msgId, editor]) => {
+    if (content && msgId && editor) {
+      editor.update(() => {
+        $getRoot().clear();
+        const paragraph = $createParagraphNode();
+        paragraph.append($createTextNode(content));
+        $getRoot().append(paragraph);
       });
+      nextTick(() => editor.focus());
     }
   },
   { immediate: true },
 );
-
-watch(
-  () => props.editingMessageId,
-  () => {},
-  { immediate: true },
-);
-
-onMounted(() => nextTick(autoResize));
-
-function insertEmoji(emoji: string) {
-  content.value += emoji;
-  nextTick(() => textareaRef.value?.focus());
-}
-
-function send() {
-  const value = content.value.trim();
-  if (!value) return;
-  emit("send", value);
-  content.value = "";
-}
-
-function cancelEdit() {
-  content.value = "";
-  emit("cancelEdit");
-}
-
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    send();
-  }
-  if (e.key === "Escape" && props.editingMessageId) {
-    cancelEdit();
-  }
-}
 </script>
 
 <template>
@@ -116,7 +117,7 @@ function onKeydown(e: KeyboardEvent) {
       <button
         type="button"
         class="ml-auto font-medium text-primary hover:underline"
-        @click="emit('cancelReply')"
+        @click="onCancelReply"
       >
         Cancel
       </button>
@@ -138,35 +139,29 @@ function onKeydown(e: KeyboardEvent) {
     </div>
 
     <div
-      class="rounded-lg border focus-within:ring-1 focus-within:ring-ring"
+      class="overflow-hidden rounded-lg border focus-within:ring-1 focus-within:ring-ring"
       :class="[editingMessageId || replyingTo ? 'rounded-t-none' : '']"
     >
-      <textarea
-        ref="textareaRef"
-        v-model="content"
-        rows="1"
-        :placeholder="placeholder ?? (editingMessageId ? 'Edit message...' : 'Message #general')"
-        class="w-full resize-none scrollbar-thin bg-transparent px-3 py-2.5 text-sm outline-none"
-        @keydown="onKeydown"
-        @input="onInput"
-      />
-      <div class="flex items-center justify-between px-2 pb-2">
-        <div class="flex items-center gap-1">
-          <Button variant="ghost" size="icon-xs" aria-label="Text formatting">
-            <Icon name="lucide:type" size="16" />
-          </Button>
-          <EmojiPicker @select="insertEmoji" />
-          <Button variant="ghost" size="icon-xs" aria-label="Attach file">
-            <Icon name="lucide:paperclip" size="16" />
-          </Button>
-          <Button variant="ghost" size="icon-xs" aria-label="Record audio">
-            <Icon name="lucide:mic" size="16" />
-          </Button>
-        </div>
-        <Button size="icon-xs" :disabled="!content.trim()" aria-label="Send message" @click="send">
-          <Icon name="lucide:send" size="14" />
-        </Button>
-      </div>
+      <LexicalComposer :initial-config="initialConfig">
+        <RichTextPlugin>
+          <template #contentEditable>
+            <ContentEditable
+              class="prose prose-sm max-h-[128px] min-h-[36px] scrollbar-thin overflow-y-auto px-3 py-2.5 outline-none focus:outline-none"
+            >
+              <template #placeholder>
+                <div
+                  class="pointer-events-none absolute top-2.5 left-3 text-sm text-muted-foreground select-none"
+                >
+                  {{ placeholder ?? (editingMessageId ? "Edit message..." : "Message #general") }}
+                </div>
+              </template>
+            </ContentEditable>
+          </template>
+        </RichTextPlugin>
+        <HistoryPlugin />
+        <OnChangePlugin @change="onChange" />
+        <ComposerToolbar @send="send" />
+      </LexicalComposer>
     </div>
   </div>
 </template>
