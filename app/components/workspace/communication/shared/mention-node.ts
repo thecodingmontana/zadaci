@@ -1,28 +1,45 @@
 import type { EditorConfig, LexicalNode, NodeKey, SerializedTextNode } from "lexical";
 import { TextNode } from "lexical";
 
+export type MentionType = "user" | "channel";
+
 export class MentionNode extends TextNode {
   __mentionName: string;
-  __userId: string;
+  __targetId: string;
+  __type: MentionType;
 
   static override getType(): string {
     return "mention";
   }
 
   static override clone(node: MentionNode): MentionNode {
-    return new MentionNode(node.__mentionName, node.__userId, node.__text, node.__key);
+    return new MentionNode(
+      node.__type,
+      node.__mentionName,
+      node.__targetId,
+      node.__text,
+      node.__key,
+    );
   }
 
-  constructor(mentionName: string, userId: string, text?: string, key?: NodeKey) {
+  constructor(
+    type: MentionType,
+    mentionName: string,
+    targetId: string,
+    text?: string,
+    key?: NodeKey,
+  ) {
     super(text ?? `@${mentionName}`, key);
+    this.__type = type;
     this.__mentionName = mentionName;
-    this.__userId = userId;
+    this.__targetId = targetId;
   }
 
   override createDOM(config: EditorConfig): HTMLElement {
     const dom = super.createDOM(config);
-    dom.className = "mention-pill";
-    dom.dataset.userId = this.__userId;
+    dom.className = "mention-pill text-brand cursor-pointer";
+    dom.dataset.targetId = this.__targetId;
+    dom.dataset.targetType = this.__type;
     return dom;
   }
 
@@ -31,16 +48,25 @@ export class MentionNode extends TextNode {
   }
 
   static override importJSON(
-    serializedNode: SerializedTextNode & { mentionName: string; userId: string },
+    serializedNode: SerializedTextNode & {
+      mentionName: string;
+      targetId: string;
+      type: MentionType;
+    },
   ): MentionNode {
-    return $createMentionNode(serializedNode.mentionName, serializedNode.userId);
+    return $createMentionNode(
+      serializedNode.type,
+      serializedNode.mentionName,
+      serializedNode.targetId,
+    );
   }
 
   override exportJSON() {
     return {
       ...super.exportJSON(),
       mentionName: this.__mentionName,
-      userId: this.__userId,
+      targetId: this.__targetId,
+      targetType: this.__type,
       type: "mention",
       version: 1,
     };
@@ -51,8 +77,12 @@ export class MentionNode extends TextNode {
   }
 }
 
-export function $createMentionNode(mentionName: string, userId: string): MentionNode {
-  const node = new MentionNode(mentionName, userId);
+export function $createMentionNode(
+  type: MentionType,
+  mentionName: string,
+  targetId: string,
+): MentionNode {
+  const node = new MentionNode(type, mentionName, targetId);
   node.setMode("segmented");
   return node;
 }

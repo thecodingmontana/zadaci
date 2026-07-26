@@ -28,6 +28,7 @@ const { state: _state, openThread } = useChannelPanel(channelId);
 const db = ref<ZadaciDatabase | null>(null);
 const messageCollection = shallowRef<RxCollection<MessageDocType> | null>(null);
 const receiptCollection = shallowRef<RxCollection<MessageReceiptDocType> | null>(null);
+const channelsMap = ref<Map<string, { name: string }>>(new Map());
 
 const pendingSendIds = ref(new Set<string>());
 
@@ -90,9 +91,11 @@ const {
 } = useTypingIndicator();
 
 const channelSubRef = ref<{ unsubscribe: () => void } | null>(null);
+const allChannelsSubRef = ref<{ unsubscribe: () => void } | null>(null);
 
 onUnmounted(() => {
   channelSubRef.value?.unsubscribe();
+  allChannelsSubRef.value?.unsubscribe();
   unsubscribe();
   messageSync.stop();
   receiptSync.stop();
@@ -249,6 +252,12 @@ async function init() {
       console.log("[channel] channel name update:", doc?.name);
       channelName.value = doc?.name ?? null;
     });
+
+    allChannelsSubRef.value = rxdb.channels
+      .find({ selector: { workspace_id: workspaceId } })
+      .$.subscribe((docs) => {
+        channelsMap.value = new Map(docs.map((ch) => [ch.id, { name: ch.name }]));
+      });
 
     // Subscribe to receipts
     subscribeReceipts();
@@ -566,6 +575,7 @@ useSeoMeta({
         :editing-content="editingContent"
         :members="membersMap"
         :current-member-id="currentMemberId"
+        :channels="channelsMap"
         @send="onSend"
         @cancel-edit="cancelEdit"
         @typing="onComposerTyping"

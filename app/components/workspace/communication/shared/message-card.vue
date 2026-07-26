@@ -8,6 +8,13 @@ import EmojiPicker from "~/components/workspace/communication/shared/emoji-picke
 import MessageAttachmentCard from "~/components/workspace/communication/shared/message-attachment-card.vue";
 import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
 
+interface ContentSegment {
+  text: string;
+  isMention: boolean;
+  mentionType?: "user" | "channel";
+  mentionName?: string;
+}
+
 interface MemberInfo {
   name: string;
   avatar: string | null;
@@ -80,6 +87,49 @@ const previewData = computed(() => {
   }
   return null;
 });
+
+const route = useRoute();
+const workspaceId = computed(() => route.params.workspaceId as string);
+
+const contentSegments = computed<ContentSegment[]>(() => {
+  const content = props.message.content;
+  if (!content) return [];
+  const segments: ContentSegment[] = [];
+  let lastIndex = 0;
+  const re = /(@[\w\u00C0-\u024F]+(?:\s[\w\u00C0-\u024F]+)*|#[\w-]+)/g;
+  let match = re.exec(content);
+  while (match !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ text: content.slice(lastIndex, match.index), isMention: false });
+    }
+    const raw = match[1];
+    const isChannel = raw.startsWith("#");
+    segments.push({
+      text: raw,
+      isMention: true,
+      mentionType: isChannel ? "channel" : "user",
+      mentionName: raw.slice(1),
+    });
+    lastIndex = match.index + raw.length;
+    match = re.exec(content);
+  }
+  if (lastIndex < content.length) {
+    segments.push({ text: content.slice(lastIndex), isMention: false });
+  }
+  return segments;
+});
+
+function navigateMention(segment: ContentSegment) {
+  if (segment.mentionType === "user") {
+    navigateTo(
+      `/workspace/${workspaceId.value}/members?search=${encodeURIComponent(segment.mentionName ?? "")}`,
+    );
+  } else {
+    navigateTo(
+      `/workspace/${workspaceId.value}/channels?search=${encodeURIComponent(segment.mentionName ?? "")}`,
+    );
+  }
+}
 </script>
 
 <template>
@@ -97,7 +147,15 @@ const previewData = computed(() => {
           <p class="text-xs text-gray-500">{{ messageTime }}</p>
         </div>
         <p class="text-sm wrap-break-word whitespace-pre-wrap text-foreground">
-          {{ message.content }}
+          <template v-for="(seg, i) in contentSegments" :key="i">
+            <span
+              v-if="seg.isMention"
+              class="mention-pill cursor-pointer text-brand"
+              @click="navigateMention(seg)"
+              >{{ seg.text }}</span
+            >
+            <span v-else>{{ seg.text }}</span>
+          </template>
           <span v-if="isEdited" class="ml-1 text-[10px] opacity-60">(edited)</span>
         </p>
         <MessageAttachmentCard v-if="message.attachment" :attachment="message.attachment" />

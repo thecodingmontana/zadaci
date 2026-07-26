@@ -248,4 +248,8 @@
   background-color: rgba(59, 130, 246, 0.15);
   border-radius: 3px;
   padding: 0 2px;
+  cursor: pointer;
+}
+.mention-pill:hover {
+  background-color: rgba(59, 130, 246, 0.25);
 }

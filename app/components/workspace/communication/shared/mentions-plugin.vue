@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MentionType } from "./mention-node";
 import { $createTextNode, $getSelection, $isRangeSelection, $isTextNode } from "lexical";
 import { useLexicalComposer } from "lexical-vue/LexicalComposer";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
@@ -17,34 +18,52 @@ const props = withDefaults(
   defineProps<{
     members?: Map<string, { name: string; avatar: string | null }>;
     currentMemberId?: string;
+    channels?: Map<string, { name: string }>;
   }>(),
   { currentMemberId: "" },
 );
 
-const MENTION_TRIGGER_REGEX = /(^|\s)@(\w*)$/;
+const MENTION_TRIGGER = /(^|\s)(@|#)(\w*)$/;
 
-interface MemberInfo {
+interface Suggestion {
   id: string;
   name: string;
   avatar: string | null;
+  type: MentionType;
 }
 
 const editor = useLexicalComposer();
 const isOpen = ref(false);
 const query = ref("");
+const triggerChar = ref<"@" | "#">("@");
 const anchorRect = ref<DOMRect | null>(null);
 
-const memberList = computed<MemberInfo[]>(() => {
+const memberList = computed<Suggestion[]>(() => {
   if (!props.members) return [];
   return Array.from(props.members.entries())
     .filter(([id]) => id !== props.currentMemberId)
-    .map(([id, info]) => ({ id, name: info.name, avatar: info.avatar }));
+    .map(([id, info]) => ({ id, name: info.name, avatar: info.avatar, type: "user" as const }));
 });
 
-const filteredMembers = computed(() => {
-  if (!query.value) return memberList.value;
+const channelList = computed<Suggestion[]>(() => {
+  if (!props.channels) return [];
+  return Array.from(props.channels.entries()).map(([id, info]) => ({
+    id,
+    name: info.name,
+    avatar: null,
+    type: "channel" as const,
+  }));
+});
+
+const suggestions = computed<Suggestion[]>(() => {
+  if (triggerChar.value === "#") return channelList.value;
+  return memberList.value;
+});
+
+const filteredSuggestions = computed(() => {
+  if (!query.value) return suggestions.value;
   const q = query.value.toLowerCase();
-  return memberList.value.filter((m) => m.name.toLowerCase().includes(q));
+  return suggestions.value.filter((s) => s.name.toLowerCase().includes(q));
 });
 
 const anchorStyle = computed(() => {
@@ -72,9 +91,15 @@ function checkForMentionTrigger() {
       return;
     }
     const textBeforeCursor = anchorNode.getTextContent().slice(0, selection.anchor.offset);
-    const match = MENTION_TRIGGER_REGEX.exec(textBeforeCursor);
+    const match = MENTION_TRIGGER.exec(textBeforeCursor);
     if (match) {
-      query.value = match[2];
+      const char = match[2] as "@" | "#";
+      if (char === "#" && !channelList.value.length) {
+        isOpen.value = false;
+        return;
+      }
+      triggerChar.value = char;
+      query.value = match[3];
       isOpen.value = true;
       const domSelection = window.getSelection();
       if (domSelection && domSelection.rangeCount > 0) {
@@ -95,23 +120,24 @@ onUnmounted(() => {
   unregisterListener();
 });
 
-function insertMention(member: MemberInfo) {
+function insertMention(suggestion: Suggestion) {
   editor.update(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection)) return;
     const anchorNode = selection.anchor.getNode();
     if (!$isTextNode(anchorNode)) return;
     const textContent = anchorNode.getTextContent();
-    const match = MENTION_TRIGGER_REGEX.exec(textContent.slice(0, selection.anchor.offset));
+    const match = MENTION_TRIGGER.exec(textContent.slice(0, selection.anchor.offset));
     if (!match) return;
     const mentionStartOffset = selection.anchor.offset - match[0].length + match[1].length;
-    const [, , afterSplit] = anchorNode.splitText(mentionStartOffset, selection.anchor.offset);
-    const mentionNode = $createMentionNode(member.name, member.id);
-    if (afterSplit) {
-      afterSplit.replace(mentionNode);
-    } else {
-      anchorNode.insertAfter(mentionNode);
-    }
+    const splitNodes = anchorNode.splitText(mentionStartOffset, selection.anchor.offset);
+    const mentionText = splitNodes[1];
+    if (!$isTextNode(mentionText)) return;
+    const trigger = match[2] === "#" ? "#" : "@";
+    const mentionNode = $createMentionNode(suggestion.type, suggestion.name, suggestion.id);
+    mentionText.replace(mentionNode);
+    const prefix = $createTextNode(trigger);
+    mentionNode.insertBefore(prefix);
     mentionNode.insertAfter($createTextNode(" "));
     mentionNode.selectNext();
   });
@@ -127,23 +153,24 @@ function insertMention(member: MemberInfo) {
     </PopoverTrigger>
     <PopoverContent class="w-64 p-0" align="start">
       <Command>
-        <CommandInput :model-value="query" placeholder="Search members..." />
+        <CommandInput :model-value="query" placeholder="Search..." />
         <CommandList>
-          <CommandEmpty>No members found</CommandEmpty>
-          <CommandGroup heading="Members">
+          <CommandEmpty>No results found</CommandEmpty>
+          <CommandGroup v-if="filteredSuggestions.length" heading="Suggestions">
             <CommandItem
-              v-for="member in filteredMembers"
-              :key="member.id"
-              :value="member.name"
-              @select="insertMention(member)"
+              v-for="s in filteredSuggestions"
+              :key="`${s.type}-${s.id}`"
+              :value="s.name"
+              @select="insertMention(s)"
             >
-              <Avatar class="mr-2 h-5 w-5">
-                <AvatarImage :src="member.avatar ?? ''" :alt="member.name" />
+              <Avatar v-if="s.type === 'user'" class="mr-2 h-5 w-5">
+                <AvatarImage :src="s.avatar ?? ''" :alt="s.name" />
                 <AvatarFallback class="text-[9px]">{{
-                  (member.name[0] ?? "?").toUpperCase()
+                  (s.name[0] ?? "?").toUpperCase()
                 }}</AvatarFallback>
               </Avatar>
-              {{ member.name }}
+              <span v-else class="mr-2 text-brand">#</span>
+              {{ s.name }}
             </CommandItem>
           </CommandGroup>
         </CommandList>

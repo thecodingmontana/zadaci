@@ -36,6 +36,7 @@ const props = defineProps<{
   members?: Map<string, MemberInfo>;
   currentMemberId?: string;
   disableMentions?: boolean;
+  channels?: Map<string, { name: string }>;
 }>();
 const emit = defineEmits<{
   send: [content: string];
@@ -219,6 +220,7 @@ watch(
           v-if="!disableMentions"
           :members="members"
           :current-member-id="currentMemberId ?? ''"
+          :channels="channels"
         />
         <div class="flex items-center justify-between px-2 pt-1 pb-2">
           <div class="flex items-center gap-1">
