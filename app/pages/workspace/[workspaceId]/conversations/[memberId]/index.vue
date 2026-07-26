@@ -190,6 +190,13 @@ const dmSync = useDirectMessageSync(() => conversationId.value, {
 });
 const dmReceiptSync = useDirectMessageReceiptSync(() => conversationId.value);
 
+const {
+  start: startTyping,
+  stop: stopTyping,
+  broadcastTyping,
+  typingNames: _typingNamesDM,
+} = useTypingIndicator();
+
 const membersMap = computed(() => {
   if (!members.value) return new Map<string, MemberInfo>();
   const map = new Map<string, MemberInfo>();
@@ -206,6 +213,7 @@ onUnmounted(() => {
   unsubscribeMessages();
   dmSync.stop();
   dmReceiptSync.stop();
+  stopTyping();
 });
 
 const receiptSub = ref<{ unsubscribe: () => void } | null>(null);
@@ -338,6 +346,9 @@ async function init() {
     }
 
     subscribeReceipts();
+
+    startTyping(conversationId.value);
+
     await loadInitialMessages();
     subscribeMessages();
     hasLoaded.value = true;
@@ -491,6 +502,13 @@ function cancelEdit() {
   editingContent.value = "";
 }
 
+function onComposerTyping() {
+  const myName = membersMap.value.get(currentMemberId.value)?.name;
+  if (myName) {
+    broadcastTyping(conversationId.value, currentMemberId.value, myName);
+  }
+}
+
 async function onLoadOlder() {
   if (hasMore.value) {
     await loadOlderMessages();
@@ -605,6 +623,7 @@ useSeoMeta({
           :placeholder="isSelfChat ? 'Message yourself' : `Message @${displayName ?? 'user'}`"
           @send="onSend"
           @cancel-edit="cancelEdit"
+          @typing="onComposerTyping"
         />
       </div>
     </div>

@@ -82,6 +82,13 @@ const messageSync = useMessageSync(() => channelId, {
 });
 const receiptSync = useMessageReceiptSync(() => channelId);
 
+const {
+  start: startTyping,
+  stop: stopTyping,
+  broadcastTyping,
+  typingNames: _typingNamesChannel,
+} = useTypingIndicator();
+
 const channelSubRef = ref<{ unsubscribe: () => void } | null>(null);
 
 onUnmounted(() => {
@@ -89,6 +96,7 @@ onUnmounted(() => {
   unsubscribe();
   messageSync.stop();
   receiptSync.stop();
+  stopTyping();
 });
 
 // Receipt subscription — rebuild when receipts change for delivery status
@@ -244,6 +252,9 @@ async function init() {
 
     // Subscribe to receipts
     subscribeReceipts();
+
+    // Start typing indicator
+    startTyping(channelId);
 
     // Subscribe to messages
     console.log("[channel] loading initial messages");
@@ -431,6 +442,13 @@ function cancelEdit() {
   editingContent.value = "";
 }
 
+function onComposerTyping() {
+  const myName = membersMap.value.get(currentMemberId.value)?.name;
+  if (myName) {
+    broadcastTyping(channelId, currentMemberId.value, myName);
+  }
+}
+
 async function onLoadOlder() {
   if (hasMore.value) {
     await loadOlder();
@@ -548,6 +566,7 @@ useSeoMeta({
         :editing-content="editingContent"
         @send="onSend"
         @cancel-edit="cancelEdit"
+        @typing="onComposerTyping"
       />
     </NuxtLayout>
   </NuxtLayout>

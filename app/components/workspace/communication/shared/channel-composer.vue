@@ -12,9 +12,21 @@ const emit = defineEmits<{
   send: [content: string];
   cancelEdit: [];
   cancelReply: [];
+  typing: [];
 }>();
 const content = ref("");
 const textareaRef = ref<HTMLTextAreaElement>();
+let typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function onInput() {
+  autoResize();
+  if (!content.value.trim()) return;
+  emit("typing");
+  if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
+  typingDebounceTimer = setTimeout(() => {
+    emit("typing");
+  }, 3000);
+}
 
 function autoResize() {
   const el = textareaRef.value;
@@ -25,7 +37,7 @@ function autoResize() {
   el.style.overflowY = el.scrollHeight > 128 ? "auto" : "hidden";
 }
 
-watch(content, () => nextTick(autoResize));
+watch(content, () => nextTick(autoResize), { flush: "post" });
 
 watch(
   () => props.editingContent,
@@ -136,7 +148,7 @@ function onKeydown(e: KeyboardEvent) {
         :placeholder="placeholder ?? (editingMessageId ? 'Edit message...' : 'Message #general')"
         class="w-full resize-none scrollbar-thin bg-transparent px-3 py-2.5 text-sm outline-none"
         @keydown="onKeydown"
-        @input="autoResize"
+        @input="onInput"
       />
       <div class="flex items-center justify-between px-2 pb-2">
         <div class="flex items-center gap-1">

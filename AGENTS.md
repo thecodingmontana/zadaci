@@ -128,6 +128,20 @@ Email send failures no longer crash the API request — the DB write succeeds re
 4. **Sidebar-projects realtime** (`use-sidebar-projects-realtime.ts`) subscribes to `app_project` changes and invalidates a key nobody reads. Not harmful, but wastes a Supabase channel connection.
 5. **Old DM channel data in `app_channel`** — existing rows with `type='dm'` are orphaned. Migration drops no data. Cleanup can be done separately after confirming no active DMs use the old schema.
 6. **No DM conversation list in sidebar** — sidebar lists all workspace members as DM targets. Existing conversations aren't shown as a separate list with unread badges. Future enhancement.
+7. **`server/database/relations.ts` type errors** — pre-existing Drizzle type errors unrelated to frontend changes.
+8. **Presence uses auth user ID (`user.id`)** as the track key, not workspace member ID. Any code cross-referencing presence with channel members must go through workspace members (memberId → userId mapping).
+
+### ✅ Fixed (2026-07-26 — typing indicator, dynamic channel-header, cleanup)
+
+| Bug/Fix | File(s) | Notes |
+|---|---|---|
+| **Hardcoded channel-header** (static "12 Members · 4 Online") | `channel-header.vue` | Replaced with live RxDB `channels` subscription for name + `channel_members` for member count + `useWorkspacePresence` cross-ref for online count. |
+| **Missing real-time typing indicator** | New `use-typing-indicator.ts`, `channel-composer.vue`, channel/DM pages | Supabase Realtime broadcast, 3s debounce, 4s auto-remove, reactive `typingNames` per room. |
+| **Dead components** | `message-bubble.vue`, `message-status.vue` | Deleted — fully replaced by `MessageCard`. |
+
+### ✅ All channel-header props updated
+
+`workspace-channel.vue` layout now passes `channelId` and `workspaceId` to `<ChannelHeader>`. The header is now self-contained: it starts its own presence, subscribes to RxDB, and displays live data.
 
 ## Always enforce
 

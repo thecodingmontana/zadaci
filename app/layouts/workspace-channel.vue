@@ -230,7 +230,12 @@ async function onReply(parentMessageId: string, content: string) {
 <template>
   <div class="flex h-full min-h-0 overflow-hidden">
     <div class="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <ChannelHeader :info-open="state.infoOpen" @toggle-info="toggleInfo" />
+      <ChannelHeader
+        :info-open="state.infoOpen"
+        :channel-id="channelId"
+        :workspace-id="workspaceId"
+        @toggle-info="toggleInfo"
+      />
       <slot />
     </div>
 
