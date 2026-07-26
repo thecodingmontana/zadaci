@@ -88,7 +88,7 @@ const previewData = computed(() => {
     class="group/card relative flex items-start gap-2 rounded-md p-2 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
   >
     <Avatar class="size-10 shrink-0 self-start rounded">
-      <AvatarImage :src="memberAvatar ?? undefined" :alt="memberName" class="rounded-md" />
+      <AvatarImage :src="memberAvatar ?? ''" :alt="memberName" class="rounded-md" />
       <AvatarFallback class="rounded-md">{{ initials(memberName) }}</AvatarFallback>
     </Avatar>
     <div class="min-w-0 flex-1 space-y-2 self-start">
@@ -123,7 +123,7 @@ const previewData = computed(() => {
             }}</span>
           </button>
         </div>
-        <div class="flex items-center">
+        <div class="flex items-center opacity-0 transition-opacity group-hover/card:opacity-100">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>

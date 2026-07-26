@@ -16,12 +16,23 @@ const emit = defineEmits<{
 const content = ref("");
 const textareaRef = ref<HTMLTextAreaElement>();
 
+function autoResize() {
+  const el = textareaRef.value;
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  el.style.overflowY = el.scrollHeight > 128 ? "auto" : "hidden";
+}
+
+watch(content, () => nextTick(autoResize));
+
 watch(
   () => props.editingContent,
   (val) => {
     if (val && props.editingMessageId) {
       content.value = val;
       nextTick(() => {
+        autoResize();
         textareaRef.value?.focus();
         textareaRef.value?.setSelectionRange(content.value.length, content.value.length);
       });
@@ -35,6 +46,8 @@ watch(
   () => {},
   { immediate: true },
 );
+
+onMounted(() => nextTick(autoResize));
 
 function insertEmoji(emoji: string) {
   content.value += emoji;
@@ -120,8 +133,9 @@ function onKeydown(e: KeyboardEvent) {
         v-model="content"
         rows="1"
         :placeholder="placeholder ?? (editingMessageId ? 'Edit message...' : 'Message #general')"
-        class="max-h-40 w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none"
+        class="w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none"
         @keydown="onKeydown"
+        @input="autoResize"
       />
       <div class="flex items-center justify-between px-2 pb-2">
         <div class="flex items-center gap-1">

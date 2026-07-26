@@ -156,7 +156,11 @@ async function init() {
   subscribeReceipts(rxdb);
 
   const parentSub = rxdb.messages.findOne(props.thread.parentMessageId).$.subscribe((doc) => {
-    if (doc) parentMessage.value = docToMessage(doc);
+    if (doc && !doc.deleted_at) {
+      parentMessage.value = docToMessage(doc);
+    } else {
+      emit("close");
+    }
   });
   subs.push(parentSub);
 
@@ -289,7 +293,12 @@ async function onComposerSend(content: string) {
           @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
           @open-thread="(id) => emit('openThread', id)"
           @start-edit="onStartEditFromReply"
-          @delete="(id) => emit('delete', id)"
+          @delete="
+            (id) => {
+              if (id === parentMessage.id) emit('close');
+              emit('delete', id);
+            }
+          "
         />
       </div>
 
@@ -306,7 +315,7 @@ async function onComposerSend(content: string) {
       placeholder="Reply in thread"
       @send="onComposerSend"
       @cancel-edit="cancelEdit"
-      @cancel-reply="cancelEdit"
+      @cancel-reply="emit('close')"
     />
   </div>
 </template>
