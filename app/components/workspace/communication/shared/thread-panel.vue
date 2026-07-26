@@ -281,7 +281,7 @@ async function onComposerSend(content: string) {
           :key="item.message.id"
           :initial="{ opacity: 0, y: 8 }"
           :animate="{ opacity: 1, y: 0 }"
-          :exit="{ opacity: 0, y: -8, scale: 0.95 }"
+          :exit="{ opacity: 0, x: 120 }"
           :transition="{ duration: 0.18 }"
           :class="[
             index < timelineItems.length - 1 ? 'pb-5' : '',
