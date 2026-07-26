@@ -1,12 +1,30 @@
 <script setup lang="ts">
-import type { EditorState, LexicalEditor } from "lexical";
+import type { LexicalEditor } from "lexical";
+import { CodeHighlightNode, CodeNode, registerCodeHighlighting } from "@lexical/code";
+import { AutoLinkNode, LinkNode } from "@lexical/link";
+import { ListItemNode, ListNode } from "@lexical/list";
+import { MarkNode } from "@lexical/mark";
+import { ELEMENT_TRANSFORMERS, TEXT_FORMAT_TRANSFORMERS } from "@lexical/markdown";
+import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
 import { LexicalComposer } from "lexical-vue/LexicalComposer";
 import { ContentEditable } from "lexical-vue/LexicalContentEditable";
 import { HistoryPlugin } from "lexical-vue/LexicalHistoryPlugin";
+import { LinkPlugin } from "lexical-vue/LexicalLinkPlugin";
+import { ListPlugin } from "lexical-vue/LexicalListPlugin";
+import { MarkdownShortcutPlugin } from "lexical-vue/LexicalMarkdownShortcutPlugin";
 import { OnChangePlugin } from "lexical-vue/LexicalOnChangePlugin";
 import { RichTextPlugin } from "lexical-vue/LexicalRichTextPlugin";
+import { Button } from "~/components/ui/button";
+import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
+import ComposerMentions from "./composer-mentions.vue";
 import ComposerToolbar from "./composer-toolbar.vue";
+import { MentionNode } from "./mention-node";
+
+interface MemberInfo {
+  name: string;
+  avatar: string | null;
+}
 
 const props = defineProps<{
   typingLabel?: string;
@@ -14,6 +32,9 @@ const props = defineProps<{
   editingMessageId?: string | null;
   editingContent?: string;
   replyingTo?: string | null;
+  members?: Map<string, MemberInfo>;
+  currentMemberId?: string;
+  disableMentions?: boolean;
 }>();
 const emit = defineEmits<{
   send: [content: string];
@@ -24,7 +45,9 @@ const emit = defineEmits<{
 
 const contentText = ref("");
 const editorRef = ref<LexicalEditor | null>(null);
+const isRichMode = ref(false);
 let typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let codeHighlightRegistered = false;
 
 const initialConfig = {
   namespace: "MessageComposer",
@@ -37,15 +60,40 @@ const initialConfig = {
       strikethrough: "line-through",
       underlineStrikethrough: "underline line-through",
     },
+    list: {
+      ul: "list-disc ml-4",
+      ol: "list-decimal ml-4",
+      listitem: "mb-0",
+    },
+    link: "text-primary underline",
   },
   onError: (error: Error) => {
     console.error("Lexical error:", error);
   },
+  nodes: [
+    ListNode,
+    ListItemNode,
+    LinkNode,
+    AutoLinkNode,
+    MarkNode,
+    HeadingNode,
+    QuoteNode,
+    CodeNode,
+    CodeHighlightNode,
+    MentionNode,
+  ],
 };
 
 function onChange(editorState?: any, editor?: any) {
   editorRef.value = editor as LexicalEditor;
-  contentText.value = (editorState as EditorState).read(() => $getRoot().getTextContent());
+  if (editorRef.value && !codeHighlightRegistered) {
+    codeHighlightRegistered = true;
+    registerCodeHighlighting(editorRef.value);
+  }
+  const text = (editorState as any).read
+    ? (editorState as any).read(() => $getRoot().getTextContent())
+    : "";
+  contentText.value = text;
   if (contentText.value.trim()) {
     emit("typing");
     if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
@@ -63,6 +111,7 @@ function send() {
     $getRoot().clear();
   });
   contentText.value = "";
+  isRichMode.value = false;
 }
 
 function cancelEdit() {
@@ -70,8 +119,8 @@ function cancelEdit() {
   emit("cancelEdit");
 }
 
-function onCancelReply() {
-  emit("cancelReply");
+function toggleRichMode() {
+  isRichMode.value = !isRichMode.value;
 }
 
 watch(
@@ -117,7 +166,7 @@ watch(
       <button
         type="button"
         class="ml-auto font-medium text-primary hover:underline"
-        @click="onCancelReply"
+        @click="emit('cancelReply')"
       >
         Cancel
       </button>
@@ -143,24 +192,71 @@ watch(
       :class="[editingMessageId || replyingTo ? 'rounded-t-none' : '']"
     >
       <LexicalComposer :initial-config="initialConfig">
+        <ComposerToolbar v-if="isRichMode" @send="send" />
         <RichTextPlugin>
           <template #contentEditable>
-            <ContentEditable
-              class="prose prose-sm max-h-[128px] min-h-[36px] scrollbar-thin overflow-y-auto px-3 py-2.5 outline-none focus:outline-none"
-            >
-              <template #placeholder>
-                <div
-                  class="pointer-events-none absolute top-2.5 left-3 text-sm text-muted-foreground select-none"
-                >
-                  {{ placeholder ?? (editingMessageId ? "Edit message..." : "Message #general") }}
-                </div>
-              </template>
-            </ContentEditable>
+            <div class="relative">
+              <ContentEditable
+                class="relative max-h-[128px] min-h-[36px] scrollbar-thin overflow-y-auto px-3 py-2.5 outline-none focus:outline-none"
+              >
+                <template #placeholder>
+                  <span
+                    class="pointer-events-none absolute inset-0 px-3 py-2.5 text-sm text-muted-foreground select-none"
+                  >
+                    {{ placeholder ?? (editingMessageId ? "Edit message..." : "Message #general") }}
+                  </span>
+                </template>
+              </ContentEditable>
+            </div>
           </template>
         </RichTextPlugin>
         <HistoryPlugin />
+        <ListPlugin v-if="isRichMode" />
+        <LinkPlugin v-if="isRichMode" />
+        <MarkdownShortcutPlugin
+          v-if="isRichMode"
+          :transformers="[...ELEMENT_TRANSFORMERS, ...TEXT_FORMAT_TRANSFORMERS]"
+        />
         <OnChangePlugin @change="onChange" />
-        <ComposerToolbar @send="send" />
+        <ComposerMentions
+          v-if="!disableMentions"
+          :members="members"
+          :current-member-id="currentMemberId ?? ''"
+        />
+        <div class="flex items-center justify-between px-2 pt-1 pb-2">
+          <div class="flex items-center gap-1">
+            <ActionTooltip :label="isRichMode ? 'Plain text' : 'Formatting'" side="top">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                :class="{ 'bg-accent text-accent-foreground': isRichMode }"
+                @click="toggleRichMode"
+              >
+                <Icon name="lucide:sigma" size="16" />
+              </Button>
+            </ActionTooltip>
+            <ActionTooltip label="Add reaction" side="top">
+              <Button variant="ghost" size="icon-xs">
+                <Icon name="lucide:smile-plus" size="16" />
+              </Button>
+            </ActionTooltip>
+            <ActionTooltip label="Attach file" side="top">
+              <Button variant="ghost" size="icon-xs">
+                <Icon name="lucide:paperclip" size="16" />
+              </Button>
+            </ActionTooltip>
+            <ActionTooltip label="Record audio" side="top">
+              <Button variant="ghost" size="icon-xs">
+                <Icon name="lucide:mic" size="16" />
+              </Button>
+            </ActionTooltip>
+          </div>
+          <ActionTooltip label="Send message" side="top">
+            <Button size="icon-xs" @click="send">
+              <Icon name="lucide:send" size="14" />
+            </Button>
+          </ActionTooltip>
+        </div>
       </LexicalComposer>
     </div>
   </div>

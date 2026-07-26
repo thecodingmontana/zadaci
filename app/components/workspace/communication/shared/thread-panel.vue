@@ -318,6 +318,8 @@ async function onComposerSend(content: string) {
       :editing-message-id="editingMessageId"
       :editing-content="editingContent"
       :replying-to="editingMessageId ? undefined : memberInfo(parentMessage.authorId).name"
+      :members="members"
+      :current-member-id="currentMemberId"
       typing-label=""
       placeholder="Reply in thread"
       @send="onComposerSend"

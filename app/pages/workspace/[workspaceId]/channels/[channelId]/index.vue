@@ -564,6 +564,8 @@ useSeoMeta({
       <ChannelComposer
         :editing-message-id="editingMessageId"
         :editing-content="editingContent"
+        :members="membersMap"
+        :current-member-id="currentMemberId"
         @send="onSend"
         @cancel-edit="cancelEdit"
         @typing="onComposerTyping"

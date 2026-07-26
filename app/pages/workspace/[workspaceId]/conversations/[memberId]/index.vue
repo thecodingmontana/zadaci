@@ -621,6 +621,9 @@ useSeoMeta({
           :editing-message-id="editingMessageId"
           :editing-content="editingContent"
           :placeholder="isSelfChat ? 'Message yourself' : `Message @${displayName ?? 'user'}`"
+          :members="membersMap"
+          :current-member-id="currentMemberId"
+          disable-mentions
           @send="onSend"
           @cancel-edit="cancelEdit"
           @typing="onComposerTyping"

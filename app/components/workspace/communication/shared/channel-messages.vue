@@ -208,85 +208,87 @@ const typingLabel = computed(() => {
 <template>
   <div class="relative flex min-h-0 flex-1 flex-col">
     <ScrollArea ref="scrollAreaRef" class="min-h-0 flex-1 px-4 py-3" @scroll="onScroll">
-      <div v-if="loading && !hasLoaded" class="flex flex-col gap-4 py-4">
-        <div v-for="n in 6" :key="n" class="flex items-start gap-2">
-          <Skeleton class="mt-0.5 h-10 w-10 shrink-0 rounded-md" />
-          <div class="flex flex-1 flex-col gap-2">
-            <Skeleton class="h-3 w-32" />
-            <Skeleton class="h-8 w-3/4 rounded-md" />
-            <Skeleton v-if="n % 2 === 0" class="h-8 w-1/2 rounded-md" />
+      <div class="overflow-x-hidden">
+        <div v-if="loading && !hasLoaded" class="flex flex-col gap-4 py-4">
+          <div v-for="n in 6" :key="n" class="flex items-start gap-2">
+            <Skeleton class="mt-0.5 h-10 w-10 shrink-0 rounded-md" />
+            <div class="flex flex-1 flex-col gap-2">
+              <Skeleton class="h-3 w-32" />
+              <Skeleton class="h-8 w-3/4 rounded-md" />
+              <Skeleton v-if="n % 2 === 0" class="h-8 w-1/2 rounded-md" />
+            </div>
           </div>
         </div>
-      </div>
-      <div v-else-if="error" class="flex flex-1 flex-col items-center justify-center py-8">
-        <Icon name="lucide:server-crash" size="28" class="text-muted-foreground" />
-        <p class="mt-2 text-sm text-muted-foreground">Something went wrong loading messages</p>
-      </div>
-      <HuddleEvent v-for="event in systemEvents" :key="event.id" :event="event" />
+        <div v-else-if="error" class="flex flex-1 flex-col items-center justify-center py-8">
+          <Icon name="lucide:server-crash" size="28" class="text-muted-foreground" />
+          <p class="mt-2 text-sm text-muted-foreground">Something went wrong loading messages</p>
+        </div>
+        <HuddleEvent v-for="event in systemEvents" :key="event.id" :event="event" />
 
-      <div ref="topAnchorRef" />
+        <div ref="topAnchorRef" />
 
-      <div v-if="loadingMore" class="flex justify-center py-3">
-        <Icon name="lucide:loader-2" size="16" class="animate-spin text-muted-foreground" />
-      </div>
+        <div v-if="loadingMore" class="flex justify-center py-3">
+          <Icon name="lucide:loader-2" size="16" class="animate-spin text-muted-foreground" />
+        </div>
 
-      <div v-if="canLoadMore && !loadingMore" class="flex items-center gap-2 py-2">
-        <div class="h-px flex-1 border-t border-dotted" />
-        <button
-          type="button"
-          class="shrink-0 rounded-full border px-4 py-1 text-xs text-muted-foreground hover:text-foreground"
-          @click="onLoadOlderClick"
-        >
-          Load older messages
-        </button>
-        <div class="h-px flex-1 border-t border-dotted" />
-      </div>
-
-      <template v-for="(day, di) in dayMessages" :key="di">
-        <MessagesDivider :label="day.dateLabel" />
-        <AnimatePresence>
-          <motion.div
-            v-for="message in day.messages"
-            :key="message.id"
-            :initial="{ opacity: 0, y: 8 }"
-            :animate="{ opacity: 1, y: 0 }"
-            :exit="{ opacity: 0, x: 120 }"
-            :transition="{ type: 'tween', duration: 0.18, exit: { duration: 0.5 } }"
+        <div v-if="canLoadMore && !loadingMore" class="flex items-center gap-2 py-2">
+          <div class="h-px flex-1 border-t border-dotted" />
+          <button
+            type="button"
+            class="shrink-0 rounded-full border px-4 py-1 text-xs text-muted-foreground hover:text-foreground"
+            @click="onLoadOlderClick"
           >
-            <MessageCard
-              :message="message"
-              :is-own="isOwn(message.authorId)"
-              :current-member-id="currentMemberId"
-              :members="props.members"
-              :show-thread-entry="props.showThreadEntry ?? true"
-              :hide-thread-reply="props.hideThreadReply ?? false"
-              :delivery-status="props.messageStatuses?.get(message.id)"
-              @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
-              @open-thread="(id) => emit('openThread', id)"
-              @start-edit="(...a) => emit('startEdit', ...a)"
-              @delete="(id) => emit('delete', id)"
+            Load older messages
+          </button>
+          <div class="h-px flex-1 border-t border-dotted" />
+        </div>
+
+        <template v-for="(day, di) in dayMessages" :key="di">
+          <MessagesDivider :label="day.dateLabel" />
+          <AnimatePresence>
+            <motion.div
+              v-for="message in day.messages"
+              :key="message.id"
+              :initial="{ opacity: 0, y: 8 }"
+              :animate="{ opacity: 1, y: 0 }"
+              :exit="{ opacity: 0, x: 120 }"
+              :transition="{ type: 'tween', duration: 0.18, exit: { duration: 0.5 } }"
+            >
+              <MessageCard
+                :message="message"
+                :is-own="isOwn(message.authorId)"
+                :current-member-id="currentMemberId"
+                :members="props.members"
+                :show-thread-entry="props.showThreadEntry ?? true"
+                :hide-thread-reply="props.hideThreadReply ?? false"
+                :delivery-status="props.messageStatuses?.get(message.id)"
+                @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
+                @open-thread="(id) => emit('openThread', id)"
+                @start-edit="(...a) => emit('startEdit', ...a)"
+                @delete="(id) => emit('delete', id)"
+              />
+            </motion.div>
+          </AnimatePresence>
+        </template>
+
+        <div
+          v-if="typingLabel"
+          class="flex items-center gap-2 px-1 pt-1 text-xs text-muted-foreground"
+        >
+          <span class="flex gap-0.5">
+            <span
+              class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]"
             />
-          </motion.div>
-        </AnimatePresence>
-      </template>
+            <span
+              class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]"
+            />
+            <span class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground" />
+          </span>
+          {{ typingLabel }}
+        </div>
 
-      <div
-        v-if="typingLabel"
-        class="flex items-center gap-2 px-1 pt-1 text-xs text-muted-foreground"
-      >
-        <span class="flex gap-0.5">
-          <span
-            class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]"
-          />
-          <span
-            class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]"
-          />
-          <span class="h-1 w-1 animate-bounce rounded-full bg-muted-foreground" />
-        </span>
-        {{ typingLabel }}
+        <div ref="bottomAnchorRef" />
       </div>
-
-      <div ref="bottomAnchorRef" />
     </ScrollArea>
 
     <ChannelEmptyState
