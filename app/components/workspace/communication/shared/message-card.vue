@@ -168,16 +168,34 @@ const previewData = computed(() => {
               <Icon name="hugeicons:delete-03" size="16" />
             </Button>
           </ActionTooltip>
-          <ActionTooltip v-if="deliveryStatus" label="Message info" side="bottom">
+          <ActionTooltip v-if="!isOwn" label="Message info" side="bottom">
             <Popover>
               <PopoverTrigger as-child>
                 <Button variant="ghost" size="icon" class="size-7 hover:bg-white">
                   <Icon name="solar:info-circle-outline" size="16" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent side="top" align="end" class="w-48 p-3 text-sm">
-                <p class="font-medium">Message status</p>
-                <p class="mt-1 text-xs text-muted-foreground capitalize">{{ deliveryStatus }}</p>
+              <PopoverContent side="bottom" align="end" class="w-56 p-3 text-sm">
+                <p class="font-medium">Message info</p>
+                <div class="mt-2 space-y-1 text-xs text-muted-foreground">
+                  <p>Sent {{ messageTime }}</p>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </ActionTooltip>
+          <ActionTooltip v-if="isOwn" label="Message info" side="bottom">
+            <Popover>
+              <PopoverTrigger as-child>
+                <Button variant="ghost" size="icon" class="size-7 hover:bg-white">
+                  <Icon name="solar:info-circle-outline" size="16" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="end" class="w-56 p-3 text-sm">
+                <p class="font-medium">Message info</p>
+                <div class="mt-2 space-y-1 text-xs text-muted-foreground">
+                  <p>Sent {{ messageTime }}</p>
+                  <p v-if="deliveryStatus" class="capitalize">Status: {{ deliveryStatus }}</p>
+                </div>
               </PopoverContent>
             </Popover>
           </ActionTooltip>

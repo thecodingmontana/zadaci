@@ -20,7 +20,8 @@ function autoResize() {
   const el = textareaRef.value;
   if (!el) return;
   el.style.height = "auto";
-  el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  const target = Math.max(36, Math.min(el.scrollHeight, 128));
+  el.style.height = `${target}px`;
   el.style.overflowY = el.scrollHeight > 128 ? "auto" : "hidden";
 }
 
@@ -133,7 +134,7 @@ function onKeydown(e: KeyboardEvent) {
         v-model="content"
         rows="1"
         :placeholder="placeholder ?? (editingMessageId ? 'Edit message...' : 'Message #general')"
-        class="w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none"
+        class="w-full resize-none scrollbar-thin bg-transparent px-3 py-2.5 text-sm outline-none"
         @keydown="onKeydown"
         @input="autoResize"
       />
@@ -157,3 +158,16 @@ function onKeydown(e: KeyboardEvent) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+</style>

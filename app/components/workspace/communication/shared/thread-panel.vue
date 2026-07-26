@@ -55,7 +55,7 @@ function docToMessage(doc: MessageDocType): ChatMessage {
   };
 }
 
-const receiptCollection = ref<RxCollection<MessageReceiptDocType> | null>(null);
+const receiptCollection = shallowRef<RxCollection<MessageReceiptDocType> | null>(null);
 
 function buildMessageStatuses() {
   const statuses = new Map<string, "sending" | "sent" | "delivered" | "seen">();

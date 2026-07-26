@@ -41,8 +41,8 @@ const conversationId = ref<string>("");
 const conversationResolved = ref(false);
 
 const db = ref<ZadaciDatabase | null>(null);
-const directMessageCollection = ref<RxCollection<DirectMessageDocType> | null>(null);
-const receiptCollection = ref<RxCollection<DirectMessageReceiptDocType> | null>(null);
+const directMessageCollection = shallowRef<RxCollection<DirectMessageDocType> | null>(null);
+const receiptCollection = shallowRef<RxCollection<DirectMessageReceiptDocType> | null>(null);
 
 const pendingSendIds = ref(new Set<string>());
 

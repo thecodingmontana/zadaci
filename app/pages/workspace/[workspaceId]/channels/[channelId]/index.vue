@@ -26,8 +26,8 @@ const currentMemberId = ref<string>("");
 const { state: _state, openThread } = useChannelPanel(channelId);
 
 const db = ref<ZadaciDatabase | null>(null);
-const messageCollection = ref<RxCollection<MessageDocType> | null>(null);
-const receiptCollection = ref<RxCollection<MessageReceiptDocType> | null>(null);
+const messageCollection = shallowRef<RxCollection<MessageDocType> | null>(null);
+const receiptCollection = shallowRef<RxCollection<MessageReceiptDocType> | null>(null);
 
 const pendingSendIds = ref(new Set<string>());
 
