@@ -1,18 +1,12 @@
 <script setup lang="ts">
 import type { ChatMessage, SystemEvent } from "~/types/chat";
 import { motion } from "motion-v";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Skeleton } from "~/components/ui/skeleton";
 import ChannelEmptyState from "~/components/workspace/communication/channel/channel-empty-state.vue";
 import HuddleEvent from "~/components/workspace/communication/shared/huddle-event.vue";
-import MessageBubble from "~/components/workspace/communication/shared/message-bubble.vue";
+import MessageCard from "~/components/workspace/communication/shared/message-card.vue";
 import MessagesDivider from "~/components/workspace/communication/shared/messages-divider.vue";
-
-interface MemberInfo {
-  name: string;
-  avatar: string | null;
-}
 
 const props = defineProps<{
   error?: boolean;
@@ -45,38 +39,11 @@ const emit = defineEmits<{
   loadOlder: [];
 }>();
 
-function memberInfo(authorId: string): MemberInfo {
-  return props.members?.get(authorId) ?? { name: authorId, avatar: null };
-}
-
-function initials(name: string): string {
-  return (name.trim()[0] ?? "?").toUpperCase();
-}
-
 const isOwn = (authorId: string) => authorId === props.currentMemberId;
 
-const groups = computed(() => {
-  const result: ChatMessage[][] = [];
-  for (const message of props.messages) {
-    const last = result.at(-1);
-    if (last) {
-      const prev = last.at(-1)!;
-      const sameAuthor = prev.authorId === message.authorId;
-      const timeDiff = new Date(message.createdAt).getTime() - new Date(prev.createdAt).getTime();
-      const withinWindow = timeDiff < 5 * 60 * 1000;
-      if (sameAuthor && withinWindow) {
-        last.push(message);
-        continue;
-      }
-    }
-    result.push([message]);
-  }
-  return result;
-});
-
-interface DayGroup {
+interface DayMessages {
   dateLabel: string;
-  groups: ChatMessage[][];
+  messages: ChatMessage[];
 }
 
 function formatDateLabel(date: Date): string {
@@ -95,16 +62,16 @@ function formatDateLabel(date: Date): string {
   });
 }
 
-const dayGroups = computed(() => {
-  const result: DayGroup[] = [];
-  for (const group of groups.value) {
-    const date = new Date(group[0].createdAt);
+const dayMessages = computed(() => {
+  const result: DayMessages[] = [];
+  for (const message of props.messages) {
+    const date = new Date(message.createdAt);
     const label = formatDateLabel(date);
     const last = result.at(-1);
     if (last && last.dateLabel === label) {
-      last.groups.push(group);
+      last.messages.push(message);
     } else {
-      result.push({ dateLabel: label, groups: [group] });
+      result.push({ dateLabel: label, messages: [message] });
     }
   }
   return result;
@@ -242,26 +209,13 @@ const typingLabel = computed(() => {
   <div class="relative flex min-h-0 flex-1 flex-col">
     <ScrollArea ref="scrollAreaRef" class="min-h-0 flex-1 px-4 py-3" @scroll="onScroll">
       <div v-if="loading && !hasLoaded" class="flex flex-col gap-4 py-4">
-        <div
-          v-for="n in 6"
-          :key="n"
-          class="flex w-full gap-2"
-          :class="n % 2 === 0 ? 'items-end justify-end' : 'items-start'"
-        >
-          <Skeleton v-if="n % 2 !== 0" class="mt-0.5 h-8 w-8 shrink-0 rounded-full" />
-          <div class="flex flex-col gap-2" :class="n % 2 === 0 ? 'items-end' : 'items-start'">
-            <Skeleton class="h-3 w-24" />
-            <Skeleton
-              class="h-8 rounded-xl"
-              :class="[n % 2 === 0 ? 'w-56 rounded-br-md' : 'w-64 rounded-bl-md']"
-            />
-            <Skeleton
-              v-if="n % 3 === 0"
-              class="h-8 w-48 rounded-xl"
-              :class="n % 2 === 0 ? 'rounded-br-md' : 'rounded-bl-md'"
-            />
+        <div v-for="n in 6" :key="n" class="flex items-start gap-2">
+          <Skeleton class="mt-0.5 h-10 w-10 shrink-0 rounded-md" />
+          <div class="flex flex-1 flex-col gap-2">
+            <Skeleton class="h-3 w-32" />
+            <Skeleton class="h-8 w-3/4 rounded-md" />
+            <Skeleton v-if="n % 2 === 0" class="h-8 w-1/2 rounded-md" />
           </div>
-          <Skeleton v-if="n % 2 === 0" class="order-last mt-0.5 h-8 w-8 shrink-0 rounded-full" />
         </div>
       </div>
       <div v-else-if="error" class="flex flex-1 flex-col items-center justify-center py-8">
@@ -288,48 +242,28 @@ const typingLabel = computed(() => {
         <div class="h-px flex-1 border-t border-dotted" />
       </div>
 
-      <template v-for="(day, di) in dayGroups" :key="di">
+      <template v-for="(day, di) in dayMessages" :key="di">
         <MessagesDivider :label="day.dateLabel" />
-
         <motion.div
-          v-for="(group, gi) in day.groups"
-          :key="`${di}-${gi}`"
+          v-for="message in day.messages"
+          :key="message.id"
           :initial="{ opacity: 0, y: 8 }"
           :animate="{ opacity: 1, y: 0 }"
           :transition="{ duration: 0.18 }"
-          class="flex w-full gap-2 pb-3"
-          :class="[isOwn(group[0].authorId) ? 'items-end justify-end' : 'items-start']"
         >
-          <Avatar v-if="!isOwn(group[0].authorId)" class="mt-0.5 h-8 w-8 shrink-0">
-            <AvatarImage
-              :src="memberInfo(group[0].authorId).avatar ?? undefined"
-              :alt="memberInfo(group[0].authorId).name"
-            />
-            <AvatarFallback>{{ initials(memberInfo(group[0].authorId).name) }}</AvatarFallback>
-          </Avatar>
-
-          <div
-            class="flex max-w-[80%] min-w-0 flex-col gap-1"
-            :class="[isOwn(group[0].authorId) ? 'items-end' : 'items-start']"
-          >
-            <MessageBubble
-              v-for="(message, mi) in group"
-              :key="message.id"
-              :message="message"
-              :is-own="isOwn(message.authorId)"
-              :current-member-id="currentMemberId"
-              :members="props.members"
-              :member-name="memberInfo(message.authorId).name"
-              :show-header="mi === 0"
-              :show-thread-entry="props.showThreadEntry ?? true"
-              :hide-thread-reply="props.hideThreadReply ?? false"
-              :delivery-status="props.messageStatuses?.get(message.id)"
-              @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
-              @open-thread="(id) => emit('openThread', id)"
-              @start-edit="(...a) => emit('startEdit', ...a)"
-              @delete="(id) => emit('delete', id)"
-            />
-          </div>
+          <MessageCard
+            :message="message"
+            :is-own="isOwn(message.authorId)"
+            :current-member-id="currentMemberId"
+            :members="props.members"
+            :show-thread-entry="props.showThreadEntry ?? true"
+            :hide-thread-reply="props.hideThreadReply ?? false"
+            :delivery-status="props.messageStatuses?.get(message.id)"
+            @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
+            @open-thread="(id) => emit('openThread', id)"
+            @start-edit="(...a) => emit('startEdit', ...a)"
+            @delete="(id) => emit('delete', id)"
+          />
         </motion.div>
       </template>
 

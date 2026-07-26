@@ -65,7 +65,7 @@ function onKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="border-t px-4 py-3">
+  <div class="px-4 py-3">
     <p v-if="typingLabel" class="mb-1.5 flex items-center gap-1 text-xs text-muted-foreground">
       <span class="flex gap-0.5">
         <span

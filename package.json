@@ -102,6 +102,7 @@
     "@iconify-json/hugeicons": "^1.2.30",
     "@iconify-json/iconoir": "^1.2.11",
     "@iconify-json/lucide": "^1.2.116",
+    "@iconify-json/ri": "^1.2.10",
     "@iconify-json/solar": "^1.2.5",
     "@nuxt/eslint": "^1.16.0",
     "@tailwindcss/vite": "^4.3.2",

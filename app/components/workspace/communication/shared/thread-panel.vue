@@ -267,7 +267,7 @@ async function onComposerSend(content: string) {
 
 <template>
   <div class="flex h-full w-full flex-col border-l">
-    <div class="flex items-center justify-between border-b px-4 py-3">
+    <div class="flex items-center justify-between border-b px-4 py-4.5">
       <p class="text-base font-semibold">Thread</p>
       <Button variant="ghost" size="icon-xs" aria-label="Close thread" @click="emit('close')">
         <Icon name="lucide:x" size="18" />
@@ -294,19 +294,10 @@ async function onComposerSend(content: string) {
           item.isParent ? '-mx-3 rounded-lg bg-red-300/20 px-3 py-2' : '',
         ]"
       >
-        <!-- Connector: a single clean, straight line from the bottom of this
-             avatar to the top of the next one. (A bowed/bezier curve was tried
-             here but distorts badly once rows have very different heights —
-             this is also what Slack, Twitter/X, and GitHub actually use.) -->
-        <div
-          v-if="index < timelineItems.length - 1"
-          class="absolute top-9 bottom-0 left-[18px] w-0.5 -translate-x-1/2 bg-border"
-        />
-
         <div class="shrink-0">
           <Avatar class="relative z-10 h-9 w-9">
             <AvatarImage
-              :src="memberInfo(item.message.authorId).avatar ?? undefined"
+              :src="memberInfo(item.message.authorId).avatar ?? ''"
               :alt="memberInfo(item.message.authorId).name"
             />
             <AvatarFallback>{{ initials(memberInfo(item.message.authorId).name) }}</AvatarFallback>
