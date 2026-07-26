@@ -2,6 +2,7 @@
 import type { RxCollection } from "rxdb";
 import type { MessageDocType, MessageReceiptDocType, ZadaciDatabase } from "~/plugins/rxdb.client";
 import type { ChatMessage, Thread } from "~/types/chat";
+import { AnimatePresence, motion } from "motion-v";
 import ChannelComposer from "~/components/workspace/communication/shared/channel-composer.vue";
 import MessageCard from "~/components/workspace/communication/shared/message-card.vue";
 import { queryWithRetry } from "~/utils/rxdb-helpers";
@@ -274,33 +275,39 @@ async function onComposerSend(content: string) {
         </button>
       </div>
 
-      <div
-        v-for="(item, index) in timelineItems"
-        :key="item.message.id"
-        :class="[
-          index < timelineItems.length - 1 ? 'pb-5' : '',
-          item.isParent ? '-mx-3 rounded-lg px-3 py-2' : '',
-        ]"
-      >
-        <MessageCard
-          :message="item.message"
-          :is-own="isOwnMessage(item.message)"
-          :current-member-id="currentMemberId"
-          :members="members"
-          :show-thread-entry="false"
-          :hide-thread-reply="item.isParent ? false : true"
-          :delivery-status="!item.isParent ? messageStatuses.get(item.message.id) : undefined"
-          @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
-          @open-thread="(id) => emit('openThread', id)"
-          @start-edit="onStartEditFromReply"
-          @delete="
-            (id) => {
-              if (id === parentMessage.id) emit('close');
-              emit('delete', id);
-            }
-          "
-        />
-      </div>
+      <AnimatePresence>
+        <motion.div
+          v-for="(item, index) in timelineItems"
+          :key="item.message.id"
+          :initial="{ opacity: 0, y: 8 }"
+          :animate="{ opacity: 1, y: 0 }"
+          :exit="{ opacity: 0, y: -8, scale: 0.95 }"
+          :transition="{ duration: 0.18 }"
+          :class="[
+            index < timelineItems.length - 1 ? 'pb-5' : '',
+            item.isParent ? '-mx-3 rounded-lg px-3 py-2' : '',
+          ]"
+        >
+          <MessageCard
+            :message="item.message"
+            :is-own="isOwnMessage(item.message)"
+            :current-member-id="currentMemberId"
+            :members="members"
+            :show-thread-entry="false"
+            :hide-thread-reply="item.isParent ? false : true"
+            :delivery-status="!item.isParent ? messageStatuses.get(item.message.id) : undefined"
+            @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
+            @open-thread="(id) => emit('openThread', id)"
+            @start-edit="onStartEditFromReply"
+            @delete="
+              (id) => {
+                if (id === parentMessage.id) emit('close');
+                emit('delete', id);
+              }
+            "
+          />
+        </motion.div>
+      </AnimatePresence>
 
       <div v-if="loading" class="py-3 text-center text-xs text-muted-foreground">
         Loading replies...

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ChatMessage, SystemEvent } from "~/types/chat";
-import { motion } from "motion-v";
+import { AnimatePresence, motion } from "motion-v";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Skeleton } from "~/components/ui/skeleton";
 import ChannelEmptyState from "~/components/workspace/communication/channel/channel-empty-state.vue";
@@ -244,27 +244,30 @@ const typingLabel = computed(() => {
 
       <template v-for="(day, di) in dayMessages" :key="di">
         <MessagesDivider :label="day.dateLabel" />
-        <motion.div
-          v-for="message in day.messages"
-          :key="message.id"
-          :initial="{ opacity: 0, y: 8 }"
-          :animate="{ opacity: 1, y: 0 }"
-          :transition="{ duration: 0.18 }"
-        >
-          <MessageCard
-            :message="message"
-            :is-own="isOwn(message.authorId)"
-            :current-member-id="currentMemberId"
-            :members="props.members"
-            :show-thread-entry="props.showThreadEntry ?? true"
-            :hide-thread-reply="props.hideThreadReply ?? false"
-            :delivery-status="props.messageStatuses?.get(message.id)"
-            @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
-            @open-thread="(id) => emit('openThread', id)"
-            @start-edit="(...a) => emit('startEdit', ...a)"
-            @delete="(id) => emit('delete', id)"
-          />
-        </motion.div>
+        <AnimatePresence>
+          <motion.div
+            v-for="message in day.messages"
+            :key="message.id"
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :exit="{ opacity: 0, y: -8, scale: 0.95 }"
+            :transition="{ duration: 0.18 }"
+          >
+            <MessageCard
+              :message="message"
+              :is-own="isOwn(message.authorId)"
+              :current-member-id="currentMemberId"
+              :members="props.members"
+              :show-thread-entry="props.showThreadEntry ?? true"
+              :hide-thread-reply="props.hideThreadReply ?? false"
+              :delivery-status="props.messageStatuses?.get(message.id)"
+              @toggle-reaction="(...a) => emit('toggleReaction', ...a)"
+              @open-thread="(id) => emit('openThread', id)"
+              @start-edit="(...a) => emit('startEdit', ...a)"
+              @delete="(id) => emit('delete', id)"
+            />
+          </motion.div>
+        </AnimatePresence>
       </template>
 
       <div
