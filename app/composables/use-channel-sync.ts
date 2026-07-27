@@ -212,6 +212,9 @@ export function useChannelSync(workspaceId: () => string | undefined) {
           scheduleReSync();
         },
       )
+      .on("broadcast", { event: "channel_created" }, () => {
+        scheduleReSync();
+      })
       .subscribe((status) => {
         realtimeStatus.value = status;
       });

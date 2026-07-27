@@ -7,6 +7,7 @@ import { Button } from "~/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { Skeleton } from "~/components/ui/skeleton";
+import { useModalStore } from "~/stores/use-modal-store";
 
 const route = useRoute();
 const workspaceId = computed(() => route.params.workspaceId as string);
@@ -140,9 +141,52 @@ const initials = (name: string) =>
     .slice(0, 2)
     .toUpperCase();
 
+const modalStore = useModalStore();
+
+const currentMember = computed(
+  () => workspaceMembers.value?.find((m) => m.userId === user.value?.id) ?? null,
+);
+
+const canManageChannels = computed(
+  () => currentMember.value?.role === "owner" || currentMember.value?.role === "moderator",
+);
+
 const handleAdd = (key: string, event: Event) => {
   event.stopPropagation();
+  if (key === "channels" || key === "channel") {
+    modalStore?.onOpen("createChannel");
+    modalStore?.setIsOpen(true);
+  }
 };
+
+function handleEditChannel(channel: ChannelDocType, event: Event) {
+  event.stopPropagation();
+  console.log("[nav-comm] handleEditChannel", {
+    id: channel.id,
+    name: channel.name,
+    type: channel.type,
+  });
+  modalStore?.onOpen("editChannel");
+  modalStore?.setModalData({
+    channelId: channel.id,
+    channelName: channel.name,
+    channelType: channel.type,
+  });
+  console.log("[nav-comm] modalStore data after set:", modalStore?.data);
+  modalStore?.setIsOpen(true);
+}
+
+function handleDeleteChannel(channel: ChannelDocType, event: Event) {
+  event.stopPropagation();
+  console.log("[nav-comm] handleDeleteChannel", { id: channel.id, name: channel.name });
+  modalStore?.onOpen("deleteChannel");
+  modalStore?.setModalData({
+    channelId: channel.id,
+    channelName: channel.name,
+  });
+  console.log("[nav-comm] modalStore data after set:", modalStore?.data);
+  modalStore?.setIsOpen(true);
+}
 
 watch(onlineUserIds, (ids) => {
   console.log("[nav-comm] onlineUserIds changed:", Array.from(ids));
@@ -234,11 +278,11 @@ function resolveMemberRole(member?: TeammatesWithProfile): string {
           >
             <a
               :href="href"
-              class="flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+              class="group flex cursor-pointer items-center justify-between rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
               :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
               @click="navigate"
             >
-              <div class="flex items-center space-x-2">
+              <div class="flex min-w-0 items-center space-x-2">
                 <Icon
                   :name="
                     channel.type === 'private'
@@ -246,10 +290,39 @@ function resolveMemberRole(member?: TeammatesWithProfile): string {
                       : 'solar:hashtag-chat-linear'
                   "
                   size="16"
-                  class="text-muted-foreground"
+                  class="shrink-0 text-muted-foreground"
                 />
-                <p class="text-sm">{{ channel.name }}</p>
+                <p class="truncate text-sm">{{ channel.name }}</p>
               </div>
+              <Popover v-if="canManageChannels">
+                <PopoverTrigger as-child @click.stop.prevent>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100"
+                  >
+                    <Icon name="lucide:ellipsis" size="14" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="right" align="start" class="w-40 p-1">
+                  <button
+                    type="button"
+                    class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                    @click.stop="handleEditChannel(channel, $event)"
+                  >
+                    <Icon name="lucide:pencil" size="14" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    @click.stop="handleDeleteChannel(channel, $event)"
+                  >
+                    <Icon name="lucide:trash-2" size="14" />
+                    Delete
+                  </button>
+                </PopoverContent>
+              </Popover>
             </a>
           </NuxtLink>
 

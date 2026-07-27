@@ -47,7 +47,13 @@ const createdAtFormatted = computed(() => {
 
 const resolvedMembers = computed(() => {
   if (!channelMembers.value || !workspaceMembers.value) return [];
+  const seen = new Set<string>();
   return channelMembers.value
+    .filter((cm) => {
+      if (seen.has(cm.member_id)) return false;
+      seen.add(cm.member_id);
+      return true;
+    })
     .map((cm) => {
       const ws = workspaceMembers.value.find((m: any) => m.id === cm.member_id);
       return {

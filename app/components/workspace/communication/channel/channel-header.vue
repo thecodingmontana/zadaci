@@ -50,8 +50,14 @@ onMounted(async () => {
   const membersSub = rxdb.channel_members
     .find({ selector: { channel_id: props.channelId } })
     .$.subscribe((docs: any[]) => {
-      memberCount.value = docs.length;
-      channelMemberIds.value = docs.map((d: any) => d.member_id);
+      const seen = new Set<string>();
+      const unique = docs.filter((d: any) => {
+        if (seen.has(d.member_id)) return false;
+        seen.add(d.member_id);
+        return true;
+      });
+      memberCount.value = unique.length;
+      channelMemberIds.value = unique.map((d: any) => d.member_id);
     });
 
   onUnmounted(() => {

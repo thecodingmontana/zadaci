@@ -49,7 +49,10 @@ export type ModalType =
   | "editProject"
   | "editProjectTask"
   | "createWorkspace"
-  | "deleteProject";
+  | "deleteProject"
+  | "createChannel"
+  | "editChannel"
+  | "deleteChannel";
 
 export interface ModalData {
   qrcode?: string;
@@ -61,6 +64,9 @@ export interface ModalData {
   project?: DBProject | null;
   members?: ProjectMembers[];
   teammates?: ChangeTeammateRole[];
+  channelId?: string;
+  channelName?: string;
+  channelType?: "public" | "private";
 }
 
 export interface ModalStore {

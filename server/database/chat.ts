@@ -58,6 +58,7 @@ export const channel_members = pgTable(
   (table) => [
     index("channel_members_channel_id_idx").on(table.channel_id),
     index("channel_members_member_id_idx").on(table.member_id),
+    uniqueIndex("channel_members_channel_member_unique").on(table.channel_id, table.member_id),
     pgPolicy("allow_anon_select_channel_members", { for: "select", to: "anon", using: sql`true` }),
   ],
 );
