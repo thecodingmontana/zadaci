@@ -92,7 +92,7 @@ function serializeContent(): string {
     for (const node of child.getChildren()) {
       if ($isMentionNode(node)) {
         const trigger = node.__mentionType === "channel" ? "#" : "@";
-        result += trigger + node.__mentionName;
+        result += `${trigger + node.__mentionName}\u200B`;
       } else if ($isTextNode(node)) {
         result += node.getTextContent();
       }

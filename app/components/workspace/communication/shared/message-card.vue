@@ -97,21 +97,21 @@ const contentSegments = computed<ContentSegment[]>(() => {
   if (!content) return [];
   const segments: ContentSegment[] = [];
   let lastIndex = 0;
-  const re = /(@[\w\u00C0-\u024F]+(?:\s[\w\u00C0-\u024F]+)*|#[\w-]+)/g;
+  const re = /[@#]([\w\u00C0-\u024F\s]+)\u200B/g;
   let match = re.exec(content);
   while (match !== null) {
     if (match.index > lastIndex) {
       segments.push({ text: content.slice(lastIndex, match.index), isMention: false });
     }
-    const raw = match[1];
-    const isChannel = raw.startsWith("#");
+    const raw = content[match.index];
+    const isChannel = raw === "#";
     segments.push({
-      text: raw,
+      text: match[1],
       isMention: true,
       mentionType: isChannel ? "channel" : "user",
-      mentionName: raw.slice(1),
+      mentionName: match[1],
     });
-    lastIndex = match.index + raw.length;
+    lastIndex = match.index + match[0].length;
     match = re.exec(content);
   }
   if (lastIndex < content.length) {
