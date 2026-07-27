@@ -162,12 +162,9 @@ function insertMention(suggestion: Suggestion) {
       mentionText = splitNodes[1];
     }
     if (!$isTextNode(mentionText)) return;
-    const trigger = match[2] === "#" ? "#" : "@";
     const mentionNode = $createMentionNode(suggestion.type, suggestion.name, suggestion.id);
     mentionNode.setTextContent(suggestion.name);
     mentionText.replace(mentionNode);
-    const prefix = $createTextNode(trigger);
-    mentionNode.insertBefore(prefix);
     mentionNode.insertAfter($createTextNode(" "));
     mentionNode.selectNext();
   });
