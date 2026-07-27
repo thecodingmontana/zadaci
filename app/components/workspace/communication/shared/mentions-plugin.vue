@@ -164,6 +164,7 @@ function insertMention(suggestion: Suggestion) {
     if (!$isTextNode(mentionText)) return;
     const trigger = match[2] === "#" ? "#" : "@";
     const mentionNode = $createMentionNode(suggestion.type, suggestion.name, suggestion.id);
+    mentionNode.setTextContent(suggestion.name);
     mentionText.replace(mentionNode);
     const prefix = $createTextNode(trigger);
     mentionNode.insertBefore(prefix);
