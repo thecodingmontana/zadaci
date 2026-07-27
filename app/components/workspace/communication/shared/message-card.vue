@@ -139,23 +139,18 @@ const channelByName = computed(() => {
   return map;
 });
 
-function navigateMention(segment: ContentSegment) {
+function mentionLink(segment: ContentSegment): string {
   const name = segment.mentionName ?? "";
   if (segment.mentionType === "user") {
     const memberId = memberByName.value.get(name.toLowerCase());
-    if (memberId) {
-      navigateTo(`/workspace/${workspaceId.value}/conversations/${memberId}`);
-    } else {
-      navigateTo(`/workspace/${workspaceId.value}/members?search=${encodeURIComponent(name)}`);
-    }
-  } else {
-    const channelId = channelByName.value.get(name.toLowerCase());
-    if (channelId) {
-      navigateTo(`/workspace/${workspaceId.value}/channels/${channelId}`);
-    } else {
-      navigateTo(`/workspace/${workspaceId.value}/channels?search=${encodeURIComponent(name)}`);
-    }
+    return memberId
+      ? `/workspace/${workspaceId.value}/conversations/${memberId}`
+      : `/workspace/${workspaceId.value}/members?search=${encodeURIComponent(name)}`;
   }
+  const channelId = channelByName.value.get(name.toLowerCase());
+  return channelId
+    ? `/workspace/${workspaceId.value}/channels/${channelId}`
+    : `/workspace/${workspaceId.value}/channels?search=${encodeURIComponent(name)}`;
 }
 </script>
 
@@ -175,11 +170,11 @@ function navigateMention(segment: ContentSegment) {
         </div>
         <p class="text-sm wrap-break-word whitespace-pre-wrap text-foreground">
           <template v-for="(seg, i) in contentSegments" :key="i">
-            <span
+            <NuxtLink
               v-if="seg.isMention"
+              :to="mentionLink(seg)"
               class="mention-pill cursor-pointer text-brand"
-              @click="navigateMention(seg)"
-              >{{ seg.text }}</span
+              >{{ seg.text }}</NuxtLink
             >
             <span v-else>{{ seg.text }}</span>
           </template>

@@ -6,7 +6,7 @@ import { ListItemNode, ListNode } from "@lexical/list";
 import { MarkNode } from "@lexical/mark";
 import { ELEMENT_TRANSFORMERS, TEXT_FORMAT_TRANSFORMERS } from "@lexical/markdown";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
-import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
+import { $createParagraphNode, $createTextNode, $getRoot, $isTextNode } from "lexical";
 import { LexicalComposer } from "lexical-vue/LexicalComposer";
 import { ContentEditable } from "lexical-vue/LexicalContentEditable";
 import { HistoryPlugin } from "lexical-vue/LexicalHistoryPlugin";
@@ -19,7 +19,7 @@ import { Button } from "~/components/ui/button";
 import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
 import CodeHighlightPlugin from "./code-highlight-plugin.vue";
 import ComposerToolbar from "./composer-toolbar.vue";
-import { MentionNode } from "./mention-node";
+import { $isMentionNode, MentionNode } from "./mention-node";
 import MentionsPlugin from "./mentions-plugin.vue";
 
 interface MemberInfo {
@@ -85,11 +85,26 @@ const initialConfig = {
   ],
 };
 
+function serializeContent(): string {
+  let result = "";
+  const root = $getRoot();
+  for (const child of root.getChildren()) {
+    for (const node of child.getChildren()) {
+      if ($isMentionNode(node)) {
+        const trigger = node.__mentionType === "channel" ? "#" : "@";
+        result += trigger + node.__mentionName;
+      } else if ($isTextNode(node)) {
+        result += node.getTextContent();
+      }
+    }
+    result += "\n";
+  }
+  return result.trim();
+}
+
 function onChange(editorState?: any, editor?: any) {
   editorRef.value = editor as LexicalEditor;
-  const text = (editorState as any).read
-    ? (editorState as any).read(() => $getRoot().getTextContent())
-    : "";
+  const text = (editorState as any).read ? (editorState as any).read(() => serializeContent()) : "";
   contentText.value = text;
   if (contentText.value.trim()) {
     emit("typing");
@@ -117,6 +132,13 @@ function cancelEdit() {
     $getRoot().clear();
   });
   emit("cancelEdit");
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
 }
 
 function toggleRichMode() {
@@ -225,7 +247,7 @@ watch(
         <ComposerToolbar v-if="isRichMode" @send="send" />
         <RichTextPlugin>
           <template #contentEditable>
-            <div class="relative">
+            <div class="relative" @keydown="handleKeydown">
               <ContentEditable
                 class="relative max-h-[128px] min-h-[36px] scrollbar-thin overflow-y-auto px-3 py-2.5 outline-none focus:outline-none"
               >
