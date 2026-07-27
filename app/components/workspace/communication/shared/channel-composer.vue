@@ -19,7 +19,7 @@ import { Button } from "~/components/ui/button";
 import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
 import CodeHighlightPlugin from "./code-highlight-plugin.vue";
 import ComposerToolbar from "./composer-toolbar.vue";
-import { $isMentionNode, MentionNode } from "./mention-node";
+import { $createMentionNode, $isMentionNode, MentionNode } from "./mention-node";
 import MentionsPlugin from "./mentions-plugin.vue";
 
 interface MemberInfo {
@@ -85,7 +85,25 @@ const initialConfig = {
   ],
 };
 
-function serializeContent(): string {
+const LEXICAL_V1_PREFIX = "LEXICAL_V1:";
+
+function $hasRichFormatting(): boolean {
+  const root = $getRoot();
+  for (const child of root.getChildren()) {
+    for (const node of child.getChildren()) {
+      if ($isMentionNode(node)) continue;
+      if ($isTextNode(node)) {
+        if (node.getFormat() !== 0) return true;
+        if (node.__style) return true;
+      } else {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function serializePlain(): string {
   let result = "";
   const root = $getRoot();
   for (const child of root.getChildren()) {
@@ -104,7 +122,14 @@ function serializeContent(): string {
 
 function onChange(editorState?: any, editor?: any) {
   editorRef.value = editor as LexicalEditor;
-  const text = (editorState as any).read ? (editorState as any).read(() => serializeContent()) : "";
+  if (!editorState?.read) {
+    contentText.value = "";
+    return;
+  }
+  const hasRich = editorState.read(() => $hasRichFormatting());
+  const text = hasRich
+    ? LEXICAL_V1_PREFIX + JSON.stringify(editorState.toJSON())
+    : editorState.read(() => serializePlain());
   contentText.value = text;
   if (contentText.value.trim()) {
     emit("typing");
@@ -145,46 +170,63 @@ function toggleRichMode() {
   isRichMode.value = !isRichMode.value;
 }
 
+function cursorAtEnd(editor: LexicalEditor) {
+  editor.update(() => {
+    const last = $getRoot().getLastDescendant();
+    if (last) last.selectEnd();
+  });
+}
+
+function loadLexicalContent(editor: LexicalEditor, content: string) {
+  const jsonStr = content.startsWith(LEXICAL_V1_PREFIX)
+    ? content.slice(LEXICAL_V1_PREFIX.length)
+    : content;
+  try {
+    const parsed = JSON.parse(jsonStr);
+    const editorState = editor.parseEditorState(parsed);
+    editor.setEditorState(editorState);
+    nextTick(() => cursorAtEnd(editor));
+  } catch {
+    loadLegacyContent(editor, content);
+  }
+}
+
+function loadLegacyContent(editor: LexicalEditor, content: string) {
+  editor.update(() => {
+    $getRoot().clear();
+    const paragraph = $createParagraphNode();
+    const re = /([@#])\[([^\]]+)\]([\w\u00C0-\u024F\s]+)\u200B/g;
+    let lastIndex = 0;
+    let match = re.exec(content);
+    while (match !== null) {
+      if (match.index > lastIndex) {
+        paragraph.append($createTextNode(content.slice(lastIndex, match.index)));
+      }
+      const isChannel = match[1] === "#";
+      const id = match[2];
+      const name = match[3];
+      const mn = $createMentionNode(isChannel ? "channel" : "user", name, id);
+      paragraph.append(mn);
+      lastIndex = match.index + match[0].length;
+      match = re.exec(content);
+    }
+    if (lastIndex < content.length) {
+      paragraph.append($createTextNode(content.slice(lastIndex)));
+    }
+    $getRoot().append(paragraph);
+  });
+  nextTick(() => cursorAtEnd(editor));
+}
+
 watch(
   [() => props.editingContent, () => props.editingMessageId, editorRef],
   ([content, msgId, editor]) => {
     if (content && msgId && editor) {
-      editor.update(() => {
-        $getRoot().clear();
-        const paragraph = $createParagraphNode();
-        const re = /(@[\w\u00C0-\u024F]+(?:\s[\w\u00C0-\u024F]+)*|#[\w-]+)/g;
-        let lastIndex = 0;
-        let match: RegExpExecArray | null;
-        const membersByName = new Map<string, string>();
-        if (props.members) {
-          for (const [mid, minfo] of props.members) {
-            const key = minfo.name.toLowerCase();
-            if (!membersByName.has(key)) membersByName.set(key, mid);
-          }
-        }
-        match = re.exec(content);
-        while (match !== null) {
-          if (match.index > lastIndex) {
-            paragraph.append($createTextNode(content.slice(lastIndex, match.index)));
-          }
-          const raw = match[1];
-          const isChannel = raw.startsWith("#");
-          const name = raw.slice(1);
-          const id = isChannel ? "" : (membersByName.get(name.toLowerCase()) ?? "");
-          if (id) {
-            const mn = $createMentionNode("user", name, id);
-            paragraph.append(mn);
-          } else {
-            paragraph.append($createTextNode(raw));
-          }
-          lastIndex = match.index + raw.length;
-          match = re.exec(content);
-        }
-        if (lastIndex < content.length) {
-          paragraph.append($createTextNode(content.slice(lastIndex)));
-        }
-        $getRoot().append(paragraph);
-      });
+      if (content.startsWith(LEXICAL_V1_PREFIX)) {
+        loadLexicalContent(editor, content);
+      } else {
+        loadLegacyContent(editor, content);
+      }
       nextTick(() => editor.focus());
     }
   },
@@ -239,80 +281,94 @@ watch(
       </button>
     </div>
 
-    <div
-      class="overflow-hidden rounded-lg border focus-within:ring-1 focus-within:ring-ring"
-      :class="[editingMessageId || replyingTo ? 'rounded-t-none' : '']"
-    >
-      <LexicalComposer :initial-config="initialConfig">
-        <ComposerToolbar v-if="isRichMode" @send="send" />
-        <RichTextPlugin>
-          <template #contentEditable>
-            <div class="relative" @keydown="handleKeydown">
-              <ContentEditable
-                class="relative max-h-[128px] min-h-[36px] scrollbar-thin overflow-y-auto px-3 py-2.5 outline-none focus:outline-none"
-              >
-                <template #placeholder>
-                  <span
-                    class="pointer-events-none absolute inset-0 px-3 py-2.5 text-sm text-muted-foreground select-none"
-                  >
-                    {{ placeholder ?? (editingMessageId ? "Edit message..." : "Message #general") }}
-                  </span>
-                </template>
-              </ContentEditable>
+    <ClientOnly>
+      <div
+        class="overflow-hidden rounded-lg border focus-within:ring-1 focus-within:ring-ring"
+        :class="[editingMessageId || replyingTo ? 'rounded-t-none' : '']"
+      >
+        <LexicalComposer :initial-config="initialConfig">
+          <ComposerToolbar v-if="isRichMode" @send="send" />
+          <RichTextPlugin>
+            <template #contentEditable>
+              <div class="relative" @keydown="handleKeydown">
+                <ContentEditable
+                  class="relative max-h-[128px] min-h-[36px] scrollbar-thin overflow-y-auto px-3 py-2.5 outline-none focus:outline-none"
+                >
+                  <template #placeholder>
+                    <span
+                      class="pointer-events-none absolute inset-0 px-3 py-2.5 text-sm text-muted-foreground select-none"
+                    >
+                      {{
+                        placeholder ?? (editingMessageId ? "Edit message..." : "Message #general")
+                      }}
+                    </span>
+                  </template>
+                </ContentEditable>
+              </div>
+            </template>
+          </RichTextPlugin>
+          <HistoryPlugin />
+          <ListPlugin v-if="isRichMode" />
+          <LinkPlugin v-if="isRichMode" />
+          <MarkdownShortcutPlugin
+            v-if="isRichMode"
+            :transformers="[...ELEMENT_TRANSFORMERS, ...TEXT_FORMAT_TRANSFORMERS]"
+          />
+          <OnChangePlugin @change="onChange" />
+          <CodeHighlightPlugin :enabled="isRichMode" />
+          <MentionsPlugin
+            v-if="!disableMentions"
+            :members="members"
+            :current-member-id="currentMemberId ?? ''"
+            :channels="channels"
+          />
+          <div class="flex items-center justify-between px-2 pt-1 pb-2">
+            <div class="flex items-center gap-1">
+              <ActionTooltip :label="isRichMode ? 'Plain text' : 'Formatting'" side="top">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  :class="{ 'bg-accent text-accent-foreground': isRichMode }"
+                  @click="toggleRichMode"
+                >
+                  <Icon name="lucide:sigma" size="16" />
+                </Button>
+              </ActionTooltip>
+              <ActionTooltip label="Add reaction" side="top">
+                <Button variant="ghost" size="icon-xs">
+                  <Icon name="lucide:smile-plus" size="16" />
+                </Button>
+              </ActionTooltip>
+              <ActionTooltip label="Attach file" side="top">
+                <Button variant="ghost" size="icon-xs">
+                  <Icon name="lucide:paperclip" size="16" />
+                </Button>
+              </ActionTooltip>
+              <ActionTooltip label="Record audio" side="top">
+                <Button variant="ghost" size="icon-xs">
+                  <Icon name="lucide:mic" size="16" />
+                </Button>
+              </ActionTooltip>
             </div>
-          </template>
-        </RichTextPlugin>
-        <HistoryPlugin />
-        <ListPlugin v-if="isRichMode" />
-        <LinkPlugin v-if="isRichMode" />
-        <MarkdownShortcutPlugin
-          v-if="isRichMode"
-          :transformers="[...ELEMENT_TRANSFORMERS, ...TEXT_FORMAT_TRANSFORMERS]"
-        />
-        <OnChangePlugin @change="onChange" />
-        <CodeHighlightPlugin :enabled="isRichMode" />
-        <MentionsPlugin
-          v-if="!disableMentions"
-          :members="members"
-          :current-member-id="currentMemberId ?? ''"
-          :channels="channels"
-        />
-        <div class="flex items-center justify-between px-2 pt-1 pb-2">
-          <div class="flex items-center gap-1">
-            <ActionTooltip :label="isRichMode ? 'Plain text' : 'Formatting'" side="top">
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                :class="{ 'bg-accent text-accent-foreground': isRichMode }"
-                @click="toggleRichMode"
-              >
-                <Icon name="lucide:sigma" size="16" />
-              </Button>
-            </ActionTooltip>
-            <ActionTooltip label="Add reaction" side="top">
-              <Button variant="ghost" size="icon-xs">
-                <Icon name="lucide:smile-plus" size="16" />
-              </Button>
-            </ActionTooltip>
-            <ActionTooltip label="Attach file" side="top">
-              <Button variant="ghost" size="icon-xs">
-                <Icon name="lucide:paperclip" size="16" />
-              </Button>
-            </ActionTooltip>
-            <ActionTooltip label="Record audio" side="top">
-              <Button variant="ghost" size="icon-xs">
-                <Icon name="lucide:mic" size="16" />
+            <ActionTooltip label="Send message" side="top">
+              <Button size="icon-xs" @click="send">
+                <Icon name="lucide:send" size="14" />
               </Button>
             </ActionTooltip>
           </div>
-          <ActionTooltip label="Send message" side="top">
-            <Button size="icon-xs" @click="send">
-              <Icon name="lucide:send" size="14" />
-            </Button>
-          </ActionTooltip>
+        </LexicalComposer>
+      </div>
+      <template #fallback>
+        <div
+          class="overflow-hidden rounded-lg border"
+          :class="[editingMessageId || replyingTo ? 'rounded-t-none' : '']"
+        >
+          <div class="h-[36px] px-3 py-2.5 text-sm text-muted-foreground">
+            {{ placeholder ?? (editingMessageId ? "Edit message..." : "Message #general") }}
+          </div>
         </div>
-      </LexicalComposer>
-    </div>
+      </template>
+    </ClientOnly>
   </div>
 </template>
 

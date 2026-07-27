@@ -82,7 +82,7 @@ export function $createMentionNode(
   mentionName: string,
   targetId: string,
 ): MentionNode {
-  const node = new MentionNode(type, mentionName, targetId);
+  const node = new MentionNode(type, mentionName, targetId, mentionName);
   node.setMode("segmented");
   return node;
 }

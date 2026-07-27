@@ -90,6 +90,8 @@ const {
   typingNames: _typingNamesChannel,
 } = useTypingIndicator();
 
+const typingNames = _typingNamesChannel(channelId);
+
 const channelSubRef = ref<{ unsubscribe: () => void } | null>(null);
 const allChannelsSubRef = ref<{ unsubscribe: () => void } | null>(null);
 
@@ -571,6 +573,12 @@ useSeoMeta({
         @delete="onDelete"
         @load-older="onLoadOlder"
       />
+      <div v-if="typingNames.length > 0" class="shrink-0 px-4 py-1 text-xs text-muted-foreground">
+        {{ typingNames.join(", ") }}
+        {{ typingNames.length === 1 ? "is" : "are" }} typing<span class="typing-dots"
+          ><span>.</span><span>.</span><span>.</span></span
+        >
+      </div>
       <ChannelComposer
         :editing-message-id="editingMessageId"
         :editing-content="editingContent"
@@ -584,3 +592,26 @@ useSeoMeta({
     </NuxtLayout>
   </NuxtLayout>
 </template>
+
+<style scoped>
+.typing-dots span {
+  animation: typing-dot 1.4s infinite both;
+}
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes typing-dot {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+</style>

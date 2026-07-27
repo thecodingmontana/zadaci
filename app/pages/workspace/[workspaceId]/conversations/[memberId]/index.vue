@@ -19,11 +19,12 @@ definePageMeta({
 
 const route = useRoute();
 const workspaceId = route.params.workspaceId as string;
-const targetUserId = route.params.memberId as string;
+const rawMemberId = route.params.memberId as string;
+const targetUserId = ref(rawMemberId);
 
 const { user: authUser } = useUserSession();
 
-const isSelfChat = computed(() => authUser.value?.id === targetUserId);
+const isSelfChat = computed(() => authUser.value?.id === targetUserId.value);
 
 interface MemberInfo {
   name: string;
@@ -197,6 +198,27 @@ const {
   typingNames: _typingNamesDM,
 } = useTypingIndicator();
 
+const typingNames = ref<string[]>([]);
+watch(
+  conversationId,
+  (id, _oldId, onCleanup) => {
+    if (!id) {
+      typingNames.value = [];
+      return;
+    }
+    const namesRef = _typingNamesDM(id);
+    const stop = watch(
+      namesRef,
+      (names) => {
+        typingNames.value = names;
+      },
+      { immediate: true },
+    );
+    onCleanup(stop);
+  },
+  { immediate: true },
+);
+
 const membersMap = computed(() => {
   if (!members.value) return new Map<string, MemberInfo>();
   const map = new Map<string, MemberInfo>();
@@ -305,7 +327,7 @@ async function findOrCreateDmConversation(): Promise<string> {
     const data: any = await $fetch("/api/conversations/dm", {
       query: {
         workspace_id: workspaceId,
-        targetUserId,
+        targetUserId: targetUserId.value,
       },
     });
     return data.conversationId as string;
@@ -390,7 +412,14 @@ watch(
     if (!val || !authUser.value?.id) return;
     const me = val.find((m: any) => m.userId === authUser.value!.id);
     if (me) currentMemberId.value = me.id;
-    const other = val.find((m: any) => m.userId === targetUserId);
+    let other = val.find((m: any) => m.userId === targetUserId.value);
+    if (!other) {
+      const byMember = val.find((m: any) => m.id === targetUserId.value);
+      if (byMember) {
+        targetUserId.value = byMember.userId;
+        other = byMember;
+      }
+    }
     if (other) targetMember.value = other;
   },
   { immediate: true },
@@ -617,6 +646,12 @@ useSeoMeta({
           @delete="onDelete"
           @load-older="onLoadOlder"
         />
+        <div v-if="typingNames.length > 0" class="shrink-0 px-4 py-1 text-xs text-muted-foreground">
+          {{ typingNames.join(", ") }}
+          {{ typingNames.length === 1 ? "is" : "are" }} typing<span class="typing-dots"
+            ><span>.</span><span>.</span><span>.</span></span
+          >
+        </div>
         <ChannelComposer
           :editing-message-id="editingMessageId"
           :editing-content="editingContent"
@@ -632,3 +667,26 @@ useSeoMeta({
     </div>
   </NuxtLayout>
 </template>
+
+<style scoped>
+.typing-dots span {
+  animation: typing-dot 1.4s infinite both;
+}
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes typing-dot {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+</style>

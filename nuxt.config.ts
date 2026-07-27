@@ -81,7 +81,16 @@ export default defineNuxtConfig({
     "@vercel/analytics",
     "nuxt-schema-org",
     "nuxt-emoji-picker",
+    "nuxt-shiki",
   ],
+  shiki: {
+    highlight: {
+      themes: {
+        light: "vitesse-light",
+        dark: "vitesse-dark",
+      },
+    },
+  },
   eslint: {
     config: {
       standalone: false,

@@ -19,6 +19,7 @@ const isBold = ref(false);
 const isItalic = ref(false);
 const isUnderline = ref(false);
 const isStrikethrough = ref(false);
+const isCode = ref(false);
 
 const unregisterListener = editor.registerUpdateListener(
   ({ editorState }: { editorState: any }) => {
@@ -29,6 +30,7 @@ const unregisterListener = editor.registerUpdateListener(
         isItalic.value = selection.hasFormat("italic");
         isUnderline.value = selection.hasFormat("underline");
         isStrikethrough.value = selection.hasFormat("strikethrough");
+        isCode.value = selection.hasFormat("code");
       }
     });
   },
@@ -38,7 +40,7 @@ onUnmounted(() => {
   unregisterListener();
 });
 
-function toggleFormat(format: "bold" | "italic" | "underline" | "strikethrough") {
+function toggleFormat(format: "bold" | "italic" | "underline" | "strikethrough" | "code") {
   editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
 }
 
@@ -140,6 +142,16 @@ function insertCodeBlock() {
         <Icon name="lucide:strikethrough" size="14" />
       </Button>
     </ActionTooltip>
+    <ActionTooltip label="Inline code" side="top">
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        :class="{ 'bg-accent text-accent-foreground': isCode }"
+        @click="toggleFormat('code')"
+      >
+        <Icon name="lucide:code" size="14" />
+      </Button>
+    </ActionTooltip>
     <span class="mx-1 h-4 w-px bg-border" />
     <ActionTooltip label="Ordered list" side="top">
       <Button variant="ghost" size="icon-xs" @click="insertList('ordered')">
@@ -157,9 +169,9 @@ function insertCodeBlock() {
         <Icon name="lucide:quote" size="14" />
       </Button>
     </ActionTooltip>
-    <ActionTooltip label="Code" side="top">
+    <ActionTooltip label="Code block" side="top">
       <Button variant="ghost" size="icon-xs" @click="insertCodeBlock">
-        <Icon name="lucide:code" size="14" />
+        <Icon name="lucide:file-code-2" size="14" />
       </Button>
     </ActionTooltip>
     <ActionTooltip label="Link" side="top">
