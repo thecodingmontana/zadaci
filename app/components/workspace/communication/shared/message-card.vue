@@ -25,6 +25,7 @@ const props = defineProps<{
   isOwn: boolean;
   currentMemberId: string;
   members?: Map<string, MemberInfo>;
+  channels?: Map<string, { name: string }>;
   showThreadEntry?: boolean;
   hideThreadReply?: boolean;
   deliveryStatus?: "sending" | "sent" | "delivered" | "seen";
@@ -119,15 +120,41 @@ const contentSegments = computed<ContentSegment[]>(() => {
   return segments;
 });
 
+const memberByName = computed(() => {
+  if (!props.members) return new Map<string, string>();
+  const map = new Map<string, string>();
+  for (const [id, info] of props.members) {
+    const key = info.name.toLowerCase();
+    if (!map.has(key)) map.set(key, id);
+  }
+  return map;
+});
+
+const channelByName = computed(() => {
+  if (!props.channels) return new Map<string, string>();
+  const map = new Map<string, string>();
+  for (const [id, info] of props.channels) {
+    map.set(info.name.toLowerCase(), id);
+  }
+  return map;
+});
+
 function navigateMention(segment: ContentSegment) {
+  const name = segment.mentionName ?? "";
   if (segment.mentionType === "user") {
-    navigateTo(
-      `/workspace/${workspaceId.value}/members?search=${encodeURIComponent(segment.mentionName ?? "")}`,
-    );
+    const memberId = memberByName.value.get(name.toLowerCase());
+    if (memberId) {
+      navigateTo(`/workspace/${workspaceId.value}/conversations/${memberId}`);
+    } else {
+      navigateTo(`/workspace/${workspaceId.value}/members?search=${encodeURIComponent(name)}`);
+    }
   } else {
-    navigateTo(
-      `/workspace/${workspaceId.value}/channels?search=${encodeURIComponent(segment.mentionName ?? "")}`,
-    );
+    const channelId = channelByName.value.get(name.toLowerCase());
+    if (channelId) {
+      navigateTo(`/workspace/${workspaceId.value}/channels/${channelId}`);
+    } else {
+      navigateTo(`/workspace/${workspaceId.value}/channels?search=${encodeURIComponent(name)}`);
+    }
   }
 }
 </script>

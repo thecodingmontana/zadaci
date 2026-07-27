@@ -564,6 +564,7 @@ useSeoMeta({
         :error="hasError"
         :message-statuses="messageStatuses"
         :members="membersMap"
+        :channels="channelsMap"
         @toggle-reaction="onToggleReaction"
         @open-thread="onOpenThread"
         @start-edit="onEditMessageFromBubble"

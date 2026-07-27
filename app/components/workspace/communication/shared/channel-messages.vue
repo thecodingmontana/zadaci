@@ -27,6 +27,7 @@ const props = defineProps<{
   hasMoreHistory?: boolean;
   messageStatuses?: Map<string, "sending" | "sent" | "delivered" | "seen">;
   members?: Map<string, MemberInfo>;
+  channels?: Map<string, { name: string }>;
   /** Names currently typing. Display-only for now — no live wiring yet. */
   typingUsers?: string[];
 }>();
@@ -259,6 +260,7 @@ const typingLabel = computed(() => {
                 :is-own="isOwn(message.authorId)"
                 :current-member-id="currentMemberId"
                 :members="props.members"
+                :channels="props.channels"
                 :show-thread-entry="props.showThreadEntry ?? true"
                 :hide-thread-reply="props.hideThreadReply ?? false"
                 :delivery-status="props.messageStatuses?.get(message.id)"

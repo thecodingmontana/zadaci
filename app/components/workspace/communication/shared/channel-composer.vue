@@ -127,7 +127,37 @@ watch(
       editor.update(() => {
         $getRoot().clear();
         const paragraph = $createParagraphNode();
-        paragraph.append($createTextNode(content));
+        const re = /(@[\w\u00C0-\u024F]+(?:\s[\w\u00C0-\u024F]+)*|#[\w-]+)/g;
+        let lastIndex = 0;
+        let match: RegExpExecArray | null;
+        const membersByName = new Map<string, string>();
+        if (props.members) {
+          for (const [mid, minfo] of props.members) {
+            const key = minfo.name.toLowerCase();
+            if (!membersByName.has(key)) membersByName.set(key, mid);
+          }
+        }
+        match = re.exec(content);
+        while (match !== null) {
+          if (match.index > lastIndex) {
+            paragraph.append($createTextNode(content.slice(lastIndex, match.index)));
+          }
+          const raw = match[1];
+          const isChannel = raw.startsWith("#");
+          const name = raw.slice(1);
+          const id = isChannel ? "" : (membersByName.get(name.toLowerCase()) ?? "");
+          if (id) {
+            const mn = $createMentionNode("user", name, id);
+            paragraph.append(mn);
+          } else {
+            paragraph.append($createTextNode(raw));
+          }
+          lastIndex = match.index + raw.length;
+          match = re.exec(content);
+        }
+        if (lastIndex < content.length) {
+          paragraph.append($createTextNode(content.slice(lastIndex)));
+        }
         $getRoot().append(paragraph);
       });
       nextTick(() => editor.focus());

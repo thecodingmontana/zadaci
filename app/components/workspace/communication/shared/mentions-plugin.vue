@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import type { MentionType } from "./mention-node";
-import { $createTextNode, $getSelection, $isRangeSelection, $isTextNode } from "lexical";
+import {
+  $createTextNode,
+  $getNodeByKey,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+} from "lexical";
 import { useLexicalComposer } from "lexical-vue/LexicalComposer";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import {
@@ -25,6 +31,11 @@ const props = withDefaults(
 
 const MENTION_TRIGGER = /(^|\s)(@|#)(\w*)$/;
 
+interface CursorState {
+  nodeKey: string;
+  offset: number;
+}
+
 interface Suggestion {
   id: string;
   name: string;
@@ -37,6 +48,7 @@ const isOpen = ref(false);
 const query = ref("");
 const triggerChar = ref<"@" | "#">("@");
 const anchorRect = ref<DOMRect | null>(null);
+const cursorState = ref<CursorState | null>(null);
 
 const memberList = computed<Suggestion[]>(() => {
   if (!props.members) return [];
@@ -82,32 +94,26 @@ function checkForMentionTrigger() {
   editor.getEditorState().read(() => {
     const selection = $getSelection();
     if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-      isOpen.value = false;
       return;
     }
     const anchorNode = selection.anchor.getNode();
     if (!$isTextNode(anchorNode)) {
-      isOpen.value = false;
       return;
     }
     const textBeforeCursor = anchorNode.getTextContent().slice(0, selection.anchor.offset);
     const match = MENTION_TRIGGER.exec(textBeforeCursor);
     if (match) {
       const char = match[2] as "@" | "#";
-      if (char === "#" && !channelList.value.length) {
-        isOpen.value = false;
-        return;
-      }
+      if (char === "#" && !channelList.value.length) return;
       triggerChar.value = char;
       query.value = match[3];
+      cursorState.value = { nodeKey: anchorNode.__key, offset: selection.anchor.offset };
       isOpen.value = true;
       const domSelection = window.getSelection();
       if (domSelection && domSelection.rangeCount > 0) {
         const range = domSelection.getRangeAt(0).cloneRange();
         anchorRect.value = range.getBoundingClientRect();
       }
-    } else {
-      isOpen.value = false;
     }
   });
 }
@@ -120,17 +126,25 @@ onUnmounted(() => {
   unregisterListener();
 });
 
+function close() {
+  isOpen.value = false;
+  cursorState.value = null;
+}
+
 function insertMention(suggestion: Suggestion) {
+  const state = cursorState.value;
+  if (!state) {
+    close();
+    return;
+  }
   editor.update(() => {
-    const selection = $getSelection();
-    if (!$isRangeSelection(selection)) return;
-    const anchorNode = selection.anchor.getNode();
+    const anchorNode = $getNodeByKey(state.nodeKey);
     if (!$isTextNode(anchorNode)) return;
     const textContent = anchorNode.getTextContent();
-    const match = MENTION_TRIGGER.exec(textContent.slice(0, selection.anchor.offset));
+    const match = MENTION_TRIGGER.exec(textContent.slice(0, state.offset));
     if (!match) return;
-    const mentionStartOffset = selection.anchor.offset - match[0].length + match[1].length;
-    const splitNodes = anchorNode.splitText(mentionStartOffset, selection.anchor.offset);
+    const mentionStartOffset = state.offset - match[0].length + match[1].length;
+    const splitNodes = anchorNode.splitText(mentionStartOffset, state.offset);
     const mentionText = splitNodes[1];
     if (!$isTextNode(mentionText)) return;
     const trigger = match[2] === "#" ? "#" : "@";
@@ -141,8 +155,7 @@ function insertMention(suggestion: Suggestion) {
     mentionNode.insertAfter($createTextNode(" "));
     mentionNode.selectNext();
   });
-  isOpen.value = false;
-  query.value = "";
+  close();
 }
 </script>
 
