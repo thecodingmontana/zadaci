@@ -179,8 +179,15 @@ function insertMention(suggestion: Suggestion) {
     <PopoverTrigger as-child>
       <div :style="anchorStyle" />
     </PopoverTrigger>
-    <PopoverContent class="w-64 p-0" align="start">
-      <Command>
+    <PopoverContent class="w-72 p-0" align="start">
+      <Command class="relative">
+        <button
+          type="button"
+          class="absolute top-1 right-1 z-10 rounded-sm p-1 text-muted-foreground hover:text-foreground"
+          @click.stop="close"
+        >
+          <Icon name="lucide:x" size="14" />
+        </button>
         <CommandInput :model-value="query" placeholder="Search..." />
         <CommandList>
           <CommandEmpty>No results found</CommandEmpty>

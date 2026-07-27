@@ -6,7 +6,7 @@ export type MentionType = "user" | "channel";
 export class MentionNode extends TextNode {
   __mentionName: string;
   __targetId: string;
-  __type: MentionType;
+  __mentionType: MentionType;
 
   static override getType(): string {
     return "mention";
@@ -14,7 +14,7 @@ export class MentionNode extends TextNode {
 
   static override clone(node: MentionNode): MentionNode {
     return new MentionNode(
-      node.__type,
+      node.__mentionType,
       node.__mentionName,
       node.__targetId,
       node.__text,
@@ -23,14 +23,14 @@ export class MentionNode extends TextNode {
   }
 
   constructor(
-    type: MentionType,
+    mentionType: MentionType,
     mentionName: string,
     targetId: string,
     text?: string,
     key?: NodeKey,
   ) {
     super(text ?? `@${mentionName}`, key);
-    this.__type = type;
+    this.__mentionType = mentionType;
     this.__mentionName = mentionName;
     this.__targetId = targetId;
   }
@@ -39,7 +39,7 @@ export class MentionNode extends TextNode {
     const dom = super.createDOM(config);
     dom.className = "mention-pill text-brand cursor-pointer";
     dom.dataset.targetId = this.__targetId;
-    dom.dataset.targetType = this.__type;
+    dom.dataset.targetType = this.__mentionType;
     return dom;
   }
 
@@ -51,11 +51,11 @@ export class MentionNode extends TextNode {
     serializedNode: SerializedTextNode & {
       mentionName: string;
       targetId: string;
-      type: MentionType;
+      targetType: MentionType;
     },
   ): MentionNode {
     return $createMentionNode(
-      serializedNode.type,
+      serializedNode.targetType,
       serializedNode.mentionName,
       serializedNode.targetId,
     );
@@ -66,7 +66,7 @@ export class MentionNode extends TextNode {
       ...super.exportJSON(),
       mentionName: this.__mentionName,
       targetId: this.__targetId,
-      targetType: this.__type,
+      targetType: this.__mentionType,
       type: "mention",
       version: 1,
     };
