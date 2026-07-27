@@ -12,7 +12,7 @@ interface ContentSegment {
   text: string;
   isMention: boolean;
   mentionType?: "user" | "channel";
-  mentionName?: string;
+  targetId?: string;
 }
 
 interface MemberInfo {
@@ -97,7 +97,7 @@ const contentSegments = computed<ContentSegment[]>(() => {
   if (!content) return [];
   const segments: ContentSegment[] = [];
   let lastIndex = 0;
-  const re = /[@#]([\w\u00C0-\u024F\s]+)\u200B/g;
+  const re = /[@#]\[([^\]]+)\]([\w\u00C0-\u024F\s]+)\u200B/g;
   let match = re.exec(content);
   while (match !== null) {
     if (match.index > lastIndex) {
@@ -106,10 +106,10 @@ const contentSegments = computed<ContentSegment[]>(() => {
     const raw = content[match.index];
     const isChannel = raw === "#";
     segments.push({
-      text: match[1],
+      text: match[2],
       isMention: true,
       mentionType: isChannel ? "channel" : "user",
-      mentionName: match[1],
+      targetId: match[1],
     });
     lastIndex = match.index + match[0].length;
     match = re.exec(content);
@@ -120,37 +120,12 @@ const contentSegments = computed<ContentSegment[]>(() => {
   return segments;
 });
 
-const memberByName = computed(() => {
-  if (!props.members) return new Map<string, string>();
-  const map = new Map<string, string>();
-  for (const [id, info] of props.members) {
-    const key = info.name.toLowerCase();
-    if (!map.has(key)) map.set(key, id);
-  }
-  return map;
-});
-
-const channelByName = computed(() => {
-  if (!props.channels) return new Map<string, string>();
-  const map = new Map<string, string>();
-  for (const [id, info] of props.channels) {
-    map.set(info.name.toLowerCase(), id);
-  }
-  return map;
-});
-
 function mentionLink(segment: ContentSegment): string {
-  const name = segment.mentionName ?? "";
+  const base = `/workspace/${workspaceId.value}`;
   if (segment.mentionType === "user") {
-    const memberId = memberByName.value.get(name.toLowerCase());
-    return memberId
-      ? `/workspace/${workspaceId.value}/conversations/${memberId}`
-      : `/workspace/${workspaceId.value}/members?search=${encodeURIComponent(name)}`;
+    return `${base}/conversations/${segment.targetId}`;
   }
-  const channelId = channelByName.value.get(name.toLowerCase());
-  return channelId
-    ? `/workspace/${workspaceId.value}/channels/${channelId}`
-    : `/workspace/${workspaceId.value}/channels?search=${encodeURIComponent(name)}`;
+  return `${base}/channels/${segment.targetId}`;
 }
 </script>
 
