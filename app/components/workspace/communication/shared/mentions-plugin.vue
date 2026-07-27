@@ -98,7 +98,6 @@ function checkForMentionTrigger() {
     }
     const anchorNode = selection.anchor.getNode();
     if (!$isTextNode(anchorNode)) {
-      console.log("[mentions] anchor not text node", anchorNode.__type);
       return;
     }
     const textBeforeCursor = anchorNode.getTextContent().slice(0, selection.anchor.offset);
@@ -106,12 +105,6 @@ function checkForMentionTrigger() {
     if (match) {
       const char = match[2] as "@" | "#";
       if (char === "#" && !channelList.value.length) return;
-      console.log("[mentions] trigger detected", {
-        char,
-        query: match[3],
-        nodeKey: anchorNode.__key,
-        offset: selection.anchor.offset,
-      });
       triggerChar.value = char;
       query.value = match[3];
       cursorState.value = { nodeKey: anchorNode.__key, offset: selection.anchor.offset };
@@ -139,73 +132,36 @@ function close() {
 }
 
 function insertMention(suggestion: Suggestion) {
-  console.log("[mentions] insertMention called", suggestion.name);
   close();
   editor.update(() => {
     let nodeKey: string | null = null;
     let offset = 0;
     const sel = $getSelection();
-    console.log("[mentions] inside update, selection:", sel?.__type ?? "null");
     if ($isRangeSelection(sel)) {
       const n = sel.anchor.getNode();
-      console.log("[mentions] selection anchor node", {
-        key: n.__key,
-        type: n.__type,
-        text: n.__type === "text" ? (n as any).__text : "n/a",
-      });
       if ($isTextNode(n)) {
         nodeKey = n.__key;
         offset = sel.anchor.offset;
-        console.log("[mentions] using selection for nodeKey/offset", { nodeKey, offset });
       }
     } else if (cursorState.value) {
       nodeKey = cursorState.value.nodeKey;
       offset = cursorState.value.offset;
-      console.log("[mentions] using cursorState fallback", { nodeKey, offset });
-    } else {
-      console.log("[mentions] no selection and no cursorState, bailing");
     }
-    if (!nodeKey) {
-      console.log("[mentions] no nodeKey, aborting");
-      return;
-    }
+    if (!nodeKey) return;
     const anchorNode = $getNodeByKey(nodeKey);
-    console.log("[mentions] anchorNode from key", {
-      key: nodeKey,
-      found: !!anchorNode,
-      type: anchorNode?.__type,
-      text: anchorNode && anchorNode.__type === "text" ? (anchorNode as any).__text : "n/a",
-    });
-    if (!$isTextNode(anchorNode)) {
-      console.log("[mentions] anchorNode not text, aborting");
-      return;
-    }
-    const textContent = anchorNode.getTextContent();
-    console.log("[mentions] textContent", {
-      textContent,
-      offset,
-      slice: textContent.slice(0, offset),
-    });
-    const match = MENTION_TRIGGER.exec(textContent.slice(0, offset));
-    if (!match) {
-      console.log("[mentions] MENTION_TRIGGER regex did not match, aborting");
-      return;
-    }
-    console.log("[mentions] regex match", {
-      match,
-      mentionStartOffset: offset - match[0].length + match[1].length,
-    });
+    if (!$isTextNode(anchorNode)) return;
+    const match = MENTION_TRIGGER.exec(anchorNode.getTextContent().slice(0, offset));
+    if (!match) return;
     const mentionStartOffset = offset - match[0].length + match[1].length;
-    const splitNodes = anchorNode.splitText(mentionStartOffset, offset);
-    console.log("[mentions] splitNodes result", {
-      length: splitNodes.length,
-      texts: splitNodes.map((n) => (n.__type === "text" ? (n as any).__text : n.__type)),
-    });
-    const mentionText = splitNodes[1];
-    if (!$isTextNode(mentionText)) {
-      console.log("[mentions] splitNodes[1] not text node, aborting");
-      return;
+    let mentionText;
+    if (mentionStartOffset === 0) {
+      const splitNodes = anchorNode.splitText(offset);
+      mentionText = splitNodes[0];
+    } else {
+      const splitNodes = anchorNode.splitText(mentionStartOffset, offset);
+      mentionText = splitNodes[1];
     }
+    if (!$isTextNode(mentionText)) return;
     const trigger = match[2] === "#" ? "#" : "@";
     const mentionNode = $createMentionNode(suggestion.type, suggestion.name, suggestion.id);
     mentionText.replace(mentionNode);
@@ -213,7 +169,6 @@ function insertMention(suggestion: Suggestion) {
     mentionNode.insertBefore(prefix);
     mentionNode.insertAfter($createTextNode(" "));
     mentionNode.selectNext();
-    console.log("[mentions] mention inserted successfully");
   });
   cursorState.value = null;
 }
@@ -235,7 +190,6 @@ function insertMention(suggestion: Suggestion) {
               :key="`${s.type}-${s.id}`"
               :value="s.name"
               @select="insertMention(s)"
-              @click="console.log('[mentions] click event fired', s.name)"
             >
               <Avatar v-if="s.type === 'user'" class="mr-2 h-5 w-5">
                 <AvatarImage :src="s.avatar ?? ''" :alt="s.name" />
