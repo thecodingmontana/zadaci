@@ -132,19 +132,29 @@ function close() {
 }
 
 function insertMention(suggestion: Suggestion) {
-  const state = cursorState.value;
-  if (!state) {
-    close();
-    return;
-  }
+  close();
   editor.update(() => {
-    const anchorNode = $getNodeByKey(state.nodeKey);
+    let nodeKey: string | null = null;
+    let offset = 0;
+    const sel = $getSelection();
+    if ($isRangeSelection(sel)) {
+      const n = sel.anchor.getNode();
+      if ($isTextNode(n)) {
+        nodeKey = n.__key;
+        offset = sel.anchor.offset;
+      }
+    } else if (cursorState.value) {
+      nodeKey = cursorState.value.nodeKey;
+      offset = cursorState.value.offset;
+    }
+    if (!nodeKey) return;
+    const anchorNode = $getNodeByKey(nodeKey);
     if (!$isTextNode(anchorNode)) return;
     const textContent = anchorNode.getTextContent();
-    const match = MENTION_TRIGGER.exec(textContent.slice(0, state.offset));
+    const match = MENTION_TRIGGER.exec(textContent.slice(0, offset));
     if (!match) return;
-    const mentionStartOffset = state.offset - match[0].length + match[1].length;
-    const splitNodes = anchorNode.splitText(mentionStartOffset, state.offset);
+    const mentionStartOffset = offset - match[0].length + match[1].length;
+    const splitNodes = anchorNode.splitText(mentionStartOffset, offset);
     const mentionText = splitNodes[1];
     if (!$isTextNode(mentionText)) return;
     const trigger = match[2] === "#" ? "#" : "@";
@@ -155,7 +165,7 @@ function insertMention(suggestion: Suggestion) {
     mentionNode.insertAfter($createTextNode(" "));
     mentionNode.selectNext();
   });
-  close();
+  cursorState.value = null;
 }
 </script>
 
@@ -175,6 +185,7 @@ function insertMention(suggestion: Suggestion) {
               :key="`${s.type}-${s.id}`"
               :value="s.name"
               @select="insertMention(s)"
+              @pointerdown.prevent
             >
               <Avatar v-if="s.type === 'user'" class="mr-2 h-5 w-5">
                 <AvatarImage :src="s.avatar ?? ''" :alt="s.name" />

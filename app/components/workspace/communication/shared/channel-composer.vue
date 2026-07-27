@@ -113,6 +113,9 @@ function send() {
 
 function cancelEdit() {
   contentText.value = "";
+  editorRef.value?.update(() => {
+    $getRoot().clear();
+  });
   emit("cancelEdit");
 }
 
