@@ -2,7 +2,7 @@
   "name": "zadaci",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@11.13.1",
+  "packageManager": "pnpm@11.17.0",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -31,6 +31,7 @@
     "@faker-js/faker": "^10.5.0",
     "@hugeicons/core-free-icons": "^4.2.2",
     "@hugeicons/vue": "^1.0.7",
+    "@internationalized/date": "^3.12.2",
     "@lexical/code": "0.38.1",
     "@lexical/code-shiki": "0.38.1",
     "@lexical/hashtag": "0.38.1",

@@ -109,7 +109,8 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    let projectId: string | null = null;
+    let insertedProject: any = null;
+    const insertedMemberIds: string[] = [];
 
     await db.transaction(async (tx) => {
       const [project] = await tx
@@ -133,6 +134,8 @@ export default defineEventHandler(async (event) => {
         });
       }
 
+      insertedProject = project;
+
       if (members && members.length > 0) {
         const now = new Date();
         const newMembers = members.map((m) => ({
@@ -143,9 +146,8 @@ export default defineEventHandler(async (event) => {
         }));
 
         await tx.insert(tables.project_members).values(newMembers);
+        insertedMemberIds.push(...members.map((m) => m.member_id));
       }
-
-      projectId = project.id;
 
       const users = await tx.query.workspace_members.findMany({
         where: { id: { in: memberIds } },
@@ -180,8 +182,19 @@ export default defineEventHandler(async (event) => {
     });
 
     return {
-      message: "Project created successfully!",
-      projectId: projectId || null,
+      project: {
+        id: insertedProject.id,
+        workspace_id: insertedProject.workspace_id,
+        title: insertedProject.title,
+        description: insertedProject.description,
+        status: insertedProject.status,
+        priority: insertedProject.priority,
+        due_date: insertedProject.due_date ? insertedProject.due_date.toISOString() : null,
+        created_at: insertedProject.created_at.toISOString(),
+        updated_at: insertedProject.updated_at.toISOString(),
+        deleted_at: null,
+      },
+      members: insertedMemberIds,
     };
   } catch (error: any) {
     const errorMessage = error.error ? error.error.message : error.message;

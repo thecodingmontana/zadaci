@@ -4,6 +4,7 @@ import type { ProjectDocType, TaskDocType, TeamDocType } from "~/plugins/rxdb.cl
 import { Button } from "~/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 import { Skeleton } from "~/components/ui/skeleton";
+import { useModalStore } from "~/stores/use-modal-store";
 
 const route = useRoute();
 const workspaceId = computed(() => route.params.workspaceId as string);
@@ -94,6 +95,8 @@ const openSections = reactive<Record<string, boolean>>({
   teams: false,
 });
 
+const modalStore = useModalStore();
+
 const sectionItems = computed(() => ({
   tasks: tasks.value.filter((t) => !t.deleted_at).map((t) => ({ id: t.id, label: t.name })),
   projects: projects.value.filter((p) => !p.deleted_at).map((p) => ({ id: p.id, label: p.title })),
@@ -102,7 +105,10 @@ const sectionItems = computed(() => ({
 
 const handleAdd = (key: string, event: Event) => {
   event.stopPropagation();
-  console.log("add", key);
+  if (key === "projects") {
+    modalStore?.onOpen("addNewProject");
+    modalStore?.setIsOpen(true);
+  }
 };
 </script>
 
