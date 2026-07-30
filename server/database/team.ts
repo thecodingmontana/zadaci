@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, pgPolicy, varchar } from "drizzle-orm/pg-core";
-import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
+import { generateNanoId, pgTable, syncable } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
 export const team = pgTable(
@@ -34,7 +34,7 @@ export const team_members = pgTable(
     member_id: varchar("member_id", { length: 16 })
       .notNull()
       .references(() => workspace_members.id, { onDelete: "cascade" }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("team_members_team_id_idx").on(table.team_id),

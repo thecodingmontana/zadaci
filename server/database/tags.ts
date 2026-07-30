@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { index, pgPolicy, varchar } from "drizzle-orm/pg-core";
 import { project, task } from "./project";
-import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
+import { generateNanoId, pgTable, syncable } from "./utils";
 import { workspace } from "./workspace";
 
 export const tag = pgTable(
@@ -35,7 +35,7 @@ export const project_tags = pgTable(
     tag_id: varchar("tag_id", { length: 16 })
       .notNull()
       .references(() => tag.id, { onDelete: "cascade" }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("project_tags_project_id_idx").on(table.project_id),
@@ -56,7 +56,7 @@ export const task_tags = pgTable(
     tag_id: varchar("tag_id", { length: 16 })
       .notNull()
       .references(() => tag.id, { onDelete: "cascade" }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("task_tags_task_id_idx").on(table.task_id),

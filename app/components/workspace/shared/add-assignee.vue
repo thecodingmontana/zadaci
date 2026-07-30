@@ -26,6 +26,13 @@ const activeWorkspace = computed(() => workspaceStore?.activeWorkspace);
 
 const workspaceIdRef = computed(() => activeWorkspace.value?.id as string | undefined);
 const { data: workspaceMembers } = useWorkspaceMembers(workspaceIdRef);
+const { user } = useUserSession();
+
+const currentMemberId = computed(() => {
+  if (!user.value?.id || !workspaceMembers.value) return null;
+  const member = workspaceMembers.value.find((m) => m.userId === user.value!.id);
+  return member?.id ?? null;
+});
 
 const teammates = computed(() => {
   if (!workspaceMembers.value) return [];
@@ -85,7 +92,12 @@ const onSelectAssignee = (teammate: any) => {
                   <AvatarImage :src="teammate.avatar ?? undefined" :alt="teammate.username" />
                   <AvatarFallback>{{ (teammate.username[0] ?? "?").toUpperCase() }}</AvatarFallback>
                 </Avatar>
-                <span class="leading-none">{{ teammate.username }}</span>
+                <span class="leading-none">
+                  {{ teammate.username }}
+                  <span v-if="teammate.member_id === currentMemberId" class="text-muted-foreground"
+                    >(You)</span
+                  >
+                </span>
                 <Check
                   v-if="assignees.some((a) => a.member_id === teammate.member_id)"
                   :size="16"

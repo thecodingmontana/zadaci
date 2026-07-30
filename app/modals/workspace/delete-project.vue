@@ -16,11 +16,12 @@ import { useModalStore } from "~/stores/use-modal-store";
 const modalStore = useModalStore();
 
 const isModalOpen = computed(() => {
-  return modalStore?.type === "deleteChannel" && modalStore?.isOpen;
+  return modalStore?.type === "deleteProject" && modalStore?.isOpen;
 });
 
-const channelId = computed(() => modalStore?.data?.channelId);
-const channelName = computed(() => modalStore?.data?.channelName);
+const projectId = computed(() => modalStore?.data?.projectId);
+const workspaceId = computed(() => modalStore?.data?.workspaceId);
+const projectTitle = computed(() => modalStore?.data?.projectTitle);
 
 const isDeleting = ref(false);
 
@@ -30,18 +31,18 @@ function onClose() {
 }
 
 async function onDelete() {
-  if (!channelId.value) return;
+  if (!projectId.value || !workspaceId.value) return;
   isDeleting.value = true;
 
-  const promise = $fetch(`/api/channels/${channelId.value}`, {
+  const promise = $fetch(`/api/workspace/${workspaceId.value}/project/${projectId.value}/delete`, {
     method: "DELETE",
   });
 
   toast.promise(promise, {
-    loading: "Moving channel to trash...",
-    success: `#${channelName.value} channel moved to trash`,
+    loading: "Moving project to trash...",
+    success: `${projectTitle.value ?? "Project"} moved to trash`,
     error: (err: any) =>
-      err?.response?._data?.statusMessage ?? err?.message ?? "Couldn't delete channel",
+      err?.response?._data?.statusMessage ?? err?.message ?? "Couldn't delete project",
     errorDesc: "Try again later",
     position: "top-center",
   });
@@ -50,15 +51,22 @@ async function onDelete() {
     .then(async () => {
       const db = await useRxDbSafe();
       if (db) {
-        const doc = await db.channels.findOne(channelId.value!).exec();
+        const now = new Date().toISOString();
+        const doc = await db.projects.findOne(projectId.value!).exec();
         if (doc) {
-          await doc.patch({
-            deleted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+          await doc.patch({ deleted_at: now, updated_at: now });
+        }
+        const tasks = await db.tasks
+          .find({ selector: { project_id: projectId.value!, deleted_at: null } })
+          .exec();
+        for (const task of tasks) {
+          await task.patch({ deleted_at: now, updated_at: now });
         }
       }
       onClose();
+      if (workspaceId.value) {
+        navigateTo(`/workspace/${workspaceId.value}/projects/all`);
+      }
     })
     .catch(() => {})
     .finally(() => {
@@ -76,9 +84,9 @@ async function onDelete() {
             <Icon name="lucide:trash-2" class="text-red-500" size="25" />
           </div>
           <div class="grid gap-0.5 self-start">
-            <AlertDialogTitle class="text-brand"> Delete #{{ channelName }} </AlertDialogTitle>
+            <AlertDialogTitle class="text-brand"> Delete {{ projectTitle }} </AlertDialogTitle>
             <AlertDialogDescription>
-              This will move the <strong>#{{ channelName }}</strong> channel and all its messages to
+              This will move the project <strong>{{ projectTitle }}</strong> and all its tasks to
               the trash. You can restore them later from the trash.
             </AlertDialogDescription>
           </div>

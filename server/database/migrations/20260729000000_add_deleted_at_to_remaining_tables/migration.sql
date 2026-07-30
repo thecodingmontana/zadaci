@@ -1,0 +1,12 @@
+ALTER TABLE app_workspace ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_workspace_members ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_workspace_invite_request ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_project_members ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_channel_members ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_message_receipt ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_message_reference ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_conversation ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_direct_message_receipt ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_team_members ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_project_tags ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;
+ALTER TABLE app_task_tags ADD COLUMN IF NOT EXISTS deleted_at timestamp(3) with time zone;

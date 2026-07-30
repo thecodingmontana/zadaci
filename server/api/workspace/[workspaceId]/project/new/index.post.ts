@@ -90,6 +90,15 @@ export default defineEventHandler(async (event) => {
     const statusValue = STATUS[status as keyof typeof STATUS];
     const priorityValue = PRIORITY[priority as keyof typeof PRIORITY];
 
+    const currentMember = await db.query.workspace_members.findFirst({
+      where: { user_id: session.user.id, workspace_id: workspaceId },
+      columns: { id: true },
+    });
+
+    if (currentMember && !members.some((m) => m.member_id === currentMember.id)) {
+      members.push({ member_id: currentMember.id } as ProjectMembers);
+    }
+
     const memberIds = members.map((m) => m.member_id);
 
     const validMembers = await db.query.workspace_members.findMany({

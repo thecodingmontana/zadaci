@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { index, pgPolicy, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { PRIORITY, priority_enum, STATUS, status_enum } from "./enums";
 import { team } from "./team";
-import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
+import { generateNanoId, pgTable, syncable } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
 export const project = pgTable(
@@ -43,7 +43,7 @@ export const project_members = pgTable(
     member_id: varchar("member_id", { length: 16 })
       .notNull()
       .references(() => workspace_members.id, { onDelete: "cascade" }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("project_members_project_id_idx").on(table.project_id),

@@ -61,6 +61,8 @@ export interface ModalData {
   user?: User;
   encodedCredentialIds?: string[];
   projectId?: string;
+  workspaceId?: string;
+  projectTitle?: string;
   project?: DBProject | null;
   members?: ProjectMembers[];
   teammates?: ChangeTeammateRole[];

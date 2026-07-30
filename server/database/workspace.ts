@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { index, pgPolicy, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { USER_ROLE, user_role_enum } from "./enums";
 import { user } from "./user";
-import { generateNanoId, pgTable, timestamps } from "./utils";
+import { generateNanoId, pgTable, syncable } from "./utils";
 
 export const workspace = pgTable(
   "workspace",
@@ -16,7 +16,7 @@ export const workspace = pgTable(
     user_id: varchar("user_id", { length: 16 })
       .notNull()
       .references(() => user.id),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("workspace_user_id_idx").on(table.user_id),
@@ -38,7 +38,7 @@ export const workspace_members = pgTable(
     workspace_id: varchar("workspace_id", { length: 16 })
       .notNull()
       .references(() => workspace.id, { onDelete: "cascade" }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("workspace_members_user_id_idx").on(table.user_id),
@@ -70,7 +70,7 @@ export const workspace_invite_request = pgTable(
     invited_by: varchar("invited_by", { length: 255 })
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("workspace_invite_workspace_id_idx").on(table.workspace_id),

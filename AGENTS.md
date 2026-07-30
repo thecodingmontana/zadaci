@@ -59,6 +59,40 @@ Resolve display info at the UI layer via the TanStack Query member list.
 | project_members          | `use-project-members.ts`   | `use-project-members-realtime.ts`   | ✅ No RxDB sync |
 | team_members             | `use-team-members.ts`      | `use-team-members-realtime.ts`      | ✅ No RxDB sync |
 
+## Optimistic inline edits — RxDB-first, revert on error
+
+Inline edits (title, description, status, due date) on Tier 1 data use **optimistic updates**:
+
+1. **Patch RxDB immediately** — the UI updates instantly via reactive subscription
+2. **Fire API call in background** — `$fetch` to the server endpoint
+3. **On success** — nothing extra; RxDB sync pushes to server broadcast
+4. **On failure** — revert the RxDB patch to the old value + show `toast.error()` with the error message
+5. **No `toast.promise`** — the user sees instant feedback; a toast only appears on error
+
+```ts
+async function saveField(newValue: string) {
+  const doc = await db.someCollection.findOne(id).exec()
+  if (!doc) return
+  const old = doc.get('field')
+  await doc.patch({ field: newValue })              // optimistic — works offline too
+  try {
+    await $fetch('/api/...', { method: 'PATCH', body: { field: newValue } })
+  } catch (err: any) {
+    // Only revert+toast on server errors (4xx/5xx).
+    // Network errors (offline) keep the optimistic change — RxDB replication
+    // pushes it to the server when connectivity returns.
+    if (err?.response) {
+      await doc.patch({ field: old })                // revert
+      toast.error(err?.response?._data?.statusMessage ?? "Fallback")
+    }
+  }
+}
+```
+
+RxDB replication syncs the change to all connected clients automatically.
+This pattern does NOT apply to explicit user actions (form submissions, deletes, invites) —
+those still use `toast.promise`.
+
 ## Toast convention — ALWAYS use `toast.promise` for async operations
 
 Every user-triggered async operation (API call, sign-in, invite send, etc.) MUST use
@@ -145,6 +179,20 @@ Email send failures no longer crash the API request — the DB write succeeds re
 | -------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Rich text editor** | `channel-composer.vue`, new `composer-toolbar.vue` | Replaced textarea with Lexical (`RichTextPlugin`) — bold, italic, underline, strikethrough, emoji insertion, undo/redo. Plain text extracted on send.                                                      |
 | **Action tooltips**  | `composer-toolbar.vue`, `message-card.vue`         | All toolbar buttons (bold, italic, underline, strikethrough, emoji, attach, mic, send) wrapped with `ActionTooltip`. MessageCard emoji reaction tooltip switched from manual `Tooltip` to `ActionTooltip`. |
+
+### ✅ Fixed (2026-07-29 — optimistic inline edits + project nav)
+
+| Change | File(s) | Notes |
+| ------ | ------- | ----- |
+| **Inline editable title** | `project-detail-header.vue` | Click title → input, Enter/blur saves optimistically via RxDB patch + background API call |
+| **Inline status dropdown** | `project-detail-meta.vue` | Click status → Select with icons (same icons as create modal), optimistic RxDB patch |
+| **Inline description** | `project-detail-meta.vue` | Click description → textarea, blur saves optimistically |
+| **Clickable timeline/date picker** | `project-detail-meta.vue` | Click timeline → Calendar popover, only today+ selectable, shows "Due" in rose when overdue (skips completed/abandoned) |
+| **Optimistic update pattern** | all inline editors | Patch RxDB first, fire API in background, revert + toast.error on failure |
+| **Update endpoint partial** | `update/index.patch.ts` | Made all body fields optional — only supplied fields are updated |
+| **Creator auto-added as member** | `project/new/index.post.ts` | Looks up session user's workspace_members.id and appends to members array |
+| **"(You)" in member selector** | `add-assignee.vue`, `add-new-project-form.vue` | Shows "(You)" next to current user in the assignee dropdown and selected badges |
+| **Project nav View/Delete** | `workspace-nav-menu.vue`, `delete-project.vue` | Popover with View (navigate) and Delete (confirmation modal, then navigate to projects/all) |
 
 ### ✅ All channel-header props updated
 

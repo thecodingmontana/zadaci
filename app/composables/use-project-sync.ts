@@ -82,9 +82,33 @@ export function useProjectSync(workspaceId: () => string | undefined) {
     const existingCount = await db.projects.count().exec();
     console.log(`[useProjectSync] Existing docs: ${existingCount}`);
 
+    const mergeFields = [
+      "title",
+      "description",
+      "status",
+      "priority",
+      "due_date",
+      "deleted_at",
+    ] as const;
+
     replicationState = replicateRxCollection<ProjectDocType, { updated_at: string; id: string }>({
       replicationIdentifier: `projects-ws-${activeId}`,
       collection: db.projects,
+      conflictHandler: async (conflict) => {
+        const assumed = conflict.assumedMasterState as Record<string, any> | null;
+        const local = conflict.newDocumentState as Record<string, any>;
+        const server = conflict.masterState as Record<string, any>;
+        if (!assumed) return { isEqual: false, document: conflict.newDocumentState };
+        const merged = { ...server };
+        for (const field of mergeFields) {
+          if (assumed[field] !== local[field]) {
+            merged[field] = local[field];
+          }
+        }
+        merged.updated_at = local.updated_at;
+        const isEqual = mergeFields.every((f) => merged[f] === server[f]);
+        return { isEqual, document: merged as ProjectDocType };
+      },
       pull: {
         handler: async (checkpoint, batchSize) => {
           const id = workspaceId();

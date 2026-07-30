@@ -24,7 +24,9 @@ const onClose = () => {
 
 <template>
   <Sheet :open="isModalOpen" @update:open="onClose">
-    <SheetContent class="dark:bg-[#1d1d1d]">
+    <SheetContent
+      class="m-0 flex h-screen w-full flex-col border-0 p-0 shadow-2xl sm:m-2 sm:h-[calc(100vh-1rem)] sm:max-w-sm sm:rounded-xl dark:bg-[#1d1d1d]"
+    >
       <SheetHeader>
         <SheetTitle
           class="flex items-center gap-x-2 text-xl text-brand capitalize dark:text-primary"

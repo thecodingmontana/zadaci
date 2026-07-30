@@ -30,9 +30,19 @@ const props = defineProps<{
 
 const workspaceStore = useWorkspaceStore();
 const queryClient = useQueryClient();
+const { user } = useUserSession();
 
 const activeWorkspace = computed(() => {
   return workspaceStore?.activeWorkspace;
+});
+
+const workspaceIdRef = computed(() => activeWorkspace.value?.id as string | undefined);
+const { data: workspaceMembers } = useWorkspaceMembers(workspaceIdRef);
+
+const currentMemberId = computed(() => {
+  if (!user.value?.id || !workspaceMembers.value) return null;
+  const member = workspaceMembers.value.find((m) => m.userId === user.value!.id);
+  return member?.id ?? null;
 });
 
 const form = useForm({
@@ -227,23 +237,32 @@ const onSubmit = form.handleSubmit(async (values) => {
       <div class="grid gap-2">
         <Label>Members</Label>
         <div class="grid gap-y-2">
-          <div v-if="assignees.length > 0" class="flex w-full flex-wrap items-center gap-x-2">
-            <div v-for="teammate in assignees" :key="teammate.member_id" class="relative">
-              <div class="size-10 overflow-hidden">
+          <div v-if="assignees.length > 0" class="flex w-full flex-wrap items-center gap-3">
+            <div
+              v-for="teammate in assignees"
+              :key="teammate.member_id"
+              class="flex items-center gap-1.5"
+            >
+              <div class="relative size-10">
                 <Avatar class="absolute inset-0 size-full object-cover">
                   <AvatarImage :src="teammate.avatar!" :alt="teammate.username" />
                   <AvatarFallback>CN</AvatarFallback>
                 </Avatar>
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  class="absolute -top-1 -right-1 size-6 cursor-pointer rounded-full border-2 border-background"
+                  aria-label="Remove teammate"
+                  @click="onRemoveAssignee(teammate)"
+                >
+                  <X :size="16" />
+                </Button>
               </div>
-              <Button
-                size="icon"
-                variant="destructive"
-                class="absolute -top-1 -right-1 size-6 cursor-pointer rounded-full border-2 border-background"
-                aria-label="Remove teammate"
-                @click="onRemoveAssignee(teammate)"
+              <span
+                v-if="teammate.member_id === currentMemberId"
+                class="text-xs text-muted-foreground"
+                >(You)</span
               >
-                <X :size="16" />
-              </Button>
             </div>
           </div>
           <AddAssignee
@@ -268,7 +287,7 @@ const onSubmit = form.handleSubmit(async (values) => {
       </FormField>
     </div>
 
-    <div class="absolute right-0 bottom-0 left-0 p-2 backdrop-blur-xs">
+    <div class="absolute right-0 bottom-0 left-0 rounded-b-xl p-2">
       <Button
         :disabled="props.isAddNewProject"
         class="w-full cursor-pointer bg-brand text-white capitalize hover:bg-brand-secondary"

@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { channel_type_enum } from "./enums";
 import { user } from "./user";
-import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
+import { generateNanoId, pgTable, syncable } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
 export const channel = pgTable(
@@ -53,7 +53,7 @@ export const channel_members = pgTable(
       precision: 3,
       withTimezone: true,
     }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("channel_members_channel_id_idx").on(table.channel_id),
@@ -115,7 +115,7 @@ export const message_receipt = pgTable(
       .notNull()
       .references(() => workspace_members.id, { onDelete: "cascade" }),
     status: varchar("status", { length: 20 }).notNull().default("delivered"),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("message_receipt_message_id_idx").on(table.message_id),
@@ -137,7 +137,7 @@ export const message_reference = pgTable(
     ref_type: varchar("ref_type", { length: 20 }).notNull().default("link"),
     ref_id: varchar("ref_id", { length: 16 }),
     snapshot: text("snapshot"),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("message_reference_message_id_idx").on(table.message_id),

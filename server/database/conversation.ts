@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, jsonb, pgPolicy, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
-import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
+import { generateNanoId, pgTable, syncable } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
 export const conversation = pgTable(
@@ -18,7 +18,7 @@ export const conversation = pgTable(
     member_two_id: varchar("member_two_id", { length: 16 })
       .notNull()
       .references(() => workspace_members.id, { onDelete: "cascade" }),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     uniqueIndex("conversation_pair_unique").on(table.member_one_id, table.member_two_id),
@@ -70,7 +70,7 @@ export const direct_message_receipt = pgTable(
       .notNull()
       .references(() => workspace_members.id, { onDelete: "cascade" }),
     status: varchar("status", { length: 20 }).notNull().default("delivered"),
-    ...timestamps,
+    ...syncable,
   },
   (table) => [
     index("dm_receipt_message_id_idx").on(table.direct_message_id),

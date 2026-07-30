@@ -25,7 +25,11 @@ export default defineEventHandler(async (event) => {
     if (!userWorkspace || userWorkspace.role !== USER_ROLE.OWNER) {
       throw createError({ statusCode: 403, statusMessage: "Not authorized to delete workspace!" });
     }
-    await db.delete(tables.workspace).where(eq(tables.workspace.id, workspaceId));
+    const now = new Date();
+    await db
+      .update(tables.workspace)
+      .set({ deleted_at: now, updated_at: now })
+      .where(eq(tables.workspace.id, workspaceId));
     const workspace = await db.query.workspace.findFirst({
       where: {
         members: {

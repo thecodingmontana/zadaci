@@ -3,6 +3,7 @@ import type { RxCollection } from "rxdb";
 import type { ProjectDocType, TaskDocType, TeamDocType } from "~/plugins/rxdb.client";
 import { Button } from "~/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useModalStore } from "~/stores/use-modal-store";
 
@@ -110,6 +111,22 @@ const handleAdd = (key: string, event: Event) => {
     modalStore?.setIsOpen(true);
   }
 };
+
+function handleViewProject(item: { id: string }, event: Event) {
+  event.stopPropagation();
+  navigateTo(`/workspace/${workspaceId.value}/projects/${item.id}`);
+}
+
+function handleDeleteProject(item: { id: string; label: string }, event: Event) {
+  event.stopPropagation();
+  modalStore?.setModalData({
+    projectId: item.id,
+    workspaceId: workspaceId.value,
+    projectTitle: item.label,
+  });
+  modalStore?.onOpen("deleteProject");
+  modalStore?.setIsOpen(true);
+}
 </script>
 
 <template>
@@ -161,6 +178,22 @@ const handleAdd = (key: string, event: Event) => {
         >
           <Icon name="hugeicons:calendar-03" size="18" />
           <p class="text-sm">Calendar</p>
+        </a>
+      </NuxtLink>
+
+      <NuxtLink
+        v-slot="{ isActive, href, navigate }"
+        :to="`/workspace/${workspaceId}/trash`"
+        custom
+      >
+        <a
+          :href="href"
+          class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+          :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+          @click="navigate"
+        >
+          <Icon name="lucide:trash-2" size="18" />
+          <p class="text-sm">Trash</p>
         </a>
       </NuxtLink>
 
@@ -219,16 +252,44 @@ const handleAdd = (key: string, event: Event) => {
               v-for="item in sectionItems[section.key]"
               :key="item.id"
               v-slot="{ isActive, href, navigate }"
-              :to="`/workspace/${workspaceId}/${section.key}/${item.id}/info`"
+              :to="`/workspace/${workspaceId}/${section.key}/${item.id}`"
               custom
             >
               <a
                 :href="href"
-                class="flex cursor-pointer items-center rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                class="group flex cursor-pointer items-center justify-between rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
                 :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
-                @click="navigate"
               >
-                {{ item.label }}
+                <span @click="navigate">{{ item.label }}</span>
+                <Popover v-if="section.key === 'projects'">
+                  <PopoverTrigger as-child @click.stop.prevent>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100"
+                    >
+                      <Icon name="lucide:ellipsis" size="14" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent side="right" align="start" class="w-40 p-1">
+                    <button
+                      type="button"
+                      class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                      @click.stop="handleViewProject(item, $event)"
+                    >
+                      <Icon name="lucide:eye" size="14" />
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                      @click.stop="handleDeleteProject(item, $event)"
+                    >
+                      <Icon name="lucide:trash-2" size="14" />
+                      Delete
+                    </button>
+                  </PopoverContent>
+                </Popover>
               </a>
             </NuxtLink>
             <div
