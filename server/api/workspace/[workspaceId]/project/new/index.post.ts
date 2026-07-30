@@ -9,13 +9,16 @@ export default defineEventHandler(async (event) => {
     const session = await requireUserSession(event);
     const workspaceId = getRouterParam(event, "workspaceId");
 
-    const { title, status, dueDate, description, priority, members } = (await readBody(event)) as {
+    const { title, status, dueDate, description, priority, members, tags } = (await readBody(
+      event,
+    )) as {
       description: string;
       dueDate: Date | undefined;
       title: string;
       status: Status;
       priority: Priority;
       members: ProjectMembers[];
+      tags?: string[];
     };
 
     if (!session) {
@@ -156,6 +159,17 @@ export default defineEventHandler(async (event) => {
 
         await tx.insert(tables.project_members).values(newMembers);
         insertedMemberIds.push(...members.map((m) => m.member_id));
+      }
+
+      if (tags && tags.length > 0) {
+        const now = new Date();
+        const tagRows = tags.map((tagId) => ({
+          project_id: project.id,
+          tag_id: tagId,
+          created_at: now,
+          updated_at: now,
+        }));
+        await tx.insert(tables.project_tags).values(tagRows);
       }
 
       const users = await tx.query.workspace_members.findMany({

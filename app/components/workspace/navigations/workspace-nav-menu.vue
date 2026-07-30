@@ -112,6 +112,26 @@ const handleAdd = (key: string, event: Event) => {
   }
 };
 
+const currentSection = computed(() => {
+  const path = route.path;
+  for (const section of sections) {
+    if (path.includes(`/${section.key}/`)) {
+      return section.key;
+    }
+  }
+  return null;
+});
+
+watch(
+  currentSection,
+  (section) => {
+    if (section) {
+      openSections[section] = true;
+    }
+  },
+  { immediate: true },
+);
+
 function handleViewProject(item: { id: string }, event: Event) {
   event.stopPropagation();
   navigateTo(`/workspace/${workspaceId.value}/projects/${item.id}`);
@@ -126,6 +146,26 @@ function handleDeleteProject(item: { id: string; label: string }, event: Event) 
   });
   modalStore?.onOpen("deleteProject");
   modalStore?.setIsOpen(true);
+}
+
+function handleViewTask(item: { id: string }, event: Event) {
+  event.stopPropagation();
+  console.log("view task", item.id);
+}
+
+function handleDeleteTask(item: { id: string }, event: Event) {
+  event.stopPropagation();
+  console.log("delete task", item.id);
+}
+
+function handleViewTeam(item: { id: string }, event: Event) {
+  event.stopPropagation();
+  console.log("view team", item.id);
+}
+
+function handleDeleteTeam(item: { id: string }, event: Event) {
+  event.stopPropagation();
+  console.log("delete team", item.id);
 }
 </script>
 
@@ -178,22 +218,6 @@ function handleDeleteProject(item: { id: string; label: string }, event: Event) 
         >
           <Icon name="hugeicons:calendar-03" size="18" />
           <p class="text-sm">Calendar</p>
-        </a>
-      </NuxtLink>
-
-      <NuxtLink
-        v-slot="{ isActive, href, navigate }"
-        :to="`/workspace/${workspaceId}/trash`"
-        custom
-      >
-        <a
-          :href="href"
-          class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
-          :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
-          @click="navigate"
-        >
-          <Icon name="lucide:trash-2" size="18" />
-          <p class="text-sm">Trash</p>
         </a>
       </NuxtLink>
 
@@ -252,16 +276,17 @@ function handleDeleteProject(item: { id: string; label: string }, event: Event) 
               v-for="item in sectionItems[section.key]"
               :key="item.id"
               v-slot="{ isActive, href, navigate }"
+              class="block"
               :to="`/workspace/${workspaceId}/${section.key}/${item.id}`"
-              custom
             >
               <a
                 :href="href"
                 class="group flex cursor-pointer items-center justify-between rounded p-1 text-sm text-muted-foreground hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
                 :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+                @click="navigate"
               >
-                <span @click="navigate">{{ item.label }}</span>
-                <Popover v-if="section.key === 'projects'">
+                <span>{{ item.label }}</span>
+                <Popover>
                   <PopoverTrigger as-child @click.stop.prevent>
                     <Button
                       variant="ghost"
@@ -272,22 +297,60 @@ function handleDeleteProject(item: { id: string; label: string }, event: Event) 
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent side="right" align="start" class="w-40 p-1">
-                    <button
-                      type="button"
-                      class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
-                      @click.stop="handleViewProject(item, $event)"
-                    >
-                      <Icon name="lucide:eye" size="14" />
-                      View
-                    </button>
-                    <button
-                      type="button"
-                      class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-                      @click.stop="handleDeleteProject(item, $event)"
-                    >
-                      <Icon name="lucide:trash-2" size="14" />
-                      Delete
-                    </button>
+                    <template v-if="section.key === 'projects'">
+                      <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                        @click.stop="handleViewProject(item, $event)"
+                      >
+                        <Icon name="lucide:eye" size="14" />
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        @click.stop="handleDeleteProject(item, $event)"
+                      >
+                        <Icon name="lucide:trash-2" size="14" />
+                        Delete
+                      </button>
+                    </template>
+                    <template v-else-if="section.key === 'tasks'">
+                      <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                        @click.stop="handleViewTask(item, $event)"
+                      >
+                        <Icon name="lucide:eye" size="14" />
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        @click.stop="handleDeleteTask(item, $event)"
+                      >
+                        <Icon name="lucide:trash-2" size="14" />
+                        Delete
+                      </button>
+                    </template>
+                    <template v-else-if="section.key === 'teams'">
+                      <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                        @click.stop="handleViewTeam(item, $event)"
+                      >
+                        <Icon name="lucide:eye" size="14" />
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        @click.stop="handleDeleteTeam(item, $event)"
+                      >
+                        <Icon name="lucide:trash-2" size="14" />
+                        Delete
+                      </button>
+                    </template>
                   </PopoverContent>
                 </Popover>
               </a>

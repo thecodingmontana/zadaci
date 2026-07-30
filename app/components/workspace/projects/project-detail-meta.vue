@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { DateValue } from "@internationalized/date";
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Calendar } from "~/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
@@ -43,17 +42,22 @@ const { data: projectMembers } = useProjectMembers(workspaceIdRef, projectIdRef)
 
 const assignees = computed(() => {
   return (projectMembers.value ?? []).map((m: any) => ({
-    id: m.member_id,
-    name: m.username,
-    avatar: m.avatar ?? null,
-    initials:
-      (m.username ?? "?")
-        .split(" ")
-        .map((s: string) => s[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2) || "?",
+    name: m.username ?? "Unknown",
+    src: m.avatar ?? undefined,
   }));
+});
+
+const projectTags = ref<{ id: string; name: string; color: string | null }[]>([]);
+
+onMounted(async () => {
+  try {
+    const data = await $fetch<{ id: string; name: string; color: string | null }[]>(
+      `/api/workspace/${props.workspaceId}/project/${props.projectId}/tags`,
+    );
+    projectTags.value = data;
+  } catch {
+    // tags unavailable
+  }
 });
 
 const currentStatus = computed(() => props.projectStatus.toUpperCase());
@@ -242,22 +246,28 @@ async function onDateSelect(val?: DateValue) {
         <Icon name="solar:users-group-rounded-linear" class="size-4" />
         Assigned to
       </span>
-      <div class="flex flex-wrap items-center gap-3">
-        <Motion
-          v-for="(person, i) in assignees"
-          :key="person.id"
-          :initial="{ opacity: 0, scale: 0.6, x: -8 }"
-          :animate="{ opacity: 1, scale: 1, x: 0 }"
-          :transition="{ duration: 0.25, delay: 0.15 + i * 0.05 }"
-          class="flex items-center gap-1.5"
+      <AvatarGroup :avatars="assignees" :max="5" :size="28" />
+    </div>
+
+    <!-- Tags -->
+    <div v-if="projectTags.length > 0" class="grid grid-cols-[140px_1fr] items-center gap-2">
+      <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Icon name="solar:tag-linear" class="size-4" />
+        Tags
+      </span>
+      <div class="flex flex-wrap items-center gap-1.5">
+        <span
+          v-for="tag in projectTags"
+          :key="tag.id"
+          class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
+          :style="{
+            backgroundColor: `${tag.color ?? '#888'}20`,
+            color: tag.color ?? '#888',
+          }"
         >
-          <Avatar class="size-7 border-2 border-background">
-            <AvatarImage v-if="person.avatar" :src="person.avatar" :alt="person.name" />
-            <AvatarFallback class="text-[11px]">
-              {{ person.initials }}
-            </AvatarFallback>
-          </Avatar>
-        </Motion>
+          <span class="size-1.5 rounded-full" :style="{ backgroundColor: tag.color ?? '#888' }" />
+          {{ tag.name }}
+        </span>
       </div>
     </div>
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { TagDocType } from "~/plugins/rxdb.client";
 import type { ProjectMembers } from "~/types";
 import { Loader2, X } from "@lucide/vue";
 import { useQueryClient } from "@tanstack/vue-query";
@@ -50,6 +51,28 @@ const form = useForm({
 });
 
 const assignees = ref<ProjectMembers[]>([]);
+const selectedTags = ref<string[]>([]);
+const availableTags = ref<TagDocType[]>([]);
+
+onMounted(async () => {
+  const database = await useRxDbSafe();
+  if (!database?.tags || !workspaceIdRef.value) return;
+  database.tags
+    .find({
+      selector: { workspace_id: workspaceIdRef.value, deleted_at: null },
+    })
+    .$.subscribe((docs) => {
+      availableTags.value = docs;
+    });
+});
+
+function toggleTag(tagId: string) {
+  if (selectedTags.value.includes(tagId)) {
+    selectedTags.value = selectedTags.value.filter((id) => id !== tagId);
+  } else {
+    selectedTags.value = [...selectedTags.value, tagId];
+  }
+}
 
 const onAddAssiginees = (payload: ProjectMembers) => {
   assignees.value = [...assignees.value, payload];
@@ -78,6 +101,7 @@ const onSubmit = form.handleSubmit(async (values) => {
     description: values.description ? values.description : "",
     dueDate: values.dueDate ? new Date(values.dueDate) : undefined,
     members: assignees.value,
+    tags: selectedTags.value,
   };
 
   const promise = $fetch(`/api/workspace/${activeWorkspace.value?.id}/project/new`, {
@@ -270,6 +294,27 @@ const onSubmit = form.handleSubmit(async (values) => {
             :on-add-assiginees="onAddAssiginees"
             :on-remove-assignee="onRemoveAssignee"
           />
+        </div>
+      </div>
+      <div class="grid gap-2">
+        <Label>Tags</Label>
+        <div class="flex flex-wrap items-center gap-2">
+          <template v-if="availableTags.length === 0">
+            <span class="text-xs text-muted-foreground">No tags available</span>
+          </template>
+          <Button
+            v-for="tag in availableTags"
+            :key="tag.id"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="cursor-pointer gap-1.5"
+            :class="[selectedTags.includes(tag.id) && 'border-primary bg-primary/10']"
+            @click="toggleTag(tag.id)"
+          >
+            <span class="size-2 rounded-full" :style="{ backgroundColor: tag.color ?? '#888' }" />
+            {{ tag.name }}
+          </Button>
         </div>
       </div>
       <FormField v-slot="{ componentField }" name="description">
