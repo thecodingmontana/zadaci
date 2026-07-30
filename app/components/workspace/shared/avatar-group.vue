@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Button } from "~/components/ui/button";
 import ActionTooltip from "~/components/workspace/shared/action-tooltip.vue";
 
 const props = withDefaults(
@@ -7,12 +8,18 @@ const props = withDefaults(
     avatars: AvatarItem[];
     max?: number;
     size?: number;
+    removable?: boolean;
   }>(),
   {
     max: 5,
     size: 28,
+    removable: false,
   },
 );
+
+const emit = defineEmits<{
+  remove: [item: AvatarItem];
+}>();
 
 const PALETTE = ["#f0883e", "#3ecf8e", "#22d3ee", "#b06bff", "#f0463a"];
 
@@ -49,7 +56,7 @@ const hovered = ref(false);
     <div
       v-for="(a, i) in shown"
       :key="a.name + i"
-      class="relative"
+      class="group/av relative"
       :style="{ zIndex: shown.length - i }"
     >
       <ActionTooltip :label="a.name" side="top">
@@ -59,6 +66,7 @@ const hovered = ref(false);
           }"
           :transition="{ type: 'spring', stiffness: 320, damping: 26 }"
           :while-hover="{ y: -3, zIndex: 50, transition: { duration: 0.18 } }"
+          class="relative"
         >
           <Avatar
             class="border-2 border-background"
@@ -76,6 +84,15 @@ const hovered = ref(false);
               {{ initials(a.name) }}
             </AvatarFallback>
           </Avatar>
+          <Button
+            v-if="removable"
+            size="icon"
+            variant="destructive"
+            class="absolute -top-1 -right-1 z-50 size-5 cursor-pointer rounded-full border-2 border-background p-0.5 opacity-0 transition-opacity group-hover/av:opacity-100"
+            @click.stop="emit('remove', a)"
+          >
+            <Icon name="lucide:x" size="10" />
+          </Button>
         </motion.div>
       </ActionTooltip>
     </div>

@@ -76,6 +76,22 @@ function openDonate() {
 
       <NuxtLink
         v-slot="{ isActive, href, navigate }"
+        :to="`/workspace/${workspaceId}/trash`"
+        custom
+      >
+        <a
+          :href="href"
+          class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+          :class="[isActive && 'bg-[#f2f2f2] dark:bg-neutral-800']"
+          @click="navigate"
+        >
+          <Icon name="hugeicons:delete-02" size="18" />
+          <p class="text-sm">Trash</p>
+        </a>
+      </NuxtLink>
+
+      <NuxtLink
+        v-slot="{ isActive, href, navigate }"
         :to="`/workspace/${workspaceId}/support`"
         custom
       >

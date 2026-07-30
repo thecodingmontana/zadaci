@@ -65,9 +65,9 @@ export default defineEventHandler(async (event) => {
       .where(and(eq(tables.project.id, projectId), eq(tables.project.workspace_id, workspaceId)));
     // soft delete all tasks for this project
     await db
-      .update(tables.tasks)
+      .update(tables.task)
       .set({ deleted_at: now, updated_at: now })
-      .where(eq(tables.tasks.project_id, projectId));
+      .where(eq(tables.task.project_id, projectId));
 
     return {
       message: "Project deleted successfully!",

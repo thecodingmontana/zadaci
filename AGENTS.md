@@ -71,19 +71,19 @@ Inline edits (title, description, status, due date) on Tier 1 data use **optimis
 
 ```ts
 async function saveField(newValue: string) {
-  const doc = await db.someCollection.findOne(id).exec()
-  if (!doc) return
-  const old = doc.get('field')
-  await doc.patch({ field: newValue })              // optimistic — works offline too
+  const doc = await db.someCollection.findOne(id).exec();
+  if (!doc) return;
+  const old = doc.get("field");
+  await doc.patch({ field: newValue }); // optimistic — works offline too
   try {
-    await $fetch('/api/...', { method: 'PATCH', body: { field: newValue } })
+    await $fetch("/api/...", { method: "PATCH", body: { field: newValue } });
   } catch (err: any) {
     // Only revert+toast on server errors (4xx/5xx).
     // Network errors (offline) keep the optimistic change — RxDB replication
     // pushes it to the server when connectivity returns.
     if (err?.response) {
-      await doc.patch({ field: old })                // revert
-      toast.error(err?.response?._data?.statusMessage ?? "Fallback")
+      await doc.patch({ field: old }); // revert
+      toast.error(err?.response?._data?.statusMessage ?? "Fallback");
     }
   }
 }
@@ -182,17 +182,17 @@ Email send failures no longer crash the API request — the DB write succeeds re
 
 ### ✅ Fixed (2026-07-29 — optimistic inline edits + project nav)
 
-| Change | File(s) | Notes |
-| ------ | ------- | ----- |
-| **Inline editable title** | `project-detail-header.vue` | Click title → input, Enter/blur saves optimistically via RxDB patch + background API call |
-| **Inline status dropdown** | `project-detail-meta.vue` | Click status → Select with icons (same icons as create modal), optimistic RxDB patch |
-| **Inline description** | `project-detail-meta.vue` | Click description → textarea, blur saves optimistically |
-| **Clickable timeline/date picker** | `project-detail-meta.vue` | Click timeline → Calendar popover, only today+ selectable, shows "Due" in rose when overdue (skips completed/abandoned) |
-| **Optimistic update pattern** | all inline editors | Patch RxDB first, fire API in background, revert + toast.error on failure |
-| **Update endpoint partial** | `update/index.patch.ts` | Made all body fields optional — only supplied fields are updated |
-| **Creator auto-added as member** | `project/new/index.post.ts` | Looks up session user's workspace_members.id and appends to members array |
-| **"(You)" in member selector** | `add-assignee.vue`, `add-new-project-form.vue` | Shows "(You)" next to current user in the assignee dropdown and selected badges |
-| **Project nav View/Delete** | `workspace-nav-menu.vue`, `delete-project.vue` | Popover with View (navigate) and Delete (confirmation modal, then navigate to projects/all) |
+| Change                             | File(s)                                        | Notes                                                                                                                   |
+| ---------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Inline editable title**          | `project-detail-header.vue`                    | Click title → input, Enter/blur saves optimistically via RxDB patch + background API call                               |
+| **Inline status dropdown**         | `project-detail-meta.vue`                      | Click status → Select with icons (same icons as create modal), optimistic RxDB patch                                    |
+| **Inline description**             | `project-detail-meta.vue`                      | Click description → textarea, blur saves optimistically                                                                 |
+| **Clickable timeline/date picker** | `project-detail-meta.vue`                      | Click timeline → Calendar popover, only today+ selectable, shows "Due" in rose when overdue (skips completed/abandoned) |
+| **Optimistic update pattern**      | all inline editors                             | Patch RxDB first, fire API in background, revert + toast.error on failure                                               |
+| **Update endpoint partial**        | `update/index.patch.ts`                        | Made all body fields optional — only supplied fields are updated                                                        |
+| **Creator auto-added as member**   | `project/new/index.post.ts`                    | Looks up session user's workspace_members.id and appends to members array                                               |
+| **"(You)" in member selector**     | `add-assignee.vue`, `add-new-project-form.vue` | Shows "(You)" next to current user in the assignee dropdown and selected badges                                         |
+| **Project nav View/Delete**        | `workspace-nav-menu.vue`, `delete-project.vue` | Popover with View (navigate) and Delete (confirmation modal, then navigate to projects/all)                             |
 
 ### ✅ All channel-header props updated
 

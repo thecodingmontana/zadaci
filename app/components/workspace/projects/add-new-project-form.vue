@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import type { TagDocType } from "~/plugins/rxdb.client";
 import type { ProjectMembers } from "~/types";
-import { Loader2, X } from "@lucide/vue";
+import { Loader2 } from "@lucide/vue";
 import { useQueryClient } from "@tanstack/vue-query";
 import { useForm } from "vee-validate";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Label } from "~/components/ui/label";
 import {
@@ -31,20 +30,12 @@ const props = defineProps<{
 
 const workspaceStore = useWorkspaceStore();
 const queryClient = useQueryClient();
-const { user } = useUserSession();
 
 const activeWorkspace = computed(() => {
   return workspaceStore?.activeWorkspace;
 });
 
 const workspaceIdRef = computed(() => activeWorkspace.value?.id as string | undefined);
-const { data: workspaceMembers } = useWorkspaceMembers(workspaceIdRef);
-
-const currentMemberId = computed(() => {
-  if (!user.value?.id || !workspaceMembers.value) return null;
-  const member = workspaceMembers.value.find((m) => m.userId === user.value!.id);
-  return member?.id ?? null;
-});
 
 const form = useForm({
   validationSchema: newProjectSchema,
@@ -261,33 +252,19 @@ const onSubmit = form.handleSubmit(async (values) => {
       <div class="grid gap-2">
         <Label>Members</Label>
         <div class="grid gap-y-2">
-          <div v-if="assignees.length > 0" class="flex w-full flex-wrap items-center gap-3">
-            <div
-              v-for="teammate in assignees"
-              :key="teammate.member_id"
-              class="flex items-center gap-1.5"
-            >
-              <div class="relative size-10">
-                <Avatar class="absolute inset-0 size-full object-cover">
-                  <AvatarImage :src="teammate.avatar!" :alt="teammate.username" />
-                  <AvatarFallback>CN</AvatarFallback>
-                </Avatar>
-                <Button
-                  size="icon"
-                  variant="destructive"
-                  class="absolute -top-1 -right-1 size-6 cursor-pointer rounded-full border-2 border-background"
-                  aria-label="Remove teammate"
-                  @click="onRemoveAssignee(teammate)"
-                >
-                  <X :size="16" />
-                </Button>
-              </div>
-              <span
-                v-if="teammate.member_id === currentMemberId"
-                class="text-xs text-muted-foreground"
-                >(You)</span
-              >
-            </div>
+          <div v-if="assignees.length > 0">
+            <AvatarGroup
+              :avatars="assignees.map((a) => ({ name: a.username, src: a.avatar ?? undefined }))"
+              :max="10"
+              :size="40"
+              removable
+              @remove="
+                (item) => {
+                  const member = assignees.find((a) => a.username === item.name);
+                  if (member) onRemoveAssignee(member);
+                }
+              "
+            />
           </div>
           <AddAssignee
             :assignees="assignees"

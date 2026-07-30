@@ -32,15 +32,11 @@ useSeoMeta({
 const activeView = ref<"table" | "kanban" | "timeline">("kanban");
 const searchQuery = ref("");
 
-watch(
-  project,
-  (val) => {
-    if (!val || val.deleted_at) {
-      navigateTo(`/workspace/${workspaceId}/projects/all`, { replace: true });
-    }
-  },
-  { immediate: true },
-);
+watch(project, (val) => {
+  if (!val || val.deleted_at) {
+    navigateTo(`/workspace/${workspaceId}/projects/all`, { replace: true });
+  }
+});
 </script>
 
 <template>
@@ -85,7 +81,7 @@ watch(
         <ProjectDetailMeta
           :project-id="projectId"
           :workspace-id="workspaceId"
-          :status="currentStatus"
+          :status="currentStatus!"
           :description="project?.description ?? null"
           :timeline="timeline"
           :milestones="milestones"
