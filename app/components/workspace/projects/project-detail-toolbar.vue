@@ -1,4 +1,12 @@
 <script setup lang="ts">
+import { useModalStore } from "~/stores/use-modal-store";
+
+const props = defineProps<{
+  workspaceId: string;
+  projectId: string;
+  projectTitle: string;
+}>();
+
 const activeView = defineModel<string>("activeView", { default: "kanban" });
 const searchQuery = defineModel<string>("searchQuery", { default: "" });
 
@@ -7,6 +15,18 @@ const views = [
   { value: "kanban", label: "Kanban", icon: "solar:widget-add-linear" },
   { value: "timeline", label: "Timeline", icon: "solar:chart-square-linear" },
 ] as const;
+
+const modalStore = useModalStore();
+
+function handleAddTask() {
+  modalStore?.setModalData({
+    workspaceId: props.workspaceId,
+    projectId: props.projectId,
+    projectTitle: props.projectTitle,
+  });
+  modalStore?.onOpen("addNewTask");
+  modalStore?.setIsOpen(true);
+}
 </script>
 
 <template>
@@ -41,7 +61,7 @@ const views = [
         <Icon name="solar:sort-vertical-linear" class="size-4" />
         Sort
       </Button>
-      <Button size="sm" class="gap-1.5 bg-brand hover:bg-brand-secondary">
+      <Button size="sm" class="gap-1.5 bg-brand hover:bg-brand-secondary" @click="handleAddTask">
         <Icon name="solar:add-circle-linear" class="size-4" />
         Add Task
       </Button>

@@ -1,4 +1,12 @@
 <script setup lang="ts">
+import type { CommentDocType, TaskDocType } from "~/plugins/rxdb.client";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Button } from "~/components/ui/button";
+import { Textarea } from "~/components/ui/textarea";
+import { useRxDbSafe } from "~/composables/use-rxdb";
+import { useWorkspaceMembers } from "~/composables/use-workspace-members";
+import { useWorkspaceStore } from "~/stores/use-workspace-store";
+
 definePageMeta({
   middleware: ["authenticated"],
   layout: false,
@@ -6,30 +14,181 @@ definePageMeta({
 
 const route = useRoute();
 const taskId = route.params.taskId as string;
+const workspaceId = route.params.workspaceId as string;
 
-const taskName = ref<string | null>(null);
+const workspaceStore = useWorkspaceStore();
+const workspaceIdRef = computed(() => workspaceStore?.activeWorkspace?.id as string | undefined);
+const { data: workspaceMembers } = useWorkspaceMembers(workspaceIdRef);
+const { user } = useUserSession();
 
-if (import.meta.client) {
-  useRxDbSafe().then((db) => {
-    if (!db) return;
-    const sub = db.tasks.findOne(taskId).$.subscribe((doc) => {
-      taskName.value = doc?.name ?? null;
-    });
-    onUnmounted(() => sub.unsubscribe());
-  });
-}
+const task = ref<TaskDocType | null>(null);
+const taskComments = ref<CommentDocType[]>([]);
+const newComment = ref("");
 
+const taskName = computed(() => task.value?.name ?? null);
 const taskTitle = useWorkspacePageTitle("Task Details", taskName);
 useSeoMeta({
   title: taskTitle,
   description: "View and update task details, status, and assignments.",
 });
+
+const memberMap = computed(() => {
+  const map = new Map<string, { username: string; avatar: string | null }>();
+  for (const m of workspaceMembers.value ?? []) {
+    map.set(m.id, {
+      username: m.user?.username ?? m.user?.email ?? "Unknown",
+      avatar: m.user?.profilePictureUrl ?? null,
+    });
+  }
+  return map;
+});
+
+function resolveAuthor(authorId: string) {
+  return memberMap.value.get(authorId) ?? { username: "Unknown", avatar: null };
+}
+
+onMounted(async () => {
+  const db = await useRxDbSafe();
+  if (!db) return;
+
+  const taskSub = db.tasks.findOne(taskId).$.subscribe((doc) => {
+    task.value = doc ?? null;
+  });
+
+  const commentSub = db.comments
+    .find({
+      selector: { entity_type: "task", entity_id: taskId, deleted_at: null },
+    })
+    .$.subscribe((docs) => {
+      taskComments.value = docs;
+    });
+
+  onUnmounted(() => {
+    taskSub.unsubscribe();
+    commentSub.unsubscribe();
+  });
+});
+
+const currentMemberId = computed(() => {
+  if (!user.value?.id || !workspaceMembers.value) return null;
+  return workspaceMembers.value.find((m) => m.userId === user.value!.id)?.id ?? null;
+});
+
+async function addComment() {
+  const content = newComment.value.trim();
+  if (!content) return;
+  if (!currentMemberId.value) return;
+
+  const db = await useRxDbSafe();
+  if (!db) return;
+
+  await db.comments.insert({
+    id: crypto.randomUUID().slice(0, 16),
+    entity_type: "task",
+    entity_id: taskId,
+    author_id: currentMemberId.value,
+    content,
+    parent_id: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    deleted_at: null,
+  });
+
+  newComment.value = "";
+}
 </script>
 
 <template>
   <NuxtLayout name="workspace">
     <NuxtLayout name="workspace-area">
-      <div>Task Details</div>
+      <div class="flex flex-col gap-6 p-6">
+        <div class="flex items-center gap-2 text-sm text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            class="size-6"
+            @click="navigateTo(`/workspace/${workspaceId}/tasks/all`)"
+          >
+            <Icon name="solar:arrow-left-linear" class="size-4" />
+          </Button>
+          <NuxtLink
+            :to="`/workspace/${workspaceId}/tasks/all`"
+            class="transition-colors hover:text-foreground"
+          >
+            Tasks
+          </NuxtLink>
+          <span>/</span>
+          <span class="font-medium text-foreground">{{ taskName ?? "Untitled" }}</span>
+        </div>
+
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">{{ taskName ?? "Untitled" }}</h1>
+        </div>
+
+        <Separator />
+
+        <!-- Comments -->
+        <div class="space-y-4">
+          <h2 class="flex items-center gap-2 text-sm font-semibold">
+            <Icon name="solar:chat-line-linear" class="size-4" />
+            Comments
+          </h2>
+
+          <div class="flex items-start gap-3">
+            <Avatar class="size-8">
+              <AvatarFallback>
+                {{ (resolveAuthor(currentMemberId ?? "").username[0] ?? "?").toUpperCase() }}
+              </AvatarFallback>
+            </Avatar>
+            <div class="flex flex-1 flex-col gap-2">
+              <Textarea
+                v-model="newComment"
+                placeholder="Add a comment..."
+                class="min-h-20 resize-none"
+              />
+              <Button
+                size="sm"
+                class="self-end bg-brand hover:bg-brand-secondary"
+                :disabled="!newComment.trim()"
+                @click="addComment"
+              >
+                Comment
+              </Button>
+            </div>
+          </div>
+
+          <div class="mt-4 space-y-4">
+            <div
+              v-if="taskComments.length === 0"
+              class="py-8 text-center text-sm text-muted-foreground"
+            >
+              No comments yet.
+            </div>
+            <div v-for="comment in taskComments" :key="comment.id" class="flex items-start gap-3">
+              <Avatar class="size-8">
+                <AvatarImage
+                  :src="resolveAuthor(comment.author_id).avatar ?? undefined"
+                  :alt="resolveAuthor(comment.author_id).username"
+                />
+                <AvatarFallback>
+                  {{ (resolveAuthor(comment.author_id).username[0] ?? "?").toUpperCase() }}
+                </AvatarFallback>
+              </Avatar>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline gap-2">
+                  <span class="text-sm font-semibold">
+                    {{ resolveAuthor(comment.author_id).username }}
+                  </span>
+                  <span class="text-xs text-muted-foreground">
+                    {{ new Date(comment.created_at).toLocaleString() }}
+                  </span>
+                </div>
+                <p class="mt-0.5 text-sm break-words whitespace-pre-wrap">{{ comment.content }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </NuxtLayout>
   </NuxtLayout>
 </template>

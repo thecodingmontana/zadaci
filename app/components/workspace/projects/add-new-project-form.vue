@@ -5,7 +5,16 @@ import { Loader2 } from "@lucide/vue";
 import { useQueryClient } from "@tanstack/vue-query";
 import { useForm } from "vee-validate";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "~/components/ui/command";
 import { Label } from "~/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -15,6 +24,7 @@ import {
 } from "~/components/ui/select";
 import { Textarea } from "~/components/ui/textarea";
 import AddAssignee from "~/components/workspace/shared/add-assignee.vue";
+import AvatarGroup from "~/components/workspace/shared/avatar-group.vue";
 import DatePicker from "~/components/workspace/shared/date-picker.vue";
 import { projectMembersKey } from "~/composables/use-project-members";
 import { useRxDbSafe } from "~/composables/use-rxdb";
@@ -62,6 +72,39 @@ function toggleTag(tagId: string) {
     selectedTags.value = selectedTags.value.filter((id) => id !== tagId);
   } else {
     selectedTags.value = [...selectedTags.value, tagId];
+  }
+}
+
+const tagSearch = ref("");
+
+async function handleCreateTag() {
+  const name = tagSearch.value.trim();
+  if (!name) return;
+  try {
+    const tag = await $fetch<any>(`/api/workspace/${activeWorkspace.value?.id}/tags`, {
+      method: "POST",
+      body: { name },
+    });
+    const db = await useRxDbSafe();
+    if (db) {
+      await db.tags.insert({
+        id: tag.id,
+        workspace_id: tag.workspace_id,
+        name: tag.name,
+        color: tag.color,
+        created_at: tag.created_at,
+        updated_at: tag.updated_at,
+        deleted_at: null,
+      });
+    }
+    if (!selectedTags.value.includes(tag.id)) {
+      selectedTags.value = [...selectedTags.value, tag.id];
+    }
+    tagSearch.value = "";
+  } catch (err: any) {
+    toast.error(err?.response?._data?.statusMessage ?? "Failed to create tag", {
+      position: "top-center",
+    });
   }
 }
 
@@ -275,24 +318,89 @@ const onSubmit = form.handleSubmit(async (values) => {
       </div>
       <div class="grid gap-2">
         <Label>Tags</Label>
-        <div class="flex flex-wrap items-center gap-2">
-          <template v-if="availableTags.length === 0">
-            <span class="text-xs text-muted-foreground">No tags available</span>
-          </template>
-          <Button
-            v-for="tag in availableTags"
-            :key="tag.id"
-            type="button"
-            variant="outline"
-            size="sm"
-            class="cursor-pointer gap-1.5"
-            :class="[selectedTags.includes(tag.id) && 'border-primary bg-primary/10']"
-            @click="toggleTag(tag.id)"
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span
+            v-for="tagId in selectedTags"
+            :key="tagId"
+            class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
+            :style="{
+              backgroundColor: `${availableTags.find((t) => t.id === tagId)?.color ?? '#888'}20`,
+              color: availableTags.find((t) => t.id === tagId)?.color ?? '#888',
+            }"
           >
-            <span class="size-2 rounded-full" :style="{ backgroundColor: tag.color ?? '#888' }" />
-            {{ tag.name }}
-          </Button>
+            <span
+              class="size-1.5 rounded-full"
+              :style="{
+                backgroundColor: availableTags.find((t) => t.id === tagId)?.color ?? '#888',
+              }"
+            />
+            {{ availableTags.find((t) => t.id === tagId)?.name ?? tagId }}
+            <button
+              type="button"
+              class="ml-0.5 cursor-pointer leading-none hover:opacity-70"
+              @click="toggleTag(tagId)"
+            >
+              <Icon name="lucide:x" size="12" />
+            </button>
+          </span>
         </div>
+        <Popover>
+          <PopoverTrigger as-child>
+            <Button
+              variant="outline"
+              role="combobox"
+              class="w-full cursor-pointer justify-between bg-background px-3 font-normal hover:bg-background dark:border dark:border-ring"
+            >
+              <span class="text-muted-foreground">Select or create tag</span>
+              <Icon
+                name="lucide:chevron-down"
+                size="16"
+                class="shrink-0 text-muted-foreground/80"
+              />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-full min-w-[var(--reka-popper-anchor-width)] p-0" align="start">
+            <Command>
+              <CommandInput
+                placeholder="Search or create tag..."
+                @update:model-value="(val: string) => (tagSearch = val)"
+              />
+              <CommandList>
+                <CommandEmpty>
+                  <button
+                    type="button"
+                    class="flex w-full cursor-pointer items-center gap-2 px-2 py-1.5 text-sm text-primary hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                    @click="handleCreateTag"
+                  >
+                    <Icon name="lucide:plus" size="14" />
+                    Create "{{ tagSearch }}"
+                  </button>
+                </CommandEmpty>
+                <CommandGroup heading="Tags">
+                  <CommandItem
+                    v-for="tag in availableTags"
+                    :key="tag.id"
+                    :value="tag"
+                    class="cursor-pointer"
+                    @select="toggleTag(tag.id)"
+                  >
+                    <span
+                      class="size-2 rounded-full"
+                      :style="{ backgroundColor: tag.color ?? '#888' }"
+                    />
+                    <span class="leading-none">{{ tag.name }}</span>
+                    <Icon
+                      v-if="selectedTags.includes(tag.id)"
+                      name="lucide:check"
+                      size="16"
+                      class="ml-auto"
+                    />
+                  </CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
       <FormField v-slot="{ componentField }" name="description">
         <FormItem>

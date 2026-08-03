@@ -110,6 +110,11 @@ const handleAdd = (key: string, event: Event) => {
     modalStore?.onOpen("addNewProject");
     modalStore?.setIsOpen(true);
   }
+  if (key === "tasks") {
+    modalStore?.setModalData({});
+    modalStore?.onOpen("addNewTask");
+    modalStore?.setIsOpen(true);
+  }
 };
 
 const currentSection = computed(() => {
@@ -150,7 +155,7 @@ function handleDeleteProject(item: { id: string; label: string }, event: Event) 
 
 function handleViewTask(item: { id: string }, event: Event) {
   event.stopPropagation();
-  console.log("view task", item.id);
+  navigateTo(`/workspace/${workspaceId.value}/tasks/${item.id}/info`);
 }
 
 function handleDeleteTask(item: { id: string }, event: Event) {

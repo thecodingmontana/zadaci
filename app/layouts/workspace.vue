@@ -58,6 +58,7 @@ const channelSync = useChannelSync(wsId);
 const channelMemberSync = useChannelMemberSync(wsId);
 const taskAssigneeSync = useTaskAssigneeSync(wsId);
 const taskActivitySync = useTaskActivitySync(wsId);
+const commentSync = useCommentSync(wsId);
 
 // ── Tier 2: TanStack Query realtime invalidation ──
 const workspaceMembersRt = useWorkspaceMembersRealtime(wsId);
@@ -81,6 +82,7 @@ function allSyncs() {
     channelMemberSync,
     taskAssigneeSync,
     taskActivitySync,
+    commentSync,
   ] as const;
 }
 

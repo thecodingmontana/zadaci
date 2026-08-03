@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import AvatarGroup from "~/components/workspace/shared/avatar-group.vue";
 import { useProjectMembers } from "~/composables/use-project-members";
 import { useRxDbSafe } from "~/composables/use-rxdb";
 import { toast } from "~/lib/toast";

@@ -92,7 +92,13 @@ watch(project, (val) => {
 
         <Separator />
 
-        <ProjectDetailToolbar v-model:active-view="activeView" v-model:search-query="searchQuery" />
+        <ProjectDetailToolbar
+          v-model:active-view="activeView"
+          v-model:search-query="searchQuery"
+          :workspace-id="workspaceId"
+          :project-id="projectId"
+          :project-title="projectName ?? 'Untitled'"
+        />
 
         <!-- Task board area -->
         <Motion

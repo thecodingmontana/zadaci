@@ -2,6 +2,7 @@
 import Signout from "~/modals/global/signout.vue";
 import AddMember from "~/modals/workspace/add-member.vue";
 import AddProject from "~/modals/workspace/add-project.vue";
+import AddTask from "~/modals/workspace/add-task.vue";
 import CreateChannel from "~/modals/workspace/create-channel.vue";
 import CreateWorkspace from "~/modals/workspace/create-workspace.vue";
 import DeleteChannel from "~/modals/workspace/delete-channel.vue";
@@ -19,5 +20,6 @@ import EditChannel from "~/modals/workspace/edit-channel.vue";
     <DeleteChannel />
     <DeleteProject />
     <AddProject />
+    <AddTask />
   </div>
 </template>

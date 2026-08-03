@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     const session = await requireUserSession(event);
     const workspaceId = getRouterParam(event, "workspaceId");
     const projectId = getRouterParam(event, "projectId");
-    const { name, status, dueDate, description, priority, parentTaskId, assignees } =
+    const { name, status, dueDate, description, priority, parentTaskId, assignees, subtasks } =
       (await readBody(event)) as {
         description?: string;
         dueDate?: string | Date;
@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
         priority: Priority;
         parentTaskId?: string;
         assignees: ProjectMembers[];
+        subtasks?: { name: string }[];
       };
     if (!session) throw createError({ statusCode: 401, statusMessage: "Unauthorized!" });
     if (typeof workspaceId !== "string" || !workspaceId)
@@ -51,6 +52,14 @@ export default defineEventHandler(async (event) => {
     const parsedDueDate = dueDate ? new Date(dueDate) : undefined;
     if (parsedDueDate && Number.isNaN(parsedDueDate.getTime()))
       throw createError({ statusCode: 400, statusMessage: "Invalid due date!" });
+    if (subtasks !== undefined) {
+      if (!Array.isArray(subtasks))
+        throw createError({ statusCode: 400, statusMessage: "Invalid subtasks format!" });
+      for (const sub of subtasks) {
+        if (!sub || typeof sub !== "object" || typeof sub.name !== "string" || !sub.name.trim())
+          throw createError({ statusCode: 400, statusMessage: "Each subtask must have a name!" });
+      }
+    }
 
     const statusValue = STATUS[status as keyof typeof STATUS];
     const priorityValue = PRIORITY[priority as keyof typeof PRIORITY];
@@ -127,6 +136,36 @@ export default defineEventHandler(async (event) => {
       assigned_at: new Date(),
     }));
     await db.insert(tables.task_assignees).values(assigneeValues);
+
+    let createdSubtasks: (typeof task)[] = [];
+
+    if (subtasks && subtasks.length > 0) {
+      const subtaskValues = subtasks
+        .map((sub) => sub.name.trim())
+        .filter((n) => n)
+        .map((subtaskName) => ({
+          name: subtaskName,
+          project_id: project.id,
+          parent_task_id: task.id,
+          created_at: new Date(),
+          updated_at: new Date(),
+          priority: priorityValue,
+          status: statusValue,
+        }));
+      if (subtaskValues.length > 0) {
+        createdSubtasks = await db.insert(tables.task).values(subtaskValues).returning();
+        const subtaskAssigneeValues = createdSubtasks.flatMap((subtaskDoc) =>
+          assignees.map((member) => ({
+            task_id: subtaskDoc.id,
+            member_id: member.member_id,
+            assigned_at: new Date(),
+          })),
+        );
+        if (subtaskAssigneeValues.length > 0) {
+          await db.insert(tables.task_assignees).values(subtaskAssigneeValues);
+        }
+      }
+    }
     const users = await db.query.workspace_members.findMany({
       where: { id: { in: memberIds } },
       with: {
@@ -160,6 +199,7 @@ export default defineEventHandler(async (event) => {
     return {
       message: "Task created successfully",
       task,
+      subtasks: createdSubtasks,
     };
   } catch (error: any) {
     const errorMessage = error.error ? error.error.message : error.message;
