@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import type { DateValue } from "@internationalized/date";
+import type { TagDocType } from "~/plugins/rxdb.client";
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
 import { Button } from "~/components/ui/button";
 import { Calendar } from "~/components/ui/calendar";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "~/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import {
   Select,
@@ -49,8 +58,11 @@ const assignees = computed(() => {
 });
 
 const projectTags = ref<{ id: string; name: string; color: string | null }[]>([]);
+const availableTags = ref<TagDocType[]>([]);
+const tagSearch = ref("");
+const tagsPopoverOpen = ref(false);
 
-onMounted(async () => {
+async function refreshProjectTags() {
   try {
     const data = await $fetch<{ id: string; name: string; color: string | null }[]>(
       `/api/workspace/${props.workspaceId}/project/${props.projectId}/tags`,
@@ -59,7 +71,94 @@ onMounted(async () => {
   } catch {
     // tags unavailable
   }
+}
+
+onMounted(async () => {
+  refreshProjectTags();
+  const database = await useRxDbSafe();
+  if (!database?.tags || !workspaceIdRef.value) return;
+  database.tags
+    .find({
+      selector: { workspace_id: workspaceIdRef.value, deleted_at: null },
+    })
+    .$.subscribe((docs) => {
+      availableTags.value = docs;
+    });
 });
+
+function isProjectTagAttached(tagId: string) {
+  return projectTags.value.some((t) => t.id === tagId);
+}
+
+async function toggleProjectTag(tagId: string) {
+  const attached = isProjectTagAttached(tagId);
+  const tag = availableTags.value.find((t) => t.id === tagId);
+
+  if (attached) {
+    projectTags.value = projectTags.value.filter((t) => t.id !== tagId);
+  } else if (tag) {
+    projectTags.value = [...projectTags.value, { id: tag.id, name: tag.name, color: tag.color }];
+  } else {
+    return;
+  }
+
+  try {
+    if (attached) {
+      await $fetch(`/api/workspace/${props.workspaceId}/project/${props.projectId}/tags/${tagId}`, {
+        method: "DELETE",
+      });
+    } else {
+      await $fetch(`/api/workspace/${props.workspaceId}/project/${props.projectId}/tags`, {
+        method: "POST",
+        body: { tagIds: [tagId] },
+      });
+    }
+  } catch (err: any) {
+    refreshProjectTags();
+    toast.error(err?.response?._data?.statusMessage ?? "Failed to update tags", {
+      position: "top-center",
+    });
+  }
+}
+
+async function handleCreateTag() {
+  const name = tagSearch.value.trim();
+  if (!name) return;
+  try {
+    const tag = await $fetch<any>(`/api/workspace/${props.workspaceId}/tags`, {
+      method: "POST",
+      body: { name },
+    });
+    const db = await useRxDbSafe();
+    if (db) {
+      await db.tags.insert({
+        id: tag.id,
+        workspace_id: tag.workspace_id,
+        name: tag.name,
+        color: tag.color,
+        created_at: tag.created_at,
+        updated_at: tag.updated_at,
+        deleted_at: null,
+      });
+    }
+    if (!isProjectTagAttached(tag.id)) {
+      projectTags.value = [...projectTags.value, tag];
+    }
+    tagSearch.value = "";
+    try {
+      await $fetch(`/api/workspace/${props.workspaceId}/project/${props.projectId}/tags`, {
+        method: "POST",
+        body: { tagIds: [tag.id] },
+      });
+    } catch {
+      refreshProjectTags();
+    }
+  } catch (err: any) {
+    toast.error(err?.response?._data?.statusMessage ?? "Failed to create tag", {
+      position: "top-center",
+    });
+  }
+}
 
 const currentStatus = computed(() => props.projectStatus.toUpperCase());
 
@@ -251,7 +350,7 @@ async function onDateSelect(val?: DateValue) {
     </div>
 
     <!-- Tags -->
-    <div v-if="projectTags.length > 0" class="grid grid-cols-[140px_1fr] items-center gap-2">
+    <div class="grid grid-cols-[140px_1fr] items-start gap-2">
       <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Icon name="solar:tag-linear" class="size-4" />
         Tags
@@ -260,7 +359,7 @@ async function onDateSelect(val?: DateValue) {
         <span
           v-for="tag in projectTags"
           :key="tag.id"
-          class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
+          class="group inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
           :style="{
             backgroundColor: `${tag.color ?? '#888'}20`,
             color: tag.color ?? '#888',
@@ -268,7 +367,68 @@ async function onDateSelect(val?: DateValue) {
         >
           <span class="size-1.5 rounded-full" :style="{ backgroundColor: tag.color ?? '#888' }" />
           {{ tag.name }}
+          <button
+            type="button"
+            class="ml-0.5 cursor-pointer leading-none opacity-0 transition-opacity group-hover:opacity-70 hover:opacity-70 focus:opacity-100"
+            aria-label="Remove tag"
+            @click="toggleProjectTag(tag.id)"
+          >
+            <Icon name="lucide:x" size="12" />
+          </button>
         </span>
+        <Popover v-model:open="tagsPopoverOpen">
+          <PopoverTrigger as-child>
+            <Button
+              variant="outline"
+              role="combobox"
+              class="h-6 cursor-pointer gap-1 rounded-md px-2 text-xs font-normal hover:bg-muted"
+            >
+              <Icon name="lucide:plus" size="12" />
+              {{ projectTags.length > 0 ? "Add" : "Add tag" }}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-56 p-0" align="start">
+            <Command>
+              <CommandInput
+                placeholder="Search or create tag..."
+                @update:model-value="(val: string) => (tagSearch = val)"
+              />
+              <CommandList>
+                <CommandEmpty>
+                  <button
+                    type="button"
+                    class="flex w-full cursor-pointer items-center gap-2 px-2 py-1.5 text-sm text-primary hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
+                    @click="handleCreateTag"
+                  >
+                    <Icon name="lucide:plus" size="14" />
+                    Create "{{ tagSearch }}"
+                  </button>
+                </CommandEmpty>
+                <CommandGroup heading="Tags">
+                  <CommandItem
+                    v-for="tag in availableTags"
+                    :key="tag.id"
+                    :value="tag"
+                    class="cursor-pointer"
+                    @select="toggleProjectTag(tag.id)"
+                  >
+                    <span
+                      class="size-2 rounded-full"
+                      :style="{ backgroundColor: tag.color ?? '#888' }"
+                    />
+                    <span class="leading-none">{{ tag.name }}</span>
+                    <Icon
+                      v-if="isProjectTagAttached(tag.id)"
+                      name="lucide:check"
+                      size="16"
+                      class="ml-auto"
+                    />
+                  </CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
 
