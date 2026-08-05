@@ -63,6 +63,7 @@ export interface ModalData {
   projectId?: string;
   workspaceId?: string;
   projectTitle?: string;
+  taskStatus?: string;
   project?: DBProject | null;
   members?: ProjectMembers[];
   teammates?: ChangeTeammateRole[];

@@ -29,6 +29,7 @@ import AvatarGroup from "~/components/workspace/shared/avatar-group.vue";
 import DatePicker from "~/components/workspace/shared/date-picker.vue";
 import { useRxDbSafe } from "~/composables/use-rxdb";
 import { toast } from "~/lib/toast";
+import { useModalStore } from "~/stores/use-modal-store";
 import { useWorkspaceStore } from "~/stores/use-workspace-store";
 import { newTaskSchema, priorityOptions, taskColumns } from "~/types";
 
@@ -39,6 +40,7 @@ const props = defineProps<{
   projectId: string | null;
 }>();
 
+const modalStore = useModalStore();
 const workspaceStore = useWorkspaceStore();
 const queryClient = useQueryClient();
 
@@ -62,6 +64,11 @@ onMounted(async () => {
     .$.subscribe((docs) => {
       projects.value = docs;
     });
+
+  const presetStatus = modalStore?.data?.taskStatus;
+  if (presetStatus) {
+    form.setFieldValue("status", presetStatus);
+  }
 });
 
 const selectedProject = computed(

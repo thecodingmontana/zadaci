@@ -2,6 +2,7 @@
 import ProjectDetailHeader from "~/components/workspace/projects/project-detail-header.vue";
 import ProjectDetailMeta from "~/components/workspace/projects/project-detail-meta.vue";
 import ProjectDetailToolbar from "~/components/workspace/projects/project-detail-toolbar.vue";
+import ProjectTaskKanban from "~/components/workspace/projects/tasks/project-task-kanban.vue";
 
 definePageMeta({
   middleware: ["authenticated"],
@@ -105,11 +106,26 @@ watch(project, (val) => {
           :initial="{ opacity: 0 }"
           :animate="{ opacity: 1 }"
           :transition="{ duration: 0.3, delay: 0.3 }"
-          class="flex-1 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground"
+          class="min-h-[500px] flex-1"
         >
-          <template v-if="activeView === 'kanban'"> Kanban board goes here </template>
-          <template v-else-if="activeView === 'table'"> Table view goes here </template>
-          <template v-else> Timeline view goes here </template>
+          <ProjectTaskKanban
+            v-if="activeView === 'kanban'"
+            :workspace-id="workspaceId"
+            :project-id="projectId"
+            :project-title="projectName ?? 'Untitled'"
+          />
+          <div
+            v-else-if="activeView === 'table'"
+            class="flex h-full items-center justify-center rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground"
+          >
+            Table view goes here
+          </div>
+          <div
+            v-else
+            class="flex h-full items-center justify-center rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground"
+          >
+            Timeline view goes here
+          </div>
         </Motion>
       </Motion>
     </NuxtLayout>
