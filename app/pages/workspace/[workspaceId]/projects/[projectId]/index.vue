@@ -3,6 +3,8 @@ import ProjectDetailHeader from "~/components/workspace/projects/project-detail-
 import ProjectDetailMeta from "~/components/workspace/projects/project-detail-meta.vue";
 import ProjectDetailToolbar from "~/components/workspace/projects/project-detail-toolbar.vue";
 import ProjectTaskKanban from "~/components/workspace/projects/tasks/project-task-kanban.vue";
+import ProjectTaskTable from "~/components/workspace/projects/tasks/project-task-table.vue";
+import ProjectTaskTimeline from "~/components/workspace/projects/tasks/project-task-timeline.vue";
 
 definePageMeta({
   middleware: ["authenticated"],
@@ -114,18 +116,13 @@ watch(project, (val) => {
             :project-id="projectId"
             :project-title="projectName ?? 'Untitled'"
           />
-          <div
+          <ProjectTaskTable
             v-else-if="activeView === 'table'"
-            class="flex h-full items-center justify-center rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground"
-          >
-            Table view goes here
-          </div>
-          <div
-            v-else
-            class="flex h-full items-center justify-center rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground"
-          >
-            Timeline view goes here
-          </div>
+            v-model:search-query="searchQuery"
+            :workspace-id="workspaceId"
+            :project-id="projectId"
+          />
+          <ProjectTaskTimeline v-else :workspace-id="workspaceId" :project-id="projectId" />
         </Motion>
       </Motion>
     </NuxtLayout>
