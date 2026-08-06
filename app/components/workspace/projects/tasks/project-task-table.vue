@@ -27,11 +27,15 @@ const props = defineProps<{
   workspaceId: string;
   projectId: string;
   searchQuery?: string;
+  parentTaskId?: string | null;
 }>();
 
 const searchQuery = defineModel<string>("searchQuery", { default: "" });
 
-const { topLevelTasks, subtaskCounts } = useProjectTasks(() => props.projectId);
+const { topLevelTasks, subtaskCounts } = useProjectTasks(() => ({
+  projectId: props.projectId,
+  parentTaskId: props.parentTaskId,
+}));
 
 const statusStyles: Record<string, { label: string; badge: string }> = {
   idea: { label: "Idea", badge: "bg-gray-500/15 text-gray-600 dark:text-gray-400" },

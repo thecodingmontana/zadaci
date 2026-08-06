@@ -3,13 +3,9 @@ import type { IDragEvent } from "@vue-dnd-kit/core";
 import type { TaskColumns, TaskStatusKey } from "~/lib/task-kanban";
 import type { TaskDocType } from "~/plugins/rxdb.client";
 import KanbanColumn from "~/components/workspace/projects/tasks/kanban-column.vue";
+import { useProjectTasks } from "~/composables/use-project-tasks";
 import { useRxDbSafe } from "~/composables/use-rxdb";
-import {
-  emptyTaskColumns,
-  groupTasksByStatus,
-  STATUS_TO_API,
-  TASK_STATUS_TO_RXDB,
-} from "~/lib/task-kanban";
+import { groupTasksByStatus, STATUS_TO_API, TASK_STATUS_TO_RXDB } from "~/lib/task-kanban";
 import { toast } from "~/lib/toast";
 import { taskColumns } from "~/types";
 
@@ -17,45 +13,15 @@ const props = defineProps<{
   workspaceId: string;
   projectId: string;
   projectTitle: string;
+  parentTaskId?: string | null;
 }>();
 
-const columns = ref<TaskColumns>(emptyTaskColumns());
-const subtaskCounts = ref<Record<string, { total: number; completed: number }>>({});
+const { topLevelTasks, subtaskCounts } = useProjectTasks(() => ({
+  projectId: props.projectId,
+  parentTaskId: props.parentTaskId,
+}));
 
-onMounted(async () => {
-  const db = await useRxDbSafe();
-  if (!db) return;
-
-  const parentSub = db.tasks
-    .find({
-      selector: { project_id: props.projectId, parent_task_id: null, deleted_at: null },
-    })
-    .$.subscribe((docs) => {
-      columns.value = groupTasksByStatus(docs);
-    });
-
-  const subtaskSub = db.tasks
-    .find({
-      selector: { project_id: props.projectId, parent_task_id: { $ne: null }, deleted_at: null },
-    })
-    .$.subscribe((docs) => {
-      const counts: Record<string, { total: number; completed: number }> = {};
-      for (const sub of docs) {
-        if (!sub.parent_task_id) continue;
-        if (!counts[sub.parent_task_id]) {
-          counts[sub.parent_task_id] = { total: 0, completed: 0 };
-        }
-        counts[sub.parent_task_id].total++;
-        if (sub.status === "completed") counts[sub.parent_task_id].completed++;
-      }
-      subtaskCounts.value = counts;
-    });
-
-  onUnmounted(() => {
-    parentSub.unsubscribe();
-    subtaskSub.unsubscribe();
-  });
-});
+const columns = computed<TaskColumns>(() => groupTasksByStatus(topLevelTasks.value));
 
 const statusKeyFromName = (name: string): TaskStatusKey =>
   name.toUpperCase().replace(/ /g, "_") as TaskStatusKey;
@@ -108,6 +74,7 @@ async function handleDrop(columnKey: TaskStatusKey, event: IDragEvent) {
         :workspace-id="workspaceId"
         :project-id="projectId"
         :project-title="projectTitle"
+        :parent-task-id="parentTaskId ?? null"
         @drop="handleDrop"
       />
     </div>

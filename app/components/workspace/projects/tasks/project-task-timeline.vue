@@ -5,9 +5,13 @@ import { useProjectTasks } from "~/composables/use-project-tasks";
 const props = defineProps<{
   workspaceId: string;
   projectId: string;
+  parentTaskId?: string | null;
 }>();
 
-const { topLevelTasks, subtaskCounts } = useProjectTasks(() => props.projectId);
+const { topLevelTasks, subtaskCounts } = useProjectTasks(() => ({
+  projectId: props.projectId,
+  parentTaskId: props.parentTaskId,
+}));
 
 const statusColors: Record<TaskDocType["status"], string> = {
   idea: "bg-gray-400",

@@ -16,6 +16,7 @@ const props = defineProps<{
   workspaceId: string;
   projectId: string;
   projectTitle: string;
+  parentTaskId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -46,6 +47,7 @@ function addTask() {
     projectId: props.projectId,
     projectTitle: props.projectTitle,
     taskStatus: props.statusKey,
+    parentTaskId: props.parentTaskId ?? undefined,
   });
   modalStore?.onOpen("addNewTask");
   modalStore?.setIsOpen(true);

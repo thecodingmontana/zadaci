@@ -12,6 +12,7 @@ const isModalOpen = computed(() => {
 
 const projectId = computed(() => modalStore?.data?.projectId ?? null);
 const projectTitle = computed(() => modalStore?.data?.projectTitle ?? null);
+const parentTaskId = computed(() => modalStore?.data?.parentTaskId ?? null);
 
 const onSetIsAddNewTask = (payload: boolean) => {
   isAddNewTask.value = payload;
@@ -52,6 +53,7 @@ const onClose = () => {
         :is-add-new-task="isAddNewTask"
         :on-set-is-add-new-task="onSetIsAddNewTask"
         :project-id="projectId"
+        :parent-task-id="parentTaskId"
       />
     </SheetContent>
   </Sheet>

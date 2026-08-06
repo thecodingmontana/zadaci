@@ -12,13 +12,13 @@ export default defineEventHandler(async (event) => {
     const workspaceId = getRouterParam(event, "workspaceId");
     const projectId = getRouterParam(event, "projectId");
     const taskId = getRouterParam(event, "taskId");
-    const { name, status, dueDate, description, priority, assignees } = (await readBody(event)) as {
-      description?: string;
-      dueDate?: string | Date;
-      name: string;
-      status: Status;
-      priority: Priority;
-      assignees: ProjectMembers[];
+    const body = (await readBody(event)) as {
+      name?: string;
+      status?: Status;
+      dueDate?: string | null;
+      description?: string | null;
+      priority?: Priority;
+      assignees?: ProjectMembers[];
     };
     if (!session) throw createError({ statusCode: 401, statusMessage: "Unauthorized!" });
     if (typeof workspaceId !== "string" || !workspaceId)
@@ -27,38 +27,51 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: "ProjectID is required!" });
     if (!taskId || typeof taskId !== "string")
       throw createError({ statusCode: 400, statusMessage: "TaskID is required!" });
-    if (typeof name !== "string" || !name)
+    if (body.name !== undefined && (typeof body.name !== "string" || !body.name))
       throw createError({ statusCode: 400, statusMessage: "Invalid name!" });
-    if (typeof status !== "string" || !validStatuses.includes(status))
+    if (
+      body.status !== undefined &&
+      (typeof body.status !== "string" || !validStatuses.includes(body.status))
+    )
       throw createError({ statusCode: 400, statusMessage: "Invalid Status!" });
-    if (typeof priority !== "string" || !validPriorities.includes(priority))
+    if (
+      body.priority !== undefined &&
+      (typeof body.priority !== "string" || !validPriorities.includes(body.priority))
+    )
       throw createError({ statusCode: 400, statusMessage: "Invalid Priority!" });
-    if (description !== undefined && typeof description !== "string")
+    if (body.description !== undefined && typeof body.description !== "string")
       throw createError({ statusCode: 400, statusMessage: "Invalid description!" });
-    if (dueDate !== undefined && typeof dueDate !== "string" && !(dueDate instanceof Date))
+    if (body.dueDate !== undefined && body.dueDate !== null && typeof body.dueDate !== "string")
       throw createError({ statusCode: 400, statusMessage: "Invalid due date!" });
-    if (!assignees || !Array.isArray(assignees) || assignees.length === 0)
-      throw createError({
-        statusCode: 400,
-        statusMessage: "At least one assigned member is required!",
-      });
-    for (const member of assignees) {
-      if (!member || typeof member !== "object")
-        throw createError({ statusCode: 400, statusMessage: "Invalid assigned member format!" });
-      if (typeof member.member_id !== "string" || !member.member_id)
-        throw createError({
-          statusCode: 400,
-          statusMessage: "Each assigned member must have a valid ID!",
-        });
-    }
-    const parsedDueDate = dueDate ? new Date(dueDate) : undefined;
+
+    const parsedDueDate =
+      body.dueDate !== undefined ? (body.dueDate ? new Date(body.dueDate) : null) : undefined;
     if (parsedDueDate && Number.isNaN(parsedDueDate.getTime()))
       throw createError({ statusCode: 400, statusMessage: "Invalid due date!" });
 
-    const statusValue = STATUS[status as keyof typeof STATUS];
-    const priorityValue = PRIORITY[priority as keyof typeof PRIORITY];
+    if (body.assignees !== undefined) {
+      if (!Array.isArray(body.assignees) || body.assignees.length === 0)
+        throw createError({
+          statusCode: 400,
+          statusMessage: "At least one assigned member is required!",
+        });
+      for (const member of body.assignees) {
+        if (!member || typeof member !== "object")
+          throw createError({ statusCode: 400, statusMessage: "Invalid assigned member format!" });
+        if (typeof member.member_id !== "string" || !member.member_id)
+          throw createError({
+            statusCode: 400,
+            statusMessage: "Each assigned member must have a valid ID!",
+          });
+      }
+    }
 
-    const memberIds = assignees.map((m) => m.member_id);
+    const statusValue = body.status ? STATUS[body.status as keyof typeof STATUS] : undefined;
+    const priorityValue = body.priority
+      ? PRIORITY[body.priority as keyof typeof PRIORITY]
+      : undefined;
+
+    const memberIds = (body.assignees ?? []).map((m) => m.member_id);
     const validWorkspaceMembers = await db.query.workspace_members.findMany({
       where: {
         id: { in: memberIds },
@@ -90,29 +103,31 @@ export default defineEventHandler(async (event) => {
     if (!project) throw createError({ statusCode: 400, statusMessage: "Invalid Project!" });
     if (!project.workspace)
       throw createError({ statusCode: 400, statusMessage: "Project workspace not found!" });
-    const validProjectMembers = await db.query.project_members.findMany({
-      where: {
-        member_id: { in: memberIds },
-        project_id: project.id,
-      },
-      columns: { member_id: true },
-    });
-    const validProjectIds = validProjectMembers.map((m) => m.member_id);
-    const invalidProjectMembers = memberIds.filter((id) => !validProjectIds.includes(id));
-    if (invalidProjectMembers.length) {
-      const invalidUsers = await db.query.workspace_members.findMany({
-        where: { id: { in: invalidProjectMembers } },
-        with: { user: true },
-        columns: { id: true },
+    if (memberIds.length > 0) {
+      const validProjectMembers = await db.query.project_members.findMany({
+        where: {
+          member_id: { in: memberIds },
+          project_id: project.id,
+        },
+        columns: { member_id: true },
       });
-      const invalidNames = invalidUsers
-        .filter((m) => m.user)
-        .map((m) => m.user!.username)
-        .join(", ");
-      throw createError({
-        statusCode: 400,
-        statusMessage: `Invalid assigned members (not in project): ${invalidNames}`,
-      });
+      const validProjectIds = validProjectMembers.map((m) => m.member_id);
+      const invalidProjectMembers = memberIds.filter((id) => !validProjectIds.includes(id));
+      if (invalidProjectMembers.length) {
+        const invalidUsers = await db.query.workspace_members.findMany({
+          where: { id: { in: invalidProjectMembers } },
+          with: { user: true },
+          columns: { id: true },
+        });
+        const invalidNames = invalidUsers
+          .filter((m) => m.user)
+          .map((m) => m.user!.username)
+          .join(", ");
+        throw createError({
+          statusCode: 400,
+          statusMessage: `Invalid assigned members (not in project): ${invalidNames}`,
+        });
+      }
     }
     const existingTask = await db.query.task.findFirst({
       where: {
@@ -121,16 +136,17 @@ export default defineEventHandler(async (event) => {
       },
     });
     if (!existingTask) throw createError({ statusCode: 404, statusMessage: "Task not found!" });
+
+    const updateData: Record<string, any> = { updated_at: new Date() };
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (priorityValue !== undefined) updateData.priority = priorityValue;
+    if (statusValue !== undefined) updateData.status = statusValue;
+    if (parsedDueDate !== undefined) updateData.due_date = parsedDueDate;
+
     const [task] = await db
       .update(tables.task)
-      .set({
-        name,
-        description,
-        updated_at: new Date(),
-        priority: priorityValue,
-        status: statusValue,
-        due_date: parsedDueDate || null,
-      })
+      .set(updateData)
       .where(and(eq(tables.task.id, taskId), eq(tables.task.project_id, projectId)))
       .returning();
 
@@ -138,7 +154,10 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, statusMessage: "Failed to update task!" });
     }
 
-    if (["COMPLETED", "IN REVIEW", "ABANDONED"].includes(status)) {
+    if (
+      statusValue !== undefined &&
+      ["COMPLETED", "IN REVIEW", "ABANDONED"].includes(body.status!)
+    ) {
       const member = await db.query.workspace_members.findFirst({
         where: {
           workspace_id: workspaceId,
@@ -159,7 +178,7 @@ export default defineEventHandler(async (event) => {
         changed_at: new Date(),
       });
     }
-    if (assignees && assignees.length > 0) {
+    if (body.assignees !== undefined && body.assignees.length > 0) {
       const existingMembers = await db.query.project_members.findMany({
         where: { project_id: projectId },
         columns: {
@@ -168,7 +187,7 @@ export default defineEventHandler(async (event) => {
       });
       const existingMemberIds = existingMembers.map((m) => m.member_id);
       await db.delete(tables.task_assignees).where(eq(tables.task_assignees.task_id, task.id));
-      const assigneeValues = assignees.map((member) => ({
+      const assigneeValues = body.assignees.map((member) => ({
         task_id: task.id,
         member_id: member.member_id,
         assigned_at: new Date(),
@@ -197,8 +216,8 @@ export default defineEventHandler(async (event) => {
           });
         }
       }
-      if (status === "COMPLETED") {
-        for (const member of assignees) {
+      if (body.status === "COMPLETED") {
+        for (const member of body.assignees) {
           await sendTaskCompletionMail({
             workspace: project.workspace.name,
             user: member.username as string,

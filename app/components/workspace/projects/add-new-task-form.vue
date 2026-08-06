@@ -38,6 +38,7 @@ const props = defineProps<{
   isAddNewTask: boolean;
   onSetIsAddNewTask: (payload: boolean) => void;
   projectId: string | null;
+  parentTaskId?: string | null;
 }>();
 
 const modalStore = useModalStore();
@@ -156,6 +157,7 @@ const onSubmit = form.handleSubmit(async (values) => {
     dueDate: values.dueDate ? new Date(values.dueDate) : undefined,
     assignees: assignees.value,
     subtasks: subtasks.value.filter((sub) => sub.name.trim()),
+    parentTaskId: props.parentTaskId ?? undefined,
   };
 
   const promise = $fetch(
