@@ -20,6 +20,7 @@ export default defineNuxtConfig({
     ],
     optimizeDeps: {
       include: [
+        "@internationalized/date",
         "@lucide/vue",
         "@oslojs/crypto/sha2",
         "@oslojs/encoding",
@@ -31,6 +32,7 @@ export default defineNuxtConfig({
         "@tanstack/vue-query",
         "@unhead/schema-org/vue",
         "@vee-validate/zod",
+        "@vue-dnd-kit/core",
         "@vueuse/core",
         "class-variance-authority",
         "clsx",
@@ -38,6 +40,7 @@ export default defineNuxtConfig({
         "motion-v",
         "nanoid",
         "reka-ui",
+        "reka-ui/date",
         "rxdb",
         "rxdb/plugins/migration-schema",
         "rxdb/plugins/replication",
