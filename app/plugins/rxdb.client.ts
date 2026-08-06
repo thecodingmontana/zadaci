@@ -18,6 +18,16 @@ export interface TaskDocType {
   deleted_at: string | null;
 }
 
+export interface TaskAssigneeDocType {
+  id: string;
+  task_id: string;
+  member_id: string;
+  assigned_at: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export interface ProjectDocType {
   id: string;
   title: string;
@@ -150,6 +160,7 @@ export interface NoteDocType {
 }
 
 export type TaskCollection = RxCollection<TaskDocType>;
+export type TaskAssigneeCollection = RxCollection<TaskAssigneeDocType>;
 export type ProjectCollection = RxCollection<ProjectDocType>;
 export type MessageCollection = RxCollection<MessageDocType>;
 export type MessageReceiptCollection = RxCollection<MessageReceiptDocType>;
@@ -160,6 +171,7 @@ export type CommentCollection = RxCollection<CommentDocType>;
 export type NoteCollection = RxCollection<NoteDocType>;
 export type ZadaciDatabase = RxDatabase<{
   tasks: TaskCollection;
+  task_assignees: TaskAssigneeCollection;
   projects: ProjectCollection;
   teams: RxCollection<TeamDocType>;
   tags: RxCollection<TagDocType>;
@@ -198,6 +210,24 @@ const TASK_SCHEMA = {
   },
   required: ["id", "name", "status", "priority", "project_id", "created_at", "updated_at"],
   indexes: ["project_id", "status", "updated_at"],
+};
+
+const TASK_ASSIGNEE_SCHEMA = {
+  title: "task_assignees",
+  version: 0,
+  type: "object",
+  primaryKey: { key: "id", fields: ["id"] },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    task_id: { type: "string", maxLength: 16 },
+    member_id: { type: "string", maxLength: 16 },
+    assigned_at: { type: "string", maxLength: 24 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+    deleted_at: { type: ["string", "null"], maxLength: 24 },
+  },
+  required: ["id", "task_id", "member_id", "assigned_at", "created_at", "updated_at"],
+  indexes: ["task_id", "member_id"],
 };
 
 const PROJECT_SCHEMA = {
@@ -531,6 +561,10 @@ export default defineNuxtPlugin(async () => {
         2: (oldDoc) => ({ ...oldDoc, parent_task_id: null }),
         3: (oldDoc) => oldDoc,
       },
+    },
+    task_assignees: {
+      schema: TASK_ASSIGNEE_SCHEMA,
+      migrationStrategies: {},
     },
     projects: {
       schema: PROJECT_SCHEMA,

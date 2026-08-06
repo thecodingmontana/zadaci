@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DateValue } from "@internationalized/date";
-import type { TaskDocType } from "~/plugins/rxdb.client";
+import type { TaskAssigneeDocType, TaskDocType } from "~/plugins/rxdb.client";
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
 import { Button } from "~/components/ui/button";
 import { Calendar } from "~/components/ui/calendar";
@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import AvatarGroup from "~/components/workspace/shared/avatar-group.vue";
 import { useRxDbSafe } from "~/composables/use-rxdb";
 import { STATUS_TO_API } from "~/lib/task-kanban";
 import { toast } from "~/lib/toast";
@@ -22,6 +23,45 @@ const props = defineProps<{
   workspaceId: string;
   projectId: string;
 }>();
+
+const workspaceIdRef = computed(() => props.workspaceId);
+const { data: workspaceMembers } = useWorkspaceMembers(workspaceIdRef);
+
+const assigneeDocs = ref<TaskAssigneeDocType[]>([]);
+
+async function startAssigneeSubscription() {
+  const db = await useRxDbSafe();
+  if (!db?.task_assignees) return;
+
+  const sub = db.task_assignees
+    .find({
+      selector: { task_id: props.task?.id ?? "", deleted_at: null },
+    })
+    .$.subscribe((docs) => {
+      assigneeDocs.value = docs;
+    });
+
+  onUnmounted(() => sub.unsubscribe());
+}
+
+watch(
+  () => props.task?.id,
+  (id) => {
+    if (id) startAssigneeSubscription();
+  },
+  { immediate: true },
+);
+
+const assignees = computed(() => {
+  const memberIds = new Set(assigneeDocs.value.map((a) => a.member_id));
+  return (workspaceMembers.value ?? []).flatMap((m) => {
+    if (!memberIds.has(m.id)) return [];
+    return {
+      name: m.user.username ?? m.user.email ?? "Unknown",
+      src: m.user.profilePictureUrl ?? undefined,
+    };
+  });
+});
 
 const statusBadge: Record<
   TaskDocType["status"],
@@ -268,6 +308,18 @@ async function onDateSelect(val?: DateValue) {
           </SelectItem>
         </SelectContent>
       </Select>
+    </div>
+
+    <!-- Assigned to -->
+    <div class="grid grid-cols-[140px_1fr] items-center gap-2">
+      <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Icon name="solar:users-group-rounded-linear" class="size-4" />
+        Assigned to
+      </span>
+      <div v-if="assignees.length > 0" class="px-2 py-0.5">
+        <AvatarGroup :avatars="assignees" :max="5" :size="28" />
+      </div>
+      <span v-else class="px-2 py-0.5 text-sm text-muted-foreground">Unassigned</span>
     </div>
 
     <!-- Description -->
