@@ -155,7 +155,7 @@ function handleDeleteProject(item: { id: string; label: string }, event: Event) 
 
 function handleViewTask(item: { id: string }, event: Event) {
   event.stopPropagation();
-  navigateTo(`/workspace/${workspaceId.value}/tasks/${item.id}/info`);
+  navigateTo(`/workspace/${workspaceId.value}/tasks/${item.id}`);
 }
 
 function handleDeleteTask(item: { id: string }, event: Event) {

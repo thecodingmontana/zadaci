@@ -116,7 +116,7 @@ const axisDays = computed(() => {
 });
 
 function openTask(task: TaskDocType) {
-  navigateTo(`/workspace/${props.workspaceId}/tasks/${task.id}/info`);
+  navigateTo(`/workspace/${props.workspaceId}/tasks/${task.id}`);
 }
 
 const isOverdue = (task: TaskDocType) => {

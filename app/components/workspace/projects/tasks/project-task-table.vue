@@ -185,7 +185,7 @@ watch(searchQuery, (value) => {
 });
 
 function openTask(task: TaskDocType) {
-  navigateTo(`/workspace/${props.workspaceId}/tasks/${task.id}/info`);
+  navigateTo(`/workspace/${props.workspaceId}/tasks/${task.id}`);
 }
 </script>
 

@@ -37,7 +37,7 @@ const { isDragOver, isAllowed } = makeDroppable(
 const modalStore = useModalStore();
 
 function openTask(taskId: string) {
-  navigateTo(`/workspace/${props.workspaceId}/tasks/${taskId}/info`);
+  navigateTo(`/workspace/${props.workspaceId}/tasks/${taskId}`);
 }
 
 function addTask() {
