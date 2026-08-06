@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Textarea } from "~/components/ui/textarea";
 import { useRxDbSafe } from "~/composables/use-rxdb";
 import { STATUS_TO_API } from "~/lib/task-kanban";
 import { toast } from "~/lib/toast";
@@ -203,17 +202,17 @@ async function onDateSelect(val?: DateValue) {
     :initial="{ opacity: 0 }"
     :animate="{ opacity: 1 }"
     :transition="{ duration: 0.3, delay: 0.1 }"
-    class="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4"
+    class="flex flex-col gap-4"
   >
     <!-- Status -->
-    <div>
-      <p class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Icon name="solar:flag-2-linear" class="size-3.5" />
+    <div class="grid grid-cols-[140px_1fr] items-center gap-2">
+      <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Icon name="solar:flag-2-linear" class="size-4" />
         Status
-      </p>
+      </span>
       <Select :model-value="statusToKey(task?.status ?? 'idea')" @update:model-value="updateStatus">
         <SelectTrigger
-          class="mt-1 w-fit gap-1.5 px-2 py-0.5 text-xs font-medium hover:bg-muted [&>span]:flex [&>span]:items-center [&>span]:gap-1.5"
+          class="w-fit gap-1.5 px-2 py-0.5 text-xs font-medium hover:bg-muted [&>span]:flex [&>span]:items-center [&>span]:gap-1.5"
           :class="[
             statusBadge[task?.status ?? 'idea'].bg,
             statusBadge[task?.status ?? 'idea'].text,
@@ -239,17 +238,17 @@ async function onDateSelect(val?: DateValue) {
     </div>
 
     <!-- Priority -->
-    <div>
-      <p class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Icon name="solar:flag-2-linear" class="size-3.5" />
+    <div class="grid grid-cols-[140px_1fr] items-center gap-2">
+      <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Icon name="solar:flag-2-linear" class="size-4" />
         Priority
-      </p>
+      </span>
       <Select
         :model-value="(task?.priority ?? 'none').toUpperCase()"
         @update:model-value="updatePriority"
       >
         <SelectTrigger
-          class="mt-1 w-fit gap-1.5 px-2 py-0.5 text-xs font-medium capitalize hover:bg-muted [&>span]:flex [&>span]:items-center [&>span]:gap-1.5"
+          class="w-fit gap-1.5 px-2 py-0.5 text-xs font-medium capitalize hover:bg-muted [&>span]:flex [&>span]:items-center [&>span]:gap-1.5"
           :class="priorityStyle[task?.priority ?? 'none']"
         >
           <span class="size-1.5 rounded-full" :class="priorityStyle[task?.priority ?? 'none']" />
@@ -271,47 +270,76 @@ async function onDateSelect(val?: DateValue) {
       </Select>
     </div>
 
-    <!-- Due date -->
-    <div>
-      <p class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Icon name="solar:calendar-linear" class="size-3.5" />
-        Due date
+    <!-- Description -->
+    <div class="grid grid-cols-[140px_1fr] gap-2">
+      <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Icon name="solar:document-text-linear" class="size-4" />
+        Description
+      </span>
+      <div v-if="editingDescription" class="w-full">
+        <textarea
+          id="task-desc-input"
+          v-model="descriptionValue"
+          class="w-full resize-none rounded-md border border-input bg-transparent px-2 py-1 text-sm leading-relaxed outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          rows="3"
+          @blur="saveDescription"
+          @keydown="onDescKeydown"
+        />
+      </div>
+      <p
+        v-else
+        class="cursor-pointer rounded-md px-2 py-1 text-sm leading-relaxed text-foreground hover:bg-muted"
+        @click="startEditDescription"
+      >
+        {{ task?.description || "Add a description..." }}
       </p>
+    </div>
+
+    <!-- Due date -->
+    <div class="grid grid-cols-[140px_1fr] items-center gap-2">
+      <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Icon name="solar:calendar-linear" class="size-4" />
+        Due date
+      </span>
       <Popover v-model:open="calendarOpen">
         <PopoverTrigger as-child>
           <Button
-            variant="outline"
-            class="mt-1 w-full justify-start gap-1.5 px-2 py-0.5 text-xs font-normal hover:bg-muted"
-            :class="isOverdue && 'text-rose-500'"
+            variant="ghost"
+            class="h-auto w-fit cursor-pointer gap-1.5 px-2 py-0.5 text-sm font-normal hover:bg-muted"
+            :class="[isOverdue && 'text-rose-500 hover:text-rose-600']"
           >
-            <Icon name="solar:calendar-linear" class="size-3.5" />
+            <span v-if="isOverdue" class="text-xs font-medium">Due</span>
             {{
               parsedDueDate
                 ? parsedDueDate.toDate(getLocalTimeZone()).toLocaleDateString(undefined, {
                     day: "numeric",
                     month: "short",
+                    year: "numeric",
                   })
-                : "No date"
+                : "No due date"
             }}
           </Button>
         </PopoverTrigger>
-        <PopoverContent class="w-auto p-0" align="start">
-          <Calendar
-            :model-value="parsedDueDate"
-            :min-value="today(getLocalTimeZone())"
-            @update:model-value="onDateSelect"
-          />
+        <PopoverContent class="w-fit p-0" align="start">
+          <div class="[&_table]:w-fit">
+            <Calendar
+              :model-value="parsedDueDate"
+              :min-value="today(getLocalTimeZone())"
+              initial-focus
+              @update:model-value="onDateSelect"
+            />
+          </div>
         </PopoverContent>
       </Popover>
     </div>
 
     <!-- Created -->
-    <div>
-      <p class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Icon name="solar:clock-circle-linear" class="size-3.5" />
+    <div class="grid grid-cols-[140px_1fr] items-center gap-2">
+      <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Icon name="solar:clock-circle-linear" class="size-4" />
         Created
-      </p>
-      <p class="mt-1.5 text-xs text-muted-foreground">
+      </span>
+      <span class="px-2 py-0.5 text-sm text-foreground">
         {{
           task?.created_at
             ? new Date(task.created_at).toLocaleDateString(undefined, {
@@ -321,45 +349,7 @@ async function onDateSelect(val?: DateValue) {
               })
             : "—"
         }}
-      </p>
-    </div>
-
-    <!-- Description -->
-    <div class="sm:col-span-2 lg:col-span-4">
-      <div v-if="!editingDescription" class="group" @click="startEditDescription">
-        <div class="flex items-center gap-2">
-          <span class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <Icon name="solar:text-square-linear" class="size-3.5" />
-            Description
-          </span>
-          <Icon
-            name="solar:pen-linear"
-            class="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-          />
-        </div>
-        <p
-          v-if="task?.description"
-          class="mt-1.5 text-sm break-words whitespace-pre-wrap text-muted-foreground"
-        >
-          {{ task.description }}
-        </p>
-        <p v-else class="mt-1.5 cursor-pointer text-sm text-muted-foreground/50">
-          Add a description...
-        </p>
-      </div>
-      <div v-else>
-        <span class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <Icon name="solar:text-square-linear" class="size-3.5" />
-          Description
-        </span>
-        <Textarea
-          id="task-desc-input"
-          v-model="descriptionValue"
-          class="mt-1.5 min-h-24 resize-none"
-          @blur="saveDescription"
-          @keydown="onDescKeydown"
-        />
-      </div>
+      </span>
     </div>
   </Motion>
 </template>
