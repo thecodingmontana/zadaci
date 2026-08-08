@@ -7,6 +7,7 @@ import CreateChannel from "~/modals/workspace/create-channel.vue";
 import CreateWorkspace from "~/modals/workspace/create-workspace.vue";
 import DeleteChannel from "~/modals/workspace/delete-channel.vue";
 import DeleteProject from "~/modals/workspace/delete-project.vue";
+import DeleteTask from "~/modals/workspace/delete-task.vue";
 import EditChannel from "~/modals/workspace/edit-channel.vue";
 </script>
 
@@ -19,6 +20,7 @@ import EditChannel from "~/modals/workspace/edit-channel.vue";
     <EditChannel />
     <DeleteChannel />
     <DeleteProject />
+    <DeleteTask />
     <AddProject />
     <AddTask />
   </div>

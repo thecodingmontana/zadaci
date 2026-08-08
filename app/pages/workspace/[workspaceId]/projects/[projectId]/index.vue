@@ -3,7 +3,6 @@ import ProjectDetailHeader from "~/components/workspace/projects/project-detail-
 import ProjectDetailMeta from "~/components/workspace/projects/project-detail-meta.vue";
 import ProjectDetailToolbar from "~/components/workspace/projects/project-detail-toolbar.vue";
 import ProjectTaskKanban from "~/components/workspace/projects/tasks/project-task-kanban.vue";
-import ProjectTaskTable from "~/components/workspace/projects/tasks/project-task-table.vue";
 import ProjectTaskTimeline from "~/components/workspace/projects/tasks/project-task-timeline.vue";
 
 definePageMeta({
@@ -32,7 +31,7 @@ useSeoMeta({
   description: "View and manage project details, tasks, and team members.",
 });
 
-const activeView = ref<"table" | "kanban" | "timeline">("kanban");
+const activeView = ref<"kanban" | "timeline">("kanban");
 const searchQuery = ref("");
 
 watch(project, (val) => {
@@ -115,12 +114,6 @@ watch(project, (val) => {
             :workspace-id="workspaceId"
             :project-id="projectId"
             :project-title="projectName ?? 'Untitled'"
-          />
-          <ProjectTaskTable
-            v-else-if="activeView === 'table'"
-            v-model:search-query="searchQuery"
-            :workspace-id="workspaceId"
-            :project-id="projectId"
           />
           <ProjectTaskTimeline v-else :workspace-id="workspaceId" :project-id="projectId" />
         </Motion>

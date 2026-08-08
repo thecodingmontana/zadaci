@@ -12,7 +12,6 @@ const activeView = defineModel<string>("activeView", { default: "kanban" });
 const searchQuery = defineModel<string>("searchQuery", { default: "" });
 
 const views = [
-  { value: "table", label: "Table", icon: "solar:widget-4-linear" },
   { value: "kanban", label: "Kanban", icon: "solar:widget-add-linear" },
   { value: "timeline", label: "Timeline", icon: "solar:chart-square-linear" },
 ] as const;

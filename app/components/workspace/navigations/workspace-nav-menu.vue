@@ -99,7 +99,9 @@ const openSections = reactive<Record<string, boolean>>({
 const modalStore = useModalStore();
 
 const sectionItems = computed(() => ({
-  tasks: tasks.value.filter((t) => !t.deleted_at).map((t) => ({ id: t.id, label: t.name })),
+  tasks: tasks.value
+    .filter((t) => !t.deleted_at)
+    .map((t) => ({ id: t.id, label: t.name, projectId: t.project_id })),
   projects: projects.value.filter((p) => !p.deleted_at).map((p) => ({ id: p.id, label: p.title })),
   teams: teams.value.filter((t) => !t.deleted_at).map((t) => ({ id: t.id, label: t.name })),
 }));
@@ -158,9 +160,16 @@ function handleViewTask(item: { id: string }, event: Event) {
   navigateTo(`/workspace/${workspaceId.value}/tasks/${item.id}`);
 }
 
-function handleDeleteTask(item: { id: string }, event: Event) {
+function handleDeleteTask(item: { id: string; label: string; projectId: string }, event: Event) {
   event.stopPropagation();
-  console.log("delete task", item.id);
+  modalStore?.setModalData({
+    taskId: item.id,
+    taskTitle: item.label,
+    projectId: item.projectId,
+    workspaceId: workspaceId.value,
+  });
+  modalStore?.onOpen("deleteTask");
+  modalStore?.setIsOpen(true);
 }
 
 function handleViewTeam(item: { id: string }, event: Event) {

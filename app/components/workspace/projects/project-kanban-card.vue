@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import type { TaskDocType } from "~/plugins/rxdb.client";
+import type { ProjectDocType } from "~/plugins/rxdb.client";
 import { makeDraggable } from "@vue-dnd-kit/core";
 import { useTemplateRef } from "vue";
 import { Badge } from "~/components/ui/badge";
 
 const props = defineProps<{
-  task: TaskDocType;
+  project: ProjectDocType;
   index: number;
-  items: TaskDocType[];
-  subtaskCount?: { total: number; completed: number };
+  items: ProjectDocType[];
 }>();
 
 const emit = defineEmits<{
-  open: [taskId: string];
+  open: [projectId: string];
 }>();
 
 const el = useTemplateRef<HTMLElement>("el");
@@ -31,8 +30,6 @@ watch(isDragging, (v) => {
   if (v) {
     didDrag = true;
   } else if (didDrag) {
-    // Drag ended — the trailing click (if any) fires before this microtask,
-    // so schedule a tiny reset to clear the flag when no click follows.
     if (resetTimer) clearTimeout(resetTimer);
     resetTimer = setTimeout(() => {
       didDrag = false;
@@ -47,10 +44,10 @@ function handleClick() {
     if (resetTimer) clearTimeout(resetTimer);
     return;
   }
-  emit("open", props.task.id);
+  emit("open", props.project.id);
 }
 
-const priorityStyles: Record<TaskDocType["priority"], { badge: string; dot: string }> = {
+const priorityStyles: Record<ProjectDocType["priority"], { badge: string; dot: string }> = {
   urgent: {
     badge: "bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400",
     dot: "bg-rose-500",
@@ -73,7 +70,7 @@ const priorityStyles: Record<TaskDocType["priority"], { badge: string; dot: stri
   },
 };
 
-const priorityLabel: Record<TaskDocType["priority"], string> = {
+const priorityLabel: Record<ProjectDocType["priority"], string> = {
   urgent: "Urgent",
   high: "High",
   medium: "Medium",
@@ -89,7 +86,7 @@ function formatDue(iso: string | null) {
 }
 
 const isDone = computed(
-  () => props.task.status === "completed" || props.task.status === "abandoned",
+  () => props.project.status === "completed" || props.project.status === "abandoned",
 );
 </script>
 
@@ -105,43 +102,36 @@ const isDone = computed(
     @click="handleClick"
   >
     <div class="space-y-2 p-2.5">
-      <div class="flex items-start justify-between gap-2">
+      <div class="flex items-center justify-between gap-2">
         <Badge
           variant="secondary"
           class="gap-1 rounded px-1.5 py-0 text-[10px] font-medium capitalize"
-          :class="priorityStyles[task.priority].badge"
+          :class="priorityStyles[project.priority].badge"
         >
-          <span class="size-1 rounded-full" :class="priorityStyles[task.priority].dot" />
-          {{ priorityLabel[task.priority] }}
+          <span class="size-1 rounded-full" :class="priorityStyles[project.priority].dot" />
+          {{ priorityLabel[project.priority] }}
         </Badge>
+        <Icon name="solar:folder-2-bold-duotone" class="size-4 text-muted-foreground" />
       </div>
 
       <p
         class="text-sm leading-snug font-semibold text-foreground"
         :class="isDone && 'text-muted-foreground line-through'"
       >
-        {{ task.name }}
+        {{ project.title }}
       </p>
 
       <p
-        v-if="task.description"
+        v-if="project.description"
         class="line-clamp-2 text-xs leading-relaxed text-muted-foreground"
         :class="isDone && 'line-through'"
       >
-        {{ task.description }}
+        {{ project.description }}
       </p>
 
-      <div
-        v-if="subtaskCount && subtaskCount.total > 0"
-        class="flex items-center gap-1.5 text-xs text-muted-foreground"
-      >
-        <Icon name="solar:checklist-linear" class="size-3.5" />
-        {{ subtaskCount.completed }}/{{ subtaskCount.total }}
-      </div>
-
-      <div v-if="task.due_date" class="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div v-if="project.due_date" class="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Icon name="solar:calendar-linear" class="size-3.5" />
-        {{ formatDue(task.due_date) }}
+        {{ formatDue(project.due_date) }}
       </div>
     </div>
   </div>

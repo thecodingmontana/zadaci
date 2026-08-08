@@ -1,12 +1,26 @@
 <script setup lang="ts">
 import { useRxDbSafe } from "~/composables/use-rxdb";
 import { toast } from "~/lib/toast";
+import { useModalStore } from "~/stores/use-modal-store";
 
 const props = defineProps<{
   projectId: string;
   workspaceId: string;
   title: string | null;
 }>();
+
+const modalStore = useModalStore();
+
+function handleDelete() {
+  if (!props.projectId) return;
+  modalStore?.setModalData({
+    projectId: props.projectId,
+    projectTitle: props.title ?? "Untitled",
+    workspaceId: props.workspaceId,
+  });
+  modalStore?.onOpen("deleteProject");
+  modalStore?.setIsOpen(true);
+}
 
 const isEditing = ref(false);
 const editValue = ref("");
@@ -88,20 +102,14 @@ function onKeydown(e: KeyboardEvent) {
     </div>
 
     <div class="flex items-center gap-2">
-      <Button variant="outline" size="sm" class="gap-1.5">
-        <Icon name="solar:user-plus-linear" class="size-4" />
-        Add Member
-      </Button>
-      <Button variant="outline" size="sm" class="gap-1.5">
-        <Icon name="solar:share-linear" class="size-4" />
-        Share
-      </Button>
-      <Button variant="outline" size="sm" class="gap-1.5">
-        <Icon name="solar:pen-linear" class="size-4" />
-        Edit
-      </Button>
-      <Button variant="outline" size="icon" class="size-8">
-        <Icon name="solar:menu-dots-bold" class="size-4" />
+      <Button
+        variant="outline"
+        size="sm"
+        class="gap-1.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600"
+        @click="handleDelete"
+      >
+        <Icon name="solar:trash-bin-trash-linear" class="size-4" />
+        Delete
       </Button>
     </div>
   </div>

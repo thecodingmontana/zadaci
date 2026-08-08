@@ -50,6 +50,7 @@ export type ModalType =
   | "editProjectTask"
   | "createWorkspace"
   | "deleteProject"
+  | "deleteTask"
   | "createChannel"
   | "editChannel"
   | "deleteChannel";
@@ -63,6 +64,8 @@ export interface ModalData {
   projectId?: string;
   workspaceId?: string;
   projectTitle?: string;
+  taskId?: string;
+  taskTitle?: string;
   taskStatus?: string;
   parentTaskId?: string;
   project?: DBProject | null;

@@ -3,7 +3,6 @@ import type { TaskDocType } from "~/plugins/rxdb.client";
 import { Button } from "~/components/ui/button";
 import CommentSection from "~/components/workspace/comment-section.vue";
 import ProjectTaskKanban from "~/components/workspace/projects/tasks/project-task-kanban.vue";
-import ProjectTaskTable from "~/components/workspace/projects/tasks/project-task-table.vue";
 import ProjectTaskTimeline from "~/components/workspace/projects/tasks/project-task-timeline.vue";
 import TaskDetailHeader from "~/components/workspace/tasks/task-detail-header.vue";
 import TaskDetailMeta from "~/components/workspace/tasks/task-detail-meta.vue";
@@ -42,7 +41,7 @@ onMounted(async () => {
 });
 
 const projectId = computed(() => task.value?.project_id ?? "");
-const activeView = ref<"table" | "kanban" | "timeline">("kanban");
+const activeView = ref<"kanban" | "timeline">("kanban");
 const searchQuery = ref("");
 </script>
 
@@ -112,15 +111,8 @@ const searchQuery = ref("");
             :project-title="taskName ?? 'Untitled'"
             :parent-task-id="taskId"
           />
-          <ProjectTaskTable
-            v-else-if="activeView === 'table' && task"
-            v-model:search-query="searchQuery"
-            :workspace-id="workspaceId"
-            :project-id="projectId"
-            :parent-task-id="taskId"
-          />
           <ProjectTaskTimeline
-            v-else-if="activeView === 'timeline' && task"
+            v-else-if="task"
             :workspace-id="workspaceId"
             :project-id="projectId"
             :parent-task-id="taskId"
