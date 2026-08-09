@@ -29,7 +29,7 @@ function run(cmd) {
 function parseCommit(line) {
   const [hash, date, ...rest] = line.split("|");
   const subject = rest.join("|");
-  const m = subject.match(/^([a-z]+)(?:\([^)]*\))?(!)?:\s*(.*)$/);
+  const m = subject.match(/^([a-z]+)(?:\([^)]*\))?(!)?:\s?(.*)$/);
   if (!m) return null;
   return { hash, date, type: m[1], breaking: !!m[2], subject: m[3] };
 }
@@ -59,7 +59,9 @@ const userFacing = log
   .filter((c) => CATEGORY_BY_TYPE[c.type]);
 
 if (!userFacing.length) {
-  console.log("ℹ️  No user-facing commits (feat/fix/perf) since the last release. Nothing to release.");
+  console.log(
+    "ℹ️  No user-facing commits (feat/fix/perf) since the last release. Nothing to release.",
+  );
   process.exit(0);
 }
 
@@ -127,7 +129,10 @@ if (idx === -1) {
   process.exit(1);
 }
 const insertAt = idx + historyMarker.length;
-writeFileSync(agentsPath, agents.slice(0, insertAt) + `\n\n- **${next} (${date})** — ${summary}` + agents.slice(insertAt));
+writeFileSync(
+  agentsPath,
+  `${agents.slice(0, insertAt)}\n\n- **${next} (${date})** — ${summary}${agents.slice(insertAt)}`,
+);
 
 // 8. Commit + tag the release
 run("git add changelog/entries.ts package.json AGENTS.md");

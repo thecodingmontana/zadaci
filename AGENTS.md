@@ -8,6 +8,7 @@ one without the other.
 
 **Most changes are automated.** `pnpm run commit` (`git add . && git cz && pnpm run release`)
 runs `scripts/release-note.mjs` after the commit. It:
+
 - Reads conventional commits since the last `v*` tag,
 - Builds changelog sections automatically (`feat` → New Features, `fix` → Bug Fixes,
   `perf` → Improvements),
@@ -17,6 +18,7 @@ runs `scripts/release-note.mjs` after the commit. It:
   `chore: release vX.Y.Z` commit + `vX.Y.Z` tag.
 
 Manual checklist — ONLY for commits made without `pnpm run commit` (e.g. direct `git commit`):
+
 1. Add a one-line, user-facing bullet under the correct category in `changelog/entries.ts`
    (`New Features` / `Improvements` / `Bug Fixes`) for the current in-progress release.
    - If this is the first change since the last release, create a NEW release entry at the top
