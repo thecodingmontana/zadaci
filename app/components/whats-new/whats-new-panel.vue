@@ -39,11 +39,11 @@ const previousReleases = computed(() => changelogReleases.slice(1));
 
 const categoryMeta: Record<
   ChangelogRelease["sections"][number]["category"],
-  { emoji: string; label: string }
+  { icon: string; label: string }
 > = {
-  "New Features": { emoji: "✨", label: "New Features" },
-  Improvements: { emoji: "⚙️", label: "Improvements" },
-  "Bug Fixes": { emoji: "🐞", label: "Bug Fixes" },
+  "New Features": { icon: "solar:sparkles-bold", label: "New Features" },
+  Improvements: { icon: "solar:wrench-linear", label: "Improvements" },
+  "Bug Fixes": { icon: "solar:shield-warning-linear", label: "Bug Fixes" },
 };
 
 function formatDate(iso: string) {
@@ -85,12 +85,15 @@ function formatDate(iso: string) {
       </div>
 
       <!-- Body -->
-      <ScrollArea class="min-h-0 flex-1">
+      <ScrollArea class="max-h-[85vh] flex-1 overflow-y-auto">
         <div class="space-y-6 p-5">
           <!-- New updates -->
           <section>
-            <p class="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              New updates ✨
+            <p
+              class="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              <Icon name="solar:sparkles-bold" class="size-3.5" />
+              New updates
             </p>
 
             <div class="space-y-5">
@@ -104,8 +107,8 @@ function formatDate(iso: string) {
                 </div>
                 <div class="space-y-3">
                   <div v-for="section in latestRelease.sections" :key="section.category">
-                    <p class="mb-1 text-sm font-semibold">
-                      {{ categoryMeta[section.category].emoji }}
+                    <p class="mb-1 flex items-center gap-1.5 text-sm font-semibold">
+                      <Icon :name="categoryMeta[section.category].icon" class="size-4" />
                       {{ categoryMeta[section.category].label }}:
                     </p>
                     <ul class="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
@@ -136,8 +139,8 @@ function formatDate(iso: string) {
                     </div>
                     <div class="space-y-3">
                       <div v-for="section in release.sections" :key="section.category">
-                        <p class="mb-1 text-sm font-semibold">
-                          {{ categoryMeta[section.category].emoji }}
+                        <p class="mb-1 flex items-center gap-1.5 text-sm font-semibold">
+                          <Icon :name="categoryMeta[section.category].icon" class="size-4" />
                           {{ categoryMeta[section.category].label }}:
                         </p>
                         <ul class="list-disc space-y-1 pl-5 text-sm text-muted-foreground">

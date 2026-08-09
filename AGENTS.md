@@ -30,7 +30,7 @@ Manual checklist — ONLY for commits made without `pnpm run commit` (e.g. direc
    changed and the new version.
 
 The "What's New" panel (`app/components/whats-new/whats-new-panel.vue`) renders directly from
-`changelog/entries.ts` — index 0 is "New updates ✨", the rest are "Previous updates".
+`changelog/entries.ts` — index 0 is the "New updates" release, the rest are "Previous updates".
 
 ## Two data tiers
 

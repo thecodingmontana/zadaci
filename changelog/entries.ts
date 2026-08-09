@@ -15,7 +15,7 @@ export interface ChangelogRelease {
  * Source of truth for the in-app "What's New" panel.
  *
  * RULES:
- * - The FIRST release in this array (index 0) is the current "New updates ✨"
+ * - The FIRST release in this array (index 0) is the current "New updates"
  *   release; every earlier release renders under "Previous updates".
  * - `package.json` version MUST equal `releases[0].version`.
  * - Every user-facing change MUST get a bullet here AND a version bump — they

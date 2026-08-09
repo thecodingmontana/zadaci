@@ -23,9 +23,9 @@ const onClose = () => {
 };
 
 const typeOptions = [
-  { value: "bug", label: "🐞 Bug report" },
-  { value: "feature", label: "✨ Feature request" },
-  { value: "feedback", label: "💬 General feedback" },
+  { value: "bug", label: "Bug report", icon: "solar:bug-linear" },
+  { value: "feature", label: "Feature request", icon: "solar:sparkles-bold" },
+  { value: "feedback", label: "General feedback", icon: "solar:chat-round-line-linear" },
 ];
 
 const type = ref("feedback");
@@ -87,7 +87,10 @@ async function onSubmit() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem v-for="opt in typeOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
+                <span class="flex items-center gap-2">
+                  <Icon :name="opt.icon" class="size-4" />
+                  {{ opt.label }}
+                </span>
               </SelectItem>
             </SelectContent>
           </Select>
