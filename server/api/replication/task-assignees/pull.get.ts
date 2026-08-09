@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 
 interface Checkpoint {
@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
 
     const conditions = [
       inArray(tables.task_assignees.task_id, taskIds),
-      eq(tables.task_assignees.deleted_at, null),
+      isNull(tables.task_assignees.deleted_at),
     ];
 
     if (checkpoint) {

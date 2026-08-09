@@ -45,6 +45,14 @@ export default defineEventHandler(async (event) => {
       },
       orderBy: { created_at: "desc" },
     });
+    console.log(
+      "[teammates] workspaceId:",
+      workspaceId,
+      "| has workspace:",
+      !!workspace,
+      "| members count:",
+      workspace?.members?.length ?? 0,
+    );
     return workspace;
   } catch (error: any) {
     const errorMessage = error ? error.statusMessage : error.message;

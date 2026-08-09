@@ -1,7 +1,7 @@
 import type { Priority, ProjectMembers, Status } from "~~/shared/types";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
-import { PRIORITY, STATUS } from "~~/server/database/enums";
+import { PRIORITY, statusToDbValue } from "~~/server/database/enums";
 import { sendTaskCompletionMail } from "~~/server/libs/emails/actions/completed-task";
 import { sendTaskAssignmentEmail } from "~~/server/libs/emails/actions/send-task-assignment";
 import { validPriorities, validStatuses } from "~~/shared/types";
@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const statusValue = body.status ? STATUS[body.status as keyof typeof STATUS] : undefined;
+    const statusValue = body.status ? statusToDbValue(body.status) : undefined;
     const priorityValue = body.priority
       ? PRIORITY[body.priority as keyof typeof PRIORITY]
       : undefined;

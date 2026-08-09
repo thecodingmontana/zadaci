@@ -1,7 +1,7 @@
 import type { Status } from "~~/shared/types";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
-import { STATUS } from "~~/server/database/enums";
+import { statusToDbValue } from "~~/server/database/enums";
 import { sendTaskCompletionMail } from "~~/server/libs/emails/actions/completed-task";
 import { validStatuses } from "~~/shared/types";
 
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    const statusValue = STATUS[status as keyof typeof STATUS];
+    const statusValue = statusToDbValue(status);
 
     const project = await db.query.project.findFirst({
       where: {

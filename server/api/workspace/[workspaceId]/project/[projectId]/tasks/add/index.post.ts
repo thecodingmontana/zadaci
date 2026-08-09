@@ -1,6 +1,6 @@
 import type { Priority, ProjectMembers, Status } from "~~/shared/types";
 import { db, tables } from "~~/server/database/db";
-import { PRIORITY, STATUS } from "~~/server/database/enums";
+import { PRIORITY, statusToDbValue } from "~~/server/database/enums";
 import { sendTaskAssignmentEmail } from "~~/server/libs/emails/actions/send-task-assignment";
 import { appLink, validPriorities, validStatuses } from "~~/shared/types";
 
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const statusValue = STATUS[status as keyof typeof STATUS];
+    const statusValue = statusToDbValue(status);
     const priorityValue = PRIORITY[priority as keyof typeof PRIORITY];
 
     const memberIds = assignees.map((m) => m.member_id);

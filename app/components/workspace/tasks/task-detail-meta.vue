@@ -2,8 +2,17 @@
 import type { DateValue } from "@internationalized/date";
 import type { TaskAssigneeDocType, TaskDocType } from "~/plugins/rxdb.client";
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Calendar } from "~/components/ui/calendar";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "~/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import {
   Select,
@@ -25,13 +34,47 @@ const props = defineProps<{
 }>();
 
 const workspaceIdRef = computed(() => props.workspaceId);
-const { data: workspaceMembers } = useWorkspaceMembers(workspaceIdRef);
+const { data: workspaceMembers, isSuccess, isError, error } = useWorkspaceMembers(workspaceIdRef);
+
+watchEffect(() => {
+  console.log(
+    "[task-detail-meta] useWorkspaceMembers:",
+    "enabled ws=",
+    props.workspaceId,
+    "isSuccess=",
+    isSuccess.value,
+    "isError=",
+    isError.value,
+    "error=",
+    error.value?.message ?? null,
+    "count=",
+    (workspaceMembers.value ?? []).length,
+    "members=",
+    JSON.stringify(
+      (workspaceMembers.value ?? []).map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        username: m.user?.username ?? null,
+      })),
+    ),
+  );
+});
 
 const assigneeDocs = ref<TaskAssigneeDocType[]>([]);
 
 async function startAssigneeSubscription() {
   const db = await useRxDbSafe();
-  if (!db?.task_assignees) return;
+  if (!db?.task_assignees) {
+    console.warn("[task-detail-meta] No task_assignees collection in RxDB", !!db);
+    return;
+  }
+
+  console.log(
+    "[task-detail-meta] Starting assignee subscription for task_id:",
+    props.task?.id,
+    "| total task_assignees in RxDB:",
+    await db.task_assignees.count().exec(),
+  );
 
   const sub = db.task_assignees
     .find({
@@ -39,6 +82,12 @@ async function startAssigneeSubscription() {
     })
     .$.subscribe((docs) => {
       assigneeDocs.value = docs;
+      console.log(
+        "[task-detail-meta] assignee docs emitted for task",
+        props.task?.id,
+        ":",
+        docs.map((d) => ({ id: d.id, task_id: d.task_id, member_id: d.member_id })),
+      );
     });
 
   onUnmounted(() => sub.unsubscribe());
@@ -54,14 +103,104 @@ watch(
 
 const assignees = computed(() => {
   const memberIds = new Set(assigneeDocs.value.map((a) => a.member_id));
-  return (workspaceMembers.value ?? []).flatMap((m) => {
+  const resolved = (workspaceMembers.value ?? []).flatMap((m) => {
     if (!memberIds.has(m.id)) return [];
     return {
       name: m.user.username ?? m.user.email ?? "Unknown",
       src: m.user.profilePictureUrl ?? undefined,
     };
   });
+  console.log(
+    "[task-detail-meta] assignees computed:",
+    "memberIds=",
+    JSON.stringify([...memberIds]),
+    "resolved=",
+    JSON.stringify(resolved.map((a) => a.name)),
+    "assigneeDocs=",
+    assigneeDocs.value.length,
+    "workspaceMembers=",
+    (workspaceMembers.value ?? []).length,
+  );
+  return resolved;
 });
+
+const assignedMemberIds = computed(() => new Set(assigneeDocs.value.map((a) => a.member_id)));
+
+const assigneePopoverOpen = ref(false);
+
+function generateId(): string {
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  let result = "";
+  for (let i = 0; i < 16; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+async function toggleAssignee(memberId: string) {
+  const db = await useRxDbSafe();
+  if (!db?.task_assignees || !props.task) return;
+
+  const now = new Date().toISOString();
+  const existing = await db.task_assignees
+    .findOne({
+      selector: { task_id: props.task.id, member_id: memberId, deleted_at: null },
+    })
+    .exec();
+
+  if (existing) {
+    const old = existing.toJSON();
+    await existing.patch({ deleted_at: now, updated_at: now });
+    try {
+      await $fetch(`/api/replication/task-assignees/push?workspace_id=${props.workspaceId}`, {
+        method: "POST",
+        body: [
+          {
+            assumedMasterState: null,
+            newDocumentState: { ...old, deleted_at: now, updated_at: now },
+          },
+        ],
+      });
+    } catch (err: any) {
+      if (err?.response) {
+        await existing.patch({
+          deleted_at: old.deleted_at,
+          updated_at: old.updated_at,
+        });
+        toast.error(err?.response?._data?.statusMessage ?? "Failed to unassign member", {
+          position: "top-center",
+        });
+      }
+    }
+    return;
+  }
+
+  const id = generateId();
+  const newDoc = {
+    id,
+    task_id: props.task.id,
+    member_id: memberId,
+    assigned_at: now,
+    created_at: now,
+    updated_at: now,
+    deleted_at: null,
+  };
+  await db.task_assignees.insert(newDoc);
+  try {
+    await $fetch(`/api/replication/task-assignees/push?workspace_id=${props.workspaceId}`, {
+      method: "POST",
+      body: [{ assumedMasterState: null, newDocumentState: newDoc }],
+    });
+  } catch (err: any) {
+    if (err?.response) {
+      const inserted = await db.task_assignees.findOne(id).exec();
+      if (inserted) await inserted.remove();
+      toast.error(err?.response?._data?.statusMessage ?? "Failed to assign member", {
+        position: "top-center",
+      });
+    }
+  }
+}
 
 const statusBadge: Record<
   TaskDocType["status"],
@@ -316,10 +455,59 @@ async function onDateSelect(val?: DateValue) {
         <Icon name="solar:users-group-rounded-linear" class="size-4" />
         Assigned to
       </span>
-      <div v-if="assignees.length > 0" class="px-2 py-0.5">
-        <AvatarGroup :avatars="assignees" :max="5" :size="28" />
-      </div>
-      <span v-else class="px-2 py-0.5 text-sm text-muted-foreground">Unassigned</span>
+      <Popover v-model:open="assigneePopoverOpen">
+        <PopoverTrigger as-child>
+          <button
+            type="button"
+            class="group flex w-fit cursor-pointer items-center rounded-md px-2 py-0.5 text-left hover:bg-muted"
+          >
+            <span v-if="assignees.length > 0" class="flex items-center">
+              <AvatarGroup :avatars="assignees" :max="5" :size="28" />
+            </span>
+            <span v-else class="text-sm text-muted-foreground">Unassigned</span>
+            <Icon
+              name="lucide:chevrons-up-down"
+              class="ml-1.5 size-3 opacity-0 transition-opacity group-hover:opacity-60"
+            />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent class="w-64 p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Search members..." />
+            <CommandList>
+              <CommandEmpty>No members found.</CommandEmpty>
+              <CommandGroup heading="Workspace members">
+                <CommandItem
+                  v-for="member in workspaceMembers ?? []"
+                  :key="member.id"
+                  :value="member.user?.username ?? member.user?.email ?? member.id"
+                  class="cursor-pointer"
+                  @select="() => toggleAssignee(member.id)"
+                >
+                  <Avatar>
+                    <AvatarImage
+                      v-if="member.user?.profilePictureUrl"
+                      :src="member.user.profilePictureUrl"
+                      :alt="member.user?.username ?? 'member'"
+                    />
+                    <AvatarFallback>
+                      {{ (member.user?.username ?? member.user?.email ?? "?")[0]?.toUpperCase() }}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span class="flex-1 truncate">
+                    {{ member.user?.username ?? member.user?.email ?? "Unknown" }}
+                  </span>
+                  <Icon
+                    v-if="assignedMemberIds.has(member.id)"
+                    name="lucide:check"
+                    class="size-4 shrink-0 text-brand"
+                  />
+                </CommandItem>
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
 
     <!-- Description -->

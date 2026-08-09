@@ -14,8 +14,18 @@ export function useWorkspaceMembers(
   return useQuery<TeammatesWithProfile[], Error>({
     queryKey: computed(() => workspaceMembersKey(workspaceId.value)),
     queryFn: async () => {
+      console.log(`[useWorkspaceMembers] Fetching teammates for workspace`, workspaceId.value);
       const data = await requestFetch<{ members: any[] }>(
         `/api/workspace/${workspaceId.value}/teammates`,
+      );
+      console.log(
+        `[useWorkspaceMembers] Response for workspace ${workspaceId.value}:`,
+        "has members key =",
+        Array.isArray(data?.members),
+        "members count =",
+        data?.members?.length ?? 0,
+        "top keys =",
+        data ? Object.keys(data).slice(0, 8) : null,
       );
       return (data?.members ?? []).map((member: any) => ({
         id: member.id,

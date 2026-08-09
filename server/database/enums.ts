@@ -21,6 +21,10 @@ export enum STATUS {
   ABANDONED = "abandoned",
 }
 
+export function statusToDbValue(status: string): STATUS | undefined {
+  return STATUS[status.replace(/ /g, "_") as keyof typeof STATUS];
+}
+
 export enum PRIORITY {
   LOW = "low",
   MEDIUM = "medium",
