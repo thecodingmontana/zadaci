@@ -232,6 +232,8 @@ Email send failures no longer crash the API request — the DB write succeeds re
 
 ## Changelog / release history
 
+- **2.1.2 (2026-08-09)** — Scrollable whats-new modal with icons, no emojis
+
 - **2.1.1 (2026-08-09)** — Scrollable whats-new modal + useQuery import
 
 - **2.1.0 (2026-08-09)** — What's new panel, feedback modal, changelog automation
