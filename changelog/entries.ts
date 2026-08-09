@@ -23,6 +23,16 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.1.0",
+    date: "2026-08-09",
+    sections: [
+      {
+        category: "New Features",
+        items: ["What's new panel, feedback modal, changelog automation"],
+      },
+    ],
+  },
+  {
     version: "2.0.0",
     date: "2026-08-09",
     sections: [
