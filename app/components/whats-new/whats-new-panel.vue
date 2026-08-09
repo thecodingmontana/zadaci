@@ -41,9 +41,9 @@ const categoryMeta: Record<
   ChangelogRelease["sections"][number]["category"],
   { icon: string; label: string }
 > = {
-  "New Features": { icon: "solar:sparkles-bold", label: "New Features" },
-  Improvements: { icon: "solar:wrench-linear", label: "Improvements" },
-  "Bug Fixes": { icon: "solar:shield-warning-linear", label: "Bug Fixes" },
+  "New Features": { icon: "twemoji:sparkles", label: "New Features" },
+  Improvements: { icon: "twemoji:gear", label: "Improvements" },
+  "Bug Fixes": { icon: "twemoji:beetle", label: "Bug Fixes" },
 };
 
 function formatDate(iso: string) {
@@ -66,7 +66,7 @@ function formatDate(iso: string) {
       <div class="flex items-start justify-between gap-3 border-b p-5">
         <div class="flex items-start gap-3">
           <div class="grid size-10 shrink-0 place-items-center rounded-lg bg-muted">
-            <Icon name="solar:gift-linear" class="size-5 text-brand" />
+            <Icon name="twemoji:wrapped-gift" class="size-5" />
           </div>
           <div>
             <DialogTitle class="text-lg font-semibold">What's new</DialogTitle>
@@ -92,7 +92,7 @@ function formatDate(iso: string) {
             <p
               class="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
             >
-              <Icon name="solar:sparkles-bold" class="size-3.5" />
+              <Icon name="twemoji:sparkles" class="size-3.5" />
               New updates
             </p>
 
@@ -126,7 +126,7 @@ function formatDate(iso: string) {
                 <p
                   class="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                 >
-                  <Icon name="solar:clock-circle-linear" class="size-3.5" />
+                  <Icon name="twemoji:alarm-clock" class="size-3.5" />
                   Previous updates
                 </p>
                 <div class="space-y-5">

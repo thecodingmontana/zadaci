@@ -23,9 +23,9 @@ const onClose = () => {
 };
 
 const typeOptions = [
-  { value: "bug", label: "Bug report", icon: "solar:bug-linear" },
-  { value: "feature", label: "Feature request", icon: "solar:sparkles-bold" },
-  { value: "feedback", label: "General feedback", icon: "solar:chat-round-line-linear" },
+  { value: "bug", label: "Bug report", icon: "twemoji:beetle" },
+  { value: "feature", label: "Feature request", icon: "twemoji:sparkles" },
+  { value: "feedback", label: "General feedback", icon: "twemoji:speech-balloon" },
 ];
 
 const type = ref("feedback");
@@ -69,7 +69,7 @@ async function onSubmit() {
       <DialogHeader>
         <div class="flex items-center gap-2">
           <div class="grid size-10 shrink-0 place-items-center rounded-lg bg-muted">
-            <Icon name="solar:chat-round-line-linear" class="size-5 text-brand" />
+            <Icon name="twemoji:speech-balloon" class="size-5" />
           </div>
           <div>
             <DialogTitle class="text-brand dark:text-primary">Share feedback</DialogTitle>

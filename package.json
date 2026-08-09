@@ -125,6 +125,7 @@
     "@iconify-json/lucide": "^1.2.116",
     "@iconify-json/ri": "^1.2.10",
     "@iconify-json/solar": "^1.2.5",
+    "@iconify-json/twemoji": "^1.2.5",
     "@nuxt/eslint": "^1.16.0",
     "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^26.1.0",
