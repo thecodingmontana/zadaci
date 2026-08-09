@@ -39,11 +39,15 @@ const previousReleases = computed(() => changelogReleases.slice(1));
 
 const categoryMeta: Record<
   ChangelogRelease["sections"][number]["category"],
-  { icon: string; label: string }
+  { icon: string; colorClass: string; label: string }
 > = {
-  "New Features": { icon: "twemoji:sparkles", label: "New Features" },
-  Improvements: { icon: "twemoji:gear", label: "Improvements" },
-  "Bug Fixes": { icon: "twemoji:beetle", label: "Bug Fixes" },
+  "New Features": {
+    icon: "hugeicons:sparkles",
+    colorClass: "text-emerald-500",
+    label: "New Features",
+  },
+  Improvements: { icon: "solar:settings-linear", colorClass: "text-brand", label: "Improvements" },
+  "Bug Fixes": { icon: "solar:bug-outline", colorClass: "text-rose-500", label: "Bug Fixes" },
 };
 
 function formatDate(iso: string) {
@@ -108,7 +112,11 @@ function formatDate(iso: string) {
                 <div class="space-y-3">
                   <div v-for="section in latestRelease.sections" :key="section.category">
                     <p class="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-                      <Icon :name="categoryMeta[section.category].icon" class="size-4" />
+                      <Icon
+                        :name="categoryMeta[section.category].icon"
+                        class="size-4"
+                        :class="[categoryMeta[section.category].colorClass]"
+                      />
                       {{ categoryMeta[section.category].label }}:
                     </p>
                     <ul class="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
@@ -140,7 +148,11 @@ function formatDate(iso: string) {
                     <div class="space-y-3">
                       <div v-for="section in release.sections" :key="section.category">
                         <p class="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-                          <Icon :name="categoryMeta[section.category].icon" class="size-4" />
+                          <Icon
+                            :name="categoryMeta[section.category].icon"
+                            class="size-4"
+                            :class="[categoryMeta[section.category].colorClass]"
+                          />
                           {{ categoryMeta[section.category].label }}:
                         </p>
                         <ul class="list-disc space-y-1 pl-5 text-sm text-muted-foreground">

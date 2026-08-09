@@ -23,9 +23,9 @@ const onClose = () => {
 };
 
 const typeOptions = [
-  { value: "bug", label: "Bug report", icon: "twemoji:beetle" },
-  { value: "feature", label: "Feature request", icon: "twemoji:sparkles" },
-  { value: "feedback", label: "General feedback", icon: "twemoji:speech-balloon" },
+  { value: "bug", label: "Bug report", icon: "solar:bug-outline" },
+  { value: "feature", label: "Feature request", icon: "hugeicons:sparkles" },
+  { value: "feedback", label: "General feedback", icon: "solar:chat-round-line-linear" },
 ];
 
 const type = ref("feedback");
