@@ -232,6 +232,8 @@ Email send failures no longer crash the API request — the DB write succeeds re
 
 ## Changelog / release history
 
+- **2.1.1 (2026-08-09)** — Scrollable whats-new modal + useQuery import
+
 - **2.1.0 (2026-08-09)** — What's new panel, feedback modal, changelog automation
 
 - **2.0.0 (2026-08-09)** — First semver'd release. Added the "What's New" panel (wired to the sidebar SYSTEM item, with per-user unseen dot), feedback modal + `app_feedback` table, `whats_new_last_seen_version` on `app_user`, and this changelog discipline rule.
