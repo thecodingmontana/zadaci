@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import FeedbackModal from "~/components/whats-new/feedback-modal.vue";
-import WhatsNewPanel from "~/components/whats-new/whats-new-panel.vue";
 import Signout from "~/modals/global/signout.vue";
 import AddMember from "~/modals/workspace/add-member.vue";
 import AddProject from "~/modals/workspace/add-project.vue";
@@ -11,6 +9,8 @@ import DeleteChannel from "~/modals/workspace/delete-channel.vue";
 import DeleteProject from "~/modals/workspace/delete-project.vue";
 import DeleteTask from "~/modals/workspace/delete-task.vue";
 import EditChannel from "~/modals/workspace/edit-channel.vue";
+import FeedbackModal from "~/modals/workspace/feedback-modal.vue";
+import WhatsNewPanel from "~/modals/workspace/whats-new-panel.vue";
 </script>
 
 <template>

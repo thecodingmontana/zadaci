@@ -29,7 +29,7 @@ Manual checklist — ONLY for commits made without `pnpm run commit` (e.g. direc
 3. Add a one-line entry to AGENTS.md's "Changelog / release history" section below noting what
    changed and the new version.
 
-The "What's New" panel (`app/components/whats-new/whats-new-panel.vue`) renders directly from
+The "What's New" panel (`app/modals/workspace/whats-new-panel.vue`) renders directly from
 `changelog/entries.ts` — index 0 is the "New updates" release, the rest are "Previous updates".
 
 ## Two data tiers
