@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ChangelogRelease } from "~~/changelog/entries";
-import { changelogReleases, getLatestChangelogRelease } from "~~/changelog/entries";
+import { changelogReleases } from "~~/changelog/entries";
 import { Button } from "~/components/ui/button";
 import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area";
 import { useWhatsNew } from "~/composables/use-whats-new";
@@ -34,8 +34,27 @@ function openFeedback() {
   });
 }
 
-const latestRelease = getLatestChangelogRelease();
-const previousReleases = computed(() => changelogReleases.slice(1));
+interface ReleaseGroup {
+  date: string;
+  releases: ChangelogRelease[];
+}
+
+function groupReleasesByDate(releases: ChangelogRelease[]): ReleaseGroup[] {
+  const groups: ReleaseGroup[] = [];
+  for (const release of releases) {
+    const last = groups[groups.length - 1];
+    if (last && last.date === release.date) {
+      last.releases.push(release);
+    } else {
+      groups.push({ date: release.date, releases: [release] });
+    }
+  }
+  return groups;
+}
+
+const releaseGroups = groupReleasesByDate(changelogReleases);
+const latestGroup = releaseGroups[0];
+const previousGroups = computed(() => releaseGroups.slice(1));
 
 const categoryMeta: Record<
   ChangelogRelease["sections"][number]["category"],
@@ -70,7 +89,7 @@ function formatDate(iso: string) {
       <div class="flex items-start justify-between gap-3 border-b p-5">
         <div class="flex items-start gap-3">
           <div class="grid size-10 shrink-0 place-items-center rounded-lg bg-muted">
-            <Icon name="twemoji:wrapped-gift" class="size-5" />
+            <Icon name="hugeicons:gift" class="text-brand" size="20" />
           </div>
           <div>
             <DialogTitle class="text-lg font-semibold">What's new</DialogTitle>
@@ -81,7 +100,7 @@ function formatDate(iso: string) {
         </div>
         <Button
           size="sm"
-          class="cursor-pointer bg-brand text-white hover:bg-brand-secondary"
+          class="mr-5 cursor-pointer bg-brand text-white hover:bg-brand-secondary"
           @click="openFeedback"
         >
           Share feedback
@@ -96,25 +115,32 @@ function formatDate(iso: string) {
             <p
               class="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
             >
-              <Icon name="twemoji:sparkles" class="size-3.5" />
+              <Icon name="twemoji:sparkles" size="18" />
               New updates
             </p>
 
             <div class="space-y-5">
-              <!-- Latest release -->
+              <!-- Latest release group -->
               <div>
                 <div class="mb-2 flex items-baseline gap-2">
-                  <h4 class="text-sm font-bold">Zadaci {{ latestRelease.version }}</h4>
+                  <h4 class="text-sm font-bold">Zadaci {{ latestGroup.releases[0].version }}</h4>
                   <span class="text-xs text-muted-foreground">
-                    {{ formatDate(latestRelease.date) }}
+                    {{ formatDate(latestGroup.date) }}
                   </span>
                 </div>
-                <div class="space-y-3">
-                  <div v-for="section in latestRelease.sections" :key="section.category">
+                <div
+                  v-for="release in latestGroup.releases"
+                  :key="release.version"
+                  class="space-y-3"
+                >
+                  <div v-if="latestGroup.releases.length > 1" class="mb-1 text-xs font-semibold">
+                    v{{ release.version }}
+                  </div>
+                  <div v-for="section in release.sections" :key="section.category">
                     <p class="mb-1 flex items-center gap-1.5 text-sm font-semibold">
                       <Icon
                         :name="categoryMeta[section.category].icon"
-                        class="size-4"
+                        size="18"
                         :class="[categoryMeta[section.category].colorClass]"
                       />
                       {{ categoryMeta[section.category].label }}:
@@ -126,31 +152,34 @@ function formatDate(iso: string) {
                 </div>
               </div>
 
-              <!-- Divider when previous releases exist -->
-              <div v-if="previousReleases.length > 0" class="border-t" />
+              <!-- Divider when previous updates exist -->
+              <div v-if="previousGroups.length > 0" class="border-t" />
 
               <!-- Previous updates -->
-              <div v-if="previousReleases.length > 0">
+              <div v-if="previousGroups.length > 0">
                 <p
                   class="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                 >
-                  <Icon name="twemoji:alarm-clock" class="size-3.5" />
+                  <Icon name="twemoji:alarm-clock" size="18" />
                   Previous updates
                 </p>
                 <div class="space-y-5">
-                  <div v-for="release in previousReleases" :key="release.version">
+                  <div v-for="group in previousGroups" :key="group.date">
                     <div class="mb-2 flex items-baseline gap-2">
-                      <h4 class="text-sm font-bold">Zadaci {{ release.version }}</h4>
+                      <h4 class="text-sm font-bold">Zadaci {{ group.releases[0].version }}</h4>
                       <span class="text-xs text-muted-foreground">
-                        {{ formatDate(release.date) }}
+                        {{ formatDate(group.date) }}
                       </span>
                     </div>
-                    <div class="space-y-3">
+                    <div v-for="release in group.releases" :key="release.version" class="space-y-3">
+                      <div v-if="group.releases.length > 1" class="mb-1 text-xs font-semibold">
+                        v{{ release.version }}
+                      </div>
                       <div v-for="section in release.sections" :key="section.category">
                         <p class="mb-1 flex items-center gap-1.5 text-sm font-semibold">
                           <Icon
                             :name="categoryMeta[section.category].icon"
-                            class="size-4"
+                            size="18"
                             :class="[categoryMeta[section.category].colorClass]"
                           />
                           {{ categoryMeta[section.category].label }}:
