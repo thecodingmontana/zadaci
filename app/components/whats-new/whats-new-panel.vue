@@ -85,7 +85,7 @@ function formatDate(iso: string) {
       </div>
 
       <!-- Body -->
-      <ScrollArea class="flex-1">
+      <ScrollArea class="min-h-0 flex-1">
         <div class="space-y-6 p-5">
           <!-- New updates -->
           <section>

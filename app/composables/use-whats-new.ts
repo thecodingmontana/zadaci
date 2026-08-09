@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/vue-query";
 import { getLatestChangelogRelease } from "~~/changelog/entries";
 
 export function useWhatsNew() {
