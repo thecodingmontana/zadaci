@@ -53,7 +53,9 @@ export type ModalType =
   | "deleteTask"
   | "createChannel"
   | "editChannel"
-  | "deleteChannel";
+  | "deleteChannel"
+  | "whatsNew"
+  | "feedback";
 
 export interface ModalData {
   qrcode?: string;

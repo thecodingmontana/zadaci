@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FeedbackModal from "~/components/whats-new/feedback-modal.vue";
+import WhatsNewPanel from "~/components/whats-new/whats-new-panel.vue";
 import Signout from "~/modals/global/signout.vue";
 import AddMember from "~/modals/workspace/add-member.vue";
 import AddProject from "~/modals/workspace/add-project.vue";
@@ -23,5 +25,7 @@ import EditChannel from "~/modals/workspace/edit-channel.vue";
     <DeleteTask />
     <AddProject />
     <AddTask />
+    <WhatsNewPanel />
+    <FeedbackModal />
   </div>
 </template>

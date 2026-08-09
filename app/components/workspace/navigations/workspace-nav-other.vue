@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Switch } from "~/components/ui/switch";
+import { useWhatsNew } from "~/composables/use-whats-new";
+import { useModalStore } from "~/stores/use-modal-store";
 
 const route = useRoute();
 const workspaceId = computed(() => route.params.workspaceId as string);
@@ -19,8 +21,12 @@ const settingsItems = [
   { label: "Security", icon: "hugeicons:shield-01", to: "settings/security" },
 ];
 
+const modalStore = useModalStore();
+const { hasUnseen } = useWhatsNew();
+
 function openWhatsNew() {
-  // TODO: open What's New modal/sheet
+  modalStore?.onOpen("whatsNew");
+  modalStore?.setIsOpen(true);
 }
 
 function openDonate() {
@@ -70,7 +76,13 @@ function openDonate() {
         class="flex w-full cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
         @click="openWhatsNew"
       >
-        <Icon name="hugeicons:sparkles" size="18" />
+        <span class="relative flex items-center">
+          <Icon name="hugeicons:sparkles" size="18" />
+          <span
+            v-if="hasUnseen"
+            class="absolute -top-0.5 -right-0.5 block size-1.5 rounded-full bg-brand ring-2 ring-background"
+          />
+        </span>
         <p class="text-sm">What's New</p>
       </button>
 

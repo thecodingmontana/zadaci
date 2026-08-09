@@ -3,6 +3,7 @@ export * from "./comments";
 export * from "./conversation";
 export * from "./cron";
 export * from "./enums";
+export * from "./feedback";
 export * from "./note";
 export * from "./project";
 export * from "./tags";

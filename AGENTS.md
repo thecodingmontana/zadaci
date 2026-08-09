@@ -1,5 +1,35 @@
 # Architecture rules — DO NOT FORGET
 
+## Changelog discipline — EVERY user-facing change bumps version + changelog
+
+Every change that a user can see (feature, fix, security fix, perf improvement, UI change,
+behavior change) MUST be recorded. Version bumps and changelog entries move together — never
+one without the other.
+
+**Most changes are automated.** `pnpm run commit` (`git add . && git cz && pnpm run release`)
+runs `scripts/release-note.mjs` after the commit. It:
+- Reads conventional commits since the last `v*` tag,
+- Builds changelog sections automatically (`feat` → New Features, `fix` → Bug Fixes,
+  `perf` → Improvements),
+- Uses the commit date as the release date,
+- Bumps `package.json` (major for breaking, minor for `feat`, patch otherwise),
+- Prepend-releases to `changelog/entries.ts`, adds the AGENTS.md history line, and creates a
+  `chore: release vX.Y.Z` commit + `vX.Y.Z` tag.
+
+Manual checklist — ONLY for commits made without `pnpm run commit` (e.g. direct `git commit`):
+1. Add a one-line, user-facing bullet under the correct category in `changelog/entries.ts`
+   (`New Features` / `Improvements` / `Bug Fixes`) for the current in-progress release.
+   - If this is the first change since the last release, create a NEW release entry at the top
+     of the array (with today's ISO date) and set it as the "current" release.
+   - If the current top release already has entries, append to its sections.
+2. Bump `package.json` version per semver: patch for fixes, minor for features, major for
+   breaking changes. `package.json` version MUST equal `changelogReleases[0].version`.
+3. Add a one-line entry to AGENTS.md's "Changelog / release history" section below noting what
+   changed and the new version.
+
+The "What's New" panel (`app/components/whats-new/whats-new-panel.vue`) renders directly from
+`changelog/entries.ts` — index 0 is "New updates ✨", the rest are "Previous updates".
+
 ## Two data tiers
 
 ### TIER 1 — RxDB sync (offline-capable, local-first)
@@ -198,6 +228,10 @@ Email send failures no longer crash the API request — the DB write succeeds re
 
 `workspace-channel.vue` layout now passes `channelId` and `workspaceId` to `<ChannelHeader>`. The header is now self-contained: it starts its own presence, subscribes to RxDB, and displays live data.
 
+## Changelog / release history
+
+- **2.0.0 (2026-08-09)** — First semver'd release. Added the "What's New" panel (wired to the sidebar SYSTEM item, with per-user unseen dot), feedback modal + `app_feedback` table, `whats_new_last_seen_version` on `app_user`, and this changelog discipline rule.
+
 ## Always enforce
 
 - **Every change** must align with the two-tier architecture above.
@@ -205,3 +239,4 @@ Email send failures no longer crash the API request — the DB write succeeds re
 - Tier 1 data: NEVER fetch it via `useQuery`/`$fetch` for reads — use reactive RxDB subscriptions.
 - Writes: Tier 1 → RxDB methods; Tier 2 → `$fetch` to API + `invalidateQueries`.
 - Denormalized user data in RxDB is forbidden. Only store `workspace_members.id` references.
+- **Every user-facing change** MUST bump `package.json` version AND add a changelog entry in `changelog/entries.ts` — they move together (see "Changelog discipline" at the top).

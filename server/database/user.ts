@@ -16,6 +16,7 @@ export const user = pgTable(
     registered_2fa: boolean("registered_2fa").notNull().default(false),
     recovery_code: text("recovery_code").notNull(),
     profile_picture_url: text("profile_picture_url"),
+    whats_new_last_seen_version: varchar("whats_new_last_seen_version", { length: 20 }),
     ...timestamps,
   },
   (_table) => [pgPolicy("allow_anon_select_user", { for: "select", to: "anon", using: sql`true` })],
