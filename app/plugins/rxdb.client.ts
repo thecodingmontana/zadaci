@@ -41,6 +41,17 @@ export interface ProjectDocType {
   deleted_at: string | null;
 }
 
+export interface TaskActivityDocType {
+  id: string;
+  status: "idea" | "todo" | "in_progress" | "in_review" | "completed" | "abandoned";
+  task_id: string;
+  changed_by: string;
+  changed_at: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export interface TeamDocType {
   id: string;
   workspace_id: string;
@@ -161,6 +172,7 @@ export interface NoteDocType {
 
 export type TaskCollection = RxCollection<TaskDocType>;
 export type TaskAssigneeCollection = RxCollection<TaskAssigneeDocType>;
+export type TaskActivityCollection = RxCollection<TaskActivityDocType>;
 export type ProjectCollection = RxCollection<ProjectDocType>;
 export type MessageCollection = RxCollection<MessageDocType>;
 export type MessageReceiptCollection = RxCollection<MessageReceiptDocType>;
@@ -172,6 +184,7 @@ export type NoteCollection = RxCollection<NoteDocType>;
 export type ZadaciDatabase = RxDatabase<{
   tasks: TaskCollection;
   task_assignees: TaskAssigneeCollection;
+  tasks_activity: TaskActivityCollection;
   projects: ProjectCollection;
   teams: RxCollection<TeamDocType>;
   tags: RxCollection<TagDocType>;
@@ -228,6 +241,29 @@ const TASK_ASSIGNEE_SCHEMA = {
   },
   required: ["id", "task_id", "member_id", "assigned_at", "created_at", "updated_at"],
   indexes: ["task_id", "member_id"],
+};
+
+const TASKS_ACTIVITY_SCHEMA = {
+  title: "tasks_activity",
+  version: 0,
+  type: "object",
+  primaryKey: { key: "id", fields: ["id"] },
+  properties: {
+    id: { type: "string", maxLength: 16 },
+    status: {
+      type: "string",
+      maxLength: 20,
+      enum: ["idea", "todo", "in_progress", "in_review", "completed", "abandoned"],
+    },
+    task_id: { type: "string", maxLength: 16 },
+    changed_by: { type: "string", maxLength: 16 },
+    changed_at: { type: "string", maxLength: 24 },
+    created_at: { type: "string", maxLength: 24 },
+    updated_at: { type: "string", maxLength: 24 },
+    deleted_at: { type: ["string", "null"], maxLength: 24 },
+  },
+  required: ["id", "status", "task_id", "changed_by", "changed_at", "created_at", "updated_at"],
+  indexes: ["task_id", "changed_by", "changed_at"],
 };
 
 const PROJECT_SCHEMA = {
@@ -396,23 +432,6 @@ const MESSAGE_RECEIPT_SCHEMA = {
   indexes: ["message_id", "member_id"],
 };
 
-const CONVERSATION_SCHEMA = {
-  title: "conversations",
-  version: 0,
-  type: "object",
-  primaryKey: { key: "id", fields: ["id"] },
-  properties: {
-    id: { type: "string", maxLength: 16 },
-    workspace_id: { type: "string", maxLength: 16 },
-    member_one_id: { type: "string", maxLength: 16 },
-    member_two_id: { type: "string", maxLength: 16 },
-    created_at: { type: "string", maxLength: 24 },
-    updated_at: { type: "string", maxLength: 24 },
-  },
-  required: ["id", "workspace_id", "member_one_id", "member_two_id", "created_at", "updated_at"],
-  indexes: ["workspace_id", "member_one_id", "member_two_id"],
-};
-
 const DIRECT_MESSAGE_SCHEMA = {
   title: "direct_messages",
   version: 0,
@@ -492,25 +511,6 @@ const COMMENT_SCHEMA = {
   indexes: ["entity_type", "entity_id", "author_id"],
 };
 
-const NOTE_SCHEMA = {
-  title: "notes",
-  version: 0,
-  type: "object",
-  primaryKey: { key: "id", fields: ["id"] },
-  properties: {
-    id: { type: "string", maxLength: 16 },
-    workspace_id: { type: "string", maxLength: 16 },
-    title: { type: "string", maxLength: 255 },
-    content: { type: ["string", "null"] },
-    created_by: { type: "string", maxLength: 16 },
-    created_at: { type: "string", maxLength: 24 },
-    updated_at: { type: "string", maxLength: 24 },
-    deleted_at: { type: ["string", "null"], maxLength: 24 },
-  },
-  required: ["id", "workspace_id", "title", "created_by", "created_at", "updated_at"],
-  indexes: ["workspace_id"],
-};
-
 const DB_NAME = "zadaci";
 const CLEAR_KEY = "zadaci_clear_needed";
 
@@ -566,6 +566,10 @@ export default defineNuxtPlugin(async () => {
       schema: TASK_ASSIGNEE_SCHEMA,
       migrationStrategies: {},
     },
+    tasks_activity: {
+      schema: TASKS_ACTIVITY_SCHEMA,
+      migrationStrategies: {},
+    },
     projects: {
       schema: PROJECT_SCHEMA,
       migrationStrategies: { 1: (oldDoc) => oldDoc, 2: (oldDoc) => oldDoc },
@@ -582,11 +586,9 @@ export default defineNuxtPlugin(async () => {
     channel_members: { schema: CHANNEL_MEMBER_SCHEMA, migrationStrategies: {} },
     messages: { schema: MESSAGE_SCHEMA, migrationStrategies: {} },
     message_receipts: { schema: MESSAGE_RECEIPT_SCHEMA, migrationStrategies: {} },
-    conversations: { schema: CONVERSATION_SCHEMA, migrationStrategies: {} },
     direct_messages: { schema: DIRECT_MESSAGE_SCHEMA, migrationStrategies: {} },
     direct_message_receipts: { schema: DIRECT_MESSAGE_RECEIPT_SCHEMA, migrationStrategies: {} },
     comments: { schema: COMMENT_SCHEMA, migrationStrategies: {} },
-    notes: { schema: NOTE_SCHEMA, migrationStrategies: {} },
   });
   console.log("[rxdb-plugin] All collections added");
 

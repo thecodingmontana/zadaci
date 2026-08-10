@@ -85,6 +85,7 @@ export default defineNuxtConfig({
     "nuxt-schema-org",
     "nuxt-emoji-picker",
     "nuxt-shiki",
+    "nuxt-charts",
   ],
   shiki: {
     highlight: {

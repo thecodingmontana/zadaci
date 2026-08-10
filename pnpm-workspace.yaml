@@ -3,6 +3,7 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   lefthook: true
+  maplibre-gl: true
   sharp: true
   unrs-resolver: true
   vue-demi: true
@@ -11,6 +12,7 @@ shellEmulator: true
 trustPolicy: no-downgrade
 trustPolicyExclude:
   - semver
+  - resend
 overrides:
   drizzle-orm: 1.0.0-rc.4
   h3: 1.15.11
