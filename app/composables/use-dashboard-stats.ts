@@ -27,6 +27,8 @@ export interface DayContribution {
 export interface ProductivityDay {
   day: string;
   completed: number;
+  overdue: number;
+  productivityPct: number;
 }
 
 const NOT_DONE = new Set(["idea", "todo", "in_progress", "in_review"]);
@@ -224,25 +226,45 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
     buildTrend(projectsCreatedThisMonth.value, projectsCreatedLastMonth.value),
   );
 
+  // ── Productivity trend (completed this month vs last month) ──
+  const productivityTrend = computed(() =>
+    buildTrend(completedEventsThisMonth.value, completedEventsLastMonth.value),
+  );
+
   // ── Productivity series (completed per day for a month) ──
   const productivityMonth = ref(startOfMonth(now));
 
   const productivitySeries = computed<ProductivityDay[]>(() => {
     const start = startOfMonth(productivityMonth.value);
     const end = endOfMonth(productivityMonth.value);
-    const map = new Map<string, number>();
+    const tasksForMonth = topLevelTasks.value.filter((t) => {
+      if (!t.due_date) return false;
+      return parseISO(t.due_date) <= end;
+    });
+    const completedByDay = new Map<string, number>();
+    const overdueSet = new Set<string>();
     for (const a of activities.value) {
       if (a.status !== "completed") continue;
       const d = parseISO(a.changed_at);
       if (d < start || d > end) continue;
       const key = format(d, "yyyy-MM-dd");
-      map.set(key, (map.get(key) ?? 0) + 1);
+      completedByDay.set(key, (completedByDay.get(key) ?? 0) + 1);
+      overdueSet.add(a.task_id);
     }
     const days: ProductivityDay[] = [];
     let cursor = start;
     while (cursor <= end) {
       const key = format(cursor, "yyyy-MM-dd");
-      days.push({ day: key, completed: map.get(key) ?? 0 });
+      const dayCompleted = completedByDay.get(key) ?? 0;
+      const overdue = tasksForMonth.filter((t) => {
+        const due = format(parseISO(t.due_date!), "yyyy-MM-dd");
+        if (due > key) return false;
+        if (overdueSet.has(t.id)) return false;
+        return !t.updated_at || parseISO(t.updated_at) > cursor;
+      }).length;
+      const baseline = dayCompleted + overdue;
+      const productivityPct = baseline > 0 ? Math.round((dayCompleted / baseline) * 100) : 0;
+      days.push({ day: key, completed: dayCompleted, overdue, productivityPct });
       cursor = addDays(cursor, 1);
     }
     return days;
@@ -317,6 +339,7 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
     completedTrend,
     pendingTrend,
     activeProjectTrend,
+    productivityTrend,
     productivityMonth,
     productivitySeries,
     productivityTotal,

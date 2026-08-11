@@ -23,6 +23,20 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.3.0",
+    date: "2026-08-11",
+    sections: [
+      {
+        category: "New Features",
+        items: [
+          "Productivity Overview bar chart with month picker",
+          "Project Overview card with progress and work timeline",
+          "Recent Tasks table with search and date-range filter",
+        ],
+      },
+    ],
+  },
+  {
     version: "2.2.0",
     date: "2026-08-11",
     sections: [

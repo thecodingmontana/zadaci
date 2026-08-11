@@ -232,6 +232,8 @@ Email send failures no longer crash the API request — the DB write succeeds re
 
 ## Changelog / release history
 
+- **2.3.0 (2026-08-11)** — Productivity Overview bar chart, Project Overview card, Recent Tasks table
+
 - **2.2.0 (2026-08-11)** — Per-user contribution grid on dashboard + Donate link to Ko-fi
 
 - **2.1.3 (2026-08-09)** — Group whats-new releases by date in panel

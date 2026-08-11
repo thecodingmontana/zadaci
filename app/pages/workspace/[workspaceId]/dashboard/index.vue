@@ -22,6 +22,16 @@ useSeoMeta({
 
 const modalStore = useModalStore();
 
+const dateRange = ref<"today" | "daily" | "weekly" | "monthly" | "yearly">("daily");
+
+const dateRanges = [
+  { value: "today", label: "Today" },
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "yearly", label: "Yearly" },
+] as const;
+
 function addTask() {
   modalStore?.setModalData({ workspaceId });
   modalStore?.onOpen("addNewTask");
@@ -93,11 +103,33 @@ const statCards = computed(() => [
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 class="text-xl font-semibold tracking-tight">Dashboard</h1>
-            <p class="text-sm text-muted-foreground">
-              Live overview from your workspace — updates in real time.
+            <p class="flex items-center gap-2 text-sm text-muted-foreground">
+              <span class="relative flex size-2">
+                <span
+                  class="absolute inline-flex size-full animate-ping rounded-full bg-green-400 opacity-75"
+                />
+                <span class="relative inline-flex size-2 rounded-full bg-green-500" />
+              </span>
+              Last sync: just now — live RxDB + realtime updates.
             </p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="inline-flex items-center rounded-lg border bg-card p-0.5 shadow-sm">
+              <button
+                v-for="range in dateRanges"
+                :key="range.value"
+                type="button"
+                class="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                :class="
+                  dateRange === range.value
+                    ? 'bg-brand text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                "
+                @click="dateRange = range.value"
+              >
+                {{ range.label }}
+              </button>
+            </div>
             <Button size="sm" class="gap-1.5 bg-brand hover:bg-brand-secondary" @click="addTask">
               <Icon name="solar:add-circle-linear" class="size-4" />
               Add Task
@@ -126,6 +158,38 @@ const statCards = computed(() => [
             accent="var(--brand)"
           />
         </div>
+
+        <!-- Productivity Overview -->
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div class="xl:col-span-2">
+            <ProductivityOverview
+              title="Productivity Overview"
+              :series="stats.productivitySeries.value"
+              :month="stats.productivityMonth.value"
+              :total="stats.productivityTotal.value"
+              :avg="stats.productivityAvg.value"
+              :trend="stats.productivityTrend.value"
+              :on-prev-month="() => stats.shiftProductivityMonth(-1)"
+              :on-next-month="() => stats.shiftProductivityMonth(1)"
+            />
+          </div>
+          <ProjectOverview
+            :workspace-id="workspaceId"
+            :projects="stats.projects.value"
+            :tasks="stats.tasks.value"
+            :on-view-project="
+              (taskId: string) => navigateTo(`/workspace/${workspaceId}/tasks/${taskId}`)
+            "
+          />
+        </div>
+
+        <!-- Recent Tasks -->
+        <RecentTasks
+          :workspace-id="workspaceId"
+          :projects="stats.projects.value"
+          :tasks="stats.tasks.value"
+          :range="dateRange"
+        />
       </Motion>
     </NuxtLayout>
   </NuxtLayout>
