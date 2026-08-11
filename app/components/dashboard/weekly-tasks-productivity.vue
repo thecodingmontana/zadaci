@@ -19,7 +19,6 @@ interface ProductivityDataItem {
 }
 
 const selectedRange = ref<"this" | "last">("this");
-const chartLoaded = ref(false);
 
 const weekInterval = computed(() => {
   const base = selectedRange.value === "this" ? new Date() : subWeeks(new Date(), 1);
@@ -53,6 +52,12 @@ const productivityData = computed<ProductivityDataItem[]>(() => {
   return weekDays.map((day) => counts[day]);
 });
 
+// True once there's at least one bar to actually draw — avoids rendering
+// a 300px chart canvas that's visually empty except for axis/legend marks.
+const hasActivity = computed(() =>
+  productivityData.value.some((d) => d.completed > 0 || d.inReview > 0 || d.abandoned > 0),
+);
+
 const ProductivityCategories = {
   completed: { name: "Completed", color: "#22c55e" },
   inReview: { name: "In Review", color: "#eab308" },
@@ -61,12 +66,6 @@ const ProductivityCategories = {
 
 const xFormatter = (i: number): string => productivityData.value[i]?.day ?? "";
 const yFormatter = (tick: number) => tick.toString();
-
-onMounted(() => {
-  setTimeout(() => {
-    chartLoaded.value = true;
-  }, 500);
-});
 </script>
 
 <template>
@@ -109,7 +108,16 @@ onMounted(() => {
     </div>
 
     <div class="w-full overflow-hidden">
-      <Skeleton v-if="!chartLoaded" class="h-80 w-full rounded-md" />
+      <Skeleton v-if="props.loading" class="h-80 w-full rounded-md" />
+      <div
+        v-else-if="!hasActivity"
+        class="flex h-80 w-full flex-col items-center justify-center gap-2 text-center"
+      >
+        <Icon name="solar:chart-2-outline" class="size-8 text-muted-foreground" />
+        <p class="text-sm text-muted-foreground">
+          No task activity {{ selectedRange === "this" ? "this" : "last" }} week yet.
+        </p>
+      </div>
       <BarChart
         v-else
         :data="productivityData"

@@ -1,4 +1,5 @@
 import type { ProjectDocType, TaskActivityDocType, TaskDocType } from "~/plugins/rxdb.client";
+import { useQuery } from "@tanstack/vue-query";
 import {
   addDays,
   endOfDay,
@@ -22,90 +23,108 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
   const projects = ref<ProjectDocType[]>([]);
   const tasks = ref<TaskDocType[]>([]);
   const activities = ref<TaskActivityDocType[]>([]);
-  const loaded = ref(false);
+
   let projectSub: { unsubscribe: () => void } | null = null;
   let taskSub: { unsubscribe: () => void } | null = null;
   let activitySub: { unsubscribe: () => void } | null = null;
 
-  async function subscribeProjects() {
-    const db = await useRxDbSafe();
+  function teardownSubs() {
     projectSub?.unsubscribe();
+    taskSub?.unsubscribe();
+    activitySub?.unsubscribe();
+    projectSub = null;
+    taskSub = null;
+    activitySub = null;
+  }
+
+  function subscribeLive(db: Awaited<ReturnType<typeof useRxDbSafe>>, wsId: string) {
     if (!db) return;
-    const wsId = workspaceId();
-    if (!wsId) {
-      projects.value = [];
-      return;
-    }
+    teardownSubs();
+
     projectSub = db.projects
       .find({ selector: { workspace_id: wsId, deleted_at: null } })
       .$.subscribe((docs) => {
         projects.value = docs;
-        loaded.value = true;
       });
+
+    // Re-derive task/activity subscriptions whenever the project set changes
+    watch(
+      projects,
+      async (projs) => {
+        taskSub?.unsubscribe();
+        activitySub?.unsubscribe();
+
+        const ids = projs.map((p) => p.id);
+        if (ids.length === 0) {
+          tasks.value = [];
+          activities.value = [];
+          return;
+        }
+
+        taskSub = db.tasks
+          .find({ selector: { project_id: { $in: ids }, deleted_at: null } })
+          .$.subscribe((docs) => {
+            tasks.value = docs;
+          });
+
+        const taskDocs = await db.tasks
+          .find({ selector: { project_id: { $in: ids }, deleted_at: null } })
+          .exec();
+        const taskIds = taskDocs.map((t) => t.id);
+        if (taskIds.length === 0) {
+          activities.value = [];
+          return;
+        }
+
+        activitySub = db.tasks_activity
+          .find({ selector: { task_id: { $in: taskIds }, deleted_at: null } })
+          .$.subscribe((docs) => {
+            activities.value = docs;
+          });
+      },
+      { immediate: true },
+    );
   }
 
-  async function subscribeTasks() {
+  // ── TanStack Query owns the initial-load / loading / error lifecycle ──
+  async function loadInitialData(wsId: string) {
     const db = await useRxDbSafe();
-    taskSub?.unsubscribe();
-    if (!db) return;
-    const ids = projects.value.map((p) => p.id);
-    if (ids.length === 0) {
-      tasks.value = [];
-      return;
-    }
-    taskSub = db.tasks
-      .find({ selector: { project_id: { $in: ids }, deleted_at: null } })
-      .$.subscribe((docs) => {
-        tasks.value = docs;
-      });
-  }
+    if (!db) throw new Error("RxDB not ready");
 
-  async function subscribeActivities() {
-    const db = await useRxDbSafe();
-    activitySub?.unsubscribe();
-    if (!db) return;
-    const ids = projects.value.map((p) => p.id);
-    if (ids.length === 0) {
-      activities.value = [];
-      return;
-    }
-    const taskDocs = await db.tasks
-      .find({ selector: { project_id: { $in: ids }, deleted_at: null } })
+    const projectDocs = await db.projects
+      .find({ selector: { workspace_id: wsId, deleted_at: null } })
       .exec();
+    projects.value = projectDocs;
+
+    const projectIds = projectDocs.map((p) => p.id);
+    const taskDocs = projectIds.length
+      ? await db.tasks
+          .find({ selector: { project_id: { $in: projectIds }, deleted_at: null } })
+          .exec()
+      : [];
+    tasks.value = taskDocs;
+
     const taskIds = taskDocs.map((t) => t.id);
-    if (taskIds.length === 0) {
-      activities.value = [];
-      return;
-    }
-    activitySub = db.tasks_activity
-      .find({ selector: { task_id: { $in: taskIds }, deleted_at: null } })
-      .$.subscribe((docs) => {
-        activities.value = docs;
-      });
+    activities.value = taskIds.length
+      ? await db.tasks_activity
+          .find({ selector: { task_id: { $in: taskIds }, deleted_at: null } })
+          .exec()
+      : [];
+
+    // Hand off to live subscriptions once the first snapshot is in
+    subscribeLive(db, wsId);
+
+    return true;
   }
 
-  watch(projects, subscribeTasks, { immediate: false });
-  watch(projects, subscribeActivities, { immediate: false });
-
-  watch(
-    workspaceId,
-    async (wsId) => {
-      if (wsId) {
-        await subscribeProjects();
-      } else {
-        projects.value = [];
-        tasks.value = [];
-        activities.value = [];
-      }
-    },
-    { immediate: true },
-  );
-
-  onUnmounted(() => {
-    projectSub?.unsubscribe();
-    taskSub?.unsubscribe();
-    activitySub?.unsubscribe();
+  const { isPending, isError, error, refetch } = useQuery({
+    queryKey: computed(() => ["dashboard-stats", workspaceId()]),
+    queryFn: () => loadInitialData(workspaceId()!),
+    enabled: computed(() => !!workspaceId()),
+    staleTime: Number.POSITIVE_INFINITY, // freshness after this comes from RxDB, not refetching
   });
+
+  onUnmounted(teardownSubs);
 
   const topLevelTasks = computed(() => tasks.value.filter((t) => !t.parent_task_id));
 
@@ -113,7 +132,6 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
   const activeProjects = computed(
     () => projects.value.filter((p) => NOT_DONE.has(p.status)).length,
   );
-
   const completedTasks = computed(
     () => topLevelTasks.value.filter((t) => t.status === "completed").length,
   );
@@ -133,7 +151,6 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
         return isAfter(due, todayStart) && isBefore(due, weekAhead);
       }).length,
   );
-
   const overdueTasks = computed(
     () =>
       topLevelTasks.value.filter((t) => {
@@ -154,7 +171,6 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
         return d >= thisMonthStart && d <= now;
       }).length,
   );
-
   const completedEventsLastMonth = computed(
     () =>
       activities.value.filter((a) => {
@@ -163,7 +179,6 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
         return d >= lastMonthStart && d < thisMonthStart;
       }).length,
   );
-
   const createdThisMonth = computed(
     () =>
       topLevelTasks.value.filter((t) => {
@@ -171,7 +186,6 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
         return d >= thisMonthStart && d <= now;
       }).length,
   );
-
   const createdLastMonth = computed(
     () =>
       topLevelTasks.value.filter((t) => {
@@ -179,7 +193,6 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
         return d >= lastMonthStart && d < thisMonthStart;
       }).length,
   );
-
   const projectsCreatedThisMonth = computed(
     () =>
       projects.value.filter((p) => {
@@ -187,7 +200,6 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
         return d >= thisMonthStart && d <= now;
       }).length,
   );
-
   const projectsCreatedLastMonth = computed(
     () =>
       projects.value.filter((p) => {
@@ -214,7 +226,13 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
   );
 
   return {
-    loaded,
+    // TanStack Query-driven loading/error state
+    loaded: computed(() => !isPending.value && !isError.value),
+    isLoading: isPending,
+    isError,
+    error,
+    refetch,
+
     projects,
     tasks,
     topLevelTasks,
@@ -226,11 +244,5 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
     completedTrend,
     pendingTrend,
     activeProjectTrend,
-    productivityTrend,
-    productivityMonth,
-    productivitySeries,
-    productivityTotal,
-    productivityAvg,
-    shiftProductivityMonth,
   };
 }

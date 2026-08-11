@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { Motion } from "motion-v";
 import AllTasksStats from "~/components/dashboard/all-tasks-stats.vue";
 import DashboardGreetings from "~/components/dashboard/dashboard-greetings.vue";
-import DashboardLoadingSkeleton from "~/components/dashboard/dashboard-loading-skeleton.vue";
 import OverallStats from "~/components/dashboard/overall-stats.vue";
 import ProjectStats from "~/components/dashboard/project-stats.vue";
 import WeeklyTasksProductivity from "~/components/dashboard/weekly-tasks-productivity.vue";
@@ -15,7 +13,6 @@ definePageMeta({
 
 const route = useRoute();
 const workspaceId = route.params.workspaceId as string;
-
 const dashboardTitle = useWorkspacePageTitle("Dashboard");
 useSeoMeta({
   title: dashboardTitle,
@@ -23,7 +20,6 @@ useSeoMeta({
 });
 
 const modalStore = useModalStore();
-
 const stats = useDashboardStats(() => workspaceId);
 
 function onAddNewProject() {
@@ -35,15 +31,15 @@ function onAddNewProject() {
 <template>
   <NuxtLayout name="workspace">
     <NuxtLayout name="workspace-area">
-      <Motion
-        :initial="{ opacity: 0, y: 8 }"
-        :animate="{ opacity: 1, y: 0 }"
-        :transition="{ duration: 0.35, ease: 'easeOut' }"
-        class="grid grid-cols-1 gap-10 p-6 md:grid-cols-4"
-      >
-        <!-- Loading skeleton -->
-        <DashboardLoadingSkeleton v-if="!stats.loaded.value" />
-
+      <div class="grid grid-cols-1 gap-10 p-6 md:grid-cols-4">
+        <!-- Error state -->
+        <div
+          v-if="stats.isError.value"
+          class="col-span-1 flex flex-col items-center justify-center gap-3 py-12 md:col-span-4"
+        >
+          <p class="text-sm text-muted-foreground">Couldn't load dashboard data.</p>
+          <Button variant="outline" size="sm" @click="stats.refetch()"> Retry </Button>
+        </div>
         <template v-else>
           <!-- Left column -->
           <div class="col-span-1 flex flex-col gap-8 self-start md:col-span-2 xl:col-span-3">
@@ -59,27 +55,24 @@ function onAddNewProject() {
                 New project
               </Button>
             </div>
-
             <OverallStats
               :projects="stats.projects.value"
               :tasks="stats.tasks.value"
-              :loading="!stats.loaded.value"
+              :loading="stats.isLoading.value"
             />
-
-            <WeeklyTasksProductivity :tasks="stats.tasks.value" :loading="!stats.loaded.value" />
+            <WeeklyTasksProductivity :tasks="stats.tasks.value" :loading="stats.isLoading.value" />
           </div>
-
           <!-- Right column -->
           <div class="col-span-1 flex flex-col gap-8 self-start md:col-span-2 xl:col-span-1">
             <div class="rounded-md border p-5">
-              <ProjectStats :projects="stats.projects.value" :loading="!stats.loaded.value" />
+              <ProjectStats :projects="stats.projects.value" :loading="stats.isLoading.value" />
             </div>
             <div class="rounded-md border p-5">
-              <AllTasksStats :tasks="stats.tasks.value" :loading="!stats.loaded.value" />
+              <AllTasksStats :tasks="stats.tasks.value" :loading="stats.isLoading.value" />
             </div>
           </div>
         </template>
-      </Motion>
+      </div>
     </NuxtLayout>
   </NuxtLayout>
 </template>

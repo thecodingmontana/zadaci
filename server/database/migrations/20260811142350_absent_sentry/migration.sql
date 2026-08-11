@@ -21,7 +21,8 @@ CREATE TABLE "app_channel_members" (
 	"member_id" varchar(16) NOT NULL,
 	"last_read_at" timestamp(3) with time zone,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_channel_members" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -48,7 +49,8 @@ CREATE TABLE "app_message_receipt" (
 	"member_id" varchar(16) NOT NULL,
 	"status" varchar(20) DEFAULT 'delivered' NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_message_receipt" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -59,7 +61,8 @@ CREATE TABLE "app_message_reference" (
 	"ref_id" varchar(16),
 	"snapshot" text,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_message_reference" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -82,7 +85,8 @@ CREATE TABLE "app_conversation" (
 	"member_one_id" varchar(16) NOT NULL,
 	"member_two_id" varchar(16) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_conversation" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -105,7 +109,8 @@ CREATE TABLE "app_direct_message_receipt" (
 	"member_id" varchar(16) NOT NULL,
 	"status" varchar(20) DEFAULT 'delivered' NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_direct_message_receipt" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -113,6 +118,15 @@ CREATE TABLE "cron_jobs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"message" text,
 	"created_at" timestamp with time zone DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "app_feedback" (
+	"id" varchar(16) PRIMARY KEY,
+	"user_id" varchar(16) NOT NULL,
+	"type" varchar(20) NOT NULL,
+	"message" text NOT NULL,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "app_note" (
@@ -147,7 +161,8 @@ CREATE TABLE "app_project_members" (
 	"project_id" varchar(16) NOT NULL,
 	"member_id" varchar(16) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_project_members" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -194,7 +209,8 @@ CREATE TABLE "app_project_tags" (
 	"project_id" varchar(16) NOT NULL,
 	"tag_id" varchar(16) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_project_tags" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -214,7 +230,8 @@ CREATE TABLE "app_task_tags" (
 	"task_id" varchar(16) NOT NULL,
 	"tag_id" varchar(16) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_task_tags" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -234,7 +251,8 @@ CREATE TABLE "app_team_members" (
 	"team_id" varchar(16) NOT NULL,
 	"member_id" varchar(16) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_team_members" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -310,6 +328,7 @@ CREATE TABLE "app_user" (
 	"registered_2fa" boolean DEFAULT false NOT NULL,
 	"recovery_code" text NOT NULL,
 	"profile_picture_url" text,
+	"whats_new_last_seen_version" varchar(20),
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
@@ -333,7 +352,8 @@ CREATE TABLE "app_workspace" (
 	"invite_code" text NOT NULL UNIQUE,
 	"user_id" varchar(16) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_workspace" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -346,7 +366,8 @@ CREATE TABLE "app_workspace_invite_request" (
 	"expires_at" timestamp with time zone NOT NULL,
 	"invited_by" varchar(255) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_workspace_invite_request" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -356,13 +377,15 @@ CREATE TABLE "app_workspace_members" (
 	"user_id" varchar(16) NOT NULL,
 	"workspace_id" varchar(16) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "app_workspace_members" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE INDEX "channel_workspace_id_idx" ON "app_channel" ("workspace_id");--> statement-breakpoint
 CREATE INDEX "channel_members_channel_id_idx" ON "app_channel_members" ("channel_id");--> statement-breakpoint
 CREATE INDEX "channel_members_member_id_idx" ON "app_channel_members" ("member_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "channel_members_channel_member_unique" ON "app_channel_members" ("channel_id","member_id");--> statement-breakpoint
 CREATE INDEX "message_channel_id_idx" ON "app_message" ("channel_id");--> statement-breakpoint
 CREATE INDEX "message_parent_message_id_idx" ON "app_message" ("parent_message_id");--> statement-breakpoint
 CREATE INDEX "message_thread_last_reply_at_idx" ON "app_message" ("thread_last_reply_at");--> statement-breakpoint
@@ -427,6 +450,7 @@ ALTER TABLE "app_direct_message" ADD CONSTRAINT "app_direct_message_conversation
 ALTER TABLE "app_direct_message" ADD CONSTRAINT "app_direct_message_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id");--> statement-breakpoint
 ALTER TABLE "app_direct_message_receipt" ADD CONSTRAINT "app_direct_message_receipt_Hg5ChsgZATC8_fkey" FOREIGN KEY ("direct_message_id") REFERENCES "app_direct_message"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_direct_message_receipt" ADD CONSTRAINT "app_direct_message_receipt_NEUYKDqPyHWL_fkey" FOREIGN KEY ("member_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_feedback" ADD CONSTRAINT "app_feedback_user_id_app_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app_user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_note" ADD CONSTRAINT "app_note_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_project" ADD CONSTRAINT "app_project_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_project" ADD CONSTRAINT "app_project_team_id_app_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "app_team"("id") ON DELETE SET NULL;--> statement-breakpoint

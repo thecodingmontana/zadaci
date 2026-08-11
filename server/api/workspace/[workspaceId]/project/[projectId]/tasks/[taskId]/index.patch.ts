@@ -2,7 +2,6 @@ import type { Status } from "~~/shared/types";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 import { statusToDbValue } from "~~/server/database/enums";
-import { CONTRIBUTION_SOURCES, recordContribution } from "~~/server/libs/contributions";
 import { sendTaskCompletionMail } from "~~/server/libs/emails/actions/completed-task";
 import { validStatuses } from "~~/shared/types";
 
@@ -114,9 +113,6 @@ export default defineEventHandler(async (event) => {
         status: statusValue,
         changed_at: new Date(),
       });
-      if (status === "COMPLETED") {
-        await recordContribution(session.user.id, CONTRIBUTION_SOURCES.TASK_COMPLETED);
-      }
     }
     if (status === "COMPLETED") {
       await Promise.all(

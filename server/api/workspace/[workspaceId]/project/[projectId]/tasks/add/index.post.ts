@@ -1,7 +1,6 @@
 import type { Priority, ProjectMembers, Status } from "~~/shared/types";
 import { db, tables } from "~~/server/database/db";
 import { PRIORITY, statusToDbValue } from "~~/server/database/enums";
-import { CONTRIBUTION_SOURCES, recordContribution } from "~~/server/libs/contributions";
 import { sendTaskAssignmentEmail } from "~~/server/libs/emails/actions/send-task-assignment";
 import { appLink, validPriorities, validStatuses } from "~~/shared/types";
 
@@ -197,7 +196,6 @@ export default defineEventHandler(async (event) => {
           }),
         ),
     );
-    await recordContribution(session.user.id, CONTRIBUTION_SOURCES.TASK_CREATED);
 
     return {
       message: "Task created successfully",

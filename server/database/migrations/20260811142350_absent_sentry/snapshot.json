@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "49415c49-bf74-436f-9fda-bc1a5652bdf0",
+  "id": "d15310f9-6264-4942-a291-6165d3bf86e2",
   "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
@@ -91,6 +91,12 @@
     {
       "isRlsEnabled": false,
       "name": "cron_jobs",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "app_feedback",
       "entityType": "tables",
       "schema": "public"
     },
@@ -409,6 +415,19 @@
       "table": "app_channel_members"
     },
     {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_channel_members"
+    },
+    {
       "type": "varchar(16)",
       "typeSchema": null,
       "notNull": true,
@@ -656,6 +675,19 @@
       "table": "app_message_receipt"
     },
     {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message_receipt"
+    },
+    {
       "type": "varchar(16)",
       "typeSchema": null,
       "notNull": true,
@@ -742,6 +774,19 @@
       "generated": null,
       "identity": null,
       "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_message_reference"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
       "entityType": "columns",
       "schema": "public",
       "table": "app_message_reference"
@@ -942,6 +987,19 @@
       "table": "app_conversation"
     },
     {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_conversation"
+    },
+    {
       "type": "varchar(16)",
       "typeSchema": null,
       "notNull": true,
@@ -1137,6 +1195,19 @@
       "table": "app_direct_message_receipt"
     },
     {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_direct_message_receipt"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1174,6 +1245,84 @@
       "entityType": "columns",
       "schema": "public",
       "table": "cron_jobs"
+    },
+    {
+      "type": "varchar(16)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_feedback"
+    },
+    {
+      "type": "varchar(16)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_feedback"
+    },
+    {
+      "type": "varchar(20)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_feedback"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "message",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_feedback"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_feedback"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_feedback"
     },
     {
       "type": "varchar(16)",
@@ -1483,6 +1632,19 @@
       "generated": null,
       "identity": null,
       "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_project_members"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
       "entityType": "columns",
       "schema": "public",
       "table": "app_project_members"
@@ -1891,6 +2053,19 @@
       "table": "app_project_tags"
     },
     {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_project_tags"
+    },
+    {
       "type": "varchar(16)",
       "typeSchema": null,
       "notNull": true,
@@ -2047,6 +2222,19 @@
       "table": "app_task_tags"
     },
     {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_task_tags"
+    },
+    {
       "type": "varchar(16)",
       "typeSchema": null,
       "notNull": true,
@@ -2198,6 +2386,19 @@
       "generated": null,
       "identity": null,
       "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_team_members"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
       "entityType": "columns",
       "schema": "public",
       "table": "app_team_members"
@@ -2892,6 +3093,19 @@
       "table": "app_user"
     },
     {
+      "type": "varchar(20)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "whats_new_last_seen_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_user"
+    },
+    {
       "type": "timestamp(3) with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -3100,6 +3314,19 @@
       "table": "app_workspace"
     },
     {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_workspace"
+    },
+    {
       "type": "varchar(16)",
       "typeSchema": null,
       "notNull": true,
@@ -3217,6 +3444,19 @@
       "table": "app_workspace_invite_request"
     },
     {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_workspace_invite_request"
+    },
+    {
       "type": "varchar(16)",
       "typeSchema": null,
       "notNull": true,
@@ -3295,6 +3535,19 @@
       "table": "app_workspace_members"
     },
     {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "app_workspace_members"
+    },
+    {
       "nameExplicit": true,
       "columns": [
         {
@@ -3353,6 +3606,34 @@
       "method": "btree",
       "concurrently": false,
       "name": "channel_members_member_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "app_channel_members"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "channel_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "member_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "channel_members_channel_member_unique",
       "entityType": "indexes",
       "schema": "public",
       "table": "app_channel_members"
@@ -4593,6 +4874,19 @@
     },
     {
       "nameExplicit": false,
+      "columns": ["user_id"],
+      "schemaTo": "public",
+      "tableTo": "app_user",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "app_feedback_user_id_app_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "app_feedback"
+    },
+    {
+      "nameExplicit": false,
       "columns": ["workspace_id"],
       "schemaTo": "public",
       "tableTo": "app_workspace",
@@ -5059,6 +5353,14 @@
       "name": "cron_jobs_pkey",
       "schema": "public",
       "table": "cron_jobs",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "app_feedback_pkey",
+      "schema": "public",
+      "table": "app_feedback",
       "entityType": "pks"
     },
     {

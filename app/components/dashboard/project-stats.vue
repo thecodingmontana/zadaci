@@ -10,7 +10,6 @@ const props = defineProps<{
 }>();
 
 const activeProjects = computed(() => props.projects.filter((p) => !p.deleted_at));
-
 const total = computed(() => activeProjects.value.length);
 const completed = computed(
   () => activeProjects.value.filter((p) => p.status === "completed").length,
@@ -32,7 +31,6 @@ const weeklyDifference = computed<number | null>(() => {
   const completedLastWeek = activeProjects.value.filter(
     (p) => p.status === "completed" && isLastWeek(new Date(p.updated_at)),
   ).length;
-
   if (completedLastWeek === 0 && completedThisWeek > 0) return 100;
   if (completedLastWeek === 0) return null;
   return Math.round(((completedThisWeek - completedLastWeek) / completedLastWeek) * 100);
@@ -72,15 +70,24 @@ const labels = computed(() => [
       />
     </div>
 
-    <div v-if="!props.loading" class="grid grid-cols-2">
-      <div class="flex flex-col items-center">
+    <div class="grid grid-cols-2">
+      <div v-if="props.loading" class="flex flex-col items-center gap-2">
+        <Skeleton class="h-3 w-16" />
+        <Skeleton class="h-7 w-8" />
+      </div>
+      <div v-else class="flex flex-col items-center">
         <div class="flex items-center gap-x-2">
           <div class="size-1.5 rounded-full bg-green-500" />
           <p class="text-sm text-muted-foreground">Completed</p>
         </div>
         <p class="text-2xl font-medium">{{ completed }}</p>
       </div>
-      <div class="flex flex-col items-center">
+
+      <div v-if="props.loading" class="flex flex-col items-center gap-2">
+        <Skeleton class="h-3 w-16" />
+        <Skeleton class="h-7 w-8" />
+      </div>
+      <div v-else class="flex flex-col items-center">
         <div class="flex items-center gap-x-2">
           <div class="size-1.5 rounded-full bg-blue-500" />
           <p class="text-sm text-muted-foreground">In Progress</p>
@@ -89,7 +96,8 @@ const labels = computed(() => [
       </div>
     </div>
 
-    <p v-if="!props.loading" class="text-center text-sm text-muted-foreground">
+    <Skeleton v-if="props.loading" class="mx-auto h-4 w-3/4" />
+    <p v-else class="text-center text-sm text-muted-foreground">
       <template v-if="weeklyDifference !== null">
         You completed
         <strong
