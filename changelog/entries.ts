@@ -23,6 +23,19 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.4.0",
+    date: "2026-08-11",
+    sections: [
+      {
+        category: "New Features",
+        items: [
+          "Tasks page rebuilt with status overview, breakdown tiles and week calendar",
+          "Table / Kanban / Timeline view switcher on the tasks page",
+        ],
+      },
+    ],
+  },
+  {
     version: "2.3.0",
     date: "2026-08-11",
     sections: [
