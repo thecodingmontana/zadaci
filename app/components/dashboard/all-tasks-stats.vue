@@ -2,9 +2,11 @@
 import type { TaskDocType } from "~/plugins/rxdb.client";
 import { endOfWeek, isThisWeek, startOfWeek, subWeeks } from "date-fns";
 import { computed } from "vue";
+import { Skeleton } from "~/components/ui/skeleton";
 
 const props = defineProps<{
   tasks: TaskDocType[];
+  loading: boolean;
 }>();
 
 const topLevelTasks = computed(() => props.tasks.filter((t) => !t.parent_task_id && !t.deleted_at));
@@ -58,7 +60,9 @@ const labels = computed(() => [
     </div>
 
     <div class="flex h-[275px] w-full items-center justify-center overflow-hidden">
+      <Skeleton v-if="props.loading" class="h-[275px] w-full rounded-md" />
       <DonutChart
+        v-else
         :data="donutData"
         :height="275"
         :labels="labels"
@@ -68,7 +72,7 @@ const labels = computed(() => [
       />
     </div>
 
-    <div class="grid grid-cols-2">
+    <div v-if="!props.loading" class="grid grid-cols-2">
       <div class="flex flex-col items-center">
         <div class="flex items-center gap-x-2">
           <div class="size-1.5 rounded-full bg-green-500" />
@@ -85,7 +89,7 @@ const labels = computed(() => [
       </div>
     </div>
 
-    <p class="text-center text-sm text-muted-foreground">
+    <p v-if="!props.loading" class="text-center text-sm text-muted-foreground">
       <template v-if="weeklyDifference !== null">
         You completed
         <strong

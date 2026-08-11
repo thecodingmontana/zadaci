@@ -2,14 +2,11 @@ import type { ProjectDocType, TaskActivityDocType, TaskDocType } from "~/plugins
 import {
   addDays,
   endOfDay,
-  endOfMonth,
-  format,
   isAfter,
   isBefore,
   parseISO,
   startOfDay,
   startOfMonth,
-  startOfWeek,
   subMonths,
 } from "date-fns";
 
@@ -17,18 +14,6 @@ export interface StatTrend {
   value: number;
   delta: number;
   percent: number | null;
-}
-
-export interface DayContribution {
-  date: string;
-  count: number;
-}
-
-export interface ProductivityDay {
-  day: string;
-  completed: number;
-  overdue: number;
-  productivityPct: number;
 }
 
 const NOT_DONE = new Set(["idea", "todo", "in_progress", "in_review"]);
@@ -228,107 +213,6 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
     buildTrend(projectsCreatedThisMonth.value, projectsCreatedLastMonth.value),
   );
 
-  // ── Productivity trend (completed this month vs last month) ──
-  const productivityTrend = computed(() =>
-    buildTrend(completedEventsThisMonth.value, completedEventsLastMonth.value),
-  );
-
-  // ── Productivity series (completed per day for a month) ──
-  const productivityMonth = ref(startOfMonth(now));
-
-  const productivitySeries = computed<ProductivityDay[]>(() => {
-    const start = startOfMonth(productivityMonth.value);
-    const end = endOfMonth(productivityMonth.value);
-    const tasksForMonth = topLevelTasks.value.filter((t) => {
-      if (!t.due_date) return false;
-      return parseISO(t.due_date) <= end;
-    });
-    const completedByDay = new Map<string, number>();
-    const overdueSet = new Set<string>();
-    for (const a of activities.value) {
-      if (a.status !== "completed") continue;
-      const d = parseISO(a.changed_at);
-      if (d < start || d > end) continue;
-      const key = format(d, "yyyy-MM-dd");
-      completedByDay.set(key, (completedByDay.get(key) ?? 0) + 1);
-      overdueSet.add(a.task_id);
-    }
-    const days: ProductivityDay[] = [];
-    let cursor = start;
-    while (cursor <= end) {
-      const key = format(cursor, "yyyy-MM-dd");
-      const dayCompleted = completedByDay.get(key) ?? 0;
-      const overdue = tasksForMonth.filter((t) => {
-        const due = format(parseISO(t.due_date!), "yyyy-MM-dd");
-        if (due > key) return false;
-        if (overdueSet.has(t.id)) return false;
-        return !t.updated_at || parseISO(t.updated_at) > cursor;
-      }).length;
-      const baseline = dayCompleted + overdue;
-      const productivityPct = baseline > 0 ? Math.round((dayCompleted / baseline) * 100) : 0;
-      days.push({ day: key, completed: dayCompleted, overdue, productivityPct });
-      cursor = addDays(cursor, 1);
-    }
-    return days;
-  });
-
-  const productivityTotal = computed(() =>
-    productivitySeries.value.reduce((sum, d) => sum + d.completed, 0),
-  );
-  const productivityAvg = computed(() =>
-    productivitySeries.value.length
-      ? Math.round((productivityTotal.value / productivitySeries.value.length) * 10) / 10
-      : 0,
-  );
-
-  function shiftProductivityMonth(delta: number) {
-    productivityMonth.value = new Date(
-      productivityMonth.value.getFullYear(),
-      productivityMonth.value.getMonth() + delta,
-      1,
-    );
-  }
-
-  // ── Contribution grid (completed per day, per current user, last 365 days) ──
-  const { user } = useUserSession();
-  const { data: members } = useWorkspaceMembers(computed(() => workspaceId()));
-
-  const currentMemberId = computed(() => {
-    const uid = user.value?.id;
-    if (!uid || !members.value) return null;
-    const m = (members.value as any[]).find((member) => member.userId === uid);
-    return m?.id ?? null;
-  });
-
-  const contributionWeeks = ref(53);
-
-  const contributions = computed<DayContribution[]>(() => {
-    const memberId = currentMemberId.value;
-    if (!memberId) return [];
-    const today = startOfDay(now);
-    const start = startOfWeek(subMonths(today, 11), { weekStartsOn: 1 });
-    const map = new Map<string, number>();
-    for (const a of activities.value) {
-      if (a.status !== "completed" || a.changed_by !== memberId) continue;
-      const d = parseISO(a.changed_at);
-      if (d < start || d > today) continue;
-      const key = format(d, "yyyy-MM-dd");
-      map.set(key, (map.get(key) ?? 0) + 1);
-    }
-    const days: DayContribution[] = [];
-    let cursor = start;
-    while (cursor <= today) {
-      const key = format(cursor, "yyyy-MM-dd");
-      days.push({ date: key, count: map.get(key) ?? 0 });
-      cursor = addDays(cursor, 1);
-    }
-    return days;
-  });
-
-  const totalContributions = computed(() =>
-    contributions.value.reduce((sum, d) => sum + d.count, 0),
-  );
-
   return {
     loaded,
     projects,
@@ -348,9 +232,5 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
     productivityTotal,
     productivityAvg,
     shiftProductivityMonth,
-    contributions,
-    totalContributions,
-    contributionWeeks,
-    currentMemberId,
   };
 }

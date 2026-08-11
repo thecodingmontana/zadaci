@@ -23,6 +23,23 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "3.0.0",
+    date: "2026-08-11",
+    sections: [
+      {
+        category: "New Features",
+        items: [
+          "Dashboard rebuilt to match the classic layout — overall stats, weekly productivity chart, and project/task donut stats",
+          "Weekly Tasks Productivity chart with This week / Last week toggle",
+        ],
+      },
+      {
+        category: "Improvements",
+        items: ["Removed the contribution grid and its backend logic"],
+      },
+    ],
+  },
+  {
     version: "2.6.0",
     date: "2026-08-11",
     sections: [

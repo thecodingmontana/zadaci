@@ -6,6 +6,17 @@ All notable changes to this project are documented here. Versions follow
 
 ## Changelog
 
+## [v3.0.0] - 2026-08-11
+
+### New Features
+
+- Dashboard rebuilt to match the classic layout — overall stats, weekly productivity chart, and project/task donut stats
+- Weekly Tasks Productivity chart with This week / Last week toggle
+
+### Improvements
+
+- Removed the contribution grid and its backend logic
+
 ## [v2.6.0] - 2026-08-11
 
 ### New Features

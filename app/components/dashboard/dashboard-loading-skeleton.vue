@@ -3,40 +3,26 @@ import { Skeleton } from "~/components/ui/skeleton";
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4">
-      <div class="space-y-2">
-        <Skeleton class="h-7 w-64" />
-        <Skeleton class="h-4 w-44" />
+  <div class="grid grid-cols-1 gap-10 md:grid-cols-4">
+    <div class="col-span-1 flex flex-col gap-8 self-start md:col-span-2 xl:col-span-3">
+      <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center lg:items-center">
+        <div class="space-y-2">
+          <Skeleton class="h-7 w-64" />
+          <Skeleton class="h-4 w-44" />
+        </div>
+        <Skeleton class="h-10 w-full rounded-md sm:w-28" />
       </div>
-      <div class="flex items-center gap-2">
-        <Skeleton class="h-9 w-64 rounded-lg" />
-        <Skeleton class="h-9 w-28 rounded-lg" />
+
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <Skeleton v-for="i in 4" :key="i" class="h-24 rounded-md" />
       </div>
+
+      <Skeleton class="h-96 w-full rounded-md" />
     </div>
 
-    <!-- Stat cards -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      <Skeleton v-for="i in 5" :key="i" class="h-24 rounded-xl" />
+    <div class="col-span-1 flex flex-col gap-8 self-start md:col-span-2 xl:col-span-1">
+      <Skeleton class="h-[15rem] w-full rounded-md" />
+      <Skeleton class="h-[15rem] w-full rounded-md" />
     </div>
-
-    <!-- Contribution grid -->
-    <Skeleton class="h-36 rounded-xl" />
-
-    <!-- Productivity + project overview -->
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-      <Skeleton class="h-96 rounded-xl xl:col-span-2" />
-      <Skeleton class="h-96 rounded-xl" />
-    </div>
-
-    <!-- Donut stats -->
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-      <Skeleton class="h-80 rounded-xl" />
-      <Skeleton class="h-80 rounded-xl" />
-    </div>
-
-    <!-- Recent tasks -->
-    <Skeleton class="h-72 rounded-xl" />
   </div>
 </template>
