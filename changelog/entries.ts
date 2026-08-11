@@ -23,6 +23,16 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.5.2",
+    date: "2026-08-11",
+    sections: [
+      {
+        category: "Improvements",
+        items: ["Added a human-readable CHANGELOG.md, kept in sync with the in-app changelog"],
+      },
+    ],
+  },
+  {
     version: "2.5.1",
     date: "2026-08-11",
     sections: [

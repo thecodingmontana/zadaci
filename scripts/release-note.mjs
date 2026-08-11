@@ -116,26 +116,29 @@ writeFileSync(entriesPath, entries.replace(marker, `${marker}\n${releaseTs}`));
 pkg.version = next;
 writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
 
-// 7. Add a one-line entry to AGENTS.md release history
-const summarySource = sections[0].items;
-const summary = summarySource.slice(0, 2).join("; ") + (summarySource.length > 2 ? "…" : "");
+// 7. Prepend the release to CHANGELOG.md (full markdown section)
+function sectionToMd(s) {
+  return `### ${s.category}\n\n${s.items.map((i) => `- ${i}`).join("\n")}`;
+}
 
-const agentsPath = resolve(root, "AGENTS.md");
-const agents = readFileSync(agentsPath, "utf8");
-const historyMarker = "## Changelog / release history";
-const idx = agents.indexOf(historyMarker);
+const releaseMd = `## [v${next}] - ${date}\n\n${sections.map(sectionToMd).join("\n\n")}`;
+
+const changelogPath = resolve(root, "CHANGELOG.md");
+const changelog = readFileSync(changelogPath, "utf8");
+const historyMarker = "## Changelog";
+const idx = changelog.indexOf(historyMarker);
 if (idx === -1) {
-  console.error("❌ Could not find 'Changelog / release history' section in AGENTS.md");
+  console.error("❌ Could not find '## Changelog' section in CHANGELOG.md");
   process.exit(1);
 }
 const insertAt = idx + historyMarker.length;
 writeFileSync(
-  agentsPath,
-  `${agents.slice(0, insertAt)}\n\n- **${next} (${date})** — ${summary}${agents.slice(insertAt)}`,
+  changelogPath,
+  `${changelog.slice(0, insertAt)}\n\n${releaseMd}${changelog.slice(insertAt)}`,
 );
 
 // 8. Commit + tag the release
-run("git add changelog/entries.ts package.json AGENTS.md");
+run("git add changelog/entries.ts package.json CHANGELOG.md");
 run(`git commit -m "chore: release v${next}"`);
 run(`git tag v${next}`);
 

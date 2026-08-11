@@ -14,7 +14,7 @@ runs `scripts/release-note.mjs` after the commit. It:
   `perf` → Improvements),
 - Uses the commit date as the release date,
 - Bumps `package.json` (major for breaking, minor for `feat`, patch otherwise),
-- Prepend-releases to `changelog/entries.ts`, adds the AGENTS.md history line, and creates a
+- Prepend-releases to `changelog/entries.ts` and `CHANGELOG.md`, and creates a
   `chore: release vX.Y.Z` commit + `vX.Y.Z` tag.
 
 Manual checklist — ONLY for commits made without `pnpm run commit` (e.g. direct `git commit`):
@@ -26,11 +26,13 @@ Manual checklist — ONLY for commits made without `pnpm run commit` (e.g. direc
    - If the current top release already has entries, append to its sections.
 2. Bump `package.json` version per semver: patch for fixes, minor for features, major for
    breaking changes. `package.json` version MUST equal `changelogReleases[0].version`.
-3. Add a one-line entry to AGENTS.md's "Changelog / release history" section below noting what
-   changed and the new version.
+3. Mirror the same release entry into `CHANGELOG.md` under the "## Changelog" section (new
+   release on top, `## [vX.Y.Z] - YYYY-MM-DD` with `###` category subheadings).
 
 The "What's New" panel (`app/modals/workspace/whats-new-panel.vue`) renders directly from
 `changelog/entries.ts` — index 0 is the "New updates" release, the rest are "Previous updates".
+`CHANGELOG.md` is the human-facing release log (Kept-a-Changelog style) and is kept in sync
+with `changelog/entries.ts` on every release.
 
 ## Two data tiers
 
@@ -230,28 +232,6 @@ Email send failures no longer crash the API request — the DB write succeeds re
 
 `workspace-channel.vue` layout now passes `channelId` and `workspaceId` to `<ChannelHeader>`. The header is now self-contained: it starts its own presence, subscribes to RxDB, and displays live data.
 
-## Changelog / release history
-
-- **2.5.1 (2026-08-11)** — Fixed dashboard content being clipped — workspace area now scrolls
-
-- **2.5.0 (2026-08-11)** — Dashboard greeting with live clock, All Tasks Stats + Project Stats donut charts, removed table view from all-tasks page
-
-- **2.4.0 (2026-08-11)** — Tasks page rebuilt with status overview, breakdown tiles, week calendar and Table/Kanban/Timeline tabs
-
-- **2.3.0 (2026-08-11)** — Productivity Overview bar chart, Project Overview card, Recent Tasks table
-
-- **2.2.0 (2026-08-11)** — Per-user contribution grid on dashboard + Donate link to Ko-fi
-
-- **2.1.3 (2026-08-09)** — Group whats-new releases by date in panel
-
-- **2.1.2 (2026-08-09)** — Scrollable whats-new modal with icons, no emojis
-
-- **2.1.1 (2026-08-09)** — Scrollable whats-new modal + useQuery import
-
-- **2.1.0 (2026-08-09)** — What's new panel, feedback modal, changelog automation
-
-- **2.0.0 (2026-08-09)** — First semver'd release. Added the "What's New" panel (wired to the sidebar SYSTEM item, with per-user unseen dot), feedback modal + `app_feedback` table, `whats_new_last_seen_version` on `app_user`, and this changelog discipline rule.
-
 ## Always enforce
 
 - **Every change** must align with the two-tier architecture above.
@@ -259,4 +239,5 @@ Email send failures no longer crash the API request — the DB write succeeds re
 - Tier 1 data: NEVER fetch it via `useQuery`/`$fetch` for reads — use reactive RxDB subscriptions.
 - Writes: Tier 1 → RxDB methods; Tier 2 → `$fetch` to API + `invalidateQueries`.
 - Denormalized user data in RxDB is forbidden. Only store `workspace_members.id` references.
-- **Every user-facing change** MUST bump `package.json` version AND add a changelog entry in `changelog/entries.ts` — they move together (see "Changelog discipline" at the top).
+- **Every user-facing change** MUST bump `package.json` version AND add a changelog entry in
+  `changelog/entries.ts` + `CHANGELOG.md` — they move together (see "Changelog discipline" at the top).
