@@ -23,6 +23,16 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.5.1",
+    date: "2026-08-11",
+    sections: [
+      {
+        category: "Bug Fixes",
+        items: ["Dashboard content now scrollable — long pages no longer get clipped"],
+      },
+    ],
+  },
+  {
     version: "2.5.0",
     date: "2026-08-11",
     sections: [

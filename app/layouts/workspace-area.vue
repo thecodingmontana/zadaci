@@ -3,8 +3,10 @@ import WorkspaceHeader from "~/components/workspace/workspace-area/workspace-hea
 </script>
 
 <template>
-  <div>
+  <div class="flex h-full min-h-0 flex-col">
     <WorkspaceHeader />
-    <slot />
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <slot />
+    </div>
   </div>
 </template>
