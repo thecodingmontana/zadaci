@@ -1,6 +1,7 @@
 import type { Priority, ProjectMembers, Status } from "~~/shared/types";
 import { db, tables } from "~~/server/database/db";
 import { PRIORITY, statusToDbValue } from "~~/server/database/enums";
+import { CONTRIBUTION_SOURCES, recordContribution } from "~~/server/libs/contributions";
 import { sendProjectAssignmentEmail } from "~~/server/libs/emails/actions/send-project-assignment";
 import { appLink, validPriorities, validStatuses } from "~~/shared/types";
 
@@ -203,6 +204,8 @@ export default defineEventHandler(async (event) => {
         });
       }
     });
+
+    await recordContribution(session.user.id, CONTRIBUTION_SOURCES.PROJECT_CREATED);
 
     return {
       project: {

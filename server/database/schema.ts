@@ -1,5 +1,6 @@
 export * from "./chat";
 export * from "./comments";
+export * from "./contribution";
 export * from "./conversation";
 export * from "./cron";
 export * from "./enums";

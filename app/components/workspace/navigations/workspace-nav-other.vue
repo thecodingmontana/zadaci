@@ -28,10 +28,6 @@ function openWhatsNew() {
   modalStore?.onOpen("whatsNew");
   modalStore?.setIsOpen(true);
 }
-
-function openDonate() {
-  // TODO: open Donate modal/sheet
-}
 </script>
 
 <template>
@@ -118,14 +114,15 @@ function openDonate() {
         </a>
       </NuxtLink>
 
-      <button
-        type="button"
+      <a
+        href="https://ko-fi.com/thecodingmontana"
+        target="_blank"
+        rel="noopener noreferrer"
         class="flex w-full cursor-pointer items-center space-x-2 rounded p-1 hover:bg-[#f2f2f2] dark:hover:bg-neutral-800"
-        @click="openDonate"
       >
         <Icon name="hugeicons:favourite" size="18" />
         <p class="text-sm">Donate</p>
-      </button>
+      </a>
     </div>
   </div>
 </template>

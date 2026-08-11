@@ -1,5 +1,6 @@
 import { inArray } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
+import { CONTRIBUTION_SOURCES, recordContribution } from "~~/server/libs/contributions";
 
 interface PushRow {
   assumedMasterState: { id: string; updated_at: string } | null;
@@ -77,6 +78,10 @@ export default defineEventHandler(async (event) => {
 
     const existingMap = new Map(existingMessages.map((m) => [m.id, m]));
     const conflicts: any[] = [];
+
+    if (newRows.length > 0) {
+      await recordContribution(userId, CONTRIBUTION_SOURCES.DIRECT_MESSAGE_SENT);
+    }
 
     for (const row of body) {
       const doc = row.newDocumentState;

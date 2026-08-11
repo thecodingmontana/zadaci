@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { Motion } from "motion-v";
+import ContributionGrid from "~/components/dashboard/contribution-grid.vue";
+import StatCard from "~/components/dashboard/stat-card.vue";
+import { useContributions } from "~/composables/use-contributions";
+import { useContributionsRealtime } from "~/composables/use-contributions-realtime";
 import { useModalStore } from "~/stores/use-modal-store";
 
 definePageMeta({
@@ -24,6 +29,11 @@ function addTask() {
 }
 
 const stats = useDashboardStats(() => workspaceId);
+
+// ── Tier 2 per-user contributions (login, task/project created, etc.) ──
+const contributions = useContributions();
+const contributionsRealtime = useContributionsRealtime();
+contributionsRealtime.start();
 
 // ── Stat card definitions ──
 const statCards = computed(() => [
@@ -105,6 +115,15 @@ const statCards = computed(() => [
             :icon="card.icon"
             :trend="card.trend"
             :caption="card.caption"
+          />
+        </div>
+
+        <!-- Contribution Grid -->
+        <div class="rounded-xl border bg-card p-5 shadow-sm">
+          <ContributionGrid
+            :data="contributions.data.value ?? []"
+            :weeks="53"
+            accent="var(--brand)"
           />
         </div>
       </Motion>

@@ -1,5 +1,6 @@
 import { inArray } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
+import { CONTRIBUTION_SOURCES, recordContribution } from "~~/server/libs/contributions";
 
 interface PushRow {
   assumedMasterState: { id: string; updated_at: string } | null;
@@ -61,6 +62,8 @@ export default defineEventHandler(async (event) => {
           conflicts.push(full ?? doc);
           continue;
         }
+      } else {
+        await recordContribution(userId, CONTRIBUTION_SOURCES.COMMENT_CREATED);
       }
 
       const deletedAt = doc.deleted_at ? new Date(doc.deleted_at) : null;

@@ -2,6 +2,7 @@ import type { SessionFlags } from "~~/server/libs/session";
 import { eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 import { createSessionMetadata } from "~~/server/libs/auth-helpers";
+import { CONTRIBUTION_SOURCES, recordContribution } from "~~/server/libs/contributions";
 import { createSession, generateSessionToken } from "~~/server/libs/session";
 import { isWithinExpirationDate } from "~~/server/libs/utils";
 import { isValidEmail } from "~~/server/libs/validations";
@@ -111,6 +112,8 @@ export default defineEventHandler(async (event) => {
         maxAge: Math.floor((session.expiresAt.getTime() - Date.now()) / 1000), // Convert milliseconds to seconds
       },
     );
+
+    await recordContribution(user.id, CONTRIBUTION_SOURCES.LOGIN);
 
     return {
       message: "Successfully signed in!",

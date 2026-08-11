@@ -23,6 +23,16 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.2.0",
+    date: "2026-08-11",
+    sections: [
+      {
+        category: "New Features",
+        items: ["Contribution grid on workspace dashboard", "Donate link to Ko-fi"],
+      },
+    ],
+  },
+  {
     version: "2.1.3",
     date: "2026-08-09",
     sections: [
