@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { Motion } from "motion-v";
+import AllTasksStats from "~/components/dashboard/all-tasks-stats.vue";
 import ContributionGrid from "~/components/dashboard/contribution-grid.vue";
+import DashboardGreetings from "~/components/dashboard/dashboard-greetings.vue";
+import ProjectStats from "~/components/dashboard/project-stats.vue";
 import StatCard from "~/components/dashboard/stat-card.vue";
 import { useContributions } from "~/composables/use-contributions";
 import { useContributionsRealtime } from "~/composables/use-contributions-realtime";
@@ -102,7 +105,7 @@ const statCards = computed(() => [
         <!-- Header -->
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 class="text-xl font-semibold tracking-tight">Dashboard</h1>
+            <DashboardGreetings />
             <p class="flex items-center gap-2 text-sm text-muted-foreground">
               <span class="relative flex size-2">
                 <span
@@ -181,6 +184,16 @@ const statCards = computed(() => [
               (taskId: string) => navigateTo(`/workspace/${workspaceId}/tasks/${taskId}`)
             "
           />
+        </div>
+
+        <!-- Donut stats -->
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div class="rounded-xl border bg-card p-5 shadow-sm">
+            <AllTasksStats :tasks="stats.tasks.value" />
+          </div>
+          <div class="rounded-xl border bg-card p-5 shadow-sm">
+            <ProjectStats :projects="stats.projects.value" />
+          </div>
         </div>
 
         <!-- Recent Tasks -->

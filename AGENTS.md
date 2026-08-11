@@ -232,6 +232,8 @@ Email send failures no longer crash the API request — the DB write succeeds re
 
 ## Changelog / release history
 
+- **2.5.0 (2026-08-11)** — Dashboard greeting with live clock, All Tasks Stats + Project Stats donut charts, removed table view from all-tasks page
+
 - **2.4.0 (2026-08-11)** — Tasks page rebuilt with status overview, breakdown tiles, week calendar and Table/Kanban/Timeline tabs
 
 - **2.3.0 (2026-08-11)** — Productivity Overview bar chart, Project Overview card, Recent Tasks table

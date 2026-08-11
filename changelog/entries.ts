@@ -23,6 +23,24 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.5.0",
+    date: "2026-08-11",
+    sections: [
+      {
+        category: "New Features",
+        items: [
+          "Dashboard greeting with live clock and date",
+          "All Tasks Stats donut chart with weekly completion comparison",
+          "Project Stats donut chart with weekly completion comparison",
+        ],
+      },
+      {
+        category: "Improvements",
+        items: ["Removed table view from the all-tasks page"],
+      },
+    ],
+  },
+  {
     version: "2.4.0",
     date: "2026-08-11",
     sections: [

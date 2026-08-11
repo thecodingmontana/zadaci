@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import WorkspaceTaskKanban from "~/components/workspace/tasks/workspace-task-kanban.vue";
-import WorkspaceTaskTable from "~/components/workspace/tasks/workspace-task-table.vue";
 import WorkspaceTaskTimeline from "~/components/workspace/tasks/workspace-task-timeline.vue";
 import { useDashboardStats } from "~/composables/use-dashboard-stats";
 import { useWorkspaceTasks } from "~/composables/use-workspace-tasks";
@@ -21,7 +20,7 @@ useSeoMeta({
   description: "View and manage all tasks across your workspace projects.",
 });
 
-const activeView = ref<"table" | "kanban" | "timeline">("kanban");
+const activeView = ref<"kanban" | "timeline">("kanban");
 
 const modalStore = useModalStore();
 
@@ -165,10 +164,6 @@ const statusCounts = computed(() => {
         >
           <Tabs v-model="activeView">
             <TabsList>
-              <TabsTrigger value="table" class="gap-1.5">
-                <Icon name="solar:table-linear" class="size-4" />
-                Table
-              </TabsTrigger>
               <TabsTrigger value="kanban" class="gap-1.5">
                 <Icon name="solar:widget-add-linear" class="size-4" />
                 Kanban
@@ -193,12 +188,7 @@ const statusCounts = computed(() => {
           :transition="{ duration: 0.3, delay: 0.3 }"
           class="min-h-[500px] flex-1"
         >
-          <WorkspaceTaskTable
-            v-if="activeView === 'table'"
-            :workspace-id="workspaceId"
-            :projects="stats.projects.value"
-          />
-          <WorkspaceTaskKanban v-else-if="activeView === 'kanban'" :workspace-id="workspaceId" />
+          <WorkspaceTaskKanban v-if="activeView === 'kanban'" :workspace-id="workspaceId" />
           <WorkspaceTaskTimeline v-else :workspace-id="workspaceId" />
         </Motion>
       </Motion>
