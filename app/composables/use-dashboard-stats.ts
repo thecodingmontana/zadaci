@@ -37,6 +37,7 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
   const projects = ref<ProjectDocType[]>([]);
   const tasks = ref<TaskDocType[]>([]);
   const activities = ref<TaskActivityDocType[]>([]);
+  const loaded = ref(false);
   let projectSub: { unsubscribe: () => void } | null = null;
   let taskSub: { unsubscribe: () => void } | null = null;
   let activitySub: { unsubscribe: () => void } | null = null;
@@ -54,6 +55,7 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
       .find({ selector: { workspace_id: wsId, deleted_at: null } })
       .$.subscribe((docs) => {
         projects.value = docs;
+        loaded.value = true;
       });
   }
 
@@ -328,6 +330,7 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
   );
 
   return {
+    loaded,
     projects,
     tasks,
     topLevelTasks,

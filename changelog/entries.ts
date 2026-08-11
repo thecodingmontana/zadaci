@@ -23,6 +23,16 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "2.6.0",
+    date: "2026-08-11",
+    sections: [
+      {
+        category: "New Features",
+        items: ["Loading skeleton on the dashboard while data syncs"],
+      },
+    ],
+  },
+  {
     version: "2.5.2",
     date: "2026-08-11",
     sections: [

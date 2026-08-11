@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Versions follow
 
 ## Changelog
 
+## [v2.6.0] - 2026-08-11
+
+### New Features
+
+- Loading skeleton on the dashboard while data syncs
+
 ## [v2.5.2] - 2026-08-11
 
 ### Improvements
