@@ -61,7 +61,7 @@ function SignIn() {
 			<Button
 				variant="outline"
 				size="lg"
-				className="h-11 w-full gap-2"
+				className="w-full"
 				disabled={isRedirecting}
 				aria-busy={isRedirecting}
 				onClick={signInWithGoogle}

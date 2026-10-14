@@ -10,8 +10,7 @@ export const Route = createFileRoute("/_authed")({
 				search: { redirect: location.href },
 			});
 		// two-step verification is mandatory before entering the app
-		if (!session.user.twoFactorEnabled)
-			throw redirect({ to: "/auth/two-factor/setup" });
+		if (!session.secured) throw redirect({ to: "/auth/two-factor/setup" });
 		return { user: session.user };
 	},
 	component: Outlet,

@@ -8,7 +8,7 @@ export function NotFound() {
 			title="Page not found"
 			description="The page you're looking for doesn't exist or you don't have access to it."
 		>
-			<Button asChild size="lg" className="h-11">
+			<Button asChild size="lg">
 				<Link to="/">Go home</Link>
 			</Button>
 		</AuthShell>

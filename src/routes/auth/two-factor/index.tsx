@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
+import { z } from "zod";
 import { AuthShell } from "#/components/auth/auth-shell";
 import { PasskeySignInButton } from "#/components/auth/passkey-buttons";
 import { TotpInput } from "#/components/auth/totp-input";
@@ -10,6 +11,8 @@ import { getSession } from "#/lib/session";
 import { toast } from "#/lib/toast";
 
 export const Route = createFileRoute("/auth/two-factor/")({
+	// Set by the Google-callback hook: which second steps this account has.
+	validateSearch: z.object({ methods: z.string().optional() }),
 	beforeLoad: async () => {
 		if (await getSession()) throw redirect({ to: "/workspace" });
 	},
@@ -18,6 +21,9 @@ export const Route = createFileRoute("/auth/two-factor/")({
 });
 
 function VerifyTwoFactor() {
+	const { methods = "totp" } = Route.useSearch();
+	const hasTotp = methods.includes("totp");
+	const hasPasskey = methods.includes("passkey");
 	const navigate = useNavigate();
 	const [mode, setMode] = useState<"totp" | "backup">("totp");
 	const [code, setCode] = useState("");
@@ -50,6 +56,17 @@ function VerifyTwoFactor() {
 	function onSubmit(event: FormEvent) {
 		event.preventDefault();
 		if (code) void verify(code);
+	}
+
+	if (!hasTotp) {
+		return (
+			<AuthShell
+				title="Two-step verification"
+				description="Confirm it's you with the passkey you set up for Zadaci."
+			>
+				<PasskeySignInButton label="Continue with your passkey" />
+			</AuthShell>
+		);
 	}
 
 	return (
@@ -92,12 +109,7 @@ function VerifyTwoFactor() {
 					/>
 					Trust this device for 30 days
 				</label>
-				<Button
-					type="submit"
-					size="lg"
-					className="h-11 bg-brand text-white hover:bg-brand-secondary"
-					disabled={!code || isVerifying}
-				>
+				<Button type="submit" size="lg" disabled={!code || isVerifying}>
 					{isVerifying && (
 						<span
 							className="icon-[hugeicons--loading-03] size-4 animate-spin"
@@ -107,7 +119,7 @@ function VerifyTwoFactor() {
 					Verify
 				</Button>
 			</form>
-			<PasskeySignInButton label="Use a passkey instead" />
+			{hasPasskey && <PasskeySignInButton label="Use a passkey instead" />}
 			<Button
 				variant="link"
 				className="text-muted-foreground"

@@ -1,5 +1,5 @@
 import { createYoga } from "graphql-yoga";
-import { auth } from "#/lib/auth";
+import { auth, secondFactors } from "#/lib/auth";
 import { type GraphQLContext, schema } from "./schema.server";
 
 export const yoga = createYoga<object, GraphQLContext>({
@@ -10,6 +10,9 @@ export const yoga = createYoga<object, GraphQLContext>({
 	context: async ({ request }) => {
 		const session = await auth.api.getSession({ headers: request.headers });
 		// Same rule as the _authed route guard: no data until two-step verification is set up.
-		return { user: session?.user.twoFactorEnabled ? session.user : null };
+		if (!session) return { user: null };
+		return {
+			user: (await secondFactors(session.user)).length ? session.user : null,
+		};
 	},
 });

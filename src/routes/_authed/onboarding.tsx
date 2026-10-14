@@ -8,7 +8,7 @@ import {
 	useId,
 	useState,
 } from "react";
-import { Button } from "#/components/ui/button";
+import { ArrowChip, Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { ZadaciLogo } from "#/components/zadaci-logo";
@@ -170,10 +170,7 @@ function Onboarding() {
 					/>
 				)}
 				{label}
-				<span
-					className="icon-[solar--arrow-right-linear] size-4"
-					aria-hidden="true"
-				/>
+				<ArrowChip />
 			</Button>
 		</div>
 	);
@@ -480,10 +477,7 @@ function Onboarding() {
 					}
 				>
 					Open workspace
-					<span
-						className="icon-[solar--arrow-right-linear] size-4"
-						aria-hidden="true"
-					/>
+					<ArrowChip />
 				</Button>
 			</>
 		);

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AuthShell } from "#/components/auth/auth-shell";
 import { AddPasskeyButton } from "#/components/auth/passkey-buttons";
 import { TotpInput } from "#/components/auth/totp-input";
-import { Button } from "#/components/ui/button";
+import { ArrowChip, Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
 import { takeNext } from "#/lib/next-path";
 import { getSession } from "#/lib/session";
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/auth/two-factor/setup")({
 	beforeLoad: async () => {
 		const session = await getSession();
 		if (!session) throw redirect({ to: "/auth/signin" });
-		if (session.user.twoFactorEnabled) throw redirect({ to: "/workspace" });
+		if (session.secured) throw redirect({ to: "/workspace" });
 		return { user: session.user };
 	},
 	head: () => ({ meta: [{ title: "Set up two-step verification - Zadaci" }] }),
@@ -74,17 +74,13 @@ function SetupTwoFactor() {
 					<>
 						Signed in as{" "}
 						<span className="font-medium text-foreground">{user.email}</span>.
-						Zadaci requires two-step verification with an authenticator app such
-						as Google Authenticator, 1Password or Authy.
+						Zadaci requires a second step when you sign in: a passkey on this
+						device, or an authenticator app such as Google Authenticator,
+						1Password or Authy.
 					</>
 				}
 			>
-				<Button
-					size="lg"
-					className="h-11 bg-brand text-white hover:bg-brand-secondary"
-					disabled={isBusy}
-					onClick={start}
-				>
+				<Button size="lg" disabled={isBusy} onClick={start}>
 					{isBusy ? (
 						<span
 							className="icon-[hugeicons--loading-03] size-4 animate-spin"
@@ -98,6 +94,12 @@ function SetupTwoFactor() {
 					)}
 					Set up authenticator app
 				</Button>
+				<AddPasskeyButton
+					size="lg"
+					className="w-full"
+					label="Use a passkey"
+					onAdded={() => navigate({ href: takeNext() })}
+				/>
 				<Button
 					variant="link"
 					className="text-muted-foreground"
@@ -182,16 +184,9 @@ function SetupTwoFactor() {
 				</Button>
 			</div>
 			<AddPasskeyButton className="w-full" />
-			<Button
-				size="lg"
-				className="h-11 bg-brand text-white hover:bg-brand-secondary"
-				onClick={() => navigate({ href: takeNext() })}
-			>
+			<Button size="lg" onClick={() => navigate({ href: takeNext() })}>
 				I've saved my codes
-				<span
-					className="icon-[solar--arrow-right-linear] size-4"
-					aria-hidden="true"
-				/>
+				<ArrowChip />
 			</Button>
 		</AuthShell>
 	);

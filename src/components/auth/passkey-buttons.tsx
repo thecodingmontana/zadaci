@@ -29,7 +29,7 @@ export function PasskeySignInButton({
 		<Button
 			variant="outline"
 			size="lg"
-			className="h-11 w-full gap-2"
+			className="w-full"
 			disabled={busy}
 			aria-busy={busy}
 			onClick={async () => {
@@ -57,15 +57,20 @@ export function PasskeySignInButton({
 export function AddPasskeyButton({
 	onAdded,
 	className,
+	size,
+	label = "Add a passkey",
 }: {
 	onAdded?: () => void;
 	className?: string;
+	size?: "default" | "lg";
+	label?: string;
 }) {
 	const [busy, setBusy] = useState(false);
 
 	return (
 		<Button
 			variant="outline"
+			size={size}
 			className={className}
 			disabled={busy}
 			aria-busy={busy}
@@ -91,7 +96,7 @@ export function AddPasskeyButton({
 					aria-hidden="true"
 				/>
 			)}
-			Add a passkey
+			{label}
 		</Button>
 	);
 }

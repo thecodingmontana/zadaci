@@ -6,11 +6,28 @@ import { deleteSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
 import { twoFactor } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
+import { eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
 import { requireEnv } from "#/lib/env";
 
 const TWO_FACTOR_COOKIE_MAX_AGE = 600;
+
+/** Second-step methods a user has set up: an authenticator app (TOTP) and/or passkeys. */
+export async function secondFactors(user: {
+	id: string;
+	twoFactorEnabled?: boolean | null;
+}) {
+	const [key] = await db
+		.select({ id: tables.passkey.id })
+		.from(tables.passkey)
+		.where(eq(tables.passkey.userId, user.id))
+		.limit(1);
+	return [
+		...(user.twoFactorEnabled ? ["totp"] : []),
+		...(key ? ["passkey"] : []),
+	];
+}
 
 export const auth = betterAuth({
 	appName: "Zadaci",
@@ -37,7 +54,9 @@ export const auth = betterAuth({
 		after: createAuthMiddleware(async (ctx) => {
 			if (!ctx.path.startsWith("/callback/")) return;
 			const data = ctx.context.newSession;
-			if (!data?.user.twoFactorEnabled) return;
+			if (!data) return;
+			const methods = await secondFactors(data.user);
+			if (!methods.length) return;
 
 			deleteSessionCookie(ctx, true);
 			await ctx.context.internalAdapter.deleteSession(data.session.token);
@@ -65,7 +84,7 @@ export const auth = betterAuth({
 				ctx.context.secret,
 				twoFactorCookie.attributes,
 			);
-			throw ctx.redirect("/auth/two-factor");
+			throw ctx.redirect(`/auth/two-factor?methods=${methods.join(",")}`);
 		}),
 	},
 	plugins: [
