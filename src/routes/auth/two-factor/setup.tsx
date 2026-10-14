@@ -2,6 +2,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { AuthShell } from "#/components/auth/auth-shell";
+import { AddPasskeyButton } from "#/components/auth/passkey-buttons";
 import { TotpInput } from "#/components/auth/totp-input";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
@@ -180,6 +181,7 @@ function SetupTwoFactor() {
 					</a>
 				</Button>
 			</div>
+			<AddPasskeyButton className="w-full" />
 			<Button
 				size="lg"
 				className="h-11 bg-brand text-white hover:bg-brand-secondary"

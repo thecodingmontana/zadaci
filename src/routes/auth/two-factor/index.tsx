@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { AuthShell } from "#/components/auth/auth-shell";
+import { PasskeySignInButton } from "#/components/auth/passkey-buttons";
 import { TotpInput } from "#/components/auth/totp-input";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
@@ -106,6 +107,7 @@ function VerifyTwoFactor() {
 					Verify
 				</Button>
 			</form>
+			<PasskeySignInButton label="Use a passkey instead" />
 			<Button
 				variant="link"
 				className="text-muted-foreground"

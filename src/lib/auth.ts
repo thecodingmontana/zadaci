@@ -1,3 +1,4 @@
+import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createAuthMiddleware } from "better-auth/api";
@@ -73,6 +74,7 @@ export const auth = betterAuth({
 			allowPasswordless: true, // Google-only accounts have no password
 			twoFactorCookieMaxAge: TWO_FACTOR_COOKIE_MAX_AGE,
 		}),
+		passkey({ rpName: "Zadaci" }),
 		tanstackStartCookies(), // must stay last
 	],
 });

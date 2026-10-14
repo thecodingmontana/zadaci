@@ -115,6 +115,29 @@ export const twoFactor = pgTable(
 	],
 );
 
+export const passkey = pgTable(
+	"passkey",
+	{
+		id: text("id").primaryKey(),
+		name: text("name"),
+		publicKey: text("public_key").notNull(),
+		userId: varchar("user_id", { length: 16 })
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		credentialID: text("credential_id").notNull(),
+		counter: integer("counter").notNull(),
+		deviceType: text("device_type").notNull(),
+		backedUp: boolean("backed_up").notNull(),
+		transports: text("transports"),
+		aaguid: text("aaguid"),
+		createdAt: timestamp("created_at", { withTimezone: true }),
+	},
+	(table) => [
+		index("passkey_user_id_idx").on(table.userId),
+		index("passkey_credential_id_idx").on(table.credentialID),
+	],
+);
+
 export const user_status = pgTable("user_status", {
 	id: varchar("id", { length: 16 })
 		.primaryKey()

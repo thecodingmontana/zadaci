@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { AddPasskeyButton } from "#/components/auth/passkey-buttons";
 import { Button } from "#/components/ui/button";
 import { WORKSPACE } from "#/graphql/operations";
 import { authClient } from "#/lib/auth-client";
@@ -48,6 +49,7 @@ function WorkspaceHome() {
 					Sign out
 				</Button>
 			</header>
+			<AddPasskeyButton className="self-start" />
 			<Button
 				variant="outline"
 				className="self-start"

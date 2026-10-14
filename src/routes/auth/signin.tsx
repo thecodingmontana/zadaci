@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { AuthShell } from "#/components/auth/auth-shell";
+import { PasskeySignInButton } from "#/components/auth/passkey-buttons";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
 import { rememberNext, safePath } from "#/lib/next-path";
@@ -75,6 +76,12 @@ function SignIn() {
 				)}
 				Continue with Google
 			</Button>
+			<div className="flex items-center gap-3 text-xs text-muted-foreground">
+				<hr className="grow" />
+				or
+				<hr className="grow" />
+			</div>
+			<PasskeySignInButton />
 			<p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
 				<span
 					className="icon-[solar--shield-keyhole-bold] size-4 shrink-0"
