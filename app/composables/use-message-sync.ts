@@ -119,7 +119,10 @@ export function useMessageSync(
         batchSize: 50,
       },
       push: {
-        handler: async (rows) => {
+        handler: async (allRows) => {
+          // _deleted tombstones only come from local removals (clearing a workspace, dropping a
+          // row the server rejected or already deleted); real deletes use deleted_at.
+          const rows = allRows.filter((r) => !r.newDocumentState._deleted);
           const id = channelId();
           if (!id) {
             console.warn("[useMessageSync] Push — no channel id");
