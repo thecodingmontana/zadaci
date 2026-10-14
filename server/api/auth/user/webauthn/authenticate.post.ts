@@ -48,7 +48,9 @@ export default defineWebAuthnAuthenticateEventHandler({
       },
     });
 
-    if (!credential) {
+    const { user } = await requireUserSession(event);
+    // A passkey only verifies the account it belongs to.
+    if (!credential || credential.user_id !== user.id) {
       throw createError({
         statusCode: 404,
         statusMessage: "Credential not found",

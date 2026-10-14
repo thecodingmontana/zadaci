@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
 
     // check if session exists
     const existingSession = await db.query.session.findFirst({
-      where: { id: sessionId },
+      where: { id: sessionId, user_id: session.user.id },
     });
 
     if (!existingSession) {
