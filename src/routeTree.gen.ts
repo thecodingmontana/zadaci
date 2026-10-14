@@ -20,6 +20,9 @@ import { Route as AuthedWorkspaceIndexRouteImport } from './routes/_authed/works
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor/index'
 import { Route as AuthTwoFactorSetupRouteImport } from './routes/auth/two-factor/setup'
+import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
+import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
+import { Route as AuthedWSlugPProjectIdRouteImport } from './routes/_authed/w/$slug/p.$projectId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -75,6 +78,21 @@ const AuthTwoFactorSetupRoute = AuthTwoFactorSetupRouteImport.update({
   path: '/auth/two-factor/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedWSlugIndexRoute = AuthedWSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugSplatRoute = AuthedWSlugSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugPProjectIdRoute = AuthedWSlugPProjectIdRouteImport.update({
+  id: '/p/$projectId',
+  path: '/p/$projectId',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,11 +100,14 @@ export interface FileRoutesByFullPath {
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
   '/join/$code': typeof AuthedJoinCodeRoute
-  '/w/$slug': typeof AuthedWSlugRoute
+  '/w/$slug': typeof AuthedWSlugRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
   '/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
+  '/w/$slug/$': typeof AuthedWSlugSplatRoute
+  '/w/$slug/': typeof AuthedWSlugIndexRoute
+  '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,11 +115,13 @@ export interface FileRoutesByTo {
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
   '/join/$code': typeof AuthedJoinCodeRoute
-  '/w/$slug': typeof AuthedWSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
+  '/w/$slug/$': typeof AuthedWSlugSplatRoute
+  '/w/$slug': typeof AuthedWSlugIndexRoute
+  '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -108,11 +131,14 @@ export interface FileRoutesById {
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
   '/_authed/join/$code': typeof AuthedJoinCodeRoute
-  '/_authed/w/$slug': typeof AuthedWSlugRoute
+  '/_authed/w/$slug': typeof AuthedWSlugRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
+  '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
+  '/_authed/w/$slug/': typeof AuthedWSlugIndexRoute
+  '/_authed/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +153,9 @@ export interface FileRouteTypes {
     | '/auth/two-factor/setup'
     | '/workspace/'
     | '/auth/two-factor/'
+    | '/w/$slug/$'
+    | '/w/$slug/'
+    | '/w/$slug/p/$projectId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -134,11 +163,13 @@ export interface FileRouteTypes {
     | '/api/graphql'
     | '/auth/signin'
     | '/join/$code'
-    | '/w/$slug'
     | '/api/auth/$'
     | '/auth/two-factor/setup'
     | '/workspace'
     | '/auth/two-factor'
+    | '/w/$slug/$'
+    | '/w/$slug'
+    | '/w/$slug/p/$projectId'
   id:
     | '__root__'
     | '/'
@@ -152,6 +183,9 @@ export interface FileRouteTypes {
     | '/auth/two-factor/setup'
     | '/_authed/workspace/'
     | '/auth/two-factor/'
+    | '/_authed/w/$slug/$'
+    | '/_authed/w/$slug/'
+    | '/_authed/w/$slug/p/$projectId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -243,20 +277,57 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthTwoFactorSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/w/$slug/': {
+      id: '/_authed/w/$slug/'
+      path: '/'
+      fullPath: '/w/$slug/'
+      preLoaderRoute: typeof AuthedWSlugIndexRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/$': {
+      id: '/_authed/w/$slug/$'
+      path: '/$'
+      fullPath: '/w/$slug/$'
+      preLoaderRoute: typeof AuthedWSlugSplatRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/p/$projectId': {
+      id: '/_authed/w/$slug/p/$projectId'
+      path: '/p/$projectId'
+      fullPath: '/w/$slug/p/$projectId'
+      preLoaderRoute: typeof AuthedWSlugPProjectIdRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
   }
 }
+
+interface AuthedWSlugRouteChildren {
+  AuthedWSlugSplatRoute: typeof AuthedWSlugSplatRoute
+  AuthedWSlugIndexRoute: typeof AuthedWSlugIndexRoute
+  AuthedWSlugPProjectIdRoute: typeof AuthedWSlugPProjectIdRoute
+}
+
+const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
+  AuthedWSlugSplatRoute: AuthedWSlugSplatRoute,
+  AuthedWSlugIndexRoute: AuthedWSlugIndexRoute,
+  AuthedWSlugPProjectIdRoute: AuthedWSlugPProjectIdRoute,
+}
+
+const AuthedWSlugRouteWithChildren = AuthedWSlugRoute._addFileChildren(
+  AuthedWSlugRouteChildren,
+)
 
 interface AuthedRouteChildren {
   AuthedOnboardingRoute: typeof AuthedOnboardingRoute
   AuthedJoinCodeRoute: typeof AuthedJoinCodeRoute
-  AuthedWSlugRoute: typeof AuthedWSlugRoute
+  AuthedWSlugRoute: typeof AuthedWSlugRouteWithChildren
   AuthedWorkspaceIndexRoute: typeof AuthedWorkspaceIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedOnboardingRoute: AuthedOnboardingRoute,
   AuthedJoinCodeRoute: AuthedJoinCodeRoute,
-  AuthedWSlugRoute: AuthedWSlugRoute,
+  AuthedWSlugRoute: AuthedWSlugRouteWithChildren,
   AuthedWorkspaceIndexRoute: AuthedWorkspaceIndexRoute,
 }
 

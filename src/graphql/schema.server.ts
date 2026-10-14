@@ -40,6 +40,13 @@ const typeDefs = /* GraphQL */ `
 		defaultView: String!
 		role: String!
 		projects: [Project!]!
+		teams: [Team!]!
+	}
+
+	type Team {
+		id: ID!
+		name: String!
+		color: String
 	}
 
 	type Project {
@@ -365,6 +372,17 @@ const resolvers = {
 					),
 				)
 				.orderBy(asc(tables.project.created_at)),
+		teams: (w: Workspace) =>
+			db
+				.select()
+				.from(tables.team)
+				.where(
+					and(
+						eq(tables.team.workspace_id, w.id),
+						isNull(tables.team.deleted_at),
+					),
+				)
+				.orderBy(asc(tables.team.name)),
 	},
 	Project: {
 		tasks: (p: Project) =>

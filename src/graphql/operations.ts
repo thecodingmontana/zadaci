@@ -115,3 +115,51 @@ export const JOIN_WORKSPACE: TypedDocumentNode<
 		}
 	}
 `;
+
+export type ShellProject = {
+	id: string;
+	title: string;
+	icon: string | null;
+	color: string | null;
+};
+export type ShellTeam = { id: string; name: string; color: string | null };
+
+export const SHELL: TypedDocumentNode<
+	{
+		workspaces: WorkspaceSummary[];
+		workspace:
+			| (WorkspaceSummary & { projects: ShellProject[]; teams: ShellTeam[] })
+			| null;
+	},
+	{ slug: string }
+> = gql`
+	query Shell($slug: String!) {
+		workspaces {
+			id
+			name
+			slug
+			imageUrl
+			defaultView
+			role
+		}
+		workspace(slug: $slug) {
+			id
+			name
+			slug
+			imageUrl
+			defaultView
+			role
+			projects {
+				id
+				title
+				icon
+				color
+			}
+			teams {
+				id
+				name
+				color
+			}
+		}
+	}
+`;
