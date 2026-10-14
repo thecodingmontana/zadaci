@@ -1,7 +1,7 @@
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { deleteSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
 import { twoFactor } from "better-auth/plugins";
@@ -50,6 +50,25 @@ export const auth = betterAuth({
 		},
 	},
 	hooks: {
+		// Two-step verification is mandatory: never let a user remove their last second step.
+		before: createAuthMiddleware(async (ctx) => {
+			if (ctx.path !== "/two-factor/disable" && ctx.path !== "/passkey/delete-passkey") return;
+			const session = await getSessionFromCtx(ctx);
+			if (!session) return; // the endpoint itself rejects unauthenticated calls
+			const passkeys = await db
+				.select({ id: tables.passkey.id })
+				.from(tables.passkey)
+				.where(eq(tables.passkey.userId, session.user.id));
+			const remaining =
+				ctx.path === "/two-factor/disable"
+					? passkeys.length
+					: passkeys.length - 1 + (session.user.twoFactorEnabled ? 1 : 0);
+			if (remaining < 1) {
+				throw new APIError("BAD_REQUEST", {
+					message: "Add another way to verify before removing this one.",
+				});
+			}
+		}),
 		// better-auth only challenges 2FA after credential sign-in; mirror its hook for the Google callback.
 		after: createAuthMiddleware(async (ctx) => {
 			if (!ctx.path.startsWith("/callback/")) return;
