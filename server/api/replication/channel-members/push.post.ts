@@ -1,4 +1,4 @@
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 
 interface PushRow {
@@ -56,18 +56,47 @@ export default defineEventHandler(async (event) => {
     const allChannelIds = [...new Set(body.map((r) => r.newDocumentState.channel_id))];
     const allMemberIds = [...new Set(body.map((r) => r.newDocumentState.member_id))];
 
-    const [validChannels, validMembers] = await Promise.all([
+    const [validChannels, validMembers, callerChannels] = await Promise.all([
       db
-        .select({ id: tables.channel.id })
+        .select({
+          id: tables.channel.id,
+          type: tables.channel.type,
+          created_by: tables.channel.created_by,
+        })
         .from(tables.channel)
-        .where(inArray(tables.channel.id, allChannelIds)),
+        .where(
+          and(
+            eq(tables.channel.workspace_id, workspaceId),
+            inArray(tables.channel.id, allChannelIds),
+          ),
+        ),
       db
         .select({ id: tables.workspace_members.id })
         .from(tables.workspace_members)
-        .where(inArray(tables.workspace_members.id, allMemberIds)),
+        .where(
+          and(
+            eq(tables.workspace_members.workspace_id, workspaceId),
+            inArray(tables.workspace_members.id, allMemberIds),
+          ),
+        ),
+      db
+        .select({ channel_id: tables.channel_members.channel_id })
+        .from(tables.channel_members)
+        .where(
+          and(
+            eq(tables.channel_members.member_id, membership.id),
+            inArray(tables.channel_members.channel_id, allChannelIds),
+          ),
+        ),
     ]);
 
-    const validChannelIds = new Set(validChannels.map((c) => c.id));
+    // Private channels: only their creator or an existing member may add people.
+    const joinedChannelIds = new Set(callerChannels.map((c) => c.channel_id));
+    const validChannelIds = new Set(
+      validChannels
+        .filter((c) => c.type === "public" || c.created_by === userId || joinedChannelIds.has(c.id))
+        .map((c) => c.id),
+    );
     const validMemberIds = new Set(validMembers.map((m) => m.id));
 
     const existingMap = new Map(existing.map((c) => [c.id, c]));
@@ -83,6 +112,8 @@ export default defineEventHandler(async (event) => {
       const existingDoc = existingMap.get(doc.id);
 
       if (existingDoc) {
+        if (existingDoc.channel_id !== doc.channel_id || existingDoc.member_id !== doc.member_id)
+          continue;
         const assumedUpdatedAt = row.assumedMasterState?.updated_at;
         const currentUpdatedAt = existingDoc.updated_at.toISOString();
 
@@ -112,8 +143,6 @@ export default defineEventHandler(async (event) => {
         .onConflictDoUpdate({
           target: tables.channel_members.id,
           set: {
-            channel_id: doc.channel_id,
-            member_id: doc.member_id,
             last_read_at: doc.last_read_at ? new Date(doc.last_read_at) : null,
             updated_at: new Date(doc.updated_at),
           },

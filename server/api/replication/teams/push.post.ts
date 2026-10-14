@@ -89,6 +89,7 @@ export default defineEventHandler(async (event) => {
       const existing = existingMap.get(doc.id);
 
       if (existing) {
+        if (existing.workspace_id !== workspaceId) continue;
         const assumedUpdatedAt = row.assumedMasterState?.updated_at;
         const currentUpdatedAt = existing.updated_at.toISOString();
 
@@ -131,7 +132,6 @@ export default defineEventHandler(async (event) => {
         .onConflictDoUpdate({
           target: tables.team.id,
           set: {
-            workspace_id: doc.workspace_id,
             name: doc.name,
             color: doc.color,
             updated_at: new Date(doc.updated_at),

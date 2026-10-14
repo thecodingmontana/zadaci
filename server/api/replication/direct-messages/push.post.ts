@@ -61,7 +61,12 @@ export default defineEventHandler(async (event) => {
 
     const messageIds = body.map((row) => row.newDocumentState.id);
     const existingMessages = await db
-      .select({ id: tables.direct_message.id, updated_at: tables.direct_message.updated_at })
+      .select({
+        id: tables.direct_message.id,
+        updated_at: tables.direct_message.updated_at,
+        conversation_id: tables.direct_message.conversation_id,
+        author_id: tables.direct_message.author_id,
+      })
       .from(tables.direct_message)
       .where(inArray(tables.direct_message.id, messageIds));
     const existingIds = new Set(existingMessages.map((m) => m.id));
@@ -81,8 +86,10 @@ export default defineEventHandler(async (event) => {
     for (const row of body) {
       const doc = row.newDocumentState;
       const existing = existingMap.get(doc.id);
+      const isAuthor = !existing || existing.author_id === membership.id;
 
       if (existing) {
+        if (existing.conversation_id !== conversationId) continue;
         const assumedUpdatedAt = row.assumedMasterState?.updated_at;
         const currentUpdatedAt = existing.updated_at.toISOString();
         if (assumedUpdatedAt && assumedUpdatedAt !== currentUpdatedAt) {
@@ -111,11 +118,9 @@ export default defineEventHandler(async (event) => {
         .onConflictDoUpdate({
           target: tables.direct_message.id,
           set: {
-            content: doc.content,
-            edited_at: editedAt,
+            ...(isAuthor && { content: doc.content, edited_at: editedAt, deleted_at: deletedAt }),
             reactions: doc.reactions,
             updated_at: new Date(doc.updated_at),
-            deleted_at: deletedAt,
           },
         });
     }

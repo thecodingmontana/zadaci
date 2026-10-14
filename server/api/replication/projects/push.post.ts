@@ -98,6 +98,7 @@ export default defineEventHandler(async (event) => {
       const existing = existingMap.get(doc.id);
 
       if (existing) {
+        if (existing.workspace_id !== workspaceId) continue;
         const assumedUpdatedAt = row.assumedMasterState?.updated_at;
         const currentUpdatedAt = existing.updated_at.toISOString();
 
@@ -151,7 +152,6 @@ export default defineEventHandler(async (event) => {
             description: doc.description,
             status: doc.status as any,
             priority: doc.priority as any,
-            workspace_id: doc.workspace_id,
             due_date: dueDate,
             updated_at: new Date(doc.updated_at),
             deleted_at: deletedAt,

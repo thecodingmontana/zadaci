@@ -47,11 +47,21 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403, statusMessage: "Access denied" });
     }
 
+    if (channel.type !== "public") {
+      const channelMembership = await db.query.channel_members.findFirst({
+        where: { channel_id: channelId, member_id: membership.id },
+      });
+      if (!channelMembership) {
+        throw createError({ statusCode: 403, statusMessage: "Not a channel member" });
+      }
+    }
+
     const receiptIds = body.map((row) => row.newDocumentState.id);
     const existingReceipts = await db
       .select({
         id: tables.message_receipt.id,
         updated_at: tables.message_receipt.updated_at,
+        member_id: tables.message_receipt.member_id,
       })
       .from(tables.message_receipt)
       .where(inArray(tables.message_receipt.id, receiptIds));
@@ -60,9 +70,12 @@ export default defineEventHandler(async (event) => {
 
     for (const row of body) {
       const doc = row.newDocumentState;
+      // Receipts are per member: you can only mark your own.
+      if (doc.member_id !== membership.id) continue;
       const existing = existingMap.get(doc.id);
 
       if (existing) {
+        if (existing.member_id !== membership.id) continue;
         const assumedUpdatedAt = row.assumedMasterState?.updated_at;
         const currentUpdatedAt = existing.updated_at.toISOString();
 

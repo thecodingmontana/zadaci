@@ -78,10 +78,26 @@ export default defineEventHandler(async (event) => {
 
     const existingMap = new Map(existingTTs.map((t) => [t.id, t]));
     const conflicts: any[] = [];
+    const workspaceTagIds = new Set(
+      (
+        await db
+          .select({ id: tables.tag.id })
+          .from(tables.tag)
+          .where(
+            and(
+              eq(tables.tag.workspace_id, workspaceId),
+              inArray(tables.tag.id, [...new Set(body.map((r) => r.newDocumentState.tag_id))]),
+            ),
+          )
+      ).map((r) => r.id),
+    );
 
     for (const row of body) {
       const doc = row.newDocumentState;
       const existing = existingMap.get(doc.id);
+      // Never re-parent an existing row, and only reference rows from this workspace.
+      if ((existing && existing.task_id !== doc.task_id) || !workspaceTagIds.has(doc.tag_id))
+        continue;
 
       if (existing) {
         const assumedUpdatedAt = row.assumedMasterState?.updated_at;

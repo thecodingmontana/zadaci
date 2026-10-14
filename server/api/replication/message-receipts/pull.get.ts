@@ -35,6 +35,15 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403, statusMessage: "Access denied" });
     }
 
+    if (channel.type !== "public") {
+      const channelMembership = await db.query.channel_members.findFirst({
+        where: { channel_id: channelId, member_id: membership.id },
+      });
+      if (!channelMembership) {
+        throw createError({ statusCode: 403, statusMessage: "Not a channel member" });
+      }
+    }
+
     let checkpoint: Checkpoint | null = null;
     if (checkpointParam) {
       try {

@@ -33,7 +33,11 @@ export default defineEventHandler(async (event) => {
     });
     if (!membership) throw createError({ statusCode: 403, statusMessage: "Access denied" });
 
-    const invalidAuthor = body.filter((row) => row.newDocumentState.created_by !== membership.id);
+    const invalidAuthor = body.filter(
+      (row) =>
+        row.newDocumentState.created_by !== membership.id ||
+        row.newDocumentState.workspace_id !== workspaceId,
+    );
     if (invalidAuthor.length > 0) {
       throw createError({
         statusCode: 403,
@@ -43,7 +47,12 @@ export default defineEventHandler(async (event) => {
 
     const ids = body.map((r) => r.newDocumentState.id);
     const existing = await db
-      .select({ id: tables.note.id, updated_at: tables.note.updated_at })
+      .select({
+        id: tables.note.id,
+        updated_at: tables.note.updated_at,
+        workspace_id: tables.note.workspace_id,
+        created_by: tables.note.created_by,
+      })
       .from(tables.note)
       .where(inArray(tables.note.id, ids));
 
@@ -55,6 +64,8 @@ export default defineEventHandler(async (event) => {
       const existingDoc = existingMap.get(doc.id);
 
       if (existingDoc) {
+        if (existingDoc.workspace_id !== workspaceId || existingDoc.created_by !== membership.id)
+          continue;
         if (
           row.assumedMasterState?.updated_at &&
           row.assumedMasterState.updated_at !== existingDoc.updated_at.toISOString()

@@ -31,6 +31,7 @@ export const changelogReleases: ChangelogRelease[] = [
         items: [
           "Workspace actions now check that you are a member, and only owners and moderators can send invites or empty the trash",
           "Invite links are now single-use, expire on time and can't add you twice (older invites need a resend)",
+          "Sync can no longer change another workspace's data, edit other people's messages, comments or notes, or join private channels uninvited",
         ],
       },
     ],

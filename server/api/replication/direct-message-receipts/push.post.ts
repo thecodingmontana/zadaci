@@ -44,6 +44,7 @@ export default defineEventHandler(async (event) => {
       .select({
         id: tables.direct_message_receipt.id,
         updated_at: tables.direct_message_receipt.updated_at,
+        member_id: tables.direct_message_receipt.member_id,
       })
       .from(tables.direct_message_receipt)
       .where(inArray(tables.direct_message_receipt.id, ids));
@@ -56,11 +57,13 @@ export default defineEventHandler(async (event) => {
       const existingDoc = existingMap.get(doc.id);
 
       if (existingDoc) {
+        if (existingDoc.member_id !== membership.id) continue;
         if (
           row.assumedMasterState?.updated_at &&
           row.assumedMasterState.updated_at !== existingDoc.updated_at.toISOString()
         ) {
-          conflicts.push(doc);
+          const full = await db.query.direct_message_receipt.findFirst({ where: { id: doc.id } });
+          conflicts.push(full ?? doc);
           continue;
         }
       }

@@ -95,6 +95,19 @@ export default defineEventHandler(async (event) => {
       .where(inArray(tables.task.id, taskIds));
 
     const existingMap = new Map(existingTasks.map((t) => [t.id, t]));
+    const existingProjectIds = [...new Set(existingTasks.map((t) => t.project_id))];
+    const ownedProjects = existingProjectIds.length
+      ? await db
+          .select({ id: tables.project.id })
+          .from(tables.project)
+          .where(
+            and(
+              eq(tables.project.workspace_id, workspaceId),
+              inArray(tables.project.id, existingProjectIds),
+            ),
+          )
+      : [];
+    const ownedProjectIds = new Set(ownedProjects.map((p) => p.id));
     const conflicts: any[] = [];
 
     for (const row of body) {
@@ -112,6 +125,7 @@ export default defineEventHandler(async (event) => {
       const existing = existingMap.get(doc.id);
 
       if (existing) {
+        if (!ownedProjectIds.has(existing.project_id)) continue;
         const assumedUpdatedAt = row.assumedMasterState?.updated_at;
         const currentUpdatedAt = existing.updated_at.toISOString();
 

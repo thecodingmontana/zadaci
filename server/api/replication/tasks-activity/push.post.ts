@@ -80,6 +80,9 @@ export default defineEventHandler(async (event) => {
     for (const row of body) {
       const doc = row.newDocumentState;
       const existing = existingMap.get(doc.id);
+      // Never re-parent an existing row, and only reference rows from this workspace.
+      if ((existing && existing.task_id !== doc.task_id) || doc.changed_by !== membership.id)
+        continue;
 
       if (existing) {
         const assumedUpdatedAt = row.assumedMasterState?.updated_at;

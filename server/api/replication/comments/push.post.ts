@@ -41,7 +41,11 @@ export default defineEventHandler(async (event) => {
 
     const ids = body.map((r) => r.newDocumentState.id);
     const existing = await db
-      .select({ id: tables.comment.id, updated_at: tables.comment.updated_at })
+      .select({
+        id: tables.comment.id,
+        updated_at: tables.comment.updated_at,
+        author_id: tables.comment.author_id,
+      })
       .from(tables.comment)
       .where(inArray(tables.comment.id, ids));
 
@@ -53,6 +57,7 @@ export default defineEventHandler(async (event) => {
       const existingDoc = existingMap.get(doc.id);
 
       if (existingDoc) {
+        if (existingDoc.author_id !== membership.id) continue;
         if (
           row.assumedMasterState?.updated_at &&
           row.assumedMasterState.updated_at !== existingDoc.updated_at.toISOString()
