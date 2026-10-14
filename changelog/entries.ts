@@ -34,6 +34,7 @@ export const changelogReleases: ChangelogRelease[] = [
           "Sync can no longer change another workspace's data, edit other people's messages, comments or notes, or join private channels uninvited",
           "Comments only sync within their own workspace, and removed task assignees now disappear for everyone",
           "User accounts, sessions and sign-in codes can no longer be read with the public browser key",
+          "Saving your profile without a password no longer erases your existing password",
         ],
       },
     ],

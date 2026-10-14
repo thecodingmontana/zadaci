@@ -23,19 +23,20 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
       });
     }
-    let hashedPassword: string = "";
-    if (password) {
-      hashedPassword = await hashPassword(password);
-    }
     const [user] = await db
       .update(tables.user)
       .set({
         username,
-        password: hashedPassword,
         profile_picture_url: avatar,
+        // An empty field means "keep the current password".
+        ...(password && { password: await hashPassword(password) }),
       })
       .where(eq(tables.user.id, session.user.id))
-      .returning();
+      .returning({
+        id: tables.user.id,
+        username: tables.user.username,
+        profile_picture_url: tables.user.profile_picture_url,
+      });
 
     if (!user) {
       throw createError({
