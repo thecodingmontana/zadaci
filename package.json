@@ -31,8 +31,6 @@
   },
   "dependencies": {
     "@faker-js/faker": "^10.5.0",
-    "@hugeicons/core-free-icons": "^4.2.2",
-    "@hugeicons/vue": "^1.0.7",
     "@internationalized/date": "^3.12.2",
     "@lexical/code": "0.38.1",
     "@lexical/code-shiki": "0.38.1",
@@ -65,12 +63,10 @@
     "@simplewebauthn/server": "^11.0.0",
     "@supabase/supabase-js": "^2.110.2",
     "@t3-oss/env-nuxt": "^0.13.11",
-    "@takumi-rs/core": "2.0.0-rc.12",
     "@tanstack/vue-hotkeys": "^0.10.0",
     "@tanstack/vue-hotkeys-devtools": "^0.7.0",
     "@tanstack/vue-query": "^5.101.2",
     "@tanstack/vue-table": "^8.21.3",
-    "@unovis/ts": "^1.6.7",
     "@vee-validate/zod": "^4.15.1",
     "@vercel/analytics": "^2.0.1",
     "@vitejs/plugin-vue": "^6.0.7",
@@ -114,7 +110,6 @@
     "vue": "^3.5.38",
     "vue-input-otp": "^0.3.2",
     "vue-router": "^5.1.0",
-    "vue3-emoji-picker": "^1.1.8",
     "zod": "4.4.3"
   },
   "devDependencies": {
@@ -123,7 +118,6 @@
     "@commitlint/config-conventional": "^21.2.0",
     "@iconify-json/devicon": "^1.2.62",
     "@iconify-json/hugeicons": "^1.2.30",
-    "@iconify-json/iconoir": "^1.2.11",
     "@iconify-json/lucide": "^1.2.116",
     "@iconify-json/ri": "^1.2.10",
     "@iconify-json/solar": "^1.2.5",
