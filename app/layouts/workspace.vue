@@ -42,7 +42,8 @@ if (import.meta.client) {
         console.log("[workspace-layout] User changed — setting clear_needed flag");
         localStorage.setItem(CLEAR_KEY, "true");
       }
-      localStorage.setItem(USER_KEY, currentUserId);
+      // USER_KEY is written by useClearStaleDataOnUserSwitch after it clears; writing it
+      // here first would make that check always see "same user" and skip the clear.
     }
   });
 }

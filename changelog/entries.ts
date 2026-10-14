@@ -37,6 +37,7 @@ export const changelogReleases: ChangelogRelease[] = [
           "Saving your profile without a password no longer erases your existing password",
           "Signed-out and expired sessions stop working right away, and two-factor checks are enforced by the server",
           "Google sign-in now checks the sign-in request came from you and only accepts verified emails",
+          "Signing in as a different user on the same browser now clears the previous user's cached data",
         ],
       },
     ],
