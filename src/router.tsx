@@ -6,6 +6,7 @@ import {
 } from "@apollo/client-integration-tanstack-start";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { createIsomorphicFn } from "@tanstack/react-start";
+import { NotFound } from "#/components/not-found";
 import { routeTree } from "./routeTree.gen";
 
 // During SSR, run GraphQL in-process with the visitor's cookies instead of an HTTP round-trip.
@@ -36,6 +37,7 @@ export function getRouter() {
 		scrollRestoration: true,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
+		defaultNotFoundComponent: NotFound,
 	});
 
 	return routerWithApolloClient(router, apolloClient);

@@ -25,6 +25,8 @@ const HAND_PRESS =
 	"M9 14 L9 10.5 A2.5 2.5 0 0 1 14 10.5 L14 12 L16 12 A6 6 0 0 1 22 18 L22 20 A7 7 0 0 1 15 27 L13 27 A8 8 0 0 1 5 19 L5 17.5 A4 4 0 0 1 9 14 Z";
 
 // Deterministic pseudo-random so server and client render the same scatter.
+const round = (n: number) => Math.round(n * 1000) / 1000;
+
 function seeded(n: number) {
 	const x = Math.sin(n * 12.9898) * 43758.5453;
 	return x - Math.floor(x);
@@ -211,8 +213,9 @@ export function MultiplayerText({
 			<p className="text-balance">
 				{words.map((word, i) => {
 					const isPressed = !reduce && pressed?.word === i;
-					const baseRot = scatter ? (seeded(i * 1.7 + 13) - 0.5) * 6 : 0;
-					const baseY = scatter ? (seeded(i * 2.9 + 31) - 0.5) * 0.3 : 0;
+					// Rounded so server HTML and client hydration produce identical transform strings
+					const baseRot = scatter ? round((seeded(i * 1.7 + 13) - 0.5) * 6) : 0;
+					const baseY = scatter ? round((seeded(i * 2.9 + 31) - 0.5) * 0.3) : 0;
 					const owner = owners[i] ?? null;
 					return (
 						// biome-ignore lint/suspicious/noArrayIndexKey: words repeat and never reorder
@@ -229,7 +232,7 @@ export function MultiplayerText({
 								initial={false}
 								animate={{
 									transform: isPressed
-										? `translateY(${baseY + 0.08}em) rotate(${baseRot - 5}deg) scale(0.88)`
+										? `translateY(${round(baseY + 0.08)}em) rotate(${round(baseRot - 5)}deg) scale(0.88)`
 										: `translateY(${baseY}em) rotate(${baseRot}deg) scale(1)`,
 								}}
 								transition={isPressed ? PRESS : DROP}
