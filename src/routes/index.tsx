@@ -1,6 +1,7 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { BlueprintFrame } from "#/components/home/blueprint-frame";
 import { MultiplayerText } from "#/components/home/multiplayer-text";
+import { ArrowChip, Button } from "#/components/ui/button";
 import { getSession } from "#/lib/session";
 
 const PLAYERS = [
@@ -44,28 +45,16 @@ function Home() {
 					Stay organized and collaborate seamlessly with Zadaci. The all-in-one
 					project management platform built to get things done faster.
 				</p>
-				<Link
-					to="/auth/signin"
-					className="group inline-flex items-center gap-x-2 rounded-full bg-brand px-4 py-2.5 text-base font-medium text-white shadow-[0_-1px_0_1px_rgba(249,129,99,1)_inset,0_0_0_1px_#F97452_inset,0_0.5px_0_1.5px_#F97452_inset] transition-[transform,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none hover:scale-105 hover:shadow-[0_-1px_0_1px_rgba(252,199,185,0.8)_inset,0_0_0_1px_#F97452_inset,0_0.5px_0_1.5px_hsla(0,0%,100%,0.25)_inset] focus-visible:ring-4 focus-visible:ring-brand/40 active:scale-95 motion-reduce:transform-none"
+				<Button
+					asChild
+					size="lg"
+					className="rounded-full motion-safe:hover:scale-105"
 				>
-					Get Started
-					<span className="size-6 overflow-hidden rounded-full border border-white/10 bg-white/5 transition-colors duration-300 group-hover:bg-white/10">
-						<span className="flex w-12 -translate-x-1/2 transition-transform duration-300 ease-[cubic-bezier(0.77,0,0.175,1)] group-hover:translate-x-0 motion-reduce:transition-none">
-							<span className="flex size-6">
-								<span
-									className="m-auto icon-[solar--arrow-right-linear] size-3.5"
-									aria-hidden="true"
-								/>
-							</span>
-							<span className="flex size-6">
-								<span
-									className="m-auto icon-[solar--arrow-right-linear] size-3.5"
-									aria-hidden="true"
-								/>
-							</span>
-						</span>
-					</span>
-				</Link>
+					<Link to="/auth/signin">
+						Get Started
+						<ArrowChip />
+					</Link>
+				</Button>
 			</div>
 
 			<footer className="absolute inset-x-0 bottom-3 z-10 flex items-center justify-center gap-x-1 text-sm text-black/60 dark:text-white/50">
