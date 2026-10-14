@@ -1,4 +1,5 @@
 import type { H3Event } from "h3";
+import type { USER_ROLE } from "../database/enums";
 import type { User } from "../database/types";
 import type { SessionFlags } from "./session";
 import { Buffer } from "node:buffer";
@@ -209,4 +210,29 @@ export async function createSessionMetadata(event: H3Event): Promise<{
       statusMessage: `${errorMessage}!`,
     });
   }
+}
+
+/**
+ * Throws 401 without a session, 403 unless the caller is a member of the
+ * workspace (and holds one of `roles` when given). Returns the session and membership.
+ */
+export async function requireWorkspaceMember(
+  event: H3Event,
+  workspaceId: string | undefined,
+  roles?: USER_ROLE[],
+) {
+  const session = await requireUserSession(event);
+  if (!workspaceId) {
+    throw createError({ statusCode: 400, statusMessage: "WorkspaceId is required!" });
+  }
+  const member = await db.query.workspace_members.findFirst({
+    where: { workspace_id: workspaceId, user_id: session.user.id },
+  });
+  if (!member) {
+    throw createError({ statusCode: 403, statusMessage: "Not a member of this workspace" });
+  }
+  if (roles && !roles.includes(member.role as USER_ROLE)) {
+    throw createError({ statusCode: 403, statusMessage: "You don't have permission to do this" });
+  }
+  return { session, member };
 }

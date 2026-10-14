@@ -1,10 +1,15 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
+import { USER_ROLE } from "~~/server/database/enums";
+import { requireWorkspaceMember } from "~~/server/libs/auth-helpers";
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event);
     const { workspaceId } = event.context.params as { workspaceId: string };
+    const { session } = await requireWorkspaceMember(event, workspaceId, [
+      USER_ROLE.OWNER,
+      USER_ROLE.MODERATOR,
+    ]);
     const { emails } = (await readBody(event)) as { emails: string[] };
     if (!session) {
       throw createError({

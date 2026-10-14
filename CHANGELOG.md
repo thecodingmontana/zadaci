@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Versions follow
 
 ## Changelog
 
+## [v3.0.1] - 2026-10-14
+
+### Bug Fixes
+
+- Workspace actions now check that you are a member, and only owners and moderators can send invites or empty the trash
+
 ## [v3.0.0] - 2026-08-11
 
 ### New Features

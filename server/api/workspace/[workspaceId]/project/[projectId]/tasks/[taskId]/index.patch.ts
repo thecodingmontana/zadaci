@@ -2,13 +2,14 @@ import type { Status } from "~~/shared/types";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 import { statusToDbValue } from "~~/server/database/enums";
+import { requireWorkspaceMember } from "~~/server/libs/auth-helpers";
 import { sendTaskCompletionMail } from "~~/server/libs/emails/actions/completed-task";
 import { validStatuses } from "~~/shared/types";
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event);
     const workspaceId = getRouterParam(event, "workspaceId");
+    const { session, member } = await requireWorkspaceMember(event, workspaceId);
     const projectId = getRouterParam(event, "projectId");
     const taskId = getRouterParam(event, "taskId");
     const { status } = (await readBody(event)) as { status: Status };
@@ -94,19 +95,6 @@ export default defineEventHandler(async (event) => {
     }
 
     if (["COMPLETED", "IN REVIEW", "ABANDONED"].includes(status)) {
-      const member = await db.query.workspace_members.findFirst({
-        where: {
-          workspace_id: workspaceId,
-          user_id: session.user.id,
-        },
-        columns: { id: true },
-      });
-      if (!member) {
-        throw createError({
-          statusCode: 403,
-          statusMessage: "You are not a member of this workspace!",
-        });
-      }
       await db.insert(tables.tasks_activity).values({
         task_id: taskId,
         changed_by: member.id,

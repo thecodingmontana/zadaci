@@ -2,14 +2,15 @@ import type { Priority, ProjectMembers, Status } from "~~/shared/types";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 import { PRIORITY, statusToDbValue } from "~~/server/database/enums";
+import { requireWorkspaceMember } from "~~/server/libs/auth-helpers";
 import { sendTaskCompletionMail } from "~~/server/libs/emails/actions/completed-task";
 import { sendTaskAssignmentEmail } from "~~/server/libs/emails/actions/send-task-assignment";
 import { validPriorities, validStatuses } from "~~/shared/types";
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event);
     const workspaceId = getRouterParam(event, "workspaceId");
+    const { session, member } = await requireWorkspaceMember(event, workspaceId);
     const projectId = getRouterParam(event, "projectId");
     const taskId = getRouterParam(event, "taskId");
     const body = (await readBody(event)) as {
@@ -158,19 +159,6 @@ export default defineEventHandler(async (event) => {
       statusValue !== undefined &&
       ["COMPLETED", "IN REVIEW", "ABANDONED"].includes(body.status!)
     ) {
-      const member = await db.query.workspace_members.findFirst({
-        where: {
-          workspace_id: workspaceId,
-          user_id: session.user.id,
-        },
-        columns: { id: true },
-      });
-      if (!member) {
-        throw createError({
-          statusCode: 403,
-          statusMessage: "You are not a member of this workspace!",
-        });
-      }
       await db.insert(tables.tasks_activity).values({
         task_id: taskId,
         changed_by: member.id,

@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
+import { requireWorkspaceMember } from "~~/server/libs/auth-helpers";
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event);
     const workspaceId = getRouterParam(event, "workspaceId");
+    const { session } = await requireWorkspaceMember(event, workspaceId);
     const projectId = getRouterParam(event, "projectId");
     if (!session) {
       throw createError({ statusCode: 401, statusMessage: "Unauthorized" });

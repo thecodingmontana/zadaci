@@ -2,6 +2,7 @@ import type { UserRole } from "~~/shared/types";
 import { addDays } from "date-fns";
 import { db, tables } from "~~/server/database/db";
 import { USER_ROLE } from "~~/server/database/enums";
+import { requireWorkspaceMember } from "~~/server/libs/auth-helpers";
 import { sendWorkspaceInvite } from "~~/server/libs/emails/actions/send-invite";
 import { isValidEmail } from "~~/server/libs/validations";
 
@@ -12,8 +13,11 @@ interface ITeammate {
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event);
     const { workspaceId } = event.context.params as { workspaceId: string };
+    const { session, member } = await requireWorkspaceMember(event, workspaceId, [
+      USER_ROLE.OWNER,
+      USER_ROLE.MODERATOR,
+    ]);
     const { teammates } = (await readBody(event)) as { teammates: ITeammate[] };
 
     if (!session) {
@@ -44,6 +48,10 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         statusMessage: `Invalid email format for: ${invalidEmails.map((t) => t.email).join(", ")}`,
       });
+    }
+
+    if (member.role !== USER_ROLE.OWNER && teammates.some((t) => t.role === USER_ROLE.OWNER)) {
+      throw createError({ statusCode: 403, statusMessage: "Only owners can invite owners" });
     }
 
     const workspace = await db.query.workspace.findFirst({

@@ -1,10 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
+import { requireWorkspaceMember } from "~~/server/libs/auth-helpers";
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event);
     const workspaceId = getRouterParam(event, "workspaceId");
+    const { session } = await requireWorkspaceMember(event, workspaceId);
     const query = getQuery(event);
     const teamId = query.team_id as string | undefined;
 

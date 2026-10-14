@@ -2,13 +2,14 @@ import type { Status } from "~~/shared/types";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 import { statusToDbValue } from "~~/server/database/enums";
+import { requireWorkspaceMember } from "~~/server/libs/auth-helpers";
 import { sendProjectCompletionMail } from "~~/server/libs/emails/actions/completed-project";
 import { validStatuses } from "~~/shared/types";
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event);
     const workspaceId = getRouterParam(event, "workspaceId");
+    const { session } = await requireWorkspaceMember(event, workspaceId);
     const projectId = getRouterParam(event, "projectId");
     const { status } = (await readBody(event)) as { status: Status };
     if (!session) {

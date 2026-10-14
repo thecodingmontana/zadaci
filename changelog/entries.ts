@@ -23,6 +23,18 @@ export interface ChangelogRelease {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "3.0.1",
+    date: "2026-10-14",
+    sections: [
+      {
+        category: "Bug Fixes",
+        items: [
+          "Workspace actions now check that you are a member, and only owners and moderators can send invites or empty the trash",
+        ],
+      },
+    ],
+  },
+  {
     version: "3.0.0",
     date: "2026-08-11",
     sections: [

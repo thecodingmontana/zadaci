@@ -1,13 +1,14 @@
 import type { Priority, ProjectMembers, Status } from "~~/shared/types";
 import { db, tables } from "~~/server/database/db";
 import { PRIORITY, statusToDbValue } from "~~/server/database/enums";
+import { requireWorkspaceMember } from "~~/server/libs/auth-helpers";
 import { sendTaskAssignmentEmail } from "~~/server/libs/emails/actions/send-task-assignment";
 import { appLink, validPriorities, validStatuses } from "~~/shared/types";
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event);
     const workspaceId = getRouterParam(event, "workspaceId");
+    const { session } = await requireWorkspaceMember(event, workspaceId);
     const projectId = getRouterParam(event, "projectId");
     const { name, status, dueDate, description, priority, parentTaskId, assignees, subtasks } =
       (await readBody(event)) as {

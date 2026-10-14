@@ -4,6 +4,10 @@ import { db, tables } from "~~/server/database/db";
 export default defineEventHandler(async (event) => {
   try {
     const { userId } = event.context.params as { userId: string };
+    const session = await requireUserSession(event);
+    if (session.user.id !== userId) {
+      throw createError({ statusCode: 403, statusMessage: "Access denied" });
+    }
     const workspaces = await db
       .select({
         id: tables.workspace.id,
