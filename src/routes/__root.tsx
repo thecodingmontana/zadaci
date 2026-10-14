@@ -3,10 +3,12 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
 	createRootRouteWithContext,
 	HeadContent,
+	ScriptOnce,
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Toaster } from "#/components/toast/toaster";
+import { APPEARANCE_SCRIPT } from "#/lib/appearance";
 import appCss from "../styles.css?url";
 
 export const Route =
@@ -39,6 +41,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				<HeadContent />
+				<ScriptOnce>{APPEARANCE_SCRIPT}</ScriptOnce>
 			</head>
 			{/* browser extensions (e.g. ColorZilla) add attributes to body before hydration */}
 			<body suppressHydrationWarning>

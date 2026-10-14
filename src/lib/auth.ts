@@ -1,7 +1,11 @@
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
+import {
+	APIError,
+	createAuthMiddleware,
+	getSessionFromCtx,
+} from "better-auth/api";
 import { deleteSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
 import { twoFactor } from "better-auth/plugins";
@@ -52,7 +56,11 @@ export const auth = betterAuth({
 	hooks: {
 		// Two-step verification is mandatory: never let a user remove their last second step.
 		before: createAuthMiddleware(async (ctx) => {
-			if (ctx.path !== "/two-factor/disable" && ctx.path !== "/passkey/delete-passkey") return;
+			if (
+				ctx.path !== "/two-factor/disable" &&
+				ctx.path !== "/passkey/delete-passkey"
+			)
+				return;
 			const session = await getSessionFromCtx(ctx);
 			if (!session) return; // the endpoint itself rejects unauthenticated calls
 			const passkeys = await db
