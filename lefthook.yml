@@ -19,9 +19,11 @@ pre-commit:
         - "*.jsonc"
         - "*.css"
       stage_fixed: true
-    - run: scripts/check-kebab-imports/target/release/fix-tailwind-quotes
+    # skipped when the Rust binary is not built (no cargo)
+    - run: "[ ! -x scripts/check-kebab-imports/target/release/fix-tailwind-quotes ] || scripts/check-kebab-imports/target/release/fix-tailwind-quotes"
       stage_fixed: true
-    - run: scripts/check-kebab-imports/target/release/check-kebab-imports
+    # skipped when the Rust binary is not built (no cargo)
+    - run: "[ ! -x scripts/check-kebab-imports/target/release/check-kebab-imports ] || scripts/check-kebab-imports/target/release/check-kebab-imports"
 
 commit-msg:
   commands:
