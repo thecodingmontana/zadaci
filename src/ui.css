@@ -1455,3 +1455,119 @@ kbd,
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* modal + project dot */
+.modal-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 61;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 16px 16px;
+  overflow-y: auto;
+}
+.modal {
+  width: 100%;
+  max-width: 560px;
+  background: var(--q-surface);
+  border-radius: 12px;
+  box-shadow: var(--q-shadow-pop);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+.modal.enter {
+  animation: modalIn 0.26s var(--q-ease) both;
+}
+.modal.sm {
+  max-width: 420px;
+}
+.modal.lg {
+  max-width: 720px;
+}
+.modal-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 0;
+}
+.modal-h h2 {
+  font-size: var(--q-fs-md);
+  font-weight: 600;
+  margin: 0;
+}
+.modal-h .ibtn {
+  margin-left: auto;
+}
+.modal-b {
+  padding: 14px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.modal-f {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--q-border);
+}
+.modal-f .sp {
+  flex: 1;
+}
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pdot {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--c);
+  flex-shrink: 0;
+}
+.eyebrow {
+  font-size: var(--q-fs-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--q-text-3);
+}
+
+/* top bar search */
+.topsearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--q-h-sm);
+  padding: 0 6px 0 9px;
+  border-radius: var(--q-r-sm);
+  border: 1px solid var(--q-border);
+  color: var(--q-text-3);
+  font-size: var(--q-fs-sm);
+  width: 220px;
+  background: var(--q-sunken);
+  transition: border-color var(--q-dur);
+}
+.topsearch:hover {
+  border-color: var(--q-border-strong);
+  color: var(--q-text-2);
+}
+.topsearch .kbd {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.topsearch .lbltxt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}

@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
 import { GraphQLError } from "graphql";
 import { createSchema } from "graphql-yoga";
 import { customAlphabet } from "nanoid";
@@ -76,11 +76,33 @@ const typeDefs = /* GraphQL */ `
 		invites: [String!]!
 	}
 
+	type SearchTask {
+		id: ID!
+		name: String!
+		status: String!
+		projectId: ID!
+		projectTitle: String!
+	}
+
+	type Person {
+		id: ID!
+		name: String!
+		email: String!
+		image: String
+	}
+
+	type SearchResults {
+		tasks: [SearchTask!]!
+		projects: [Project!]!
+		people: [Person!]!
+	}
+
 	type Query {
 		me: User!
 		workspaces: [Workspace!]!
 		workspace(slug: String!): Workspace
 		slugAvailable(slug: String!): Boolean!
+		search(slug: String!, q: String!): SearchResults!
 	}
 
 	type Mutation {
@@ -161,6 +183,73 @@ async function findWorkspaces(
 
 const resolvers = {
 	Query: {
+		search: async (
+			_: unknown,
+			args: { slug: string; q: string },
+			ctx: GraphQLContext,
+		) => {
+			const [workspace] = await findWorkspaces(requireUser(ctx).id, args.slug);
+			const q = args.q.trim().slice(0, 100);
+			if (!workspace || !q) return { tasks: [], projects: [], people: [] };
+			const like = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
+			const LIMIT = 12;
+			const [tasks, projects, people] = await Promise.all([
+				db
+					.select({
+						id: tables.task.id,
+						name: tables.task.name,
+						status: tables.task.status,
+						projectId: tables.project.id,
+						projectTitle: tables.project.title,
+					})
+					.from(tables.task)
+					.innerJoin(
+						tables.project,
+						eq(tables.project.id, tables.task.project_id),
+					)
+					.where(
+						and(
+							eq(tables.project.workspace_id, workspace.id),
+							isNull(tables.task.deleted_at),
+							isNull(tables.project.deleted_at),
+							ilike(tables.task.name, like),
+						),
+					)
+					.limit(LIMIT),
+				db
+					.select()
+					.from(tables.project)
+					.where(
+						and(
+							eq(tables.project.workspace_id, workspace.id),
+							isNull(tables.project.deleted_at),
+							ilike(tables.project.title, like),
+						),
+					)
+					.limit(LIMIT),
+				db
+					.select({
+						id: tables.workspace_members.id,
+						name: tables.user.name,
+						email: tables.user.email,
+						image: tables.user.image,
+					})
+					.from(tables.workspace_members)
+					.innerJoin(
+						tables.user,
+						eq(tables.user.id, tables.workspace_members.user_id),
+					)
+					.where(
+						and(
+							eq(tables.workspace_members.workspace_id, workspace.id),
+							isNull(tables.workspace_members.deleted_at),
+							or(ilike(tables.user.name, like), ilike(tables.user.email, like)),
+						),
+					)
+					.limit(LIMIT),
+			]);
+			return { tasks, projects, people };
+		},
 		me: (_: unknown, __: unknown, ctx: GraphQLContext) => requireUser(ctx),
 		workspaces: (_: unknown, __: unknown, ctx: GraphQLContext) =>
 			findWorkspaces(requireUser(ctx).id),

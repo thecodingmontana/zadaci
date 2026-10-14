@@ -173,3 +173,15 @@ export function slugify(value: string) {
 		.replace(/^-|-$/g, "")
 		.slice(0, 48);
 }
+
+// Project colours (same palette as the reference app).
+export const PCOLORS: Record<string, string> = {
+	indigo: "#5A67D8",
+	blue: "#3B82C4",
+	violet: "#8662C9",
+	teal: "#23918A",
+	rose: "#C54B78",
+	amber: "#C48A1E",
+	green: "#3D8E5F",
+	slate: "#6B7280",
+};

@@ -15,7 +15,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
-import { Kbd } from "#/components/ui/kbd";
 import { SidebarTrigger, useSidebar } from "#/components/ui/sidebar";
 import type { ShellProject, ShellTeam } from "#/graphql/operations";
 import { cn } from "#/lib/utils";
@@ -231,19 +230,18 @@ function SearchButton() {
 	const { openPalette } = useCommandMenu();
 	const mod = useModKey();
 	return (
-		<Button
-			variant="outline"
-			size="sm"
+		<button
+			type="button"
+			className="topsearch max-sm:w-auto!"
 			onClick={openPalette}
-			aria-label="Search or jump to"
-			className="gap-2 text-muted-foreground max-sm:size-8 max-sm:px-0 sm:w-56 sm:justify-start"
+			aria-label="Search and commands"
 		>
 			<span
-				className="icon-[solar--magnifer-linear] size-4"
+				className="icon-[solar--magnifer-linear] size-3.5 shrink-0"
 				aria-hidden="true"
 			/>
-			<span className="max-sm:hidden">Search or jump to…</span>
-			<Kbd className="ml-auto max-sm:hidden">{mod} K</Kbd>
-		</Button>
+			<span className="lbltxt max-sm:hidden">Search or jump to…</span>
+			<span className="kbd max-sm:hidden">{mod}K</span>
+		</button>
 	);
 }

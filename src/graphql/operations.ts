@@ -163,3 +163,43 @@ export const SHELL: TypedDocumentNode<
 		}
 	}
 `;
+
+export type SearchResults = {
+	tasks: {
+		id: string;
+		name: string;
+		status: string;
+		projectId: string;
+		projectTitle: string;
+	}[];
+	projects: { id: string; title: string; color: string | null }[];
+	people: { id: string; name: string; email: string; image: string | null }[];
+};
+
+export const SEARCH: TypedDocumentNode<
+	{ search: SearchResults },
+	{ slug: string; q: string }
+> = gql`
+	query Search($slug: String!, $q: String!) {
+		search(slug: $slug, q: $q) {
+			tasks {
+				id
+				name
+				status
+				projectId
+				projectTitle
+			}
+			projects {
+				id
+				title
+				color
+			}
+			people {
+				id
+				name
+				email
+				image
+			}
+		}
+	}
+`;
