@@ -1,5 +1,9 @@
-import { drizzle } from 'drizzle-orm/node-postgres'
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { relations } from "./relations";
+import * as schema from "./schema";
 
-import * as schema from './schema.ts'
+const queryClient = postgres(process.env.DATABASE_URL!, { prepare: false });
+const db = drizzle({ client: queryClient, relations });
 
-export const db = drizzle(process.env.DATABASE_URL!, { schema })
+export { db, queryClient as driver, schema as tables };
