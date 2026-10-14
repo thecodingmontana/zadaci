@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, or, sql } from "drizzle-orm";
 import { db, tables } from "~~/server/database/db";
 
 interface Checkpoint {
@@ -50,7 +50,16 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const conditions = [] as any[];
+    // author_id is a per-workspace member row, so it pins each comment to one workspace.
+    const conditions = [
+      inArray(
+        tables.comment.author_id,
+        db
+          .select({ id: tables.workspace_members.id })
+          .from(tables.workspace_members)
+          .where(eq(tables.workspace_members.workspace_id, workspaceId)),
+      ),
+    ] as any[];
 
     if (entityType && entityId) {
       conditions.push(
@@ -74,7 +83,7 @@ export default defineEventHandler(async (event) => {
     const rows = await db
       .select()
       .from(tables.comment)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(and(...conditions))
       .orderBy(asc(tables.comment.updated_at), asc(tables.comment.id))
       .limit(batchSize);
 
