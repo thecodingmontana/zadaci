@@ -1,26 +1,19 @@
-import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { emailOTP, twoFactor } from "better-auth/plugins";
+import { createAuthMiddleware } from "better-auth/api";
+import { deleteSessionCookie } from "better-auth/cookies";
+import { generateRandomString } from "better-auth/crypto";
+import { twoFactor } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import { Resend } from "resend";
 import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
+import { requireEnv } from "#/lib/env";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-async function sendEmail(to: string, subject: string, text: string) {
-	const { error } = await resend.emails.send({
-		from: process.env.EMAIL_FROM!,
-		to,
-		subject,
-		text,
-	});
-	if (error) throw new Error(`Email to ${to} failed: ${error.message}`);
-}
+const TWO_FACTOR_COOKIE_MAX_AGE = 600;
 
 export const auth = betterAuth({
 	appName: "Zadaci",
+	secret: requireEnv("BETTER_AUTH_SECRET"),
 	database: drizzleAdapter(db, { provider: "pg", schema: tables }),
 	advanced: { database: { generateId: () => generateNanoId() } },
 	user: {
@@ -32,32 +25,54 @@ export const auth = betterAuth({
 			},
 		},
 	},
-	emailAndPassword: {
-		enabled: true,
-		sendResetPassword: ({ user, url }) =>
-			sendEmail(
-				user.email,
-				"Reset your Zadaci password",
-				`Reset your password: ${url}`,
-			),
-	},
 	socialProviders: {
 		google: {
-			clientId: process.env.GOOGLE_CLIENT_ID!,
-			clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+			clientId: requireEnv("GOOGLE_CLIENT_ID"),
+			clientSecret: requireEnv("GOOGLE_CLIENT_SECRET"),
 		},
 	},
-	plugins: [
-		emailOTP({
-			sendVerificationOTP: ({ email, otp }) =>
-				sendEmail(
-					email,
-					"Your Zadaci code",
-					`Your verification code is ${otp}. It expires in 5 minutes.`,
-				),
+	hooks: {
+		// better-auth only challenges 2FA after credential sign-in; mirror its hook for the Google callback.
+		after: createAuthMiddleware(async (ctx) => {
+			if (!ctx.path.startsWith("/callback/")) return;
+			const data = ctx.context.newSession;
+			if (!data?.user.twoFactorEnabled) return;
+
+			deleteSessionCookie(ctx, true);
+			await ctx.context.internalAdapter.deleteSession(data.session.token);
+			ctx.context.setNewSession(null);
+
+			const twoFactorCookie = ctx.context.createAuthCookie("two_factor", {
+				maxAge: TWO_FACTOR_COOKIE_MAX_AGE,
+			});
+			const identifier = `2fa-${generateRandomString(20)}`;
+			const expiresAt = new Date(Date.now() + TWO_FACTOR_COOKIE_MAX_AGE * 1000);
+			await ctx.context.internalAdapter.createVerificationValue({
+				value: data.user.id,
+				identifier,
+				expiresAt,
+			});
+			// verify-totp counts failed attempts against this record
+			await ctx.context.internalAdapter.createVerificationValue({
+				value: "0",
+				identifier: `2fa-attempts-${identifier}`,
+				expiresAt,
+			});
+			await ctx.setSignedCookie(
+				twoFactorCookie.name,
+				identifier,
+				ctx.context.secret,
+				twoFactorCookie.attributes,
+			);
+			throw ctx.redirect("/auth/two-factor");
 		}),
-		twoFactor(),
-		passkey({ rpName: "Zadaci" }),
+	},
+	plugins: [
+		twoFactor({
+			issuer: "Zadaci",
+			allowPasswordless: true, // Google-only accounts have no password
+			twoFactorCookieMaxAge: TWO_FACTOR_COOKIE_MAX_AGE,
+		}),
 		tanstackStartCookies(), // must stay last
 	],
 });

@@ -10,43 +10,109 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthedRouteImport } from './routes/_authed'
+import { Route as AuthSigninRouteImport } from './routes/auth/signin'
+import { Route as AuthedWorkspaceIndexRouteImport } from './routes/_authed/workspace/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor/index'
+import { Route as AuthTwoFactorSetupRouteImport } from './routes/auth/two-factor/setup'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedRoute = AuthedRouteImport.update({
+  id: '/_authed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSigninRoute = AuthSigninRouteImport.update({
+  id: '/auth/signin',
+  path: '/auth/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedWorkspaceIndexRoute = AuthedWorkspaceIndexRouteImport.update({
+  id: '/workspace/',
+  path: '/workspace/',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthTwoFactorIndexRoute = AuthTwoFactorIndexRouteImport.update({
+  id: '/auth/two-factor/',
+  path: '/auth/two-factor/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthTwoFactorSetupRoute = AuthTwoFactorSetupRouteImport.update({
+  id: '/auth/two-factor/setup',
+  path: '/auth/two-factor/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth/signin': typeof AuthSigninRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
+  '/workspace/': typeof AuthedWorkspaceIndexRoute
+  '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth/signin': typeof AuthSigninRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
+  '/workspace': typeof AuthedWorkspaceIndexRoute
+  '/auth/two-factor': typeof AuthTwoFactorIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authed': typeof AuthedRouteWithChildren
+  '/auth/signin': typeof AuthSigninRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
+  '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
+  '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/auth/signin'
+    | '/api/auth/$'
+    | '/auth/two-factor/setup'
+    | '/workspace/'
+    | '/auth/two-factor/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/auth/$'
-  id: '__root__' | '/' | '/api/auth/$'
+  to:
+    | '/'
+    | '/auth/signin'
+    | '/api/auth/$'
+    | '/auth/two-factor/setup'
+    | '/workspace'
+    | '/auth/two-factor'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authed'
+    | '/auth/signin'
+    | '/api/auth/$'
+    | '/auth/two-factor/setup'
+    | '/_authed/workspace/'
+    | '/auth/two-factor/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthedRoute: typeof AuthedRouteWithChildren
+  AuthSigninRoute: typeof AuthSigninRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  AuthTwoFactorSetupRoute: typeof AuthTwoFactorSetupRoute
+  AuthTwoFactorIndexRoute: typeof AuthTwoFactorIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,6 +124,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signin': {
+      id: '/auth/signin'
+      path: '/auth/signin'
+      fullPath: '/auth/signin'
+      preLoaderRoute: typeof AuthSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authed/workspace/': {
+      id: '/_authed/workspace/'
+      path: '/workspace'
+      fullPath: '/workspace/'
+      preLoaderRoute: typeof AuthedWorkspaceIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -65,12 +152,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/two-factor/': {
+      id: '/auth/two-factor/'
+      path: '/auth/two-factor'
+      fullPath: '/auth/two-factor/'
+      preLoaderRoute: typeof AuthTwoFactorIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/two-factor/setup': {
+      id: '/auth/two-factor/setup'
+      path: '/auth/two-factor/setup'
+      fullPath: '/auth/two-factor/setup'
+      preLoaderRoute: typeof AuthTwoFactorSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthedRouteChildren {
+  AuthedWorkspaceIndexRoute: typeof AuthedWorkspaceIndexRoute
+}
+
+const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedWorkspaceIndexRoute: AuthedWorkspaceIndexRoute,
+}
+
+const AuthedRouteWithChildren =
+  AuthedRoute._addFileChildren(AuthedRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthedRoute: AuthedRouteWithChildren,
+  AuthSigninRoute: AuthSigninRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  AuthTwoFactorSetupRoute: AuthTwoFactorSetupRoute,
+  AuthTwoFactorIndexRoute: AuthTwoFactorIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

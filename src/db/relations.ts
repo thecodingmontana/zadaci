@@ -6,7 +6,6 @@ export const relations = defineRelations(schema, (r) => ({
 		sessions: r.many.session(),
 		accounts: r.many.account(),
 		two_factors: r.many.twoFactor(),
-		passkeys: r.many.passkey(),
 		owned_workspaces: r.many.workspace(),
 		workspaces: r.many.workspace_members(),
 		created_channels: r.many.channel(),
@@ -178,9 +177,6 @@ export const relations = defineRelations(schema, (r) => ({
 	},
 	twoFactor: {
 		user: r.one.user({ from: r.twoFactor.userId, to: r.user.id }),
-	},
-	passkey: {
-		user: r.one.user({ from: r.passkey.userId, to: r.user.id }),
 	},
 	workspace_invite_request: {
 		user: r.one.user({
