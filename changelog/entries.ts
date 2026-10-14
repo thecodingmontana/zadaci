@@ -30,6 +30,7 @@ export const changelogReleases: ChangelogRelease[] = [
         category: "Bug Fixes",
         items: [
           "Workspace actions now check that you are a member, and only owners and moderators can send invites or empty the trash",
+          "Invite links are now single-use, expire on time and can't add you twice (older invites need a resend)",
         ],
       },
     ],

@@ -10,7 +10,7 @@ import { isValidEmail } from "~~/server/libs/validations";
 export default defineEventHandler(async (event) => {
   try {
     const inviteCode = getRouterParam(event, "inviteCode");
-    const { email } = await readBody(event);
+    const { email, token } = await readBody(event);
     if (!inviteCode || typeof inviteCode !== "string") {
       throw createError({
         statusCode: 400,
@@ -23,6 +23,9 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
       });
     }
+    if (!token || typeof token !== "string") {
+      throw createError({ statusCode: 400, statusMessage: "Invalid invite link" });
+    }
     const workspace = await db.query.workspace.findFirst({
       where: { invite_code: inviteCode },
     });
@@ -34,6 +37,7 @@ export default defineEventHandler(async (event) => {
     }
     const invite = await db.query.workspace_invite_request.findFirst({
       where: {
+        id: token,
         email,
         workspace_id: workspace.id,
       },
@@ -44,14 +48,21 @@ export default defineEventHandler(async (event) => {
         statusMessage: `Invite not found for ${email}.`,
       });
     }
-    const recoveryCode = generateRandomRecoveryCode();
-    const encryptedRecoveryCode = encryptString(recoveryCode);
-    const serializedRecoveryCode = Buffer.from(encryptedRecoveryCode).toString("base64");
-    const existingUser = await db.query.user.findFirst({
+    if (invite.expires_at < new Date()) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `Invite for ${email} has expired. Kindly request a new invite.`,
+      });
+    }
+    let existingUser = await db.query.user.findFirst({
       where: { email },
     });
+    const isNewUser = !existingUser;
     if (!existingUser) {
-      const [newUser] = await db
+      const recoveryCode = generateRandomRecoveryCode();
+      const encryptedRecoveryCode = encryptString(recoveryCode);
+      const serializedRecoveryCode = Buffer.from(encryptedRecoveryCode).toString("base64");
+      [existingUser] = await db
         .insert(tables.user)
         .values({
           email,
@@ -64,45 +75,18 @@ export default defineEventHandler(async (event) => {
         })
         .returning();
 
-      if (!newUser) {
+      if (!existingUser) {
         throw createError({
           statusCode: 500,
           statusMessage: "Failed to create user!",
         });
       }
-
-      const [newMember] = await db
-        .insert(tables.workspace_members)
-        .values({
-          role: invite.role,
-          workspace_id: workspace.id,
-          user_id: newUser.id,
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
-        .returning();
-
-      const publicChannels = await db
-        .select({ id: tables.channel.id })
-        .from(tables.channel)
-        .where(
-          and(
-            eq(tables.channel.workspace_id, workspace.id),
-            eq(tables.channel.type, CHANNEL_TYPE.PUBLIC),
-          ),
-        );
-
-      if (publicChannels.length > 0) {
-        await db.insert(tables.channel_members).values(
-          publicChannels.map((ch) => ({
-            channel_id: ch.id,
-            member_id: newMember.id,
-            created_at: new Date(),
-            updated_at: new Date(),
-          })),
-        );
-      }
-    } else {
+    }
+    const alreadyMember = await db.query.workspace_members.findFirst({
+      where: { workspace_id: workspace.id, user_id: existingUser.id },
+      columns: { id: true },
+    });
+    if (!alreadyMember) {
       const [newMember] = await db
         .insert(tables.workspace_members)
         .values({
@@ -143,7 +127,7 @@ export default defineEventHandler(async (event) => {
           eq(tables.workspace_invite_request.workspace_id, workspace.id),
         ),
       );
-    const message = existingUser
+    const message = !isNewUser
       ? `You've been successfully added to ${workspace.name ? `${workspace.name} workspace` : "a workspace"}.`
       : `You've been successfully added to ${workspace.name ? `${workspace.name} workspace` : "a workspace"}, and an account has been created for you.`;
     await sendWorkspaceWelcomeMail({

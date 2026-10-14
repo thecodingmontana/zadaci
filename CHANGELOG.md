@@ -12,6 +12,7 @@ All notable changes to this project are documented here. Versions follow
 
 - Workspace actions now check that you are a member, and only owners and moderators can send invites or empty the trash
 
+- Invite links are now single-use, expire on time and can't add you twice (older invites need a resend)
 ## [v3.0.0] - 2026-08-11
 
 ### New Features

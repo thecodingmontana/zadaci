@@ -4,7 +4,7 @@ import { isValidEmail } from "~~/server/libs/validations";
 export default defineEventHandler(async (event) => {
   try {
     const inviteCode = getRouterParam(event, "inviteCode");
-    const query = getQuery(event) as { email: string };
+    const query = getQuery(event) as { email: string; token?: string };
     if (!inviteCode || typeof inviteCode !== "string") {
       throw createError({
         statusCode: 400,
@@ -17,6 +17,12 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         statusMessage:
           "Missing email query! Email is required for an automatic joining of the workspace!",
+      });
+    }
+    if (!query.token || typeof query.token !== "string") {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Invalid invite link! Kindly request a new workspace invite mail.",
       });
     }
     if (!isValidEmail(query.email)) {
@@ -52,6 +58,7 @@ export default defineEventHandler(async (event) => {
     }
     const invite = await db.query.workspace_invite_request.findFirst({
       where: {
+        id: query.token,
         email: query.email,
         workspace_id: workspace.id,
       },

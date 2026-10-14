@@ -6,7 +6,7 @@ import { isValidEmail } from "~~/server/libs/validations";
 export default defineEventHandler(async (event) => {
   try {
     const inviteCode = getRouterParam(event, "inviteCode");
-    const { email } = await readBody(event);
+    const { email, token } = await readBody(event);
     if (!inviteCode || typeof inviteCode !== "string") {
       throw createError({
         statusCode: 400,
@@ -19,6 +19,9 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
       });
     }
+    if (!token || typeof token !== "string") {
+      throw createError({ statusCode: 400, statusMessage: "Invalid invite link" });
+    }
     const workspace = await db.query.workspace.findFirst({
       where: { invite_code: inviteCode },
     });
@@ -30,6 +33,7 @@ export default defineEventHandler(async (event) => {
     }
     const invite = await db.query.workspace_invite_request.findFirst({
       where: {
+        id: token,
         email,
         workspace_id: workspace.id,
       },

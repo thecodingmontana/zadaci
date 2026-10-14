@@ -168,7 +168,7 @@ export default defineEventHandler(async (event) => {
         await sendWorkspaceInvite({
           email: teammate.email,
           workspace: workspace.name,
-          link: `${process.env.NUXT_PUBLIC_SITE_URL}/invite/${workspace.invite_code}?email=${teammate.email}`,
+          link: `${process.env.NUXT_PUBLIC_SITE_URL}/invite/${workspace.invite_code}?email=${encodeURIComponent(teammate.email)}&token=${result.id}`,
           sender: session.user.username,
           expiryDate: result.expires_at.toDateString(),
         });

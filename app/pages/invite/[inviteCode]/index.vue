@@ -17,7 +17,9 @@ const {
   error,
   status,
 } = await useAsyncData("workspace_invite", () =>
-  useRequestFetch()(`/api/workspace/invite/${params.inviteCode}/details?email=${query.email}`),
+  useRequestFetch()(
+    `/api/workspace/invite/${params.inviteCode}/details?email=${encodeURIComponent(String(query.email))}&token=${query.token}`,
+  ),
 );
 useSeoMeta({
   title: () =>
@@ -43,7 +45,7 @@ function onAcceptInvite() {
   isAcceptInvite.value = true;
   const promise = $fetch(`/api/workspace/invite/${params.inviteCode}/accept`, {
     method: "POST",
-    body: { email: query.email },
+    body: { email: query.email, token: query.token },
   });
   toast.promise(promise, {
     loading: "Accepting invite...",
@@ -66,7 +68,7 @@ function onDeclineInvite() {
   isDeclineInvite.value = true;
   const promise = $fetch(`/api/workspace/invite/${params.inviteCode}/decline`, {
     method: "DELETE",
-    body: { email: query.email },
+    body: { email: query.email, token: query.token },
   });
   toast.promise(promise, {
     loading: "Declining invite...",
