@@ -1,11 +1,12 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { toast } from "sonner";
 import { AuthShell } from "#/components/auth/auth-shell";
 import { TotpInput } from "#/components/auth/totp-input";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
+import { takeNext } from "#/lib/next-path";
 import { getSession } from "#/lib/session";
+import { toast } from "#/lib/toast";
 
 export const Route = createFileRoute("/auth/two-factor/")({
 	beforeLoad: async () => {
@@ -31,7 +32,7 @@ function VerifyTwoFactor() {
 						code: value.trim(),
 						trustDevice,
 					});
-		if (!error) return navigate({ to: "/workspace" });
+		if (!error) return navigate({ href: takeNext() });
 
 		setIsVerifying(false);
 		setCode("");

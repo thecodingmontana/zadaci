@@ -1,14 +1,18 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { z } from "zod";
 import { AuthShell } from "#/components/auth/auth-shell";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
+import { rememberNext, safePath } from "#/lib/next-path";
 import { getSession } from "#/lib/session";
+import { toast } from "#/lib/toast";
 
 export const Route = createFileRoute("/auth/signin")({
-	validateSearch: z.object({ error: z.string().optional() }),
+	validateSearch: z.object({
+		error: z.string().optional(),
+		redirect: z.string().optional(),
+	}),
 	beforeLoad: async () => {
 		const session = await getSession();
 		if (session) throw redirect({ to: "/workspace" });
@@ -23,8 +27,10 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 function SignIn() {
-	const { error } = Route.useSearch();
+	const { error, redirect: next } = Route.useSearch();
 	const [isRedirecting, setIsRedirecting] = useState(false);
+
+	useEffect(() => rememberNext(next), [next]);
 
 	useEffect(() => {
 		if (error)
@@ -37,7 +43,7 @@ function SignIn() {
 		setIsRedirecting(true);
 		const { error } = await authClient.signIn.social({
 			provider: "google",
-			callbackURL: "/workspace",
+			callbackURL: safePath(next) ?? "/workspace",
 			errorCallbackURL: "/auth/signin",
 		});
 		if (error) {

@@ -18,6 +18,8 @@ export const project = pgTable(
 			.$defaultFn(() => generateNanoId()),
 		title: text("title").notNull(),
 		description: text("description"),
+		icon: varchar("icon", { length: 60 }),
+		color: varchar("color", { length: 20 }),
 		status: status_enum("status").default(STATUS.IDEA).notNull(),
 		priority: priority_enum("priority").default(PRIORITY.NONE).notNull(),
 		workspace_id: varchar("workspace_id", { length: 16 })

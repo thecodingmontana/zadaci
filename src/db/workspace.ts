@@ -10,8 +10,14 @@ export const workspace = pgTable(
 			.primaryKey()
 			.$defaultFn(() => generateNanoId()),
 		name: varchar("name", { length: 255 }).notNull(),
-		image_url: text("image_url").notNull(),
+		slug: varchar("slug", { length: 48 }).notNull().unique(),
+		image_url: text("image_url"),
 		invite_code: text("invite_code").notNull().unique(),
+		use_case: varchar("use_case", { length: 20 }),
+		team_size: varchar("team_size", { length: 10 }),
+		default_view: varchar("default_view", { length: 10 })
+			.notNull()
+			.default("board"),
 		user_id: varchar("user_id", { length: 16 })
 			.notNull()
 			.references(() => user.id),

@@ -1,12 +1,13 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { AuthShell } from "#/components/auth/auth-shell";
 import { TotpInput } from "#/components/auth/totp-input";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
+import { takeNext } from "#/lib/next-path";
 import { getSession } from "#/lib/session";
+import { toast } from "#/lib/toast";
 
 export const Route = createFileRoute("/auth/two-factor/setup")({
 	beforeLoad: async () => {
@@ -182,7 +183,7 @@ function SetupTwoFactor() {
 			<Button
 				size="lg"
 				className="h-11 bg-brand text-white hover:bg-brand-secondary"
-				onClick={() => navigate({ to: "/workspace" })}
+				onClick={() => navigate({ href: takeNext() })}
 			>
 				I've saved my codes
 				<span

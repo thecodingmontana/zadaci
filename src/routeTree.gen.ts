@@ -11,7 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedRouteImport } from './routes/_authed'
+import { Route as AuthedOnboardingRouteImport } from './routes/_authed/onboarding'
+import { Route as ApiGraphqlRouteImport } from './routes/api/graphql'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
+import { Route as AuthedJoinCodeRouteImport } from './routes/_authed/join.$code'
+import { Route as AuthedWSlugRouteImport } from './routes/_authed/w/$slug'
 import { Route as AuthedWorkspaceIndexRouteImport } from './routes/_authed/workspace/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor/index'
@@ -26,10 +30,30 @@ const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedOnboardingRoute = AuthedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const ApiGraphqlRoute = ApiGraphqlRouteImport.update({
+  id: '/api/graphql',
+  path: '/api/graphql',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthSigninRoute = AuthSigninRouteImport.update({
   id: '/auth/signin',
   path: '/auth/signin',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedJoinCodeRoute = AuthedJoinCodeRouteImport.update({
+  id: '/join/$code',
+  path: '/join/$code',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedWSlugRoute = AuthedWSlugRouteImport.update({
+  id: '/w/$slug',
+  path: '/w/$slug',
+  getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedWorkspaceIndexRoute = AuthedWorkspaceIndexRouteImport.update({
   id: '/workspace/',
@@ -54,7 +78,11 @@ const AuthTwoFactorSetupRoute = AuthTwoFactorSetupRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/onboarding': typeof AuthedOnboardingRoute
+  '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/join/$code': typeof AuthedJoinCodeRoute
+  '/w/$slug': typeof AuthedWSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
   '/workspace/': typeof AuthedWorkspaceIndexRoute
@@ -62,7 +90,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/onboarding': typeof AuthedOnboardingRoute
+  '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/join/$code': typeof AuthedJoinCodeRoute
+  '/w/$slug': typeof AuthedWSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
@@ -72,7 +104,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
+  '/_authed/onboarding': typeof AuthedOnboardingRoute
+  '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/_authed/join/$code': typeof AuthedJoinCodeRoute
+  '/_authed/w/$slug': typeof AuthedWSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
@@ -82,7 +118,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/onboarding'
+    | '/api/graphql'
     | '/auth/signin'
+    | '/join/$code'
+    | '/w/$slug'
     | '/api/auth/$'
     | '/auth/two-factor/setup'
     | '/workspace/'
@@ -90,7 +130,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/onboarding'
+    | '/api/graphql'
     | '/auth/signin'
+    | '/join/$code'
+    | '/w/$slug'
     | '/api/auth/$'
     | '/auth/two-factor/setup'
     | '/workspace'
@@ -99,7 +143,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authed'
+    | '/_authed/onboarding'
+    | '/api/graphql'
     | '/auth/signin'
+    | '/_authed/join/$code'
+    | '/_authed/w/$slug'
     | '/api/auth/$'
     | '/auth/two-factor/setup'
     | '/_authed/workspace/'
@@ -109,6 +157,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
+  ApiGraphqlRoute: typeof ApiGraphqlRoute
   AuthSigninRoute: typeof AuthSigninRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AuthTwoFactorSetupRoute: typeof AuthTwoFactorSetupRoute
@@ -131,12 +180,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/onboarding': {
+      id: '/_authed/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthedOnboardingRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/api/graphql': {
+      id: '/api/graphql'
+      path: '/api/graphql'
+      fullPath: '/api/graphql'
+      preLoaderRoute: typeof ApiGraphqlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/signin': {
       id: '/auth/signin'
       path: '/auth/signin'
       fullPath: '/auth/signin'
       preLoaderRoute: typeof AuthSigninRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authed/join/$code': {
+      id: '/_authed/join/$code'
+      path: '/join/$code'
+      fullPath: '/join/$code'
+      preLoaderRoute: typeof AuthedJoinCodeRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/w/$slug': {
+      id: '/_authed/w/$slug'
+      path: '/w/$slug'
+      fullPath: '/w/$slug'
+      preLoaderRoute: typeof AuthedWSlugRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/_authed/workspace/': {
       id: '/_authed/workspace/'
@@ -170,10 +247,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedRouteChildren {
+  AuthedOnboardingRoute: typeof AuthedOnboardingRoute
+  AuthedJoinCodeRoute: typeof AuthedJoinCodeRoute
+  AuthedWSlugRoute: typeof AuthedWSlugRoute
   AuthedWorkspaceIndexRoute: typeof AuthedWorkspaceIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedOnboardingRoute: AuthedOnboardingRoute,
+  AuthedJoinCodeRoute: AuthedJoinCodeRoute,
+  AuthedWSlugRoute: AuthedWSlugRoute,
   AuthedWorkspaceIndexRoute: AuthedWorkspaceIndexRoute,
 }
 
@@ -183,6 +266,7 @@ const AuthedRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
+  ApiGraphqlRoute: ApiGraphqlRoute,
   AuthSigninRoute: AuthSigninRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AuthTwoFactorSetupRoute: AuthTwoFactorSetupRoute,
