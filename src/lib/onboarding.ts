@@ -1,4 +1,4 @@
-// Shared by the onboarding UI and the GraphQL server; ported from gr8r-studio.
+// Shared by the onboarding UI and the GraphQL server.
 // Icon values are full Tailwind classes so the Iconify plugin can find them at build time.
 
 export const USE_CASES = [

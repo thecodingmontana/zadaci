@@ -214,7 +214,7 @@ function Onboarding() {
 						id="o-ws"
 						autoFocus
 						className="h-10"
-						placeholder="e.g. Gr8r Studio"
+						placeholder="e.g. Acme Inc."
 						value={ws}
 						aria-invalid={!!errors.ws}
 						onChange={(e) => {
@@ -233,7 +233,7 @@ function Onboarding() {
 						<Input
 							id="o-url"
 							className="h-10 rounded-l-none"
-							placeholder="gr8r-studio"
+							placeholder="acme-inc"
 							value={url}
 							aria-invalid={!!errors.url}
 							onChange={(e) => {
