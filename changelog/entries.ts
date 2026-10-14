@@ -39,6 +39,7 @@ export const changelogReleases: ChangelogRelease[] = [
           "Google sign-in now checks the sign-in request came from you and only accepts verified emails",
           "Signing in as a different user on the same browser now clears the previous user's cached data",
           "Edits no longer get stuck unsynced after switching workspaces",
+          "Dashboard and task stats no longer show zeros after moving between pages",
         ],
       },
     ],

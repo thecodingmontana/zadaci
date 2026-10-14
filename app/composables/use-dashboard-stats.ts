@@ -1,5 +1,4 @@
 import type { ProjectDocType, TaskActivityDocType, TaskDocType } from "~/plugins/rxdb.client";
-import { useQuery } from "@tanstack/vue-query";
 import {
   addDays,
   endOfDay,
@@ -37,92 +36,76 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
     activitySub = null;
   }
 
-  function subscribeLive(db: Awaited<ReturnType<typeof useRxDbSafe>>, wsId: string) {
-    if (!db) return;
-    teardownSubs();
+  let liveDb: Awaited<ReturnType<typeof useRxDbSafe>> = null;
 
-    projectSub = db.projects
-      .find({ selector: { workspace_id: wsId, deleted_at: null } })
+  // Created once in setup (not per load) so it is disposed with the component.
+  // Re-derives task/activity subscriptions whenever the project set changes.
+  watch(projects, async (projs) => {
+    const db = liveDb;
+    if (!db) return;
+    taskSub?.unsubscribe();
+    activitySub?.unsubscribe();
+
+    const ids = projs.map((p) => p.id);
+    if (ids.length === 0) {
+      tasks.value = [];
+      activities.value = [];
+      return;
+    }
+
+    taskSub = db.tasks
+      .find({ selector: { project_id: { $in: ids }, deleted_at: null } })
       .$.subscribe((docs) => {
-        projects.value = docs;
+        tasks.value = docs;
       });
 
-    // Re-derive task/activity subscriptions whenever the project set changes
-    watch(
-      projects,
-      async (projs) => {
-        taskSub?.unsubscribe();
-        activitySub?.unsubscribe();
-
-        const ids = projs.map((p) => p.id);
-        if (ids.length === 0) {
-          tasks.value = [];
-          activities.value = [];
-          return;
-        }
-
-        taskSub = db.tasks
-          .find({ selector: { project_id: { $in: ids }, deleted_at: null } })
-          .$.subscribe((docs) => {
-            tasks.value = docs;
-          });
-
-        const taskDocs = await db.tasks
-          .find({ selector: { project_id: { $in: ids }, deleted_at: null } })
-          .exec();
-        const taskIds = taskDocs.map((t) => t.id);
-        if (taskIds.length === 0) {
-          activities.value = [];
-          return;
-        }
-
-        activitySub = db.tasks_activity
-          .find({ selector: { task_id: { $in: taskIds }, deleted_at: null } })
-          .$.subscribe((docs) => {
-            activities.value = docs;
-          });
-      },
-      { immediate: true },
-    );
-  }
-
-  // ── TanStack Query owns the initial-load / loading / error lifecycle ──
-  async function loadInitialData(wsId: string) {
-    const db = await useRxDbSafe();
-    if (!db) throw new Error("RxDB not ready");
-
-    const projectDocs = await db.projects
-      .find({ selector: { workspace_id: wsId, deleted_at: null } })
+    const taskDocs = await db.tasks
+      .find({ selector: { project_id: { $in: ids }, deleted_at: null } })
       .exec();
-    projects.value = projectDocs;
-
-    const projectIds = projectDocs.map((p) => p.id);
-    const taskDocs = projectIds.length
-      ? await db.tasks
-          .find({ selector: { project_id: { $in: projectIds }, deleted_at: null } })
-          .exec()
-      : [];
-    tasks.value = taskDocs;
-
     const taskIds = taskDocs.map((t) => t.id);
-    activities.value = taskIds.length
-      ? await db.tasks_activity
-          .find({ selector: { task_id: { $in: taskIds }, deleted_at: null } })
-          .exec()
-      : [];
+    if (taskIds.length === 0) {
+      activities.value = [];
+      return;
+    }
 
-    // Hand off to live subscriptions once the first snapshot is in
-    subscribeLive(db, wsId);
+    activitySub = db.tasks_activity
+      .find({ selector: { task_id: { $in: taskIds }, deleted_at: null } })
+      .$.subscribe((docs) => {
+        activities.value = docs;
+      });
+  });
 
-    return true;
+  // RxDB is the source of truth here (Tier 1), so no TanStack Query: load once, then live.
+  const isPending = ref(true);
+  const isError = ref(false);
+  const error = ref<Error | null>(null);
+
+  async function load() {
+    const wsId = workspaceId();
+    if (!wsId || !import.meta.client) return;
+    isPending.value = true;
+    isError.value = false;
+    error.value = null;
+    try {
+      const db = await useRxDbSafe();
+      if (!db) throw new Error("RxDB not ready");
+      teardownSubs();
+      liveDb = db;
+      projectSub = db.projects
+        .find({ selector: { workspace_id: wsId, deleted_at: null } })
+        .$.subscribe((docs) => {
+          projects.value = docs;
+        });
+    } catch (err: any) {
+      isError.value = true;
+      error.value = err;
+    } finally {
+      isPending.value = false;
+    }
   }
 
-  const { isPending, isError, error, refetch } = useQuery({
-    queryKey: computed(() => ["dashboard-stats", workspaceId()]),
-    queryFn: () => loadInitialData(workspaceId()!),
-    enabled: computed(() => !!workspaceId()),
-    staleTime: Number.POSITIVE_INFINITY, // freshness after this comes from RxDB, not refetching
-  });
+  watch(workspaceId, load, { immediate: true });
+  const refetch = load;
 
   onUnmounted(teardownSubs);
 
@@ -226,7 +209,6 @@ export function useDashboardStats(workspaceId: () => string | undefined) {
   );
 
   return {
-    // TanStack Query-driven loading/error state
     loaded: computed(() => !isPending.value && !isError.value),
     isLoading: isPending,
     isError,
