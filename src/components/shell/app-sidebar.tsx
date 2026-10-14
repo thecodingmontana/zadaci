@@ -12,6 +12,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
+	DropdownMenuShortcut,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import {
@@ -41,6 +42,7 @@ import type {
 import { authClient } from "#/lib/auth-client";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { useCommandMenu, useModKey } from "./command-menu";
 import {
 	ARCHIVE_NAV,
 	MAIN_NAV,
@@ -442,6 +444,7 @@ export function AppSidebar({
 
 			<SidebarFooter>
 				<SidebarMenu>
+					<HelpMenu />
 					<NavLink
 						slug={slug}
 						item={SETTINGS_NAV}
@@ -477,5 +480,51 @@ export function AppSidebar({
 			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>
+	);
+}
+
+function HelpMenu() {
+	const { openPalette, openShortcuts } = useCommandMenu();
+	const { isMobile } = useSidebar();
+	const mod = useModKey();
+	return (
+		<SidebarMenuItem>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<SidebarMenuButton tooltip="Help & resources">
+						<span
+							className="icon-[solar--question-circle-linear] size-4"
+							aria-hidden="true"
+						/>
+						<span>Help & resources</span>
+					</SidebarMenuButton>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent
+					align="end"
+					side={isMobile ? "top" : "right"}
+					className="w-60"
+				>
+					<DropdownMenuLabel className="text-xs text-muted-foreground">
+						Help & resources
+					</DropdownMenuLabel>
+					<DropdownMenuItem onSelect={openShortcuts}>
+						<span
+							className="icon-[solar--keyboard-linear] size-4"
+							aria-hidden="true"
+						/>
+						Keyboard shortcuts
+						<DropdownMenuShortcut>?</DropdownMenuShortcut>
+					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={openPalette}>
+						<span
+							className="icon-[solar--command-linear] size-4"
+							aria-hidden="true"
+						/>
+						Command menu
+						<DropdownMenuShortcut>{mod} K</DropdownMenuShortcut>
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</SidebarMenuItem>
 	);
 }

@@ -15,10 +15,12 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
+import { Kbd } from "#/components/ui/kbd";
 import { SidebarTrigger, useSidebar } from "#/components/ui/sidebar";
 import type { ShellProject, ShellTeam } from "#/graphql/operations";
 import { cn } from "#/lib/utils";
 import { type ShellUser, UserAvatar, UserMenuItems } from "./app-sidebar";
+import { useCommandMenu, useModKey } from "./command-menu";
 import { BOTTOM_NAV, navItem } from "./nav";
 
 type Crumb = { label: string; path?: string };
@@ -88,6 +90,7 @@ export function Topbar({
 				</BreadcrumbList>
 			</Breadcrumb>
 			<span className="grow" />
+			<SearchButton />
 			<Button variant="ghost" size="icon-sm" asChild>
 				<Link
 					to="/w/$slug/$"
@@ -221,5 +224,26 @@ export function BottomNav({ slug }: { slug: string }) {
 				More
 			</button>
 		</nav>
+	);
+}
+
+function SearchButton() {
+	const { openPalette } = useCommandMenu();
+	const mod = useModKey();
+	return (
+		<Button
+			variant="outline"
+			size="sm"
+			onClick={openPalette}
+			aria-label="Search or jump to"
+			className="gap-2 text-muted-foreground max-sm:size-8 max-sm:px-0 sm:w-56 sm:justify-start"
+		>
+			<span
+				className="icon-[solar--magnifer-linear] size-4"
+				aria-hidden="true"
+			/>
+			<span className="max-sm:hidden">Search or jump to…</span>
+			<Kbd className="ml-auto max-sm:hidden">{mod} K</Kbd>
+		</Button>
 	);
 }
