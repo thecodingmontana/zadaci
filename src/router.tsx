@@ -1,22 +1,44 @@
+import { HttpLink } from "@apollo/client";
+import {
+	ApolloClient,
+	InMemoryCache,
+	routerWithApolloClient,
+} from "@apollo/client-integration-tanstack-start";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
-import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
-import { getContext } from "./integrations/tanstack-query/root-provider";
+import { createIsomorphicFn } from "@tanstack/react-start";
 import { routeTree } from "./routeTree.gen";
 
+// During SSR, run GraphQL in-process with the visitor's cookies instead of an HTTP round-trip.
+const graphqlFetch = createIsomorphicFn()
+	.server((): typeof fetch => async (_input, init) => {
+		const [{ yoga }, { getRequestHeaders }] = await Promise.all([
+			import("#/graphql/yoga.server"),
+			import("@tanstack/react-start/server"),
+		]);
+		const headers = new Headers(init?.headers);
+		const cookie = getRequestHeaders().get("cookie");
+		if (cookie) headers.set("cookie", cookie);
+		return yoga.fetch(
+			new Request("http://internal/api/graphql", { ...init, headers }),
+		);
+	})
+	.client((): typeof fetch => fetch);
+
 export function getRouter() {
-	const context = getContext();
+	const apolloClient = new ApolloClient({
+		cache: new InMemoryCache(),
+		link: new HttpLink({ uri: "/api/graphql", fetch: graphqlFetch() }),
+	});
 
 	const router = createTanStackRouter({
 		routeTree,
-		context,
+		context: { ...routerWithApolloClient.defaultContext },
 		scrollRestoration: true,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
 	});
 
-	setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient });
-
-	return router;
+	return routerWithApolloClient(router, apolloClient);
 }
 
 declare module "@tanstack/react-router" {
