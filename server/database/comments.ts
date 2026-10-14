@@ -1,5 +1,4 @@
-import { sql } from "drizzle-orm";
-import { index, pgPolicy, text, varchar } from "drizzle-orm/pg-core";
+import { index, text, varchar } from "drizzle-orm/pg-core";
 import { generateNanoId, pgTable, syncable } from "./utils";
 import { workspace_members } from "./workspace";
 
@@ -24,6 +23,5 @@ export const comment = pgTable(
     index("comment_entity_idx").on(table.entity_type, table.entity_id),
     index("comment_author_id_idx").on(table.author_id),
     index("comment_parent_id_idx").on(table.parent_id),
-    pgPolicy("allow_anon_select_comment", { for: "select", to: "anon", using: sql`true` }),
   ],
-);
+).enableRLS();

@@ -13,6 +13,7 @@ All notable changes to this project are documented here. Versions follow
 - Workspace actions now check that you are a member, and only owners and moderators can send invites or empty the trash
 - Sync can no longer change another workspace's data, edit other people's messages, comments or notes, or join private channels uninvited
 - Comments only sync within their own workspace, and removed task assignees now disappear for everyone
+- User accounts, sessions and sign-in codes can no longer be read with the public browser key
 
 - Invite links are now single-use, expire on time and can't add you twice (older invites need a resend)
 ## [v3.0.0] - 2026-08-11

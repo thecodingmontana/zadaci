@@ -18,13 +18,8 @@ alter publication supabase_realtime add table
   app_tasks_activity,
   app_channel,
   app_message,
-  app_message_reference,
   app_message_receipt,
-  app_comment,
-  app_note,
-  app_conversation,
   app_direct_message,
-  app_direct_message_receipt,
   app_team,
   app_tag,
   app_project_tags,
@@ -35,5 +30,4 @@ alter publication supabase_realtime add table
   app_project_members,
   app_channel_members,
   app_team_members,
-  app_user_status,
-  app_user;
+  app_user_status;

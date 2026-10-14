@@ -25,9 +25,8 @@ export const conversation = pgTable(
     index("conversation_workspace_id_idx").on(table.workspace_id),
     index("conversation_member_one_id_idx").on(table.member_one_id),
     index("conversation_member_two_id_idx").on(table.member_two_id),
-    pgPolicy("allow_anon_select_conversation", { for: "select", to: "anon", using: sql`true` }),
   ],
-);
+).enableRLS();
 
 export const direct_message = pgTable(
   "direct_message",
@@ -76,6 +75,5 @@ export const direct_message_receipt = pgTable(
     index("dm_receipt_message_id_idx").on(table.direct_message_id),
     index("dm_receipt_member_id_idx").on(table.member_id),
     uniqueIndex("dm_receipt_message_member_unique").on(table.direct_message_id, table.member_id),
-    pgPolicy("allow_anon_select_dm_receipt", { for: "select", to: "anon", using: sql`true` }),
   ],
-);
+).enableRLS();

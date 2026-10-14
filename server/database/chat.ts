@@ -139,12 +139,5 @@ export const message_reference = pgTable(
     snapshot: text("snapshot"),
     ...syncable,
   },
-  (table) => [
-    index("message_reference_message_id_idx").on(table.message_id),
-    pgPolicy("allow_anon_select_message_reference", {
-      for: "select",
-      to: "anon",
-      using: sql`true`,
-    }),
-  ],
-);
+  (table) => [index("message_reference_message_id_idx").on(table.message_id)],
+).enableRLS();
