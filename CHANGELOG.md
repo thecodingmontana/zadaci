@@ -16,6 +16,7 @@ All notable changes to this project are documented here. Versions follow
 - User accounts, sessions and sign-in codes can no longer be read with the public browser key
 - Saving your profile without a password no longer erases your existing password
 - Signed-out and expired sessions stop working right away, and two-factor checks are enforced by the server
+- Google sign-in now checks the sign-in request came from you and only accepts verified emails
 
 - Invite links are now single-use, expire on time and can't add you twice (older invites need a resend)
 ## [v3.0.0] - 2026-08-11
