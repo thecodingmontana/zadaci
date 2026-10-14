@@ -1,0 +1,15 @@
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@tanstack/db-ivm@0.2.0'
+  - '@tanstack/db@0.14.0'
+  - '@tanstack/query-db-collection@1.4.4'
+  - '@tanstack/react-db@0.5.9'
+  - '@tanstack/react-start-rsc@0.1.63'
+  - '@tanstack/react-start-server@1.167.50'
+  - '@tanstack/react-start@1.169.2'
+  - '@tanstack/router-generator@1.167.44'
+  - '@tanstack/router-plugin@1.168.46'
+  - '@tanstack/router-utils@1.162.4'
+  - '@tanstack/start-plugin-core@1.171.53'
+  - '@tanstack/start-server-core@1.169.43'
