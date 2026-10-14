@@ -147,3 +147,39 @@
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
 }
+
+/* Blueprint frame (homepage hero) */
+@keyframes bp-draw-y {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes bp-draw-x {
+  from { clip-path: inset(0 50% 0 50%); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes bp-band-in {
+  from { opacity: 0; filter: blur(5px); }
+  to { opacity: 1; filter: blur(0); }
+}
+@keyframes bp-cross-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes bp-drift {
+  to { background-position: 12.5px -6.4px; }
+}
+@keyframes bp-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bp-anim,
+  .bp-cross {
+    animation: bp-fade 260ms ease both !important;
+    clip-path: none !important;
+    filter: none !important;
+  }
+  .bp-cross {
+    transform: translate(-50%, -50%) !important;
+  }
+}
