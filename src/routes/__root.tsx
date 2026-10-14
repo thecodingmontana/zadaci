@@ -36,11 +36,12 @@ export const Route =
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<HeadContent />
 			</head>
-			<body>
+			{/* browser extensions (e.g. ColorZilla) add attributes to body before hydration */}
+			<body suppressHydrationWarning>
 				{children}
 				<Toaster position="top-center" />
 				<TanStackDevtools
