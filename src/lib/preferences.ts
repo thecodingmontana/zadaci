@@ -131,3 +131,5 @@ export const workspaceSettingsPatch = z
 	.partial()
 	.strict();
 export const WS_SETTINGS_DEFAULTS = { permCreate: true, showDoneBoard: true };
+
+export type ResolvedPreferences = typeof PREF_DEFAULTS;

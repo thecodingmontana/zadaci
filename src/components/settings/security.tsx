@@ -1,0 +1,637 @@
+import { useRouteContext, useRouter } from "@tanstack/react-router";
+import { QRCodeSVG } from "qrcode.react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { ConfirmModal } from "#/components/q/confirm";
+import { Modal } from "#/components/q/modal";
+import { authClient } from "#/lib/auth-client";
+import { toast } from "#/lib/toast";
+import { cn } from "#/lib/utils";
+import { SBlock, SettingsHeader, SRow } from "./ui";
+
+const CANCELLED = ["AUTH_CANCELLED", "ERROR_CEREMONY_ABORTED"];
+
+function ago(date: string | Date) {
+	const s = Math.max(0, (Date.now() - new Date(date).getTime()) / 1000);
+	if (s < 60) return "Active now";
+	if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+	if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+	return `${Math.floor(s / 86400)}d ago`;
+}
+
+/** "Chrome on macOS" from a user agent string. */
+export function describeDevice(ua: string | null | undefined) {
+	if (!ua) return "Unknown device";
+	const browser = /Edg\//.test(ua)
+		? "Edge"
+		: /OPR\//.test(ua)
+			? "Opera"
+			: /Firefox\//.test(ua)
+				? "Firefox"
+				: /Chrome\//.test(ua)
+					? "Chrome"
+					: /Safari\//.test(ua)
+						? "Safari"
+						: "Browser";
+	const os = /iPhone|iPad/.test(ua)
+		? "iOS"
+		: /Android/.test(ua)
+			? "Android"
+			: /Mac OS X/.test(ua)
+				? "macOS"
+				: /Windows/.test(ua)
+					? "Windows"
+					: /Linux/.test(ua)
+						? "Linux"
+						: "";
+	return os ? `${browser} on ${os}` : browser;
+}
+
+type Passkey = {
+	id: string;
+	name?: string | null;
+	createdAt: string | Date;
+	backedUp: boolean;
+};
+
+export function PasskeysSection({ title }: { title: string }) {
+	const [keys, setKeys] = useState<Passkey[] | null>(null);
+	const [renaming, setRenaming] = useState<Passkey | null>(null);
+	const [removing, setRemoving] = useState<Passkey | null>(null);
+	const [name, setName] = useState("");
+
+	const load = useCallback(async () => {
+		const { data } = await authClient.passkey.listUserPasskeys();
+		setKeys((data as Passkey[] | null) ?? []);
+	}, []);
+	useEffect(() => {
+		load();
+	}, [load]);
+
+	async function add() {
+		const { error } = await authClient.passkey.addPasskey();
+		if (!error) {
+			toast.success("Passkey added");
+			return load();
+		}
+		if (!("code" in error && CANCELLED.includes(error.code)))
+			toast.error("Couldn't add a passkey", { desc: error.message });
+	}
+
+	async function rename(event: FormEvent) {
+		event.preventDefault();
+		if (!renaming || !name.trim()) return;
+		const { error } = await authClient.passkey.updatePasskey({
+			id: renaming.id,
+			name: name.trim(),
+		});
+		if (error)
+			return toast.error("Couldn't rename passkey", { desc: error.message });
+		setRenaming(null);
+		toast.success("Passkey renamed");
+		load();
+	}
+
+	return (
+		<>
+			<SettingsHeader
+				title={title}
+				lead="Sign in with your fingerprint, face, or device PIN instead of a code."
+			/>
+			{keys === null ? (
+				<div className="srow">
+					<span className="sk" style={{ height: 14, width: 180 }} />
+				</div>
+			) : keys.length === 0 ? (
+				<p className="faint" style={{ padding: "12px 0" }}>
+					No passkeys yet. Add one to sign in without your authenticator app.
+				</p>
+			) : (
+				keys.map((k) => (
+					<SRow
+						key={k.id}
+						t={
+							<span className="row" style={{ gap: 8 }}>
+								<span
+									className="icon-[solar--key-minimalistic-linear] size-[15px]"
+									aria-hidden="true"
+								/>
+								{k.name || "Passkey"}
+								{k.backedUp && <span className="badge green">Synced</span>}
+							</span>
+						}
+						d={`Added ${new Date(k.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+					>
+						<button
+							type="button"
+							className="btn btn-secondary btn-sm"
+							onClick={() => {
+								setName(k.name ?? "");
+								setRenaming(k);
+							}}
+						>
+							Rename
+						</button>
+						<button
+							type="button"
+							className="btn btn-danger-ghost btn-sm"
+							onClick={() => setRemoving(k)}
+						>
+							Remove
+						</button>
+					</SRow>
+				))
+			)}
+			<div style={{ marginTop: 16 }}>
+				<button type="button" className="btn btn-primary" onClick={add}>
+					<span
+						className="icon-[hugeicons--plus-sign] size-3.5"
+						aria-hidden="true"
+					/>
+					Add a passkey
+				</button>
+			</div>
+			<Modal
+				open={!!renaming}
+				onOpenChange={(o) => !o && setRenaming(null)}
+				title="Rename passkey"
+				size="sm"
+				footer={
+					<>
+						<span className="sp" />
+						<button
+							type="button"
+							className="btn btn-secondary"
+							onClick={() => setRenaming(null)}
+						>
+							Cancel
+						</button>
+						<button
+							type="submit"
+							form="pk-rename"
+							className="btn btn-primary"
+							disabled={!name.trim()}
+						>
+							Save
+						</button>
+					</>
+				}
+			>
+				<form id="pk-rename" className="modal-b" onSubmit={rename}>
+					<div className="field">
+						<label className="label" htmlFor="pk-name">
+							Name
+						</label>
+						<input
+							className="input"
+							id="pk-name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							maxLength={60}
+							placeholder="e.g. MacBook Touch ID"
+						/>
+					</div>
+				</form>
+			</Modal>
+			<ConfirmModal
+				open={!!removing}
+				onOpenChange={(o) => !o && setRemoving(null)}
+				title="Remove this passkey?"
+				body="You won't be able to sign in with it anymore."
+				ok="Remove"
+				danger
+				onConfirm={async () => {
+					if (!removing) return;
+					const { error } = await authClient.passkey.deletePasskey({
+						id: removing.id,
+					});
+					if (error) {
+						toast.error("Couldn't remove passkey", { desc: error.message });
+						throw new Error(error.message);
+					}
+					toast.success("Passkey removed");
+					load();
+				}}
+			/>
+		</>
+	);
+}
+
+type SessionRow = {
+	id: string;
+	token: string;
+	userAgent?: string | null;
+	ipAddress?: string | null;
+	updatedAt: string | Date;
+};
+
+export function SessionsSection({ title }: { title: string }) {
+	const { data: current } = authClient.useSession();
+	const [sessions, setSessions] = useState<SessionRow[] | null>(null);
+	const [confirm, setConfirm] = useState(false);
+
+	const load = useCallback(async () => {
+		const { data } = await authClient.listSessions();
+		setSessions((data as SessionRow[] | null) ?? []);
+	}, []);
+	useEffect(() => {
+		load();
+	}, [load]);
+
+	const currentId = current?.session.id;
+	const sorted = [...(sessions ?? [])].sort(
+		(a, b) => Number(b.id === currentId) - Number(a.id === currentId),
+	);
+
+	return (
+		<>
+			<SettingsHeader
+				title={title}
+				lead="Devices currently signed in to your account."
+			/>
+			{sessions === null ? (
+				<div className="srow">
+					<span className="sk" style={{ height: 14, width: 200 }} />
+				</div>
+			) : (
+				sorted.map((s) => {
+					const mine = s.id === currentId;
+					const mobile = /iPhone|iPad|Android|Mobile/.test(s.userAgent ?? "");
+					return (
+						<SRow
+							key={s.id}
+							t={
+								<span className="row" style={{ gap: 8 }}>
+									<span
+										className={cn(
+											mobile
+												? "icon-[solar--smartphone-linear]"
+												: "icon-[solar--monitor-linear]",
+											"size-[15px]",
+										)}
+										aria-hidden="true"
+									/>
+									{describeDevice(s.userAgent)}
+									{mine && <span className="badge green">This device</span>}
+								</span>
+							}
+							d={`${s.ipAddress || "Unknown location"} · ${mine ? "Active now" : ago(s.updatedAt)}`}
+						>
+							{!mine && (
+								<button
+									type="button"
+									className="btn btn-secondary btn-sm"
+									onClick={async () => {
+										const { error } = await authClient.revokeSession({
+											token: s.token,
+										});
+										if (error)
+											return toast.error("Couldn't sign out that session", {
+												desc: error.message,
+											});
+										toast.success("Session signed out");
+										load();
+									}}
+								>
+									Sign out
+								</button>
+							)}
+						</SRow>
+					);
+				})
+			)}
+			<div style={{ marginTop: 16 }}>
+				<button
+					type="button"
+					className="btn btn-danger-ghost"
+					disabled={(sessions?.length ?? 0) <= 1}
+					onClick={() => setConfirm(true)}
+				>
+					Sign out of all other sessions
+				</button>
+			</div>
+			<ConfirmModal
+				open={confirm}
+				onOpenChange={setConfirm}
+				title="Sign out of all other sessions?"
+				body="You'll stay signed in on this device. Other devices will need to sign in again."
+				ok="Sign out others"
+				danger
+				icon="icon-[solar--logout-2-linear]"
+				onConfirm={async () => {
+					const { error } = await authClient.revokeOtherSessions();
+					if (error) {
+						toast.error("Couldn't sign out other sessions", {
+							desc: error.message,
+						});
+						throw new Error(error.message);
+					}
+					toast.success("Signed out of all other sessions");
+					load();
+				}}
+			/>
+		</>
+	);
+}
+
+function RecoveryCodes({ codes }: { codes: string[] }) {
+	return (
+		<>
+			<div
+				style={{
+					display: "grid",
+					gridTemplateColumns: "repeat(2,max-content)",
+					gap: "6px 28px",
+					fontFamily: "var(--q-mono)",
+					fontSize: 13,
+					padding: 14,
+					border: "1px solid var(--q-border)",
+					borderRadius: "var(--q-r)",
+					background: "var(--q-sunken)",
+					userSelect: "all",
+				}}
+			>
+				{codes.map((c) => (
+					<span key={c}>{c}</span>
+				))}
+			</div>
+			<div className="row" style={{ marginTop: 10 }}>
+				<button
+					type="button"
+					className="btn btn-secondary btn-sm"
+					onClick={async () => {
+						await navigator.clipboard.writeText(codes.join("\n"));
+						toast.success("Recovery codes copied");
+					}}
+				>
+					<span
+						className="icon-[solar--copy-linear] size-[13px]"
+						aria-hidden="true"
+					/>
+					Copy
+				</button>
+				<a
+					className="btn btn-secondary btn-sm"
+					href={`data:text/plain;charset=utf-8,${encodeURIComponent(codes.join("\n"))}`}
+					download="zadaci-recovery-codes.txt"
+				>
+					<span
+						className="icon-[solar--download-minimalistic-linear] size-[13px]"
+						aria-hidden="true"
+					/>
+					Download
+				</a>
+			</div>
+		</>
+	);
+}
+
+export function TwoFactorSection({ title }: { title: string }) {
+	const { user } = useRouteContext({ from: "/_authed" });
+	const router = useRouter();
+	const on = !!user.twoFactorEnabled;
+	const [setup, setSetup] = useState<{ uri: string; codes: string[] } | null>(
+		null,
+	);
+	const [codes, setCodes] = useState<string[] | null>(null);
+	const [code, setCode] = useState("");
+	const [err, setErr] = useState("");
+	const [busy, setBusy] = useState(false);
+	const [confirm, setConfirm] = useState(false);
+
+	async function start() {
+		setBusy(true);
+		const { data, error } = await authClient.twoFactor.enable({
+			method: "totp",
+		});
+		setBusy(false);
+		if (error || data?.method !== "totp")
+			return toast.error("Couldn't start setup", { desc: error?.message });
+		setErr("");
+		setCode("");
+		setSetup({ uri: data.totpURI, codes: data.backupCodes });
+	}
+
+	async function verify(event: FormEvent) {
+		event.preventDefault();
+		if (!/^\d{6}$/.test(code.trim()))
+			return setErr("Enter the 6-digit code from your app");
+		setBusy(true);
+		const { error } = await authClient.twoFactor.verifyTotp({
+			code: code.trim(),
+		});
+		setBusy(false);
+		if (error)
+			return setErr(
+				"That code didn't work. Wait for the next one and try again.",
+			);
+		setCodes(setup?.codes ?? null);
+		setSetup(null);
+		await router.invalidate();
+		toast.success("Two-factor authentication is on");
+	}
+
+	return (
+		<>
+			<SettingsHeader title={title} lead="Add a second step when signing in." />
+			{on ? (
+				<>
+					<div className="alert ok">
+						<span
+							className="i icon-[solar--shield-check-linear] size-4 shrink-0"
+							aria-hidden="true"
+						/>
+						<div>
+							<b>Two-factor authentication is on.</b>
+							<div className="muted">
+								You'll enter a code from your authenticator app when signing in
+								on a new device.
+							</div>
+						</div>
+					</div>
+					<SBlock title="Recovery codes">
+						<p className="muted" style={{ fontSize: 13 }}>
+							Store these somewhere safe. Each code works once.
+							{!codes &&
+								" Generate a new set if you've used yours or can't find them; the old set stops working."}
+						</p>
+						{codes ? (
+							<RecoveryCodes codes={codes} />
+						) : (
+							<button
+								type="button"
+								className="btn btn-secondary"
+								onClick={async () => {
+									const { data, error } =
+										await authClient.twoFactor.generateBackupCodes({});
+									if (error || !data)
+										return toast.error("Couldn't generate codes", {
+											desc: error?.message,
+										});
+									setCodes(data.backupCodes);
+								}}
+							>
+								Generate new recovery codes
+							</button>
+						)}
+						<div style={{ marginTop: 14 }}>
+							<button
+								type="button"
+								className="btn btn-danger-ghost"
+								onClick={() => setConfirm(true)}
+							>
+								Turn off two-factor authentication
+							</button>
+						</div>
+					</SBlock>
+				</>
+			) : setup ? (
+				<div
+					className="panel"
+					style={{ padding: 18, display: "flex", gap: 20, flexWrap: "wrap" }}
+				>
+					<div
+						style={{
+							padding: 8,
+							background: "#fff",
+							borderRadius: 8,
+							border: "1px solid var(--q-border)",
+							height: "fit-content",
+						}}
+					>
+						<QRCodeSVG
+							value={setup.uri}
+							size={132}
+							title="Authenticator setup QR code"
+						/>
+					</div>
+					<div className="grow col" style={{ gap: 10, minWidth: 220 }}>
+						<div>
+							<b>1. Scan the QR code</b>
+							<div className="muted" style={{ fontSize: 13 }}>
+								Use 1Password, Authy, or Google Authenticator.
+							</div>
+							<details
+								className="muted"
+								style={{ fontSize: 12.5, marginTop: 4 }}
+							>
+								<summary style={{ cursor: "pointer" }}>
+									Can't scan it? Enter the key manually
+								</summary>
+								<code
+									className="mono"
+									style={{ userSelect: "all", wordBreak: "break-all" }}
+								>
+									{new URL(setup.uri).searchParams.get("secret")}
+								</code>
+							</details>
+						</div>
+						<div>
+							<b>2. Enter the 6-digit code</b>
+						</div>
+						<form onSubmit={verify} className="row">
+							<input
+								className={cn("input mono", err && "is-error")}
+								id="tfa-code"
+								inputMode="numeric"
+								autoComplete="one-time-code"
+								maxLength={6}
+								placeholder="000000"
+								style={{ width: 130, letterSpacing: ".2em", fontSize: 15 }}
+								value={code}
+								onChange={(e) => setCode(e.target.value)}
+								aria-label="6-digit code"
+								aria-invalid={!!err}
+								aria-describedby={err ? "tfa-err" : undefined}
+							/>
+							<button
+								type="submit"
+								className={cn("btn btn-primary", busy && "is-loading")}
+								disabled={busy}
+							>
+								Verify
+							</button>
+							<button
+								type="button"
+								className="btn btn-ghost"
+								onClick={() => setSetup(null)}
+							>
+								Cancel
+							</button>
+						</form>
+						{err && (
+							<span className="err" id="tfa-err" role="alert">
+								<span
+									className="icon-[solar--danger-circle-linear] size-3"
+									aria-hidden="true"
+								/>
+								{err}
+							</span>
+						)}
+					</div>
+				</div>
+			) : (
+				<div className="panel" style={{ padding: 18 }}>
+					<div className="row" style={{ gap: 14, alignItems: "flex-start" }}>
+						<span
+							className="ftype"
+							style={
+								{
+									"--c": "var(--q-amber)",
+									width: 36,
+									height: 36,
+								} as React.CSSProperties
+							}
+						>
+							<span
+								className="icon-[solar--shield-warning-linear] size-[18px]"
+								aria-hidden="true"
+							/>
+						</span>
+						<div className="grow">
+							<b>Two-factor authentication is off</b>
+							<p
+								className="muted"
+								style={{ margin: "4px 0 12px", fontSize: 13 }}
+							>
+								Protect your account with a code from an authenticator app in
+								addition to your passkey.
+							</p>
+							<button
+								type="button"
+								className={cn("btn btn-primary", busy && "is-loading")}
+								onClick={start}
+								disabled={busy}
+							>
+								Set up two-factor authentication
+							</button>
+						</div>
+					</div>
+					{codes && (
+						<div style={{ marginTop: 16 }}>
+							<RecoveryCodes codes={codes} />
+						</div>
+					)}
+				</div>
+			)}
+			<ConfirmModal
+				open={confirm}
+				onOpenChange={setConfirm}
+				title="Turn off two-factor authentication?"
+				body="You'll sign in with your passkey only. You need a passkey on your account to turn this off."
+				ok="Turn off"
+				danger
+				icon="icon-[solar--shield-cross-linear]"
+				onConfirm={async () => {
+					const { error } = await authClient.twoFactor.disable({});
+					if (error) {
+						toast.error("Couldn't turn it off", { desc: error.message });
+						throw new Error(error.message);
+					}
+					setCodes(null);
+					await router.invalidate();
+					toast.success("Two-factor authentication is off");
+				}}
+			/>
+		</>
+	);
+}

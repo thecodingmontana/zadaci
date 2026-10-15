@@ -22,6 +22,7 @@ import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor
 import { Route as AuthTwoFactorSetupRouteImport } from './routes/auth/two-factor/setup'
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
+import { Route as AuthedWSlugSettingsRouteImport } from './routes/_authed/w/$slug/settings'
 import { Route as AuthedWSlugPProjectIdRouteImport } from './routes/_authed/w/$slug/p.$projectId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -88,6 +89,11 @@ const AuthedWSlugSplatRoute = AuthedWSlugSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
+const AuthedWSlugSettingsRoute = AuthedWSlugSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
 const AuthedWSlugPProjectIdRoute = AuthedWSlugPProjectIdRouteImport.update({
   id: '/p/$projectId',
   path: '/p/$projectId',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
+  '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug/': typeof AuthedWSlugIndexRoute
   '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
 }
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/workspace': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
+  '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug': typeof AuthedWSlugIndexRoute
   '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
 }
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
+  '/_authed/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/_authed/w/$slug/': typeof AuthedWSlugIndexRoute
   '/_authed/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
 }
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/workspace/'
     | '/auth/two-factor/'
     | '/w/$slug/$'
+    | '/w/$slug/settings'
     | '/w/$slug/'
     | '/w/$slug/p/$projectId'
   fileRoutesByTo: FileRoutesByTo
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/workspace'
     | '/auth/two-factor'
     | '/w/$slug/$'
+    | '/w/$slug/settings'
     | '/w/$slug'
     | '/w/$slug/p/$projectId'
   id:
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/_authed/workspace/'
     | '/auth/two-factor/'
     | '/_authed/w/$slug/$'
+    | '/_authed/w/$slug/settings'
     | '/_authed/w/$slug/'
     | '/_authed/w/$slug/p/$projectId'
   fileRoutesById: FileRoutesById
@@ -291,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugSplatRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
+    '/_authed/w/$slug/settings': {
+      id: '/_authed/w/$slug/settings'
+      path: '/settings'
+      fullPath: '/w/$slug/settings'
+      preLoaderRoute: typeof AuthedWSlugSettingsRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
     '/_authed/w/$slug/p/$projectId': {
       id: '/_authed/w/$slug/p/$projectId'
       path: '/p/$projectId'
@@ -303,12 +322,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthedWSlugRouteChildren {
   AuthedWSlugSplatRoute: typeof AuthedWSlugSplatRoute
+  AuthedWSlugSettingsRoute: typeof AuthedWSlugSettingsRoute
   AuthedWSlugIndexRoute: typeof AuthedWSlugIndexRoute
   AuthedWSlugPProjectIdRoute: typeof AuthedWSlugPProjectIdRoute
 }
 
 const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugSplatRoute: AuthedWSlugSplatRoute,
+  AuthedWSlugSettingsRoute: AuthedWSlugSettingsRoute,
   AuthedWSlugIndexRoute: AuthedWSlugIndexRoute,
   AuthedWSlugPProjectIdRoute: AuthedWSlugPProjectIdRoute,
 }
