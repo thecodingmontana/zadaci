@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { NOINDEX } from "#/lib/seo";
 import { getSession } from "#/lib/session";
 
 export const Route = createFileRoute("/_authed")({
@@ -13,5 +14,6 @@ export const Route = createFileRoute("/_authed")({
 		if (!session.secured) throw redirect({ to: "/auth/two-factor/setup" });
 		return { user: session.user };
 	},
+	head: () => ({ meta: [NOINDEX] }),
 	component: Outlet,
 });

@@ -2,7 +2,10 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { BlueprintFrame } from "#/components/home/blueprint-frame";
 import { MultiplayerText } from "#/components/home/multiplayer-text";
 import { ArrowChip, Button } from "#/components/ui/button";
+import { SITE_DESCRIPTION, SITE_URL } from "#/lib/seo";
 import { getSession } from "#/lib/session";
+
+const TITLE = "Zadaci - Collaborative Task Management Platform";
 
 const PLAYERS = [
 	{ name: "Olive Bishop", color: "#3ecf8e" },
@@ -16,11 +19,37 @@ export const Route = createFileRoute("/")({
 	},
 	head: () => ({
 		meta: [
-			{ title: "Zadaci - Collaborative Task Management Platform" },
+			{ title: TITLE },
+			{ name: "description", content: SITE_DESCRIPTION },
+			{ property: "og:title", content: TITLE },
+			{ property: "og:url", content: `${SITE_URL}/` },
+		],
+		links: [{ rel: "canonical", href: `${SITE_URL}/` }],
+		scripts: [
 			{
-				name: "description",
-				content:
-					"Stay organized and collaborate seamlessly with Zadaci. The all-in-one project management platform built to get things done faster.",
+				type: "application/ld+json",
+				children: JSON.stringify({
+					"@context": "https://schema.org",
+					"@graph": [
+						{
+							"@type": "WebSite",
+							name: "Zadaci",
+							url: `${SITE_URL}/`,
+							description: SITE_DESCRIPTION,
+						},
+						{
+							"@type": "SoftwareApplication",
+							name: "Zadaci",
+							url: `${SITE_URL}/`,
+							description: SITE_DESCRIPTION,
+							applicationCategory: "BusinessApplication",
+							operatingSystem: "Web",
+							image: `${SITE_URL}/og.png`,
+							offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+							publisher: { "@type": "Organization", name: "Crow Studio" },
+						},
+					],
+				}),
 			},
 		],
 	}),

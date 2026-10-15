@@ -6,6 +6,7 @@ import { PasskeySignInButton } from "#/components/auth/passkey-buttons";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
 import { rememberNext, safePath } from "#/lib/next-path";
+import { NOINDEX } from "#/lib/seo";
 import { getSession } from "#/lib/session";
 import { toast } from "#/lib/toast";
 
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/auth/signin")({
 		const session = await getSession();
 		if (session) throw redirect({ to: "/workspace" });
 	},
-	head: () => ({ meta: [{ title: "Sign in - Zadaci" }] }),
+	head: () => ({ meta: [{ title: "Sign in - Zadaci" }, NOINDEX] }),
 	component: SignIn,
 });
 

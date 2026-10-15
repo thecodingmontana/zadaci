@@ -7,6 +7,7 @@ import { TotpInput } from "#/components/auth/totp-input";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
 import { takeNext } from "#/lib/next-path";
+import { NOINDEX } from "#/lib/seo";
 import { getSession } from "#/lib/session";
 import { toast } from "#/lib/toast";
 
@@ -16,7 +17,9 @@ export const Route = createFileRoute("/auth/two-factor/")({
 	beforeLoad: async () => {
 		if (await getSession()) throw redirect({ to: "/workspace" });
 	},
-	head: () => ({ meta: [{ title: "Two-step verification - Zadaci" }] }),
+	head: () => ({
+		meta: [{ title: "Two-step verification - Zadaci" }, NOINDEX],
+	}),
 	component: VerifyTwoFactor,
 });
 

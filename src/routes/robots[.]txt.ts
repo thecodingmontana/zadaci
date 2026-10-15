@@ -1,0 +1,25 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { SITE_URL } from "#/lib/seo";
+
+const ROBOTS = `User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /w/
+Disallow: /workspace
+Disallow: /onboarding
+Disallow: /join/
+
+Sitemap: ${SITE_URL}/sitemap.xml
+`;
+
+export const Route = createFileRoute("/robots.txt")({
+	server: {
+		handlers: {
+			GET: () =>
+				new Response(ROBOTS, {
+					headers: { "content-type": "text/plain; charset=utf-8" },
+				}),
+		},
+	},
+});

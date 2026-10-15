@@ -9,6 +9,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Toaster } from "#/components/toast/toaster";
 import { APPEARANCE_SCRIPT } from "#/lib/appearance";
+import { SITE_DESCRIPTION, SITE_URL } from "#/lib/seo";
 import appCss from "../styles.css?url";
 
 export const Route =
@@ -25,12 +26,45 @@ export const Route =
 				{
 					title: "Zadaci",
 				},
+				{ name: "description", content: SITE_DESCRIPTION },
+				{ name: "theme-color", content: "#F97452" },
+				{ property: "og:site_name", content: "Zadaci" },
+				{ property: "og:type", content: "website" },
+				{ property: "og:title", content: "Zadaci" },
+				{ property: "og:description", content: SITE_DESCRIPTION },
+				{ property: "og:image", content: `${SITE_URL}/og.png` },
+				{ property: "og:image:width", content: "1200" },
+				{ property: "og:image:height", content: "630" },
+				{
+					property: "og:image:alt",
+					content: "Zadaci - collaborative task management",
+				},
+				{ name: "twitter:card", content: "summary_large_image" },
 			],
 			links: [
 				{
 					rel: "stylesheet",
 					href: appCss,
 				},
+				{ rel: "icon", href: "/favicon.ico", sizes: "any" },
+				{
+					rel: "icon",
+					type: "image/png",
+					sizes: "32x32",
+					href: "/favicon-32x32.png",
+				},
+				{
+					rel: "icon",
+					type: "image/png",
+					sizes: "16x16",
+					href: "/favicon-16x16.png",
+				},
+				{
+					rel: "apple-touch-icon",
+					sizes: "180x180",
+					href: "/apple-touch-icon.png",
+				},
+				{ rel: "manifest", href: "/site.webmanifest" },
 			],
 		}),
 		shellComponent: RootDocument,
