@@ -10,7 +10,8 @@ import {
 	WORKSPACE_PROJECTS,
 } from "#/graphql/operations";
 import { PCOLORS } from "#/lib/onboarding";
-import { isAdmin, ROLE_LABEL } from "#/lib/preferences";
+import { can } from "#/lib/permissions";
+import { ROLE_LABEL } from "#/lib/preferences";
 import { cn } from "#/lib/utils";
 
 // Ported from the reference app's team page: projects and members of one team.
@@ -67,7 +68,10 @@ function TeamPage() {
 	const workspace = data.workspace;
 	const team = workspace?.teams.find((t) => t.id === teamId);
 	if (!workspace || !team) return null;
-	const canAdmin = isAdmin(workspace.role);
+	const canAdmin = can(workspace.role, "manageTeams");
+	const canInvite =
+		can(workspace.role, "inviteMembers") ||
+		can(workspace.role, "inviteGuests", workspace.settings);
 	const stats = statsData.workspace?.memberStats ?? [];
 	const members = workspace.members.filter((m) =>
 		stats.find((s) => s.memberId === m.id)?.teamIds.includes(team.id),
@@ -100,8 +104,8 @@ function TeamPage() {
 						</p>
 					</div>
 				</div>
-				{canAdmin && (
-					<div className="acts">
+				<div className="acts">
+					{canAdmin && (
 						<button
 							type="button"
 							className="btn btn-secondary"
@@ -113,6 +117,8 @@ function TeamPage() {
 							/>
 							Edit team
 						</button>
+					)}
+					{canInvite && (
 						<button
 							type="button"
 							className="btn btn-secondary"
@@ -124,8 +130,8 @@ function TeamPage() {
 							/>
 							Invite to workspace
 						</button>
-					</div>
-				)}
+					)}
+				</div>
 			</div>
 			<div className="grid2">
 				<section className="panel" style={{ alignSelf: "start" }}>
@@ -199,23 +205,23 @@ function TeamPage() {
 				</section>
 			</div>
 			{canAdmin && (
-				<>
-					<TeamModal
-						open={editing}
-						onOpenChange={setEditing}
-						slug={slug}
-						team={team}
-						members={workspace.members}
-						teams={workspace.teams}
-						stats={stats}
-					/>
-					<InviteModal
-						open={inviting}
-						onOpenChange={setInviting}
-						slug={slug}
-						workspace={workspace}
-					/>
-				</>
+				<TeamModal
+					open={editing}
+					onOpenChange={setEditing}
+					slug={slug}
+					team={team}
+					members={workspace.members}
+					teams={workspace.teams}
+					stats={stats}
+				/>
+			)}
+			{canInvite && (
+				<InviteModal
+					open={inviting}
+					onOpenChange={setInviting}
+					slug={slug}
+					workspace={workspace}
+				/>
 			)}
 		</div>
 	);

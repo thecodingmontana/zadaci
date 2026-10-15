@@ -18,9 +18,9 @@ import {
 	useAppearance,
 } from "#/lib/appearance";
 import { randomAvatars } from "#/lib/dicebear";
+import { can } from "#/lib/permissions";
 import {
 	DATE_FMTS,
-	isAdmin,
 	LANGS,
 	type Preferences,
 	TIME_FMTS,
@@ -57,7 +57,7 @@ export function usePrefs() {
 
 export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 	const navigate = useNavigate();
-	const canAdmin = isAdmin(workspace.role);
+	const canAdmin = can(workspace.role, "workspaceSettings");
 	const [name, setName] = useState(workspace.name);
 	const [url, setUrl] = useState(workspace.slug);
 	const [host, setHost] = useState("");
@@ -294,7 +294,7 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 					</div>
 				</SBlock>
 			</form>
-			{workspace.role === "owner" && (
+			{can(workspace.role, "deleteWorkspace") && (
 				<SBlock title="Danger zone" danger>
 					<SRow
 						t="Delete workspace"

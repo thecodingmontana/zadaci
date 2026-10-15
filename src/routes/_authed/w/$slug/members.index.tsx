@@ -13,6 +13,7 @@ import {
 	InviteModal,
 	MemberActions,
 	MemberRole,
+	PermissionsTable,
 	TeamsGrid,
 } from "#/components/settings/workspace-group";
 import { TeamAvatars } from "#/components/teams/team-avatars";
@@ -23,7 +24,8 @@ import {
 	SETTINGS,
 	type SettingsData,
 } from "#/graphql/operations";
-import { isAdmin, ROLE_LABEL } from "#/lib/preferences";
+import { can, ROLES } from "#/lib/permissions";
+import { ROLE_LABEL } from "#/lib/preferences";
 import { ago } from "#/lib/time";
 
 // Ported from the reference app's member directory (Members, Teams, Roles & permissions).
@@ -33,7 +35,6 @@ const TABS = [
 	["teams", "Teams"],
 	["roles", "Roles & permissions"],
 ] as const;
-const ROLES = ["owner", "moderator", "member"] as const;
 
 export const Route = createFileRoute("/_authed/w/$slug/members/")({
 	validateSearch: z.object({
@@ -70,7 +71,11 @@ function MembersPage() {
 	const [newTeam, setNewTeam] = useState(false);
 	const workspace = data.workspace;
 	if (!workspace) return null;
-	const canAdmin = isAdmin(workspace.role);
+	const canAdmin = can(workspace.role, "manageRoles");
+	const canInvite =
+		can(workspace.role, "inviteMembers") ||
+		can(workspace.role, "inviteGuests", workspace.settings);
+	const canTeams = can(workspace.role, "manageTeams");
 	const stats = statsData.workspace?.memberStats ?? [];
 	const teamMembers = (teamId: string) =>
 		workspace.members.filter((m) =>
@@ -87,7 +92,7 @@ function MembersPage() {
 						{workspace.invites.length} pending
 					</p>
 				</div>
-				{canAdmin && (
+				{canInvite && (
 					<div className="acts">
 						<button
 							type="button"
@@ -129,7 +134,7 @@ function MembersPage() {
 							{workspace.teams.length} teams
 						</span>
 						<span className="sp" />
-						{canAdmin && (
+						{canTeams && (
 							<button
 								type="button"
 								className="btn btn-secondary btn-sm"
@@ -150,7 +155,7 @@ function MembersPage() {
 					/>
 				</>
 			) : tab === "roles" ? (
-				<PermissionsTable permCreate={workspace.settings.permCreate} />
+				<PermissionsTable settings={workspace.settings} />
 			) : (
 				<MembersTable
 					slug={slug}
@@ -159,7 +164,7 @@ function MembersPage() {
 					canAdmin={canAdmin}
 				/>
 			)}
-			{canAdmin && (
+			{canTeams && (
 				<TeamModal
 					open={newTeam}
 					onOpenChange={setNewTeam}
@@ -169,7 +174,7 @@ function MembersPage() {
 					stats={stats}
 				/>
 			)}
-			{canAdmin && (
+			{canInvite && (
 				<InviteModal
 					open={inviting}
 					onOpenChange={setInviting}
@@ -360,7 +365,9 @@ function MembersTable({
 										</span>
 									</td>
 									<td style={{ whiteSpace: "nowrap" }}>
-										{canAdmin && <InviteActions slug={slug} id={i.id} />}
+										{can(workspace.role, "inviteMembers") && (
+											<InviteActions slug={slug} id={i.id} />
+										)}
 									</td>
 								</tr>
 							))}
@@ -380,59 +387,5 @@ function MembersTable({
 				)}
 			</div>
 		</>
-	);
-}
-
-/** What each role can do, matching the checks the server enforces. */
-function PermissionsTable({ permCreate }: { permCreate: boolean }) {
-	const rows: [string, boolean, boolean, boolean][] = [
-		["View projects & tasks", true, true, true],
-		["Comment on tasks", true, true, true],
-		["Create and edit tasks", true, true, true],
-		["Create projects", true, true, permCreate],
-		["Delete projects", true, true, false],
-		["Invite members", true, true, false],
-		["Manage roles", true, true, false],
-		["Workspace settings", true, true, false],
-		["Delete workspace", true, false, false],
-	];
-	return (
-		<div className="panel" style={{ overflowX: "auto" }}>
-			<table className="perm-t" style={{ minWidth: 560 }}>
-				<thead>
-					<tr>
-						<th style={{ paddingLeft: 14 }}>Permission</th>
-						{ROLES.map((r) => (
-							<th key={r}>{ROLE_LABEL[r]}</th>
-						))}
-					</tr>
-				</thead>
-				<tbody>
-					{rows.map(([label, ...allowed]) => (
-						<tr key={label}>
-							<td style={{ paddingLeft: 14 }}>{label}</td>
-							{allowed.map((ok, i) => (
-								<td key={ROLES[i]}>
-									{ok ? (
-										<span
-											className="icon-[hugeicons--tick-02] size-[15px]"
-											style={{ color: "var(--q-green)" }}
-											role="img"
-											aria-label="Allowed"
-										/>
-									) : (
-										<span
-											className="faint icon-[hugeicons--minus-sign] size-[15px]"
-											role="img"
-											aria-label="Not allowed"
-										/>
-									)}
-								</td>
-							))}
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
 	);
 }

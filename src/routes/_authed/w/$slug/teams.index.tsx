@@ -5,7 +5,7 @@ import { TeamsGrid } from "#/components/settings/workspace-group";
 import { TeamAvatars } from "#/components/teams/team-avatars";
 import { TeamModal } from "#/components/teams/team-modal";
 import { MEMBER_STATS, SETTINGS } from "#/graphql/operations";
-import { isAdmin } from "#/lib/preferences";
+import { can } from "#/lib/permissions";
 
 // Ported from the reference app's Teams page.
 
@@ -38,7 +38,7 @@ function TeamsPage() {
 	const [creating, setCreating] = useState(false);
 	const workspace = data.workspace;
 	if (!workspace) return null;
-	const canAdmin = isAdmin(workspace.role);
+	const canAdmin = can(workspace.role, "manageTeams");
 	const stats = statsData.workspace?.memberStats ?? [];
 	const newTeam = canAdmin && (
 		<button

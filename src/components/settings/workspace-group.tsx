@@ -27,7 +27,8 @@ import {
 	UPDATE_WORKSPACE,
 } from "#/graphql/operations";
 import { EMAIL_RE, PCOLORS } from "#/lib/onboarding";
-import { isAdmin, ROLE_LABEL } from "#/lib/preferences";
+import { can, PERMISSIONS, type Permission, ROLES } from "#/lib/permissions";
+import { ROLE_LABEL } from "#/lib/preferences";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import type { SectionProps } from "./general";
@@ -37,11 +38,12 @@ import { SBlock, Select, SettingsHeader, SRow, Toggle } from "./ui";
 const ROLE_HELP: Record<string, string> = {
 	moderator: "Manage members, settings, and all projects",
 	member: "Create projects and work on tasks",
+	guest: "Only sees projects they are invited to",
 };
 
 const MEMBER_REFETCH = { refetchQueries: ["Settings", "MemberStats"] };
 
-const ROLE_CHOICES = ["moderator", "member"] as const;
+const ROLE_CHOICES = ["moderator", "member", "guest"] as const;
 
 /** Changes a member's role with the toast the reference shows. */
 function useChangeRole(slug: string) {
@@ -51,7 +53,7 @@ function useChangeRole(slug: string) {
 		try {
 			await updateRole({ variables: { slug, memberId: m.id, role } });
 			toast.success(
-				`${m.name} is now ${role === "moderator" ? "an admin" : "a member"}`,
+				`${m.name} is now ${role === "moderator" ? "an admin" : `a ${ROLE_LABEL[role]?.toLowerCase()}`}`,
 			);
 		} catch (error) {
 			toast.error("Couldn't change the role", {
@@ -261,7 +263,10 @@ export function InviteActions({ slug, id }: { slug: string; id: string }) {
 }
 
 export function MembersSection({ slug, workspace, title }: SectionProps) {
-	const canAdmin = isAdmin(workspace.role);
+	const canAdmin = can(workspace.role, "manageRoles");
+	const canInvite =
+		can(workspace.role, "inviteMembers") ||
+		can(workspace.role, "inviteGuests", workspace.settings);
 	const [inviting, setInviting] = useState(false);
 	const people = workspace.members.length + workspace.invites.length;
 
@@ -272,7 +277,7 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 				lead={`${people} ${people === 1 ? "person has" : "people have"} access to ${workspace.name}.`}
 			/>
 			<div className="row" style={{ marginBottom: 12 }}>
-				{canAdmin && (
+				{canInvite && (
 					<button
 						type="button"
 						className="btn btn-primary"
@@ -328,7 +333,9 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 							</div>
 						</div>
 						<span className="badge amber">Invited</span>
-						{canAdmin && <InviteActions slug={slug} id={inv.id} />}
+						{can(workspace.role, "inviteMembers") && (
+							<InviteActions slug={slug} id={inv.id} />
+						)}
 					</div>
 				))}
 			</div>
@@ -354,11 +361,23 @@ export function InviteModal({
 	workspace: {
 		name: string;
 		inviteCode: string;
+		role: string;
+		settings?: { permCreate: boolean; permGuests: boolean };
 		teams: { id: string; name: string }[];
 	};
 }) {
+	// Admins invite anyone; members may only invite guests (when the workspace allows it).
+	const roles = (
+		can(workspace.role, "inviteMembers")
+			? [
+					["member", "Member"],
+					["moderator", "Admin"],
+					["guest", "Guest"],
+				]
+			: [["guest", "Guest"]]
+	) as [string, string][];
 	const [raw, setRaw] = useState("");
-	const [role, setRole] = useState("member");
+	const [role, setRole] = useState(roles[0]?.[0] ?? "guest");
 	const [teamId, setTeamId] = useState("");
 	const [err, setErr] = useState("");
 	const [invite, { loading }] = useMutation(INVITE_MEMBERS, MEMBER_REFETCH);
@@ -464,10 +483,7 @@ export function InviteModal({
 						<span className="label">Role</span>
 						<Select
 							value={role}
-							options={[
-								["member", "Member"],
-								["moderator", "Admin"],
-							]}
+							options={roles}
 							onChange={setRole}
 							label="Role"
 							className="w-full"
@@ -486,6 +502,16 @@ export function InviteModal({
 							className="w-full"
 						/>
 					</div>
+				</div>
+				<div className="alert info">
+					<span
+						className="i icon-[solar--info-circle-linear] size-3.5 shrink-0"
+						aria-hidden="true"
+					/>
+					<span>
+						<b>Guests</b> can only see projects they're added to and can't
+						create projects.
+					</span>
 				</div>
 			</form>
 		</Modal>
@@ -597,7 +623,9 @@ export function TeamsGrid({
 }
 
 export function ProjectsSection({ slug, workspace, title }: SectionProps) {
-	const canAdmin = isAdmin(workspace.role);
+	const canAdmin = can(workspace.role, "workspaceSettings");
+	const canEdit = can(workspace.role, "editProjects");
+	const canDelete = can(workspace.role, "deleteProjects");
 	const [deleting, setDeleting] = useState<{
 		id: string;
 		title: string;
@@ -672,25 +700,27 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 								<b style={{ fontWeight: 500 }}>{p.title}</b>
 							</div>
 							<div className="row">
-								<button
-									type="button"
-									className="btn btn-secondary btn-sm"
-									onClick={async () => {
-										try {
-											await archive({
-												variables: { slug, projectId: p.id, archived: false },
-											});
-											toast.success(`${p.title} restored`);
-										} catch (error) {
-											toast.error("Couldn't restore the project", {
-												desc: (error as Error).message,
-											});
-										}
-									}}
-								>
-									Restore
-								</button>
-								{canAdmin && (
+								{canEdit && (
+									<button
+										type="button"
+										className="btn btn-secondary btn-sm"
+										onClick={async () => {
+											try {
+												await archive({
+													variables: { slug, projectId: p.id, archived: false },
+												});
+												toast.success(`${p.title} restored`);
+											} catch (error) {
+												toast.error("Couldn't restore the project", {
+													desc: (error as Error).message,
+												});
+											}
+										}}
+									>
+										Restore
+									</button>
+								)}
+								{canDelete && (
 									<button
 										type="button"
 										className="btn btn-danger-ghost btn-sm"
@@ -748,24 +778,11 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 	);
 }
 
-// Role permissions (reference table minus Billing; our roles: Owner, Admin, Member).
-const PERMS: [string, number, number, number][] = [
-	["View projects & tasks", 1, 1, 1],
-	["Comment on tasks", 1, 1, 1],
-	["Create and edit tasks", 1, 1, 1],
-	["Create projects", 1, 1, 1],
-	["Invite members", 1, 1, 0],
-	["Manage roles", 1, 1, 0],
-	["Workspace settings", 1, 1, 0],
-	["Delete workspace", 1, 0, 0],
-];
-
 export function PermissionsSection({ slug, workspace, title }: SectionProps) {
-	const canAdmin = isAdmin(workspace.role);
+	const canAdmin = can(workspace.role, "workspaceSettings");
 	const [update] = useMutation(UPDATE_WORKSPACE, {
 		refetchQueries: ["Settings"],
 	});
-	const permCreate = workspace.settings.permCreate;
 	return (
 		<>
 			<SettingsHeader title={title} lead="Control what each role can do." />
@@ -806,65 +823,58 @@ export function PermissionsSection({ slug, workspace, title }: SectionProps) {
 			))}
 			<SBlock title="Role permissions">
 				<div style={{ marginTop: 12 }}>
-					<div className="panel" style={{ overflowX: "auto" }}>
-						<table className="perm-t" style={{ minWidth: 480 }}>
-							<thead>
-								<tr>
-									<th style={{ paddingLeft: 14 }}>Permission</th>
-									<th>Owner</th>
-									<th>Admin</th>
-									<th>Member</th>
-								</tr>
-							</thead>
-							<tbody>
-								{PERMS.map(([name, ...cols]) => {
-									const values =
-										name === "Create projects"
-											? [1, 1, permCreate ? 1 : 0]
-											: cols;
-									return (
-										<tr key={name}>
-											<td style={{ paddingLeft: 14 }}>{name}</td>
-											{values.map((v, i) => (
-												// biome-ignore lint/suspicious/noArrayIndexKey: fixed role columns
-												<td key={i}>
-													{v ? (
-														<span
-															style={{
-																color: "var(--q-green)",
-																display: "inline-flex",
-															}}
-															role="img"
-															aria-label="Allowed"
-														>
-															<span
-																className="icon-[hugeicons--tick-02] size-[15px]"
-																aria-hidden="true"
-															/>
-														</span>
-													) : (
-														<span
-															className="faint"
-															style={{ display: "inline-flex" }}
-															role="img"
-															aria-label="Not allowed"
-														>
-															<span
-																className="icon-[hugeicons--minus-sign] size-[15px]"
-																aria-hidden="true"
-															/>
-														</span>
-													)}
-												</td>
-											))}
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-					</div>
+					<PermissionsTable settings={workspace.settings} />
 				</div>
 			</SBlock>
 		</>
+	);
+}
+
+/** What each role can do, generated from the rules the server enforces. */
+export function PermissionsTable({
+	settings,
+}: {
+	settings: { permCreate: boolean; permGuests: boolean };
+}) {
+	return (
+		<div className="panel" style={{ overflowX: "auto" }}>
+			<table className="perm-t" style={{ minWidth: 560 }}>
+				<thead>
+					<tr>
+						<th style={{ paddingLeft: 14 }}>Permission</th>
+						{ROLES.map((r) => (
+							<th key={r}>{ROLE_LABEL[r]}</th>
+						))}
+					</tr>
+				</thead>
+				<tbody>
+					{(Object.keys(PERMISSIONS) as Permission[]).map((key) => (
+						<tr key={key}>
+							<td style={{ paddingLeft: 14 }}>{PERMISSIONS[key].label}</td>
+							{ROLES.map((r) =>
+								can(r, key, settings) ? (
+									<td key={r}>
+										<span
+											className="icon-[hugeicons--tick-02] size-[15px]"
+											style={{ color: "var(--q-green)" }}
+											role="img"
+											aria-label="Allowed"
+										/>
+									</td>
+								) : (
+									<td key={r}>
+										<span
+											className="faint icon-[hugeicons--minus-sign] size-[15px]"
+											role="img"
+											aria-label="Not allowed"
+										/>
+									</td>
+								),
+							)}
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
 	);
 }

@@ -23,7 +23,7 @@ import type {
 import { setAppearance, useAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
 import { PCOLORS } from "#/lib/onboarding";
-import { isAdmin } from "#/lib/preferences";
+import { can, type Permission } from "#/lib/permissions";
 import { cn } from "#/lib/utils";
 import { useCommandMenu, useModKey } from "./command-menu";
 import {
@@ -232,6 +232,7 @@ export function AppSidebar({
 }) {
 	const slug = workspace.slug;
 	const navigate = useNavigate();
+	const allowed = (p: Permission) => can(workspace.role, p, workspace.settings);
 	const isActive = useActive(slug);
 	const { collapsed, toggleSide } = useShell();
 	const { openPalette, openShortcuts } = useCommandMenu();
@@ -381,19 +382,21 @@ export function AppSidebar({
 					<div className="sgroup-h">
 						<span>Projects</span>
 						<span className="sp" />
-						<SideTip label="New project" always>
-							<Link
-								to="/w/$slug/$"
-								params={{ slug, _splat: "projects" }}
-								className="ibtn ibtn-xs"
-								aria-label="New project"
-							>
-								<span
-									className="icon-[hugeicons--plus-sign] size-3.5"
-									aria-hidden="true"
-								/>
-							</Link>
-						</SideTip>
+						{allowed("createProjects") && (
+							<SideTip label="New project" always>
+								<Link
+									to="/w/$slug/$"
+									params={{ slug, _splat: "projects" }}
+									className="ibtn ibtn-xs"
+									aria-label="New project"
+								>
+									<span
+										className="icon-[hugeicons--plus-sign] size-3.5"
+										aria-hidden="true"
+									/>
+								</Link>
+							</SideTip>
+						)}
 					</div>
 					{projects.map((p, index) => {
 						const base = `/w/${slug}/p/${p.id}`;
@@ -445,7 +448,7 @@ export function AppSidebar({
 											project={p}
 											index={index}
 											count={projects.length}
-											canDelete={isAdmin(workspace.role)}
+											allowed={allowed}
 										/>
 										<button
 											type="button"

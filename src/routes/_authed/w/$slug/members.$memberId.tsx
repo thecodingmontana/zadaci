@@ -13,7 +13,8 @@ import {
 	SETTINGS,
 } from "#/graphql/operations";
 import { PCOLORS } from "#/lib/onboarding";
-import { isAdmin, ROLE_LABEL } from "#/lib/preferences";
+import { can } from "#/lib/permissions";
+import { ROLE_LABEL } from "#/lib/preferences";
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -183,7 +184,7 @@ function MemberPage() {
 					<MemberActions
 						slug={slug}
 						m={m}
-						canAdmin={isAdmin(workspace.role)}
+						canAdmin={can(workspace.role, "manageRoles")}
 						openTasks={open.length}
 					/>
 				</div>

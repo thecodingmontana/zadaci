@@ -9,6 +9,8 @@ export type WorkspaceSummary = {
 	color?: string | null;
 	defaultView: string;
 	role: string;
+	/** permission toggles (Shell and Settings queries only) */
+	settings?: { permCreate: boolean; permGuests: boolean };
 };
 
 export const WORKSPACES: TypedDocumentNode<{ workspaces: WorkspaceSummary[] }> =
@@ -159,6 +161,7 @@ export const SHELL: TypedDocumentNode<
 			color
 			defaultView
 			role
+			settings
 			projects {
 				id
 				title

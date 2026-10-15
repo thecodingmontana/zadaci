@@ -19,6 +19,7 @@ import {
 	type ShellProject,
 	TOGGLE_FAVORITE,
 } from "#/graphql/operations";
+import type { Permission } from "#/lib/permissions";
 import { toast } from "#/lib/toast";
 
 // The project "…" menu, ported from the reference app's project context menu.
@@ -29,14 +30,15 @@ export function ProjectMenu({
 	project,
 	index,
 	count,
-	canDelete,
+	allowed,
 }: {
 	slug: string;
 	project: ShellProject;
 	index: number;
 	count: number;
-	canDelete: boolean;
+	allowed: (permission: Permission) => boolean;
 }) {
+	const canEdit = allowed("editProjects");
 	const navigate = useNavigate();
 	const [renaming, setRenaming] = useState(false);
 	const [title, setTitle] = useState(project.title);
@@ -104,15 +106,17 @@ export function ProjectMenu({
 					>
 						{project.isFavorite ? "Remove from favorites" : "Add to favorites"}
 					</MenuItem>
-					<MenuItem
-						icon="icon-[solar--pen-linear]"
-						onSelect={() => {
-							setTitle(project.title);
-							setRenaming(true);
-						}}
-					>
-						Rename & edit
-					</MenuItem>
+					{canEdit && (
+						<MenuItem
+							icon="icon-[solar--pen-linear]"
+							onSelect={() => {
+								setTitle(project.title);
+								setRenaming(true);
+							}}
+						>
+							Rename & edit
+						</MenuItem>
+					)}
 					<MenuItem
 						icon="icon-[solar--link-linear]"
 						onSelect={run(async () => {
@@ -124,17 +128,21 @@ export function ProjectMenu({
 					>
 						Copy link
 					</MenuItem>
-					<MenuItem
-						icon="icon-[solar--copy-linear]"
-						onSelect={run(async () => {
-							const { data } = await duplicate({ variables: vars });
-							toast.success(`Duplicated as “${data?.duplicateProject.title}”`);
-						}, "Couldn't duplicate the project")}
-					>
-						Duplicate
-					</MenuItem>
-					{count > 1 && <MenuSeparator />}
-					{index > 0 && (
+					{allowed("createProjects") && (
+						<MenuItem
+							icon="icon-[solar--copy-linear]"
+							onSelect={run(async () => {
+								const { data } = await duplicate({ variables: vars });
+								toast.success(
+									`Duplicated as “${data?.duplicateProject.title}”`,
+								);
+							}, "Couldn't duplicate the project")}
+						>
+							Duplicate
+						</MenuItem>
+					)}
+					{canEdit && count > 1 && <MenuSeparator />}
+					{canEdit && index > 0 && (
 						<MenuItem
 							icon="icon-[solar--arrow-up-linear]"
 							onSelect={run(
@@ -145,7 +153,7 @@ export function ProjectMenu({
 							Move up in sidebar
 						</MenuItem>
 					)}
-					{index < count - 1 && (
+					{canEdit && index < count - 1 && (
 						<MenuItem
 							icon="icon-[solar--arrow-down-linear]"
 							onSelect={run(
@@ -156,17 +164,19 @@ export function ProjectMenu({
 							Move down in sidebar
 						</MenuItem>
 					)}
-					<MenuSeparator />
-					<MenuItem
-						icon="icon-[solar--archive-linear]"
-						onSelect={run(async () => {
-							await archive({ variables: { ...vars, archived: true } });
-							toast.success(`${project.title} archived`);
-						}, "Couldn't archive the project")}
-					>
-						{project.status === "completed" ? "Archive" : "Archive project"}
-					</MenuItem>
-					{canDelete && (
+					{canEdit && <MenuSeparator />}
+					{canEdit && (
+						<MenuItem
+							icon="icon-[solar--archive-linear]"
+							onSelect={run(async () => {
+								await archive({ variables: { ...vars, archived: true } });
+								toast.success(`${project.title} archived`);
+							}, "Couldn't archive the project")}
+						>
+							{project.status === "completed" ? "Archive" : "Archive project"}
+						</MenuItem>
+					)}
+					{allowed("deleteProjects") && (
 						<MenuItem
 							icon="icon-[solar--trash-bin-minimalistic-linear]"
 							danger
