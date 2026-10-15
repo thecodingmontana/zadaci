@@ -1,46 +1,23 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
+import { Av } from "#/components/q/av";
 import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "#/components/ui/collapsible";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuShortcut,
-	DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu";
-import {
-	Sidebar,
-	SidebarContent,
-	SidebarFooter,
-	SidebarGroup,
-	SidebarGroupAction,
-	SidebarGroupContent,
-	SidebarGroupLabel,
-	SidebarHeader,
-	SidebarMenu,
-	SidebarMenuAction,
-	SidebarMenuButton,
-	SidebarMenuItem,
-	SidebarMenuSub,
-	SidebarMenuSubButton,
-	SidebarMenuSubItem,
-	SidebarRail,
-	useSidebar,
-} from "#/components/ui/sidebar";
+	Menu,
+	MenuContent,
+	MenuItem,
+	MenuLabel,
+	MenuSeparator,
+	MenuTrigger,
+} from "#/components/q/menu";
+import { WsLogo } from "#/components/q/ws-logo";
 import type {
 	ShellProject,
 	ShellTeam,
 	WorkspaceSummary,
 } from "#/graphql/operations";
+import { setAppearance, useAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
-import { toast } from "#/lib/toast";
+import { PCOLORS } from "#/lib/onboarding";
 import { cn } from "#/lib/utils";
 import { useCommandMenu, useModKey } from "./command-menu";
 import {
@@ -51,58 +28,30 @@ import {
 	SETTINGS_NAV,
 	WORKSPACE_NAV,
 } from "./nav";
+import { useShell } from "./shell-state";
+
+// Sidebar ported from the reference app's renderSidebar (shell.js) and shell.css.
 
 export type ShellUser = { name: string; email: string; image?: string | null };
 
-export function initials(name: string) {
-	return (
-		name
-			.split(/\s+/)
-			.filter(Boolean)
-			.slice(0, 2)
-			.map((word) => word[0]?.toUpperCase())
-			.join("") || "?"
-	);
-}
+const STATUS_DOT: Record<string, string> = {
+	idea: "var(--q-st-backlog)",
+	todo: "var(--q-st-todo)",
+	in_progress: "var(--q-st-progress)",
+	in_review: "var(--q-st-review)",
+	completed: "var(--q-st-done)",
+	abandoned: "var(--q-st-backlog)",
+};
+const STATUS_NAME: Record<string, string> = {
+	idea: "Idea",
+	todo: "To do",
+	in_progress: "In progress",
+	in_review: "In review",
+	completed: "Completed",
+	abandoned: "Abandoned",
+};
 
-export function WorkspaceLogo({
-	workspace,
-	className,
-}: {
-	workspace: Pick<WorkspaceSummary, "name" | "imageUrl">;
-	className?: string;
-}) {
-	return (
-		<Avatar className={cn("size-6 rounded-md", className)}>
-			{workspace.imageUrl && <AvatarImage src={workspace.imageUrl} alt="" />}
-			<AvatarFallback className="rounded-md bg-brand text-[10px] font-semibold text-white">
-				{initials(workspace.name)}
-			</AvatarFallback>
-		</Avatar>
-	);
-}
-
-export function UserAvatar({
-	user,
-	className,
-}: {
-	user: ShellUser;
-	className?: string;
-}) {
-	return (
-		<Avatar className={cn("size-6", className)}>
-			{user.image && (
-				<AvatarImage src={user.image} alt="" referrerPolicy="no-referrer" />
-			)}
-			<AvatarFallback className="bg-muted text-[10px] font-semibold">
-				{initials(user.name)}
-			</AvatarFallback>
-		</Avatar>
-	);
-}
-
-/** Active when the current path is this item's path or below it ("" = workspace home, exact only). */
-function useIsActive(slug: string) {
+function useActive(slug: string) {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	return (path: string) => {
 		const href = path ? `/w/${slug}/${path}` : `/w/${slug}`;
@@ -112,78 +61,123 @@ function useIsActive(slug: string) {
 	};
 }
 
-function NavLink({
+function SItem({
 	slug,
 	item,
-	active,
+	on,
 }: {
 	slug: string;
 	item: NavItem;
-	active: boolean;
+	on: boolean;
 }) {
-	return (
-		<SidebarMenuItem>
-			<SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-				{item.path ? (
-					<Link to="/w/$slug/$" params={{ slug, _splat: item.path }}>
-						<span className={cn(item.icon, "size-4")} aria-hidden="true" />
-						<span>{item.label}</span>
-					</Link>
-				) : (
-					<Link to="/w/$slug" params={{ slug }}>
-						<span className={cn(item.icon, "size-4")} aria-hidden="true" />
-						<span>{item.label}</span>
-					</Link>
-				)}
-			</SidebarMenuButton>
-		</SidebarMenuItem>
+	const { collapsed } = useShell();
+	const props = {
+		className: cn("sitem", on && "on"),
+		"aria-current": on ? ("page" as const) : undefined,
+		"data-tip": collapsed ? item.label : undefined,
+		"data-tip-pos": collapsed ? "right" : undefined,
+	};
+	const body = (
+		<>
+			<span className={cn(item.icon, "i size-4 shrink-0")} aria-hidden="true" />
+			<span className="trunc">{item.label}</span>
+		</>
+	);
+	if (item.path === "settings") {
+		return (
+			<Link to="/w/$slug/settings" params={{ slug }} {...props}>
+				{body}
+			</Link>
+		);
+	}
+	return item.path ? (
+		<Link to="/w/$slug/$" params={{ slug, _splat: item.path }} {...props}>
+			{body}
+		</Link>
+	) : (
+		<Link to="/w/$slug" params={{ slug }} {...props}>
+			{body}
+		</Link>
 	);
 }
 
-export function UserMenuItems({ user }: { user: ShellUser }) {
+export function UserMenuContent({
+	user,
+	slug,
+}: {
+	user: ShellUser;
+	slug: string;
+}) {
 	const navigate = useNavigate();
+	const { openShortcuts } = useCommandMenu();
+	const { theme } = useAppearance();
 	return (
-		<>
-			<DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
-				<span className="truncate font-medium">{user.name}</span>
-				<span className="truncate text-xs text-muted-foreground">
-					{user.email}
-				</span>
-			</DropdownMenuLabel>
-			<DropdownMenuSeparator />
-			<DropdownMenuItem
-				onSelect={async () => {
-					const { error } = await authClient.passkey.addPasskey();
-					if (!error) toast.success("Passkey added");
-					else if (
-						!(
-							"code" in error &&
-							["AUTH_CANCELLED", "ERROR_CEREMONY_ABORTED"].includes(error.code)
-						)
-					)
-						toast.error("Couldn't add a passkey", { desc: error.message });
-				}}
+		<MenuContent width={260} align="start">
+			<div className="row" style={{ padding: "8px 8px 10px", gap: 10 }}>
+				<Av name={user.name} image={user.image} className="lg" />
+				<div style={{ minWidth: 0 }}>
+					<div style={{ fontWeight: 600 }}>{user.name}</div>
+					<div className="faint trunc" style={{ fontSize: 12 }}>
+						{user.email}
+					</div>
+				</div>
+			</div>
+			<MenuSeparator />
+			<MenuItem
+				icon="icon-[solar--settings-linear]"
+				onSelect={() =>
+					navigate({
+						to: "/w/$slug/settings",
+						params: { slug },
+						search: { sec: "profile" },
+					})
+				}
 			>
-				<span
-					className="icon-[solar--key-minimalistic-linear] size-4"
-					aria-hidden="true"
-				/>
-				Add a passkey
-			</DropdownMenuItem>
-			<DropdownMenuSeparator />
-			<DropdownMenuItem
+				Account settings
+			</MenuItem>
+			<MenuSeparator />
+			<MenuLabel>Theme</MenuLabel>
+			<div style={{ padding: "2px 6px 6px" }}>
+				<div className="seg" style={{ width: "100%" }}>
+					{(
+						[
+							["light", "icon-[solar--sun-2-linear]", "Light"],
+							["dark", "icon-[solar--moon-linear]", "Dark"],
+							["system", "icon-[solar--monitor-linear]", "System"],
+						] as const
+					).map(([k, icon, n]) => (
+						<button
+							key={k}
+							type="button"
+							className={theme === k ? "on" : ""}
+							aria-pressed={theme === k}
+							style={{ flex: 1, justifyContent: "center" }}
+							onClick={() => setAppearance({ theme: k })}
+						>
+							<span className={cn(icon, "size-[13px]")} aria-hidden="true" />
+							{n}
+						</button>
+					))}
+				</div>
+			</div>
+			<MenuSeparator />
+			<MenuItem
+				icon="icon-[solar--keyboard-linear]"
+				onSelect={openShortcuts}
+				r={<kbd>?</kbd>}
+			>
+				Keyboard shortcuts
+			</MenuItem>
+			<MenuItem
+				icon="icon-[solar--logout-2-linear]"
 				onSelect={async () => {
 					await authClient.signOut();
 					navigate({ to: "/auth/signin" });
 				}}
 			>
-				<span
-					className="icon-[solar--logout-2-linear] size-4"
-					aria-hidden="true"
-				/>
 				Sign out
-			</DropdownMenuItem>
-		</>
+			</MenuItem>
+		</MenuContent>
 	);
 }
 
@@ -201,330 +195,329 @@ export function AppSidebar({
 	user: ShellUser;
 }) {
 	const slug = workspace.slug;
-	const isActive = useIsActive(slug);
-	const { isMobile } = useSidebar();
+	const navigate = useNavigate();
+	const isActive = useActive(slug);
+	const { collapsed, toggleSide } = useShell();
+	const { openPalette, openShortcuts } = useCommandMenu();
+	const mod = useModKey();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
 	return (
-		<Sidebar collapsible="icon" aria-label="Main">
-			<SidebarHeader>
-				<SidebarMenu>
-					<SidebarMenuItem>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<SidebarMenuButton
-									className="font-medium"
-									aria-label="Switch workspace"
+		<nav className="side" aria-label="Main">
+			<div className="side-top">
+				<div className="row" style={{ gap: 2 }}>
+					<Menu>
+						<MenuTrigger className="ws grow" aria-label="Switch workspace">
+							<WsLogo workspace={workspace} px={22} />
+							<span className="ws-name trunc">{workspace.name}</span>
+							<span
+								className="chev-d faint icon-[solar--sort-vertical-linear] size-[13px] shrink-0"
+								aria-hidden="true"
+							/>
+						</MenuTrigger>
+						<MenuContent width={260} align="start">
+							<MenuLabel>Workspaces</MenuLabel>
+							{workspaces.map((w) => (
+								<MenuItem
+									key={w.id}
+									checked={w.id === workspace.id}
+									onSelect={() =>
+										navigate({ to: "/w/$slug", params: { slug: w.slug } })
+									}
 								>
-									<WorkspaceLogo workspace={workspace} className="-ml-1" />
-									<span className="truncate">{workspace.name}</span>
-									<span
-										className="ml-auto icon-[solar--sort-vertical-linear] size-3.5 text-muted-foreground"
-										aria-hidden="true"
-									/>
-								</SidebarMenuButton>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								align="start"
-								side={isMobile ? "bottom" : "right"}
-								className="w-60"
+									<WsLogo workspace={w} px={20} />
+									<span className="grow trunc">{w.name}</span>
+									<span className="faint" style={{ fontSize: 11 }}>
+										{w.role === "moderator"
+											? "Admin"
+											: `${w.role[0]?.toUpperCase()}${w.role.slice(1)}`}
+									</span>
+								</MenuItem>
+							))}
+							<MenuSeparator />
+							<MenuItem
+								icon="icon-[hugeicons--plus-sign]"
+								onSelect={() => navigate({ to: "/onboarding" })}
 							>
-								<DropdownMenuLabel className="text-xs text-muted-foreground">
-									Workspaces
-								</DropdownMenuLabel>
-								{workspaces.map((w) => (
-									<DropdownMenuItem key={w.id} asChild>
-										<Link to="/w/$slug" params={{ slug: w.slug }}>
-											<WorkspaceLogo workspace={w} className="size-5" />
-											<span className="truncate">{w.name}</span>
-											{w.id === workspace.id && (
-												<>
-													<span
-														className="ml-auto icon-[hugeicons--tick-02] size-4"
-														aria-hidden="true"
-													/>
-													<span className="sr-only">(current)</span>
-												</>
-											)}
-										</Link>
-									</DropdownMenuItem>
-								))}
-								<DropdownMenuSeparator />
-								<DropdownMenuItem asChild>
-									<Link to="/onboarding">
-										<span
-											className="icon-[solar--add-square-linear] size-4"
-											aria-hidden="true"
-										/>
-										Create workspace
-									</Link>
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</SidebarMenuItem>
-				</SidebarMenu>
-			</SidebarHeader>
-
-			<SidebarContent>
-				<SidebarGroup>
-					<SidebarMenu>
-						{MAIN_NAV.map((item) => (
-							<NavLink
-								key={item.path}
-								slug={slug}
-								item={item}
-								active={isActive(item.path)}
+								Create workspace
+							</MenuItem>
+							<MenuItem
+								icon="icon-[solar--settings-linear]"
+								onSelect={() =>
+									navigate({
+										to: "/w/$slug/settings",
+										params: { slug },
+										search: { sec: "workspace" },
+									})
+								}
+							>
+								Workspace settings
+							</MenuItem>
+							<MenuItem
+								icon="icon-[solar--user-plus-linear]"
+								onSelect={() =>
+									navigate({
+										to: "/w/$slug/settings",
+										params: { slug },
+										search: { sec: "members" },
+									})
+								}
+							>
+								Invite members
+							</MenuItem>
+							<MenuSeparator />
+							<MenuItem
+								icon="icon-[solar--logout-2-linear]"
+								onSelect={async () => {
+									await authClient.signOut();
+									navigate({ to: "/auth/signin" });
+								}}
+							>
+								Sign out
+							</MenuItem>
+						</MenuContent>
+					</Menu>
+					{!collapsed && (
+						<button
+							type="button"
+							className="ibtn ibtn-sm hide-m"
+							onClick={toggleSide}
+							data-tip="Collapse sidebar  ["
+							aria-label="Collapse sidebar"
+						>
+							<span
+								className="icon-[solar--sidebar-minimalistic-linear] size-[15px]"
+								aria-hidden="true"
 							/>
-						))}
-					</SidebarMenu>
-				</SidebarGroup>
+						</button>
+					)}
+				</div>
+			</div>
 
-				<SidebarGroup>
-					<SidebarGroupLabel>Workspace</SidebarGroupLabel>
-					<SidebarMenu>
-						{WORKSPACE_NAV.map((item) => (
-							<NavLink
-								key={item.path}
-								slug={slug}
-								item={item}
-								active={isActive(item.path)}
-							/>
-						))}
-					</SidebarMenu>
-				</SidebarGroup>
+			<div className="side-scroll">
+				{collapsed && (
+					<button
+						type="button"
+						className="sitem"
+						onClick={toggleSide}
+						data-tip="Expand sidebar"
+						data-tip-pos="right"
+						aria-label="Expand sidebar"
+					>
+						<span
+							className="i icon-[solar--sidebar-minimalistic-linear] size-4"
+							aria-hidden="true"
+						/>
+					</button>
+				)}
+				{MAIN_NAV.map((item) => (
+					<SItem
+						key={item.path}
+						slug={slug}
+						item={item}
+						on={isActive(item.path)}
+					/>
+				))}
 
-				<SidebarGroup>
-					<SidebarGroupLabel>Projects</SidebarGroupLabel>
-					<SidebarGroupAction asChild title="New project">
+				<div className="sgroup">
+					<div className="sgroup-h">Workspace</div>
+					{WORKSPACE_NAV.map((item) => (
+						<SItem
+							key={item.path}
+							slug={slug}
+							item={item}
+							on={isActive(item.path)}
+						/>
+					))}
+				</div>
+
+				<div className="sgroup" id="side-projects">
+					<div className="sgroup-h">
+						<span>Projects</span>
+						<span className="sp" />
 						<Link
 							to="/w/$slug/$"
 							params={{ slug, _splat: "projects" }}
+							className="ibtn ibtn-xs"
+							data-tip="New project"
 							aria-label="New project"
 						>
 							<span
-								className="icon-[hugeicons--plus-sign] size-4"
+								className="icon-[hugeicons--plus-sign] size-3.5"
 								aria-hidden="true"
 							/>
 						</Link>
-					</SidebarGroupAction>
-					<SidebarGroupContent>
-						<SidebarMenu>
-							{projects.map((project) => {
-								const base = `/w/${slug}/p/${project.id}`;
-								const inProject =
-									pathname === base || pathname.startsWith(`${base}/`);
-								const open = expanded[project.id] ?? inProject;
-								return (
-									<Collapsible
-										key={project.id}
-										asChild
-										open={open}
-										onOpenChange={(value) =>
-											setExpanded((x) => ({ ...x, [project.id]: value }))
-										}
+					</div>
+					{projects.map((p) => {
+						const base = `/w/${slug}/p/${p.id}`;
+						const on = pathname === base || pathname.startsWith(`${base}/`);
+						const open = expanded[p.id] ?? false;
+						const color = PCOLORS[p.color ?? ""] ?? PCOLORS.indigo;
+						return (
+							<div key={p.id} className="sproj">
+								<div className={cn("sitem", on && "on")}>
+									<Link
+										to="/w/$slug/p/$projectId"
+										params={{ slug, projectId: p.id }}
+										className="row grow"
+										style={{ gap: 9, height: "100%" }}
+										aria-current={on ? "page" : undefined}
+										data-tip={collapsed ? p.title : undefined}
+										data-tip-pos={collapsed ? "right" : undefined}
 									>
-										<SidebarMenuItem>
-											<SidebarMenuButton
-												asChild
-												isActive={inProject}
-												tooltip={project.title}
-											>
-												<Link
-													to="/w/$slug/p/$projectId"
-													params={{ slug, projectId: project.id }}
-												>
-													<span
-														className={cn(
-															project.icon ?? "icon-[solar--folder-linear]",
-															"size-4 text-brand",
-														)}
-														aria-hidden="true"
-													/>
-													<span className="truncate">{project.title}</span>
-												</Link>
-											</SidebarMenuButton>
-											<CollapsibleTrigger asChild>
-												<SidebarMenuAction
-													className="transition-transform duration-150 data-[state=open]:rotate-90"
-													aria-label={`${open ? "Collapse" : "Expand"} ${project.title}`}
-												>
-													<span
-														className="icon-[solar--alt-arrow-right-linear] size-3.5"
-														aria-hidden="true"
-													/>
-												</SidebarMenuAction>
-											</CollapsibleTrigger>
-											<CollapsibleContent>
-												<SidebarMenuSub>
-													{PROJECT_TABS.map(({ tab, label, icon }) => (
-														<SidebarMenuSubItem key={tab}>
-															<SidebarMenuSubButton asChild>
-																<Link
-																	to="/w/$slug/p/$projectId"
-																	params={{ slug, projectId: project.id }}
-																	search={{ tab }}
-																	activeOptions={{ includeSearch: true }}
-																	activeProps={{ "data-active": true }}
-																>
-																	<span
-																		className={cn(icon, "size-3.5")}
-																		aria-hidden="true"
-																	/>
-																	<span>{label}</span>
-																</Link>
-															</SidebarMenuSubButton>
-														</SidebarMenuSubItem>
-													))}
-												</SidebarMenuSub>
-											</CollapsibleContent>
-										</SidebarMenuItem>
-									</Collapsible>
-								);
-							})}
-							<NavLink
-								slug={slug}
-								item={ARCHIVE_NAV}
-								active={isActive(ARCHIVE_NAV.path)}
-							/>
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
-
-				<SidebarGroup>
-					<SidebarGroupLabel>Teams</SidebarGroupLabel>
-					<SidebarGroupAction asChild title="New team">
-						<Link
-							to="/w/$slug/$"
-							params={{ slug, _splat: "teams" }}
-							aria-label="New team"
-						>
-							<span
-								className="icon-[hugeicons--plus-sign] size-4"
-								aria-hidden="true"
-							/>
-						</Link>
-					</SidebarGroupAction>
-					<SidebarGroupContent>
-						<SidebarMenu>
-							{teams.length === 0 && (
-								<p className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-									No teams yet
-								</p>
-							)}
-							{teams.map((team) => (
-								<SidebarMenuItem key={team.id}>
-									<SidebarMenuButton
-										asChild
-										isActive={isActive(`teams/${team.id}`)}
-										tooltip={team.name}
-									>
-										<Link
-											to="/w/$slug/$"
-											params={{ slug, _splat: `teams/${team.id}` }}
+										<span
+											className="pico"
+											style={{ "--c": color } as React.CSSProperties}
 										>
 											<span
-												className="size-2.5 rounded-full bg-muted-foreground"
-												style={
-													team.color
-														? { backgroundColor: team.color }
-														: undefined
-												}
+												className={cn(
+													p.icon ?? "icon-[solar--folder-linear]",
+													"i size-3",
+												)}
 												aria-hidden="true"
 											/>
-											<span className="truncate">{team.name}</span>
-										</Link>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
-			</SidebarContent>
-
-			<SidebarFooter>
-				<SidebarMenu>
-					<HelpMenu />
-					<NavLink
-						slug={slug}
-						item={SETTINGS_NAV}
-						active={isActive(SETTINGS_NAV.path)}
-					/>
-					<SidebarMenuItem>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<SidebarMenuButton size="lg" aria-label="Account menu">
-									<UserAvatar user={user} className="size-7" />
-									<span className="flex min-w-0 flex-col text-left leading-tight">
-										<span className="truncate font-medium">{user.name}</span>
-										<span className="truncate text-xs text-muted-foreground">
-											{user.email}
 										</span>
-									</span>
+										<span className="trunc">{p.title}</span>
+									</Link>
 									<span
-										className="ml-auto icon-[solar--sort-vertical-linear] size-3.5 text-muted-foreground"
-										aria-hidden="true"
+										className="sdot"
+										style={{ background: STATUS_DOT[p.status] }}
+										title={STATUS_NAME[p.status]}
 									/>
-								</SidebarMenuButton>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								align="end"
-								side={isMobile ? "top" : "right"}
-								className="w-60"
-							>
-								<UserMenuItems user={user} />
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</SidebarMenuItem>
-				</SidebarMenu>
-			</SidebarFooter>
-			<SidebarRail />
-		</Sidebar>
-	);
-}
+									<span className="hov">
+										<button
+											type="button"
+											className="ibtn ibtn-xs"
+											aria-label={
+												open ? `Collapse ${p.title}` : `Expand ${p.title}`
+											}
+											aria-expanded={open}
+											onClick={() => {
+												setExpanded((x) => ({ ...x, [p.id]: !open }));
+											}}
+										>
+											<span
+												className={cn(
+													"chev icon-[solar--alt-arrow-right-linear] size-[13px]",
+													open && "open",
+												)}
+												aria-hidden="true"
+											/>
+										</button>
+									</span>
+								</div>
+								<div className={cn("sub", open && !collapsed && "open")}>
+									{PROJECT_TABS.map(({ tab, label, icon }) => (
+										<Link
+											key={tab}
+											to="/w/$slug/p/$projectId"
+											params={{ slug, projectId: p.id }}
+											search={{ tab }}
+											activeOptions={{ includeSearch: true }}
+											activeProps={{ className: "on" }}
+											className="sitem"
+										>
+											<span
+												className={cn(icon, "i size-3.5 shrink-0")}
+												aria-hidden="true"
+											/>
+											<span>{label}</span>
+										</Link>
+									))}
+								</div>
+							</div>
+						);
+					})}
+					<SItem
+						slug={slug}
+						item={ARCHIVE_NAV}
+						on={isActive(ARCHIVE_NAV.path)}
+					/>
+				</div>
 
-function HelpMenu() {
-	const { openPalette, openShortcuts } = useCommandMenu();
-	const { isMobile } = useSidebar();
-	const mod = useModKey();
-	return (
-		<SidebarMenuItem>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<SidebarMenuButton tooltip="Help & resources">
+				{teams.length > 0 && (
+					<div className="sgroup">
+						<div className="sgroup-h">
+							<span>Teams</span>
+						</div>
+						{teams.map((t) => (
+							<SItem
+								key={t.id}
+								slug={slug}
+								item={{
+									path: `teams/${t.id}`,
+									label: t.name,
+									icon: t.icon ?? "icon-[solar--users-group-rounded-linear]",
+								}}
+								on={isActive(`teams/${t.id}`)}
+							/>
+						))}
+					</div>
+				)}
+			</div>
+
+			<div className="side-bot">
+				<Menu>
+					<MenuTrigger
+						className="sitem"
+						data-tip={collapsed ? "Help" : undefined}
+						data-tip-pos={collapsed ? "right" : undefined}
+					>
 						<span
-							className="icon-[solar--question-circle-linear] size-4"
+							className="i icon-[solar--question-circle-linear] size-4 shrink-0"
 							aria-hidden="true"
 						/>
 						<span>Help & resources</span>
-					</SidebarMenuButton>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent
-					align="end"
-					side={isMobile ? "top" : "right"}
-					className="w-60"
-				>
-					<DropdownMenuLabel className="text-xs text-muted-foreground">
-						Help & resources
-					</DropdownMenuLabel>
-					<DropdownMenuItem onSelect={openShortcuts}>
+					</MenuTrigger>
+					<MenuContent width={260} align="start">
+						<MenuLabel>Help & resources</MenuLabel>
+						<MenuItem
+							icon="icon-[solar--keyboard-linear]"
+							onSelect={openShortcuts}
+							r={<kbd>?</kbd>}
+						>
+							Keyboard shortcuts
+						</MenuItem>
+						<MenuItem
+							icon="icon-[solar--command-linear]"
+							onSelect={openPalette}
+							r={<kbd>{mod}K</kbd>}
+						>
+							Command menu
+						</MenuItem>
+					</MenuContent>
+				</Menu>
+				<SItem
+					slug={slug}
+					item={SETTINGS_NAV}
+					on={isActive(SETTINGS_NAV.path)}
+				/>
+				<Menu>
+					<MenuTrigger
+						className="sitem"
+						style={{ height: 36 }}
+						data-tip={collapsed ? "Profile" : undefined}
+						data-tip-pos={collapsed ? "right" : undefined}
+						aria-label="Account menu"
+					>
+						<Av name={user.name} image={user.image} />
 						<span
-							className="icon-[solar--keyboard-linear] size-4"
-							aria-hidden="true"
-						/>
-						Keyboard shortcuts
-						<DropdownMenuShortcut>?</DropdownMenuShortcut>
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={openPalette}>
-						<span
-							className="icon-[solar--command-linear] size-4"
-							aria-hidden="true"
-						/>
-						Command menu
-						<DropdownMenuShortcut>{mod} K</DropdownMenuShortcut>
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</SidebarMenuItem>
+							className="trunc"
+							style={{ color: "var(--q-text)", fontWeight: 500 }}
+						>
+							{user.name}
+						</span>
+						<span className="ct">
+							<span
+								className="icon-[solar--sort-vertical-linear] size-[13px]"
+								aria-hidden="true"
+							/>
+						</span>
+					</MenuTrigger>
+					<UserMenuContent user={user} slug={slug} />
+				</Menu>
+			</div>
+		</nav>
 	);
 }

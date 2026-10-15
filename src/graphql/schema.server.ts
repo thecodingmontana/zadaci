@@ -54,6 +54,7 @@ const typeDefs = /* GraphQL */ `
 		description: String
 		icon: String
 		color: String
+		status: String!
 		tasks: [Task!]!
 	}
 

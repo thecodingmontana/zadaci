@@ -14,7 +14,7 @@ import {
 import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";
 import { StatusIcon } from "#/components/q/status-icon";
-import { useSidebar } from "#/components/ui/sidebar";
+import { WsLogo } from "#/components/q/ws-logo";
 import { ZadaciLogo } from "#/components/zadaci-logo";
 import {
 	SEARCH,
@@ -25,7 +25,7 @@ import { isDark, setAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
 import { PCOLORS } from "#/lib/onboarding";
 import { cn } from "#/lib/utils";
-import { WorkspaceLogo } from "./app-sidebar";
+import { useShell } from "./shell-state";
 
 // Command palette ported from the reference app: three modes (commands, search, workspace switch),
 // Tab toggles search mode, Backspace on an empty query returns to commands.
@@ -114,7 +114,7 @@ function isTyping(target: EventTarget | null) {
 	);
 }
 
-const SHORTCUTS: [string, [string, string[]][]][] = [
+export const SHORTCUTS: [string, [string, string[]][]][] = [
 	[
 		"General",
 		[
@@ -171,7 +171,7 @@ export function CommandMenuProvider({
 }) {
 	const navigate = useNavigate();
 	const mod = useModKey();
-	const { toggleSidebar } = useSidebar();
+	const { toggleSide: toggleSidebar } = useShell();
 	const [pal, setPal] = useState<Palette | null>(null);
 	const [shortcuts, setShortcuts] = useState(false);
 	const gPending = useRef(0);
@@ -471,7 +471,7 @@ function PaletteDialog({
 					.filter((w) => !ql || w.name.toLowerCase().includes(ql))
 					.map((w) => ({
 						id: `ws-${w.id}`,
-						node: <WorkspaceLogo workspace={w} className="size-5" />,
+						node: <WsLogo workspace={w} px={20} />,
 						name: w.name,
 						sub: `${w.role[0]?.toUpperCase()}${w.role.slice(1)}${w.slug === slug ? " · Current" : ""}`,
 						run: () => onWorkspace(w.slug),

@@ -2,10 +2,11 @@ import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
 import { AppSidebar } from "#/components/shell/app-sidebar";
 import { CommandMenuProvider } from "#/components/shell/command-menu";
+import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
-import { SidebarInset, SidebarProvider } from "#/components/ui/sidebar";
 import { SHELL } from "#/graphql/operations";
 import { getSidebarOpen } from "#/lib/session";
+import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/_authed/w/$slug")({
 	loader: async ({ context, params }) => {
@@ -24,26 +25,35 @@ export const Route = createFileRoute("/_authed/w/$slug")({
 });
 
 function WorkspaceShell() {
+	const { sidebarOpen } = Route.useLoaderData();
+	return (
+		<ShellProvider defaultCollapsed={!sidebarOpen}>
+			<ShellLayout />
+		</ShellProvider>
+	);
+}
+
+// Layout ported from the reference app's renderShell (shell.js).
+function ShellLayout() {
 	const { slug } = Route.useParams();
 	const { user } = Route.useRouteContext();
-	const { sidebarOpen } = Route.useLoaderData();
+	const { collapsed, mnav, setMnav } = useShell();
 	const { data } = useSuspenseQuery(SHELL, { variables: { slug } });
 	const workspace = data.workspace;
 	if (!workspace) return null;
 
 	return (
-		<SidebarProvider defaultOpen={sidebarOpen}>
-			<CommandMenuProvider
-				slug={slug}
-				workspaces={data.workspaces}
-				projects={workspace.projects}
+		<CommandMenuProvider
+			slug={slug}
+			workspaces={data.workspaces}
+			projects={workspace.projects}
+		>
+			<a href="#main-content" className="skip">
+				Skip to content
+			</a>
+			<div
+				className={cn("shell h-dvh", collapsed && "collapsed", mnav && "mnav")}
 			>
-				<a
-					href="#main-content"
-					className="sr-only z-50 rounded-md bg-background px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
-				>
-					Skip to content
-				</a>
 				<AppSidebar
 					workspace={workspace}
 					workspaces={data.workspaces}
@@ -51,23 +61,26 @@ function WorkspaceShell() {
 					teams={workspace.teams}
 					user={user}
 				/>
-				<SidebarInset>
+				{mnav && (
+					<div
+						className="side-scrim"
+						onClick={() => setMnav(false)}
+						aria-hidden="true"
+					/>
+				)}
+				<main className="main" id="main">
 					<Topbar
 						slug={slug}
 						projects={workspace.projects}
 						teams={workspace.teams}
 						user={user}
 					/>
-					<div
-						id="main-content"
-						tabIndex={-1}
-						className="flex flex-1 flex-col outline-none max-md:pb-14"
-					>
+					<div className="content" id="main-content" tabIndex={-1}>
 						<Outlet />
 					</div>
-				</SidebarInset>
+				</main>
 				<BottomNav slug={slug} />
-			</CommandMenuProvider>
-		</SidebarProvider>
+			</div>
+		</CommandMenuProvider>
 	);
 }
