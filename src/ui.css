@@ -3341,5 +3341,5 @@ h3.sub {
 }
 /* a little air between settings nav items */
 .set-nav .sitem + .sitem {
-  margin-top: 2px;
+  margin-top: 4px;
 }
