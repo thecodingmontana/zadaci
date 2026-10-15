@@ -429,10 +429,22 @@ export const settingsResolvers = {
 			if (emails.length > 50) badInput("Invite up to 50 people at a time");
 			const bad = emails.find((e) => !EMAIL_RE.test(e));
 			if (bad) badInput(`${bad} isn't a valid email address`);
-			const members = new Set(
+			const taken = new Set(
 				(await memberRows(workspace.id)).map((m) => m.email.toLowerCase()),
 			);
-			const fresh = emails.filter((e) => !members.has(e));
+			// Skip people already in the workspace or already waiting on an invite.
+			const pending = await db
+				.select({ email: tables.workspace_invite_request.email })
+				.from(tables.workspace_invite_request)
+				.where(
+					and(
+						eq(tables.workspace_invite_request.workspace_id, workspace.id),
+						eq(tables.workspace_invite_request.status, "PENDING"),
+						isNull(tables.workspace_invite_request.deleted_at),
+					),
+				);
+			for (const p of pending) taken.add(p.email.toLowerCase());
+			const fresh = emails.filter((e) => !taken.has(e));
 			if (!fresh.length) return [];
 			return db
 				.insert(tables.workspace_invite_request)

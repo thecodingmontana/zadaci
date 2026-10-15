@@ -82,3 +82,13 @@ test("joining twice at the same moment creates one membership", async () => {
 	const ws = await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id } } }`, { s: slug });
 	assert.equal(ws.data?.workspace.members.length, 2);
 });
+
+test("inviting the same email twice keeps one pending invite", async () => {
+	const owner = await makeUser("owner");
+	const { slug } = await makeWorkspace(owner);
+	const INVITE = `mutation($s: String!) { inviteMembers(slug: $s, emails: ["Pat@Acme.dev"], role: "member") { id } }`;
+	await gql(owner, INVITE, { s: slug });
+	await gql(owner, INVITE, { s: slug });
+	const ws = await gql(owner, `query($s: String!) { workspace(slug: $s) { invites { email } } }`, { s: slug });
+	assert.deepEqual(ws.data?.workspace.invites, [{ email: "pat@acme.dev" }]);
+});
