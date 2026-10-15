@@ -4,6 +4,7 @@ import { GraphQLError, GraphQLScalarType } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { USER_ROLE } from "#/db/enums";
+import { isDicebearUrl } from "#/lib/dicebear";
 import { requireEnv } from "#/lib/env";
 import { EMAIL_RE } from "#/lib/onboarding";
 import {
@@ -391,10 +392,11 @@ export const settingsResolvers = {
 			ctx: GraphQLContext,
 		) => {
 			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN);
-			// Only accept images we signed for this workspace.
+			// Only accept images we signed for this workspace, or a generated DiceBear avatar.
 			const allowed = `https://res.cloudinary.com/${cloudinary().cloud}/image/upload/`;
 			if (
 				args.imageUrl !== null &&
+				!isDicebearUrl(args.imageUrl) &&
 				!(
 					args.imageUrl.startsWith(allowed) &&
 					args.imageUrl.includes(`/zadaci/workspaces/${workspace.id}.`)

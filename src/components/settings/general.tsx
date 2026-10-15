@@ -2,6 +2,7 @@ import { useMutation } from "@apollo/client/react";
 import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { ConfirmModal } from "#/components/q/confirm";
+import { Modal } from "#/components/q/modal";
 import { WsLogo } from "#/components/q/ws-logo";
 import {
 	DELETE_WORKSPACE,
@@ -16,6 +17,7 @@ import {
 	setAppearance,
 	useAppearance,
 } from "#/lib/appearance";
+import { randomAvatars } from "#/lib/dicebear";
 import {
 	DATE_FMTS,
 	LANGS,
@@ -61,6 +63,7 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 	const [host, setHost] = useState("");
 	const [confirm, setConfirm] = useState(false);
 	const [uploading, setUploading] = useState(false);
+	const [picking, setPicking] = useState(false);
 	const fileRef = useRef<HTMLInputElement>(null);
 	useEffect(() => setHost(location.host), []);
 
@@ -200,6 +203,17 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 											/>
 											Upload image
 										</button>
+										<button
+											type="button"
+											className="btn btn-secondary btn-sm"
+											onClick={() => setPicking(true)}
+										>
+											<span
+												className="icon-[solar--magic-stick-2-linear] size-[13px]"
+												aria-hidden="true"
+											/>
+											Generate avatar
+										</button>
 										{workspace.imageUrl && (
 											<button
 												type="button"
@@ -300,6 +314,21 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 					</SRow>
 				</SBlock>
 			)}
+			<AvatarPicker
+				open={picking}
+				onOpenChange={setPicking}
+				onPick={async (url) => {
+					try {
+						await setImage({ variables: { slug, imageUrl: url } });
+						setPicking(false);
+						toast.success("Workspace icon updated");
+					} catch (error) {
+						toast.error("Couldn't set that avatar", {
+							desc: (error as Error).message,
+						});
+					}
+				}}
+			/>
 			<ConfirmModal
 				open={confirm}
 				onOpenChange={setConfirm}
@@ -641,5 +670,83 @@ export function DateTimeSection({ me, title }: SectionProps) {
 				/>
 			</SRow>
 		</>
+	);
+}
+
+function AvatarPicker({
+	open,
+	onOpenChange,
+	onPick,
+}: {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	onPick: (url: string) => Promise<void>;
+}) {
+	const [options, setOptions] = useState<{ style: string; url: string }[]>([]);
+	const [saving, setSaving] = useState<string | null>(null);
+	// New random set each time the picker opens (client-only, so no hydration mismatch).
+	useEffect(() => {
+		if (open) setOptions(randomAvatars(12));
+	}, [open]);
+
+	return (
+		<Modal
+			open={open}
+			onOpenChange={onOpenChange}
+			title="Choose an avatar"
+			sub="Random avatars in different styles. Shuffle for more."
+			footer={
+				<>
+					<button
+						type="button"
+						className="btn btn-ghost"
+						onClick={() => setOptions(randomAvatars(12))}
+					>
+						<span
+							className="icon-[solar--shuffle-linear] size-3.5"
+							aria-hidden="true"
+						/>
+						Shuffle
+					</button>
+					<span className="sp" />
+					<button
+						type="button"
+						className="btn btn-secondary"
+						onClick={() => onOpenChange(false)}
+					>
+						Cancel
+					</button>
+				</>
+			}
+		>
+			<div className="modal-b">
+				<div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6">
+					{options.map((o, i) => (
+						<button
+							key={o.url}
+							type="button"
+							className={cn(
+								"grid aspect-square place-items-center rounded-(--q-r-lg) border border-(--q-border) bg-(--q-surface-2) p-1.5 transition-[border-color,box-shadow] hover:border-(--q-accent) focus-visible:shadow-[0_0_0_3px_var(--q-accent-soft)]",
+								saving === o.url && "is-loading",
+							)}
+							aria-label={`Avatar ${i + 1}, ${o.style.replace(/-/g, " ")} style`}
+							disabled={!!saving}
+							onClick={async () => {
+								setSaving(o.url);
+								await onPick(o.url);
+								setSaving(null);
+							}}
+						>
+							<img
+								src={o.url}
+								alt=""
+								className="size-full rounded-(--q-r)"
+								loading="lazy"
+							/>
+						</button>
+					))}
+				</div>
+			</div>
+		</Modal>
 	);
 }
