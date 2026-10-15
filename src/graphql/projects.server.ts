@@ -3,6 +3,7 @@ import { GraphQLError } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { USER_ROLE } from "#/db/enums";
+import { WS_SETTINGS_DEFAULTS } from "#/lib/preferences";
 import {
 	badInput,
 	findWorkspaces,
@@ -164,7 +165,29 @@ export const projectsResolvers = {
 			args: { slug: string; projectId: string },
 			ctx: GraphQLContext,
 		) => {
-			const { project } = await requireProject(ctx, args.slug, args.projectId);
+			const { workspace, project } = await requireProject(
+				ctx,
+				args.slug,
+				args.projectId,
+			);
+			// A duplicate is a new project, so it follows "Members can create projects".
+			const { permCreate } = {
+				...WS_SETTINGS_DEFAULTS,
+				...(workspace.settings as object),
+			};
+			if (
+				!permCreate &&
+				![USER_ROLE.OWNER, USER_ROLE.MODERATOR].includes(
+					workspace.role as USER_ROLE,
+				)
+			) {
+				throw new GraphQLError(
+					"Only owners and admins can create projects in this workspace",
+					{
+						extensions: { code: "FORBIDDEN" },
+					},
+				);
+			}
 			return db.transaction(async (tx) => {
 				const { id: _id, created_at: _c, updated_at: _u, ...rest } = project;
 				const [copy] = await tx

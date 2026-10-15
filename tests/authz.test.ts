@@ -59,3 +59,16 @@ test("a removed member can't rejoin with the old invite link", async () => {
 	const after = await gql(member, `query($s: String!) { workspace(slug: $s) { id } }`, { s: slug });
 	assert.equal(after.data?.workspace, null);
 });
+
+test("duplicating a project respects 'Members can create projects'", async () => {
+	const owner = await makeUser("owner");
+	const member = await makeUser("member");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(member, inviteCode);
+	await gql(owner, `mutation($s: String!) { updateWorkspace(slug: $s, input: { settings: { permCreate: false } }) { id } }`, { s: slug });
+	const ws = await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug });
+	const p = ws.data?.workspace.projects[0].id;
+	const DUP = `mutation($s: String!, $p: ID!) { duplicateProject(slug: $s, projectId: $p) { id } }`;
+	assert.equal(code(await gql(member, DUP, { s: slug, p })), "FORBIDDEN");
+	assert.ok((await gql(owner, DUP, { s: slug, p })).data?.duplicateProject.id, "owners can still duplicate");
+});
