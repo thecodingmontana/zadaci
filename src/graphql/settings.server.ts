@@ -18,6 +18,7 @@ import {
 	badInput,
 	findWorkspaces,
 	type GraphQLContext,
+	generateInviteCode,
 	requireUser,
 	SLUG_RE,
 } from "./schema.server";
@@ -506,10 +507,17 @@ export const settingsResolvers = {
 			if (!target) badInput("Member not found");
 			if (target.role === USER_ROLE.OWNER)
 				badInput("The workspace owner can't be removed");
-			await db
-				.update(tables.workspace_members)
-				.set({ deleted_at: new Date() })
-				.where(eq(tables.workspace_members.id, target.id));
+			// New invite code in the same transaction, so the removed member's old link stops working.
+			await db.transaction(async (tx) => {
+				await tx
+					.update(tables.workspace_members)
+					.set({ deleted_at: new Date() })
+					.where(eq(tables.workspace_members.id, target.id));
+				await tx
+					.update(tables.workspace)
+					.set({ invite_code: generateInviteCode() })
+					.where(eq(tables.workspace.id, workspace.id));
+			});
 			return true;
 		},
 	},

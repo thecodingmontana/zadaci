@@ -45,3 +45,17 @@ test("Google ID-token sign-in is disabled, so it can't skip two-step verificatio
 	const body = (await res.json()) as { code?: string };
 	assert.equal(body.code, "ID_TOKEN_NOT_SUPPORTED");
 });
+
+test("a removed member can't rejoin with the old invite link", async () => {
+	const owner = await makeUser("owner");
+	const member = await makeUser("member");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(member, inviteCode);
+	const ws = await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug });
+	const memberId = ws.data?.workspace.members.find((m: { isMe: boolean }) => !m.isMe).id;
+	await gql(owner, `mutation($s: String!, $m: ID!) { removeMember(slug: $s, memberId: $m) }`, { s: slug, m: memberId });
+	const rejoin = await join(member, inviteCode);
+	assert.ok(rejoin.errors?.length, "old invite code should no longer work");
+	const after = await gql(member, `query($s: String!) { workspace(slug: $s) { id } }`, { s: slug });
+	assert.equal(after.data?.workspace, null);
+});

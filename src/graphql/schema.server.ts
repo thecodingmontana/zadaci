@@ -112,7 +112,7 @@ const typeDefs = /* GraphQL */ `
 `;
 
 export const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
-const generateInviteCode = customAlphabet(
+export const generateInviteCode = customAlphabet(
 	"ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
 	8,
 );
