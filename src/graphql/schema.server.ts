@@ -458,9 +458,13 @@ const resolvers = {
 					and(
 						eq(tables.project.workspace_id, w.id),
 						isNull(tables.project.deleted_at),
+						isNull(tables.project.archived_at),
 					),
 				)
-				.orderBy(asc(tables.project.created_at)),
+				.orderBy(
+					asc(tables.project.sort_order),
+					asc(tables.project.created_at),
+				),
 		teams: (w: Workspace) =>
 			db
 				.select()

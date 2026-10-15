@@ -1811,29 +1811,29 @@ svg.logo {
   padding: 6px 8px 8px;
   border-top: 1px solid var(--q-border);
 }
-.collapsed .sitem {
+.collapsed .side .sitem {
   justify-content: center;
   padding: 0;
 }
-.collapsed .sitem > span:not(.pico):not(.i),
-.collapsed .sitem .ct,
-.collapsed .sgroup-h,
-.collapsed .ws-name,
-.collapsed .ws .chev-d,
-.collapsed .sitem .sdot,
-.collapsed .sitem .fav,
-.collapsed .sitem .hov,
-.collapsed .sub,
+.collapsed .side .sitem > span:not(.pico):not(.i),
+.collapsed .side .sitem .ct,
+.collapsed .side .sgroup-h,
+.collapsed .side .ws-name,
+.collapsed .side .ws .chev-d,
+.collapsed .side .sitem .sdot,
+.collapsed .side .sitem .fav,
+.collapsed .side .sitem .hov,
+.collapsed .side .sub,
 .collapsed .side-search,
-.collapsed .sitem .chev {
+.collapsed .side .sitem .chev {
   display: none !important;
 }
-.collapsed .sgroup {
+.collapsed .side .sgroup {
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--q-border);
 }
-.collapsed .ws {
+.collapsed .side .ws {
   justify-content: center;
   padding: 5px 0;
 }
@@ -3231,10 +3231,10 @@ h3.sub {
   }
 }
 /* project rows wrap their label in a link (the expand button can't live inside it) */
-.collapsed .sitem > a > span:not(.pico):not(.i) {
+.collapsed .side .sitem > a > span:not(.pico):not(.i) {
   display: none !important;
 }
-.collapsed .sitem > a {
+.collapsed .side .sitem > a {
   justify-content: center;
 }
 
@@ -3254,4 +3254,13 @@ h3.sub {
 }
 .skip:focus {
   top: calc(8px + env(safe-area-inset-top, 0px));
+}
+/* row actions also show for keyboard focus and while their menu is open */
+.sitem:focus-within .hov,
+.sitem:has([data-state="open"]) .hov {
+  display: flex;
+}
+.sitem:focus-within .sdot,
+.sitem:has([data-state="open"]) .sdot {
+  display: none;
 }

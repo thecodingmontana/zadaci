@@ -1,6 +1,7 @@
 import {
 	type AnyPgColumn,
 	index,
+	integer,
 	text,
 	timestamp,
 	varchar,
@@ -19,6 +20,13 @@ export const project = pgTable(
 		title: text("title").notNull(),
 		description: text("description"),
 		icon: varchar("icon", { length: 60 }),
+		// sidebar order (Move up/down) and soft archive (hidden from the sidebar, restorable)
+		sort_order: integer("sort_order").notNull().default(0),
+		archived_at: timestamp("archived_at", {
+			mode: "date",
+			precision: 3,
+			withTimezone: true,
+		}),
 		color: varchar("color", { length: 20 }),
 		status: status_enum("status").default(STATUS.IDEA).notNull(),
 		priority: priority_enum("priority").default(PRIORITY.NONE).notNull(),

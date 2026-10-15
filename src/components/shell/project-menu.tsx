@@ -1,0 +1,243 @@
+import { useMutation } from "@apollo/client/react";
+import { useNavigate } from "@tanstack/react-router";
+import { type FormEvent, useState } from "react";
+import { ConfirmModal } from "#/components/q/confirm";
+import {
+	Menu,
+	MenuContent,
+	MenuItem,
+	MenuSeparator,
+	MenuTrigger,
+} from "#/components/q/menu";
+import { Modal } from "#/components/q/modal";
+import {
+	ARCHIVE_PROJECT,
+	DELETE_PROJECT,
+	DUPLICATE_PROJECT,
+	MOVE_PROJECT,
+	RENAME_PROJECT,
+	type ShellProject,
+	TOGGLE_FAVORITE,
+} from "#/graphql/operations";
+import { toast } from "#/lib/toast";
+
+// The project "…" menu, ported from the reference app's project context menu.
+// Share is left out until projects can be shared publicly.
+
+export function ProjectMenu({
+	slug,
+	project,
+	index,
+	count,
+	canDelete,
+}: {
+	slug: string;
+	project: ShellProject;
+	index: number;
+	count: number;
+	canDelete: boolean;
+}) {
+	const navigate = useNavigate();
+	const [renaming, setRenaming] = useState(false);
+	const [title, setTitle] = useState(project.title);
+	const [deleting, setDeleting] = useState(false);
+	const refetch = { refetchQueries: ["Shell", "Settings"] };
+	const [toggleFavorite] = useMutation(TOGGLE_FAVORITE, refetch);
+	const [rename] = useMutation(RENAME_PROJECT, refetch);
+	const [duplicate] = useMutation(DUPLICATE_PROJECT, refetch);
+	const [move] = useMutation(MOVE_PROJECT, refetch);
+	const [archive] = useMutation(ARCHIVE_PROJECT, refetch);
+	const [remove] = useMutation(DELETE_PROJECT, refetch);
+	const vars = { slug, projectId: project.id };
+
+	const run = (fn: () => Promise<unknown>, fail: string) => () =>
+		fn().catch((error: Error) => toast.error(fail, { desc: error.message }));
+
+	async function submitRename(event: FormEvent) {
+		event.preventDefault();
+		if (!title.trim()) return;
+		try {
+			await rename({ variables: { ...vars, title: title.trim() } });
+			setRenaming(false);
+			toast.success("Project renamed");
+		} catch (error) {
+			toast.error("Couldn't rename the project", {
+				desc: (error as Error).message,
+			});
+		}
+	}
+
+	return (
+		<>
+			<Menu>
+				<MenuTrigger
+					className="ibtn ibtn-xs"
+					aria-label={`Options for ${project.title}`}
+				>
+					<span
+						className="icon-[solar--menu-dots-bold] size-3.5"
+						aria-hidden="true"
+					/>
+				</MenuTrigger>
+				<MenuContent width={230} align="start">
+					<MenuItem
+						icon="icon-[solar--arrow-right-up-linear]"
+						onSelect={() =>
+							navigate({
+								to: "/w/$slug/p/$projectId",
+								params: { slug, projectId: project.id },
+							})
+						}
+					>
+						Open
+					</MenuItem>
+					<MenuItem
+						icon="icon-[solar--star-linear]"
+						onSelect={run(async () => {
+							const { data } = await toggleFavorite({ variables: vars });
+							toast.success(
+								data?.toggleFavorite
+									? "Added to favorites"
+									: "Removed from favorites",
+							);
+						}, "Couldn't update favorites")}
+					>
+						{project.isFavorite ? "Remove from favorites" : "Add to favorites"}
+					</MenuItem>
+					<MenuItem
+						icon="icon-[solar--pen-linear]"
+						onSelect={() => {
+							setTitle(project.title);
+							setRenaming(true);
+						}}
+					>
+						Rename & edit
+					</MenuItem>
+					<MenuItem
+						icon="icon-[solar--link-linear]"
+						onSelect={run(async () => {
+							await navigator.clipboard.writeText(
+								`${location.origin}/w/${slug}/p/${project.id}`,
+							);
+							toast.success("Link copied");
+						}, "Couldn't copy the link")}
+					>
+						Copy link
+					</MenuItem>
+					<MenuItem
+						icon="icon-[solar--copy-linear]"
+						onSelect={run(async () => {
+							const { data } = await duplicate({ variables: vars });
+							toast.success(`Duplicated as “${data?.duplicateProject.title}”`);
+						}, "Couldn't duplicate the project")}
+					>
+						Duplicate
+					</MenuItem>
+					{count > 1 && <MenuSeparator />}
+					{index > 0 && (
+						<MenuItem
+							icon="icon-[solar--arrow-up-linear]"
+							onSelect={run(
+								() => move({ variables: { ...vars, direction: "up" } }),
+								"Couldn't move the project",
+							)}
+						>
+							Move up in sidebar
+						</MenuItem>
+					)}
+					{index < count - 1 && (
+						<MenuItem
+							icon="icon-[solar--arrow-down-linear]"
+							onSelect={run(
+								() => move({ variables: { ...vars, direction: "down" } }),
+								"Couldn't move the project",
+							)}
+						>
+							Move down in sidebar
+						</MenuItem>
+					)}
+					<MenuSeparator />
+					<MenuItem
+						icon="icon-[solar--archive-linear]"
+						onSelect={run(async () => {
+							await archive({ variables: { ...vars, archived: true } });
+							toast.success(`${project.title} archived`);
+						}, "Couldn't archive the project")}
+					>
+						{project.status === "completed" ? "Archive" : "Archive project"}
+					</MenuItem>
+					{canDelete && (
+						<MenuItem
+							icon="icon-[solar--trash-bin-minimalistic-linear]"
+							danger
+							onSelect={() => setDeleting(true)}
+						>
+							Delete project
+						</MenuItem>
+					)}
+				</MenuContent>
+			</Menu>
+			<Modal
+				open={renaming}
+				onOpenChange={setRenaming}
+				title="Rename project"
+				size="sm"
+				footer={
+					<>
+						<span className="sp" />
+						<button
+							type="button"
+							className="btn btn-secondary"
+							onClick={() => setRenaming(false)}
+						>
+							Cancel
+						</button>
+						<button
+							type="submit"
+							form="rename-project"
+							className="btn btn-primary"
+							disabled={!title.trim()}
+						>
+							Save
+						</button>
+					</>
+				}
+			>
+				<form id="rename-project" className="modal-b" onSubmit={submitRename}>
+					<div className="field">
+						<label className="label" htmlFor="rename-project-name">
+							Project name
+						</label>
+						<input
+							className="input"
+							id="rename-project-name"
+							value={title}
+							onChange={(e) => setTitle(e.target.value)}
+							maxLength={255}
+						/>
+					</div>
+				</form>
+			</Modal>
+			<ConfirmModal
+				open={deleting}
+				onOpenChange={setDeleting}
+				title={`Delete ${project.title}?`}
+				body="The project and all of its tasks will be deleted for everyone in the workspace."
+				ok="Delete project"
+				danger
+				onConfirm={async () => {
+					try {
+						await remove({ variables: vars });
+					} catch (error) {
+						toast.error("Couldn't delete the project", {
+							desc: (error as Error).message,
+						});
+						throw error;
+					}
+					toast.success(`${project.title} was deleted`);
+					navigate({ to: "/w/$slug", params: { slug } });
+				}}
+			/>
+		</>
+	);
+}

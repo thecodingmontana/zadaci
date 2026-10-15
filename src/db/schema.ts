@@ -2,6 +2,7 @@ export * from "./chat";
 export * from "./comments";
 export * from "./conversation";
 export * from "./enums";
+export * from "./favorite";
 export * from "./feedback";
 export * from "./note";
 export * from "./project";

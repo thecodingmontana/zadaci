@@ -13,6 +13,8 @@ import {
 } from "#/components/q/menu";
 import { Modal } from "#/components/q/modal";
 import {
+	ARCHIVE_PROJECT,
+	DELETE_PROJECT,
 	INVITE_MEMBERS,
 	REMOVE_MEMBER,
 	REVOKE_INVITE,
@@ -451,6 +453,13 @@ export function TeamsSection({ slug, workspace, title }: SectionProps) {
 
 export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 	const isAdmin = ADMIN.includes(workspace.role);
+	const [deleting, setDeleting] = useState<{
+		id: string;
+		title: string;
+	} | null>(null);
+	const projectRefetch = { refetchQueries: ["Settings", "Shell"] };
+	const [archive] = useMutation(ARCHIVE_PROJECT, projectRefetch);
+	const [removeProject] = useMutation(DELETE_PROJECT, projectRefetch);
 	const [update] = useMutation(UPDATE_WORKSPACE, {
 		refetchQueries: ["Settings"],
 	});
@@ -495,10 +504,65 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 				/>
 			</SRow>
 			<SBlock title="Archived projects">
-				<p className="faint" style={{ padding: "12px 0" }}>
-					No archived projects. Archived projects are hidden from the sidebar
-					but keep all their tasks.
-				</p>
+				{workspace.archivedProjects.length ? (
+					workspace.archivedProjects.map((p) => (
+						<div key={p.id} className="srow">
+							<div className="row">
+								<span
+									className="picon"
+									style={
+										{
+											"--c": PCOLORS[p.color ?? ""] ?? PCOLORS.indigo,
+										} as React.CSSProperties
+									}
+								>
+									<span
+										className={cn(
+											p.icon ?? "icon-[solar--folder-linear]",
+											"size-3.5",
+										)}
+										aria-hidden="true"
+									/>
+								</span>
+								<b style={{ fontWeight: 500 }}>{p.title}</b>
+							</div>
+							<div className="row">
+								<button
+									type="button"
+									className="btn btn-secondary btn-sm"
+									onClick={async () => {
+										try {
+											await archive({
+												variables: { slug, projectId: p.id, archived: false },
+											});
+											toast.success(`${p.title} restored`);
+										} catch (error) {
+											toast.error("Couldn't restore the project", {
+												desc: (error as Error).message,
+											});
+										}
+									}}
+								>
+									Restore
+								</button>
+								{isAdmin && (
+									<button
+										type="button"
+										className="btn btn-danger-ghost btn-sm"
+										onClick={() => setDeleting(p)}
+									>
+										Delete
+									</button>
+								)}
+							</div>
+						</div>
+					))
+				) : (
+					<p className="faint" style={{ padding: "12px 0" }}>
+						No archived projects. Archived projects are hidden from the sidebar
+						but keep all their tasks.
+					</p>
+				)}
 				<div style={{ marginTop: 12 }}>
 					<Link
 						to="/w/$slug/$"
@@ -513,6 +577,28 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 					</Link>
 				</div>
 			</SBlock>
+			<ConfirmModal
+				open={!!deleting}
+				onOpenChange={(o) => !o && setDeleting(null)}
+				title={`Delete ${deleting?.title ?? ""}?`}
+				body="The project and all of its tasks will be deleted for everyone in the workspace."
+				ok="Delete project"
+				danger
+				onConfirm={async () => {
+					if (!deleting) return;
+					try {
+						await removeProject({
+							variables: { slug, projectId: deleting.id },
+						});
+					} catch (error) {
+						toast.error("Couldn't delete the project", {
+							desc: (error as Error).message,
+						});
+						throw error;
+					}
+					toast.success(`${deleting.title} was deleted`);
+				}}
+			/>
 		</>
 	);
 }

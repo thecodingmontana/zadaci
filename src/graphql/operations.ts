@@ -123,6 +123,7 @@ export type ShellProject = {
 	icon: string | null;
 	color: string | null;
 	status: string;
+	isFavorite: boolean;
 };
 export type ShellTeam = {
 	id: string;
@@ -164,6 +165,7 @@ export const SHELL: TypedDocumentNode<
 				icon
 				color
 				status
+				isFavorite
 			}
 			teams {
 				id
@@ -246,6 +248,12 @@ export type SettingsData = {
 				inviteCode: string;
 				settings: { permCreate: boolean; showDoneBoard: boolean };
 				projectCount: number;
+				archivedProjects: {
+					id: string;
+					title: string;
+					icon: string | null;
+					color: string | null;
+				}[];
 				members: SettingsMember[];
 				invites: { id: string; email: string; role: string }[];
 				teams: SettingsTeam[];
@@ -273,6 +281,12 @@ export const SETTINGS: TypedDocumentNode<SettingsData, { slug: string }> = gql`
 			inviteCode
 			settings
 			projectCount
+			archivedProjects {
+				id
+				title
+				icon
+				color
+			}
 			members {
 				id
 				role
@@ -404,5 +418,68 @@ export const REMOVE_MEMBER: TypedDocumentNode<
 > = gql`
 	mutation RemoveMember($slug: String!, $memberId: ID!) {
 		removeMember(slug: $slug, memberId: $memberId)
+	}
+`;
+
+type ProjectVars = { slug: string; projectId: string };
+
+export const TOGGLE_FAVORITE: TypedDocumentNode<
+	{ toggleFavorite: boolean },
+	ProjectVars
+> = gql`
+	mutation ToggleFavorite($slug: String!, $projectId: ID!) {
+		toggleFavorite(slug: $slug, projectId: $projectId)
+	}
+`;
+
+export const RENAME_PROJECT: TypedDocumentNode<
+	{ renameProject: { id: string } },
+	ProjectVars & { title: string }
+> = gql`
+	mutation RenameProject($slug: String!, $projectId: ID!, $title: String!) {
+		renameProject(slug: $slug, projectId: $projectId, title: $title) {
+			id
+		}
+	}
+`;
+
+export const DUPLICATE_PROJECT: TypedDocumentNode<
+	{ duplicateProject: { id: string; title: string } },
+	ProjectVars
+> = gql`
+	mutation DuplicateProject($slug: String!, $projectId: ID!) {
+		duplicateProject(slug: $slug, projectId: $projectId) {
+			id
+			title
+		}
+	}
+`;
+
+export const MOVE_PROJECT: TypedDocumentNode<
+	{ moveProject: boolean },
+	ProjectVars & { direction: "up" | "down" }
+> = gql`
+	mutation MoveProject($slug: String!, $projectId: ID!, $direction: String!) {
+		moveProject(slug: $slug, projectId: $projectId, direction: $direction)
+	}
+`;
+
+export const ARCHIVE_PROJECT: TypedDocumentNode<
+	{ archiveProject: { id: string } },
+	ProjectVars & { archived: boolean }
+> = gql`
+	mutation ArchiveProject($slug: String!, $projectId: ID!, $archived: Boolean!) {
+		archiveProject(slug: $slug, projectId: $projectId, archived: $archived) {
+			id
+		}
+	}
+`;
+
+export const DELETE_PROJECT: TypedDocumentNode<
+	{ deleteProject: boolean },
+	ProjectVars
+> = gql`
+	mutation DeleteProject($slug: String!, $projectId: ID!) {
+		deleteProject(slug: $slug, projectId: $projectId)
 	}
 `;

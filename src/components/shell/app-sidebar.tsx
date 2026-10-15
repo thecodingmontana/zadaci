@@ -28,6 +28,7 @@ import {
 	SETTINGS_NAV,
 	WORKSPACE_NAV,
 } from "./nav";
+import { ProjectMenu } from "./project-menu";
 import { useShell } from "./shell-state";
 
 // Sidebar ported from the reference app's renderSidebar (shell.js) and shell.css.
@@ -349,7 +350,7 @@ export function AppSidebar({
 							/>
 						</Link>
 					</div>
-					{projects.map((p) => {
+					{projects.map((p, index) => {
 						const base = `/w/${slug}/p/${p.id}`;
 						const on = pathname === base || pathname.startsWith(`${base}/`);
 						const open = expanded[p.id] ?? false;
@@ -379,6 +380,14 @@ export function AppSidebar({
 											/>
 										</span>
 										<span className="trunc">{p.title}</span>
+										{p.isFavorite && (
+											<span className="fav" role="img" aria-label="Favorite">
+												<span
+													className="icon-[solar--star-linear] size-[11px]"
+													aria-hidden="true"
+												/>
+											</span>
+										)}
 									</Link>
 									<span
 										className="sdot"
@@ -386,6 +395,16 @@ export function AppSidebar({
 										title={STATUS_NAME[p.status]}
 									/>
 									<span className="hov">
+										<ProjectMenu
+											slug={slug}
+											project={p}
+											index={index}
+											count={projects.length}
+											canDelete={
+												workspace.role === "owner" ||
+												workspace.role === "moderator"
+											}
+										/>
 										<button
 											type="button"
 											className="ibtn ibtn-xs"
