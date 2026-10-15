@@ -132,7 +132,11 @@ export function ProfileSection({ me, title }: SectionProps) {
 				title={title}
 				lead="How you appear to others in the workspace."
 			/>
-			<form onSubmit={submit} className="col" style={{ gap: 16 }}>
+			<form
+				onSubmit={submit}
+				className="col"
+				style={{ gap: 16, maxWidth: 440 }}
+			>
 				<div className="row" style={{ gap: 14 }}>
 					<Av
 						name={me.name}

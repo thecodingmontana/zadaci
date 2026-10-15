@@ -3268,3 +3268,7 @@ h3.sub {
 .set-in {
   max-width: none;
 }
+/* theme previews keep the reference size instead of stretching with the page */
+.themecards {
+  max-width: 720px;
+}
