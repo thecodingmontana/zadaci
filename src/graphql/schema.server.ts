@@ -1,6 +1,5 @@
 import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
 import { GraphQLError } from "graphql";
-import { createSchema } from "graphql-yoga";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
 import { db, tables } from "#/db";
@@ -111,7 +110,7 @@ const typeDefs = /* GraphQL */ `
 	}
 `;
 
-const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
+export const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
 const generateInviteCode = customAlphabet(
 	"ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
 	8,
@@ -138,7 +137,7 @@ const onboardingInput = z.object({
 		),
 });
 
-function requireUser(ctx: GraphQLContext) {
+export function requireUser(ctx: GraphQLContext) {
 	if (!ctx.user) {
 		throw new GraphQLError("Sign in to continue", {
 			extensions: { code: "UNAUTHENTICATED" },
@@ -147,7 +146,7 @@ function requireUser(ctx: GraphQLContext) {
 	return ctx.user;
 }
 
-function badInput(message: string): never {
+export function badInput(message: string): never {
 	throw new GraphQLError(message, { extensions: { code: "BAD_USER_INPUT" } });
 }
 
@@ -158,7 +157,7 @@ const membership = (userId: string) =>
 		isNull(tables.workspace.deleted_at),
 	);
 
-async function findWorkspaces(
+export async function findWorkspaces(
 	userId: string,
 	slug?: string,
 ): Promise<Workspace[]> {
@@ -489,4 +488,4 @@ const resolvers = {
 	},
 };
 
-export const schema = createSchema<GraphQLContext>({ typeDefs, resolvers });
+export { resolvers, typeDefs };

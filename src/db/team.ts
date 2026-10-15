@@ -1,4 +1,4 @@
-import { index, varchar } from "drizzle-orm/pg-core";
+import { index, text, varchar } from "drizzle-orm/pg-core";
 import { generateNanoId, pgTable, syncable } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
@@ -13,6 +13,8 @@ export const team = pgTable(
 			.references(() => workspace.id, { onDelete: "cascade" }),
 		name: varchar("name", { length: 255 }).notNull(),
 		color: varchar("color", { length: 20 }),
+		icon: varchar("icon", { length: 60 }),
+		description: text("description"),
 		...syncable,
 	},
 	(table) => [index("team_workspace_id_idx").on(table.workspace_id)],

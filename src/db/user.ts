@@ -2,6 +2,7 @@ import {
 	boolean,
 	index,
 	integer,
+	jsonb,
 	text,
 	timestamp,
 	varchar,
@@ -40,6 +41,11 @@ export const user = pgTable("user", {
 	whatsNewLastSeenVersion: varchar("whats_new_last_seen_version", {
 		length: 20,
 	}),
+	// personal settings (language, date & time, notifications…), validated in the GraphQL layer
+	preferences: jsonb("preferences")
+		.$type<Record<string, unknown>>()
+		.notNull()
+		.default({}),
 	...authTimestamps,
 });
 

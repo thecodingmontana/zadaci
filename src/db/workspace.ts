@@ -1,4 +1,4 @@
-import { index, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { index, jsonb, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { USER_ROLE, user_role_enum } from "./enums";
 import { user } from "./user";
 import { generateNanoId, pgTable, syncable } from "./utils";
@@ -18,6 +18,12 @@ export const workspace = pgTable(
 		default_view: varchar("default_view", { length: 10 })
 			.notNull()
 			.default("board"),
+		color: varchar("color", { length: 20 }),
+		// workspace-wide switches, validated in the GraphQL layer
+		settings: jsonb("settings")
+			.$type<Record<string, unknown>>()
+			.notNull()
+			.default({}),
 		user_id: varchar("user_id", { length: 16 })
 			.notNull()
 			.references(() => user.id),
