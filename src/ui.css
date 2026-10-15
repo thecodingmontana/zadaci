@@ -3326,3 +3326,7 @@ h3.sub {
   width: 16px;
   height: 16px;
 }
+/* collapsed: the account row's 22px avatar needs more room than a 16px icon */
+.collapsed .side .sitem:has(> .av) {
+  padding: 0 7px;
+}
