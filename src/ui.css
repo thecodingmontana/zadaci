@@ -3316,3 +3316,13 @@ h3.sub {
 :root[data-motion="reduce"] .shell {
   transition: none;
 }
+/* collapsed: projects show as a plain icon, sized like the nav icons (no tile) */
+.collapsed .side .sitem .pico {
+  width: 16px;
+  height: 16px;
+  background: transparent;
+}
+.collapsed .side .sitem .pico > span {
+  width: 16px;
+  height: 16px;
+}
