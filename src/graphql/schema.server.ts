@@ -13,6 +13,7 @@ import { customAlphabet } from "nanoid";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { CHANNEL_TYPE, STATUS, USER_ROLE } from "#/db/enums";
+import { sendInviteEmails } from "#/lib/email.server";
 import {
 	EMAIL_RE,
 	MAX_INVITES,
@@ -383,8 +384,11 @@ const resolvers = {
 			const template = TEMPLATES.find((t) => t.id === input.templateId);
 			if (!template) badInput("Pick a template");
 
+			const invites = input.invites.filter(
+				(email) => email !== user.email.toLowerCase(),
+			);
 			try {
-				return await db.transaction(async (tx) => {
+				const workspace = await db.transaction(async (tx) => {
 					const [workspace] = await tx
 						.insert(tables.workspace)
 						.values({
@@ -456,9 +460,6 @@ const resolvers = {
 						})),
 					);
 
-					const invites = input.invites.filter(
-						(email) => email !== user.email.toLowerCase(),
-					);
 					if (invites.length) {
 						const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 						await tx.insert(tables.workspace_invite_request).values(
@@ -474,6 +475,12 @@ const resolvers = {
 
 					return { ...workspace, role: member.role };
 				});
+				await sendInviteEmails(
+					workspace,
+					user.name,
+					invites.map((email) => ({ email, role: USER_ROLE.MEMBER })),
+				);
+				return workspace;
 			} catch (error) {
 				// Postgres unique violation on the slug: someone claimed the URL between the check and submit
 				if ((error as { cause?: { code?: string } }).cause?.code === "23505") {

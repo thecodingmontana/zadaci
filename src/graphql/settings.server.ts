@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db, tables } from "#/db";
 import { USER_ROLE } from "#/db/enums";
 import { isDicebearUrl } from "#/lib/dicebear";
+import { sendInviteEmails } from "#/lib/email.server";
 import { requireEnv } from "#/lib/env";
 import { EMAIL_RE } from "#/lib/onboarding";
 import {
@@ -92,6 +93,7 @@ export const settingsTypeDefs = /* GraphQL */ `
 		setWorkspaceImage(slug: String!, imageUrl: String): Workspace!
 		inviteMembers(slug: String!, emails: [String!]!, role: String!): [Invite!]!
 		revokeInvite(slug: String!, id: ID!): Boolean!
+		resendInvite(slug: String!, id: ID!): Boolean!
 		updateMemberRole(slug: String!, memberId: ID!, role: String!): Member!
 		removeMember(slug: String!, memberId: ID!): Boolean!
 	}
@@ -462,7 +464,7 @@ export const settingsResolvers = {
 				target: fresh.length === 1 ? fresh[0] : `${fresh.length} people`,
 				extra: `as ${ROLE_LABEL[role]?.toLowerCase()}`,
 			});
-			return db
+			const created = await db
 				.insert(tables.workspace_invite_request)
 				.values(
 					fresh.map((email) => ({
@@ -478,6 +480,39 @@ export const settingsResolvers = {
 					email: tables.workspace_invite_request.email,
 					role: tables.workspace_invite_request.role,
 				});
+			await sendInviteEmails(workspace, user.name, created);
+			return created;
+		},
+
+		resendInvite: async (
+			_: unknown,
+			args: { slug: string; id: string },
+			ctx: GraphQLContext,
+		) => {
+			const { user, workspace } = await requireWorkspace(
+				ctx,
+				args.slug,
+				ADMIN_ROLES,
+			);
+			const [invite] = await db
+				.update(tables.workspace_invite_request)
+				.set({ expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) })
+				.where(
+					and(
+						eq(tables.workspace_invite_request.id, args.id),
+						eq(tables.workspace_invite_request.workspace_id, workspace.id),
+						eq(tables.workspace_invite_request.status, "PENDING"),
+						isNull(tables.workspace_invite_request.deleted_at),
+					),
+				)
+				.returning({
+					email: tables.workspace_invite_request.email,
+					role: tables.workspace_invite_request.role,
+				});
+			if (!invite) badInput("Invite not found");
+			const [sent] = await sendInviteEmails(workspace, user.name, [invite]);
+			if (!sent) badInput("Couldn't send the email. Try again in a moment.");
+			return true;
 		},
 
 		revokeInvite: async (

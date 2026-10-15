@@ -20,12 +20,14 @@
     "db:studio": "drizzle-kit studio",
     "db:clear": "tsx --env-file=.env.local ./src/db/clear.ts",
     "db:reset": "pnpm run db:clear && pnpm run db:generate && pnpm run db:migrate",
-    "test": "node --env-file=.env.local --import tsx --test --test-concurrency=1 'tests/**/*.test.ts' 'src/**/*.test.ts'"
+    "email": "email dev --dir src/emails --port 3001",
+    "test": "RESEND_API_KEY= node --env-file=.env.local --import tsx --test --test-concurrency=1 'tests/**/*.test.ts' 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@apollo/client": "^4.1.6",
     "@apollo/client-integration-tanstack-start": "^0.14.4-rc.0",
     "@better-auth/passkey": "1.7.7",
+    "@react-email/components": "^1.0.12",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "0.10.13",
     "@tanstack/react-router": "1.170.44",
@@ -47,6 +49,7 @@
     "radix-ui": "^1.8.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "resend": "^6.32.1",
     "rxjs": "^7.8.2",
     "tailwind-merge": "^3.0.2",
     "tailwindcss": "^4.1.18",
@@ -69,6 +72,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "dotenv": "^17.3.1",
     "drizzle-kit": "1.0.0-rc.4",
+    "react-email": "^6.11.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0"
