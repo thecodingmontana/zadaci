@@ -3273,3 +3273,46 @@ h3.sub {
 .themecards {
   max-width: 720px;
 }
+
+/* ---- smooth sidebar collapse (Zadaci) ----
+   The column width animates; icons keep their x position in both states and
+   labels fade while the edge clips them, so nothing jumps mid-animation. */
+.shell {
+  transition: grid-template-columns 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.side .sitem > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
+.side .sitem > a > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
+.side .ws-name,
+.side .ws .chev-d {
+  transition: opacity 150ms ease-out;
+}
+.collapsed .side .sitem > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
+.collapsed .side .sitem > a > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
+.collapsed .side .ws-name,
+.collapsed .side .ws .chev-d {
+  display: revert !important;
+  opacity: 0;
+  pointer-events: none;
+}
+.collapsed .side .sitem,
+.collapsed .side .sitem > a {
+  justify-content: flex-start;
+  padding: 0 10px;
+  overflow: hidden;
+}
+.collapsed .side .sitem > a {
+  padding: 0;
+}
+.collapsed .side .ws {
+  justify-content: flex-start;
+  padding: 5px 7px;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shell {
+    transition: none;
+  }
+}
+:root[data-motion="reduce"] .shell {
+  transition: none;
+}
