@@ -1,6 +1,7 @@
-// Absolute URLs for canonical, Open Graph and the sitemap; set VITE_SITE_URL for a custom domain.
+// Absolute URLs for canonical, Open Graph, the sitemap and emails; set VITE_SITE_URL for a custom domain.
+// `env?.` because tests and the email preview run outside Vite.
 export const SITE_URL = (
-	import.meta.env.VITE_SITE_URL ?? "https://zadaci.vercel.app"
+	import.meta.env?.VITE_SITE_URL ?? "https://zadaci.vercel.app"
 ).replace(/\/$/, "");
 
 export const SITE_DESCRIPTION =

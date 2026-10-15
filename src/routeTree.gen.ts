@@ -25,6 +25,7 @@ import { Route as AuthTwoFactorSetupRouteImport } from './routes/auth/two-factor
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
 import { Route as AuthedWSlugActivityRouteImport } from './routes/_authed/w/$slug/activity'
+import { Route as AuthedWSlugMembersRouteImport } from './routes/_authed/w/$slug/members'
 import { Route as AuthedWSlugNotificationsRouteImport } from './routes/_authed/w/$slug/notifications'
 import { Route as AuthedWSlugSettingsRouteImport } from './routes/_authed/w/$slug/settings'
 import { Route as AuthedWSlugPProjectIdRouteImport } from './routes/_authed/w/$slug/p.$projectId'
@@ -108,6 +109,11 @@ const AuthedWSlugActivityRoute = AuthedWSlugActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
+const AuthedWSlugMembersRoute = AuthedWSlugMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
 const AuthedWSlugNotificationsRoute =
   AuthedWSlugNotificationsRouteImport.update({
     id: '/notifications',
@@ -140,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
+  '/w/$slug/members': typeof AuthedWSlugMembersRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug/': typeof AuthedWSlugIndexRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
+  '/w/$slug/members': typeof AuthedWSlugMembersRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug': typeof AuthedWSlugIndexRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/_authed/w/$slug/activity': typeof AuthedWSlugActivityRoute
+  '/_authed/w/$slug/members': typeof AuthedWSlugMembersRoute
   '/_authed/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/_authed/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/_authed/w/$slug/': typeof AuthedWSlugIndexRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/auth/two-factor/'
     | '/w/$slug/$'
     | '/w/$slug/activity'
+    | '/w/$slug/members'
     | '/w/$slug/notifications'
     | '/w/$slug/settings'
     | '/w/$slug/'
@@ -222,6 +232,7 @@ export interface FileRouteTypes {
     | '/auth/two-factor'
     | '/w/$slug/$'
     | '/w/$slug/activity'
+    | '/w/$slug/members'
     | '/w/$slug/notifications'
     | '/w/$slug/settings'
     | '/w/$slug'
@@ -243,6 +254,7 @@ export interface FileRouteTypes {
     | '/auth/two-factor/'
     | '/_authed/w/$slug/$'
     | '/_authed/w/$slug/activity'
+    | '/_authed/w/$slug/members'
     | '/_authed/w/$slug/notifications'
     | '/_authed/w/$slug/settings'
     | '/_authed/w/$slug/'
@@ -375,6 +387,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugActivityRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
+    '/_authed/w/$slug/members': {
+      id: '/_authed/w/$slug/members'
+      path: '/members'
+      fullPath: '/w/$slug/members'
+      preLoaderRoute: typeof AuthedWSlugMembersRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
     '/_authed/w/$slug/notifications': {
       id: '/_authed/w/$slug/notifications'
       path: '/notifications'
@@ -402,6 +421,7 @@ declare module '@tanstack/react-router' {
 interface AuthedWSlugRouteChildren {
   AuthedWSlugSplatRoute: typeof AuthedWSlugSplatRoute
   AuthedWSlugActivityRoute: typeof AuthedWSlugActivityRoute
+  AuthedWSlugMembersRoute: typeof AuthedWSlugMembersRoute
   AuthedWSlugNotificationsRoute: typeof AuthedWSlugNotificationsRoute
   AuthedWSlugSettingsRoute: typeof AuthedWSlugSettingsRoute
   AuthedWSlugIndexRoute: typeof AuthedWSlugIndexRoute
@@ -411,6 +431,7 @@ interface AuthedWSlugRouteChildren {
 const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugSplatRoute: AuthedWSlugSplatRoute,
   AuthedWSlugActivityRoute: AuthedWSlugActivityRoute,
+  AuthedWSlugMembersRoute: AuthedWSlugMembersRoute,
   AuthedWSlugNotificationsRoute: AuthedWSlugNotificationsRoute,
   AuthedWSlugSettingsRoute: AuthedWSlugSettingsRoute,
   AuthedWSlugIndexRoute: AuthedWSlugIndexRoute,
@@ -452,12 +473,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

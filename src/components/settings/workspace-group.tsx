@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client/react";
 import { Link } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { Av } from "#/components/q/av";
 import { ConfirmModal } from "#/components/q/confirm";
 import {
@@ -17,6 +17,7 @@ import {
 	DELETE_PROJECT,
 	INVITE_MEMBERS,
 	REMOVE_MEMBER,
+	RESEND_INVITE,
 	REVOKE_INVITE,
 	type SettingsMember,
 	UPDATE_MEMBER_ROLE,
@@ -35,14 +36,192 @@ const ROLE_HELP: Record<string, string> = {
 	member: "Create projects and work on tasks",
 };
 
+const MEMBER_REFETCH = { refetchQueries: ["Settings", "MemberStats"] };
+
+/** Role pill: fixed for the owner and non-admins, a role picker for admins. */
+export function MemberRole({
+	slug,
+	m,
+	canAdmin,
+}: {
+	slug: string;
+	m: SettingsMember;
+	canAdmin: boolean;
+}) {
+	const [updateRole] = useMutation(UPDATE_MEMBER_ROLE, MEMBER_REFETCH);
+	if (m.role === "owner")
+		return (
+			<span className="pillbtn">
+				<span
+					className="icon-[solar--crown-linear] size-[13px]"
+					aria-hidden="true"
+				/>
+				Owner
+			</span>
+		);
+	if (!canAdmin || m.isMe)
+		return <span className="pillbtn">{ROLE_LABEL[m.role]}</span>;
+	return (
+		<Menu>
+			<MenuTrigger className="pillbtn bordered">
+				{ROLE_LABEL[m.role]}
+				<span
+					className="icon-[solar--alt-arrow-down-linear] size-3"
+					aria-hidden="true"
+				/>
+			</MenuTrigger>
+			<MenuContent width={260}>
+				<MenuLabel>Role for {m.name}</MenuLabel>
+				{(["moderator", "member"] as const).map((r) => (
+					<MenuItem
+						key={r}
+						checked={m.role === r}
+						onSelect={async () => {
+							if (m.role === r) return;
+							try {
+								await updateRole({
+									variables: { slug, memberId: m.id, role: r },
+								});
+								toast.success(
+									`${m.name} is now ${r === "moderator" ? "an admin" : "a member"}`,
+								);
+							} catch (error) {
+								toast.error("Couldn't change the role", {
+									desc: (error as Error).message,
+								});
+							}
+						}}
+					>
+						<div className="grow" style={{ whiteSpace: "normal" }}>
+							<div style={{ fontWeight: 500 }}>{ROLE_LABEL[r]}</div>
+							<div className="faint" style={{ fontSize: 11.5 }}>
+								{ROLE_HELP[r]}
+							</div>
+						</div>
+					</MenuItem>
+				))}
+			</MenuContent>
+		</Menu>
+	);
+}
+
+/** The member "…" menu: copy email, and remove for admins. */
+export function MemberActions({
+	slug,
+	m,
+	canAdmin,
+}: {
+	slug: string;
+	m: SettingsMember;
+	canAdmin: boolean;
+}) {
+	const [removing, setRemoving] = useState(false);
+	const [removeMember] = useMutation(REMOVE_MEMBER, MEMBER_REFETCH);
+	const canRemove = canAdmin && !m.isMe && m.role !== "owner";
+	return (
+		<>
+			<Menu>
+				<MenuTrigger
+					className="ibtn ibtn-sm"
+					aria-label={`Options for ${m.name}`}
+				>
+					<span
+						className="icon-[solar--menu-dots-linear] size-3.5"
+						aria-hidden="true"
+					/>
+				</MenuTrigger>
+				<MenuContent>
+					<MenuItem
+						icon="icon-[solar--letter-linear]"
+						onSelect={async () => {
+							await navigator.clipboard.writeText(m.email);
+							toast.success("Email copied");
+						}}
+					>
+						Copy email
+					</MenuItem>
+					{canRemove && (
+						<>
+							<MenuSeparator />
+							<MenuItem
+								icon="icon-[solar--user-minus-linear]"
+								danger
+								onSelect={() => setRemoving(true)}
+							>
+								Remove from workspace
+							</MenuItem>
+						</>
+					)}
+				</MenuContent>
+			</Menu>
+			<ConfirmModal
+				open={removing}
+				onOpenChange={setRemoving}
+				title={`Remove ${m.name}?`}
+				body="They'll lose access to this workspace and its projects. You can invite them again later."
+				ok="Remove"
+				danger
+				icon="icon-[solar--user-minus-linear]"
+				onConfirm={async () => {
+					try {
+						await removeMember({ variables: { slug, memberId: m.id } });
+					} catch (error) {
+						toast.error("Couldn't remove member", {
+							desc: (error as Error).message,
+						});
+						throw error;
+					}
+					toast.success(`${m.name} was removed`);
+				}}
+			/>
+		</>
+	);
+}
+
+/** Resend and Revoke buttons for a pending invite. */
+export function InviteActions({ slug, id }: { slug: string; id: string }) {
+	const [resend, { loading }] = useMutation(RESEND_INVITE);
+	const [revoke] = useMutation(REVOKE_INVITE, MEMBER_REFETCH);
+	return (
+		<>
+			<button
+				type="button"
+				className={cn("btn btn-ghost btn-sm", loading && "is-loading")}
+				disabled={loading}
+				onClick={() =>
+					resend({ variables: { slug, id } })
+						.then(() => toast.success("Invite sent again"))
+						.catch((error: Error) =>
+							toast.error("Couldn't resend the invite", {
+								desc: error.message,
+							}),
+						)
+				}
+			>
+				Resend
+			</button>
+			<button
+				type="button"
+				className="btn btn-ghost btn-sm"
+				onClick={() =>
+					revoke({ variables: { slug, id } })
+						.then(() => toast.success("Invite revoked"))
+						.catch((error: Error) =>
+							toast.error("Couldn't revoke the invite", {
+								desc: error.message,
+							}),
+						)
+				}
+			>
+				Revoke
+			</button>
+		</>
+	);
+}
+
 export function MembersSection({ slug, workspace, title }: SectionProps) {
 	const canAdmin = isAdmin(workspace.role);
 	const [inviting, setInviting] = useState(false);
-	const [removing, setRemoving] = useState<SettingsMember | null>(null);
-	const refetch = { refetchQueries: ["Settings"] };
-	const [updateRole] = useMutation(UPDATE_MEMBER_ROLE, refetch);
-	const [removeMember] = useMutation(REMOVE_MEMBER, refetch);
-	const [revokeInvite] = useMutation(REVOKE_INVITE, refetch);
 	const people = workspace.members.length + workspace.invites.length;
 
 	return (
@@ -66,8 +245,8 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 					</button>
 				)}
 				<Link
-					to="/w/$slug/$"
-					params={{ slug, _splat: "members" }}
+					to="/w/$slug/members"
+					params={{ slug }}
 					className="btn btn-secondary"
 				>
 					Open member directory
@@ -90,90 +269,8 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 								{m.email}
 							</div>
 						</div>
-						{m.role === "owner" ? (
-							<span className="pillbtn">
-								<span
-									className="icon-[solar--crown-linear] size-[13px]"
-									aria-hidden="true"
-								/>
-								Owner
-							</span>
-						) : canAdmin && !m.isMe ? (
-							<>
-								<Menu>
-									<MenuTrigger className="pillbtn bordered">
-										{ROLE_LABEL[m.role]}
-										<span
-											className="icon-[solar--alt-arrow-down-linear] size-3"
-											aria-hidden="true"
-										/>
-									</MenuTrigger>
-									<MenuContent width={260}>
-										<MenuLabel>Role for {m.name}</MenuLabel>
-										{(["moderator", "member"] as const).map((r) => (
-											<MenuItem
-												key={r}
-												checked={m.role === r}
-												onSelect={async () => {
-													if (m.role === r) return;
-													try {
-														await updateRole({
-															variables: { slug, memberId: m.id, role: r },
-														});
-														toast.success(
-															`${m.name} is now ${ROLE_LABEL[r]?.toLowerCase() === "admin" ? "an admin" : "a member"}`,
-														);
-													} catch (error) {
-														toast.error("Couldn't change the role", {
-															desc: (error as Error).message,
-														});
-													}
-												}}
-											>
-												<div className="grow" style={{ whiteSpace: "normal" }}>
-													<div style={{ fontWeight: 500 }}>{ROLE_LABEL[r]}</div>
-													<div className="faint" style={{ fontSize: 11.5 }}>
-														{ROLE_HELP[r]}
-													</div>
-												</div>
-											</MenuItem>
-										))}
-									</MenuContent>
-								</Menu>
-								<Menu>
-									<MenuTrigger
-										className="ibtn ibtn-sm"
-										aria-label={`Options for ${m.name}`}
-									>
-										<span
-											className="icon-[solar--menu-dots-linear] size-3.5"
-											aria-hidden="true"
-										/>
-									</MenuTrigger>
-									<MenuContent>
-										<MenuItem
-											icon="icon-[solar--letter-linear]"
-											onSelect={async () => {
-												await navigator.clipboard.writeText(m.email);
-												toast.success("Email copied");
-											}}
-										>
-											Copy email
-										</MenuItem>
-										<MenuSeparator />
-										<MenuItem
-											icon="icon-[solar--user-minus-linear]"
-											danger
-											onSelect={() => setRemoving(m)}
-										>
-											Remove from workspace
-										</MenuItem>
-									</MenuContent>
-								</Menu>
-							</>
-						) : (
-							<span className="pillbtn">{ROLE_LABEL[m.role]}</span>
-						)}
+						<MemberRole slug={slug} m={m} canAdmin={canAdmin} />
+						<MemberActions slug={slug} m={m} canAdmin={canAdmin} />
 					</div>
 				))}
 				{workspace.invites.map((inv) => (
@@ -190,16 +287,7 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 							</div>
 						</div>
 						<span className="badge amber">Invited</span>
-						<button
-							type="button"
-							className="btn btn-ghost btn-sm"
-							onClick={async () => {
-								await revokeInvite({ variables: { slug, id: inv.id } });
-								toast.success("Invite revoked");
-							}}
-						>
-							Revoke
-						</button>
+						{canAdmin && <InviteActions slug={slug} id={inv.id} />}
 					</div>
 				))}
 			</div>
@@ -209,32 +297,11 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 				slug={slug}
 				workspace={workspace}
 			/>
-			<ConfirmModal
-				open={!!removing}
-				onOpenChange={(o) => !o && setRemoving(null)}
-				title={`Remove ${removing?.name ?? ""}?`}
-				body="They'll lose access to this workspace and its projects. You can invite them again later."
-				ok="Remove"
-				danger
-				icon="icon-[solar--user-minus-linear]"
-				onConfirm={async () => {
-					if (!removing) return;
-					try {
-						await removeMember({ variables: { slug, memberId: removing.id } });
-					} catch (error) {
-						toast.error("Couldn't remove member", {
-							desc: (error as Error).message,
-						});
-						throw error;
-					}
-					toast.success(`${removing.name} was removed`);
-				}}
-			/>
 		</>
 	);
 }
 
-function InviteModal({
+export function InviteModal({
 	open,
 	onOpenChange,
 	slug,
@@ -243,14 +310,12 @@ function InviteModal({
 	open: boolean;
 	onOpenChange: (o: boolean) => void;
 	slug: string;
-	workspace: SectionProps["workspace"];
+	workspace: { name: string; inviteCode: string };
 }) {
 	const [raw, setRaw] = useState("");
 	const [role, setRole] = useState("member");
 	const [err, setErr] = useState("");
-	const [invite, { loading }] = useMutation(INVITE_MEMBERS, {
-		refetchQueries: ["Settings"],
-	});
+	const [invite, { loading }] = useMutation(INVITE_MEMBERS, MEMBER_REFETCH);
 
 	async function submit(event?: FormEvent) {
 		event?.preventDefault();
@@ -279,7 +344,7 @@ function InviteModal({
 			open={open}
 			onOpenChange={onOpenChange}
 			title={`Invite to ${workspace.name}`}
-			sub="Invited people join with your workspace invite link."
+			sub="We'll email each person a link to join."
 			footer={
 				<>
 					<button
@@ -368,9 +433,26 @@ export function TeamsSection({ slug, workspace, title }: SectionProps) {
 	return (
 		<>
 			<SettingsHeader title={title} lead="Teams group people and projects." />
-			{workspace.teams.length ? (
+			<TeamsGrid slug={slug} teams={workspace.teams} />
+		</>
+	);
+}
+
+/** Team cards (reference teamsGrid); `avatars` adds each team's member stack. */
+export function TeamsGrid({
+	slug,
+	teams,
+	avatars,
+}: {
+	slug: string;
+	teams: SectionProps["workspace"]["teams"];
+	avatars?: (teamId: string) => ReactNode;
+}) {
+	return (
+		<>
+			{teams.length ? (
 				<div className="pgrid">
-					{workspace.teams.map((t) => (
+					{teams.map((t) => (
 						<Link
 							key={t.id}
 							to="/w/$slug/$"
@@ -412,6 +494,12 @@ export function TeamsSection({ slug, workspace, title }: SectionProps) {
 									/>
 									{t.projectCount} projects
 								</span>
+								{avatars && (
+									<>
+										<span className="sp" />
+										{avatars(t.id)}
+									</>
+								)}
 							</div>
 						</Link>
 					))}

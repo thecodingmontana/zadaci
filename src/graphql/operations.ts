@@ -628,3 +628,38 @@ export const MARK_ALL_NOTIFICATIONS_READ: TypedDocumentNode<
 		markAllNotificationsRead(slug: $slug)
 	}
 `;
+
+export const RESEND_INVITE: TypedDocumentNode<
+	{ resendInvite: boolean },
+	{ slug: string; id: string }
+> = gql`
+	mutation ResendInvite($slug: String!, $id: ID!) {
+		resendInvite(slug: $slug, id: $id)
+	}
+`;
+
+export type MemberStats = {
+	memberId: string;
+	teamIds: string[];
+	activeProjects: number;
+	openTasks: number;
+	lastActiveAt: string | null;
+};
+
+export const MEMBER_STATS: TypedDocumentNode<
+	{ workspace: { id: string; memberStats: MemberStats[] } | null },
+	{ slug: string }
+> = gql`
+	query MemberStats($slug: String!) {
+		workspace(slug: $slug) {
+			id
+			memberStats {
+				memberId
+				teamIds
+				activeProjects
+				openTasks
+				lastActiveAt
+			}
+		}
+	}
+`;
