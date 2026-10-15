@@ -1,4 +1,12 @@
-import { index, jsonb, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+	index,
+	jsonb,
+	text,
+	timestamp,
+	uniqueIndex,
+	varchar,
+} from "drizzle-orm/pg-core";
 import { USER_ROLE, user_role_enum } from "./enums";
 import { user } from "./user";
 import { generateNanoId, pgTable, syncable } from "./utils";
@@ -53,6 +61,10 @@ export const workspace_members = pgTable(
 	(table) => [
 		index("workspace_members_user_id_idx").on(table.user_id),
 		index("workspace_members_workspace_id_idx").on(table.workspace_id),
+		// one active membership per person per workspace (removed rows keep deleted_at)
+		uniqueIndex("workspace_members_active_idx")
+			.on(table.workspace_id, table.user_id)
+			.where(sql`${table.deleted_at} is null`),
 	],
 );
 

@@ -72,3 +72,13 @@ test("duplicating a project respects 'Members can create projects'", async () =>
 	assert.equal(code(await gql(member, DUP, { s: slug, p })), "FORBIDDEN");
 	assert.ok((await gql(owner, DUP, { s: slug, p })).data?.duplicateProject.id, "owners can still duplicate");
 });
+
+test("joining twice at the same moment creates one membership", async () => {
+	const owner = await makeUser("owner");
+	const member = await makeUser("member");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	const results = await Promise.all(Array.from({ length: 10 }, () => join(member, inviteCode)));
+	assert.ok(results.every((r) => !r.errors), JSON.stringify(results.map((r) => r.errors)));
+	const ws = await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id } } }`, { s: slug });
+	assert.equal(ws.data?.workspace.members.length, 2);
+});

@@ -304,8 +304,10 @@ const resolvers = {
 						user_id: user.id,
 						workspace_id: workspace.id,
 					})
+					// A concurrent join already added them: the unique index rejects this row.
+					.onConflictDoNothing()
 					.returning();
-				if (!member) throw new Error("Member insert returned nothing");
+				if (!member) return { ...workspace, role: USER_ROLE.MEMBER };
 				// Mark any emailed invite for this address as used
 				await tx
 					.update(tables.workspace_invite_request)
