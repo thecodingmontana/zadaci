@@ -8,6 +8,8 @@ import { isDicebearUrl } from "#/lib/dicebear";
 import { requireEnv } from "#/lib/env";
 import { EMAIL_RE } from "#/lib/onboarding";
 import {
+	ADMIN_ROLES,
+	isAdmin,
 	PREF_DEFAULTS,
 	preferencesPatch,
 	WS_COLORS,
@@ -98,14 +100,13 @@ const JSONScalar = new GraphQLScalarType({
 	parseValue: (v) => v,
 });
 
-const ADMIN = [USER_ROLE.OWNER, USER_ROLE.MODERATOR] as string[];
 const INVITE_ROLES = z.enum([USER_ROLE.MODERATOR, USER_ROLE.MEMBER]);
 
 /** The signed-in user's workspace, failing unless their role is in `roles`. */
 async function requireWorkspace(
 	ctx: GraphQLContext,
 	slug: string,
-	roles?: string[],
+	roles?: readonly string[],
 ) {
 	const user = requireUser(ctx);
 	const [workspace] = await findWorkspaces(user.id, slug);
@@ -203,7 +204,7 @@ export const settingsResolvers = {
 			}));
 		},
 		invites: (w: Workspace) =>
-			ADMIN.includes(w.role ?? "")
+			isAdmin(w.role)
 				? db
 						.select({
 							id: tables.workspace_invite_request.id,
@@ -294,7 +295,7 @@ export const settingsResolvers = {
 			args: { slug: string; input: Record<string, unknown> },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN);
+			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
 			const input = parse(
 				z
 					.object({
@@ -367,7 +368,7 @@ export const settingsResolvers = {
 			args: { slug: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN);
+			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
 			const { cloud, key, secret } = cloudinary();
 			const params = {
 				folder: "zadaci/workspaces",
@@ -392,7 +393,7 @@ export const settingsResolvers = {
 			args: { slug: string; imageUrl: string | null },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN);
+			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
 			// Only accept images we signed for this workspace, or a generated DiceBear avatar.
 			const allowed = `https://res.cloudinary.com/${cloudinary().cloud}/image/upload/`;
 			if (
@@ -418,7 +419,11 @@ export const settingsResolvers = {
 			args: { slug: string; emails: string[]; role: string },
 			ctx: GraphQLContext,
 		) => {
-			const { user, workspace } = await requireWorkspace(ctx, args.slug, ADMIN);
+			const { user, workspace } = await requireWorkspace(
+				ctx,
+				args.slug,
+				ADMIN_ROLES,
+			);
 			const role = parse(INVITE_ROLES, args.role);
 			const emails = [
 				...new Set(
@@ -469,7 +474,7 @@ export const settingsResolvers = {
 			args: { slug: string; id: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN);
+			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
 			await db
 				.update(tables.workspace_invite_request)
 				.set({ status: "REVOKED" })
@@ -487,7 +492,11 @@ export const settingsResolvers = {
 			args: { slug: string; memberId: string; role: string },
 			ctx: GraphQLContext,
 		) => {
-			const { user, workspace } = await requireWorkspace(ctx, args.slug, ADMIN);
+			const { user, workspace } = await requireWorkspace(
+				ctx,
+				args.slug,
+				ADMIN_ROLES,
+			);
 			const role = parse(INVITE_ROLES, args.role);
 			const target = (await memberRows(workspace.id)).find(
 				(m) => m.id === args.memberId,
@@ -512,7 +521,7 @@ export const settingsResolvers = {
 			args: { slug: string; memberId: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN);
+			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
 			const target = (await memberRows(workspace.id)).find(
 				(m) => m.id === args.memberId,
 			);

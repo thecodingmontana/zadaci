@@ -144,3 +144,8 @@ export const WS_SETTINGS_DEFAULTS = {
 };
 
 export type ResolvedPreferences = typeof PREF_DEFAULTS;
+
+/** Roles that manage the workspace (owner, and "moderator" shown as Admin). Shared by UI and server. */
+export const ADMIN_ROLES: readonly string[] = ["owner", "moderator"];
+export const isAdmin = (role: string | null | undefined) =>
+	ADMIN_ROLES.includes(role ?? "");

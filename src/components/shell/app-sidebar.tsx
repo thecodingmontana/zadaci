@@ -23,6 +23,7 @@ import type {
 import { setAppearance, useAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
 import { PCOLORS } from "#/lib/onboarding";
+import { isAdmin } from "#/lib/preferences";
 import { cn } from "#/lib/utils";
 import { useCommandMenu, useModKey } from "./command-menu";
 import {
@@ -425,10 +426,7 @@ export function AppSidebar({
 											project={p}
 											index={index}
 											count={projects.length}
-											canDelete={
-												workspace.role === "owner" ||
-												workspace.role === "moderator"
-											}
+											canDelete={isAdmin(workspace.role)}
 										/>
 										<button
 											type="button"

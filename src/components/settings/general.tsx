@@ -20,6 +20,7 @@ import {
 import { randomAvatars } from "#/lib/dicebear";
 import {
 	DATE_FMTS,
+	isAdmin,
 	LANGS,
 	type Preferences,
 	TIME_FMTS,
@@ -37,7 +38,6 @@ export type SectionProps = {
 	title: string;
 };
 
-const ADMIN = ["owner", "moderator"];
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 
 /** Saves part of the signed-in user's preferences and confirms with a toast. */
@@ -57,7 +57,7 @@ export function usePrefs() {
 
 export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 	const navigate = useNavigate();
-	const isAdmin = ADMIN.includes(workspace.role);
+	const canAdmin = isAdmin(workspace.role);
 	const [name, setName] = useState(workspace.name);
 	const [url, setUrl] = useState(workspace.slug);
 	const [host, setHost] = useState("");
@@ -164,7 +164,7 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 									size={22}
 									label="Workspace color"
 									onPick={async (color) => {
-										if (!isAdmin) return;
+										if (!canAdmin) return;
 										try {
 											await updateWorkspace({
 												variables: { slug, input: { color } },
@@ -176,7 +176,7 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 										}
 									}}
 								/>
-								{isAdmin && (
+								{canAdmin && (
 									<>
 										<input
 											ref={fileRef}
@@ -243,7 +243,7 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 								id="ws-name"
 								value={name}
 								onChange={(e) => setName(e.target.value)}
-								disabled={!isAdmin}
+								disabled={!canAdmin}
 							/>
 						</div>
 						<div className="field">
@@ -271,16 +271,16 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 									value={url}
 									onChange={(e) => setUrl(e.target.value)}
 									style={{ borderRadius: "0 6px 6px 0" }}
-									disabled={!isAdmin}
+									disabled={!canAdmin}
 								/>
 							</div>
 							<span className="hint">
-								{isAdmin
+								{canAdmin
 									? "Changing the URL will break existing links."
 									: "Only owners and admins can change workspace settings."}
 							</span>
 						</div>
-						{isAdmin && (
+						{canAdmin && (
 							<div>
 								<button
 									type="submit"

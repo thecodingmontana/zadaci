@@ -2,8 +2,7 @@ import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { GraphQLError } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
-import { USER_ROLE } from "#/db/enums";
-import { WS_SETTINGS_DEFAULTS } from "#/lib/preferences";
+import { isAdmin, WS_SETTINGS_DEFAULTS } from "#/lib/preferences";
 import {
 	badInput,
 	findWorkspaces,
@@ -175,12 +174,7 @@ export const projectsResolvers = {
 				...WS_SETTINGS_DEFAULTS,
 				...(workspace.settings as object),
 			};
-			if (
-				!permCreate &&
-				![USER_ROLE.OWNER, USER_ROLE.MODERATOR].includes(
-					workspace.role as USER_ROLE,
-				)
-			) {
+			if (!permCreate && !isAdmin(workspace.role)) {
 				throw new GraphQLError(
 					"Only owners and admins can create projects in this workspace",
 					{
@@ -301,11 +295,7 @@ export const projectsResolvers = {
 				args.slug,
 				args.projectId,
 			);
-			if (
-				![USER_ROLE.OWNER, USER_ROLE.MODERATOR].includes(
-					workspace.role as USER_ROLE,
-				)
-			) {
+			if (!isAdmin(workspace.role)) {
 				throw new GraphQLError("Only owners and admins can delete projects", {
 					extensions: { code: "FORBIDDEN" },
 				});

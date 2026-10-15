@@ -23,12 +23,12 @@ import {
 	UPDATE_WORKSPACE,
 } from "#/graphql/operations";
 import { EMAIL_RE, PCOLORS } from "#/lib/onboarding";
+import { isAdmin } from "#/lib/preferences";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import type { SectionProps } from "./general";
 import { SBlock, Select, SettingsHeader, SRow, Toggle } from "./ui";
 
-const ADMIN = ["owner", "moderator"];
 // Our roles shown with the reference app's names.
 const ROLE_LABEL: Record<string, string> = {
 	owner: "Owner",
@@ -41,7 +41,7 @@ const ROLE_HELP: Record<string, string> = {
 };
 
 export function MembersSection({ slug, workspace, title }: SectionProps) {
-	const isAdmin = ADMIN.includes(workspace.role);
+	const canAdmin = isAdmin(workspace.role);
 	const [inviting, setInviting] = useState(false);
 	const [removing, setRemoving] = useState<SettingsMember | null>(null);
 	const refetch = { refetchQueries: ["Settings"] };
@@ -57,7 +57,7 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 				lead={`${people} ${people === 1 ? "person has" : "people have"} access to ${workspace.name}.`}
 			/>
 			<div className="row" style={{ marginBottom: 12 }}>
-				{isAdmin && (
+				{canAdmin && (
 					<button
 						type="button"
 						className="btn btn-primary"
@@ -103,7 +103,7 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 								/>
 								Owner
 							</span>
-						) : isAdmin && !m.isMe ? (
+						) : canAdmin && !m.isMe ? (
 							<>
 								<Menu>
 									<MenuTrigger className="pillbtn bordered">
@@ -451,7 +451,7 @@ export function TeamsSection({ slug, workspace, title }: SectionProps) {
 }
 
 export function ProjectsSection({ slug, workspace, title }: SectionProps) {
-	const isAdmin = ADMIN.includes(workspace.role);
+	const canAdmin = isAdmin(workspace.role);
 	const [deleting, setDeleting] = useState<{
 		id: string;
 		title: string;
@@ -491,7 +491,7 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 					]}
 					onChange={(defaultView) => save({ defaultView })}
 					label="Default project view"
-					disabled={!isAdmin}
+					disabled={!canAdmin}
 				/>
 			</SRow>
 			<SRow t="Show completed tasks on boards">
@@ -499,7 +499,7 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 					checked={workspace.settings.showDoneBoard}
 					onChange={(showDoneBoard) => save({ settings: { showDoneBoard } })}
 					label="Show completed tasks on boards"
-					disabled={!isAdmin}
+					disabled={!canAdmin}
 				/>
 			</SRow>
 			<SBlock title="Archived projects">
@@ -544,7 +544,7 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 								>
 									Restore
 								</button>
-								{isAdmin && (
+								{canAdmin && (
 									<button
 										type="button"
 										className="btn btn-danger-ghost btn-sm"
@@ -615,7 +615,7 @@ const PERMS: [string, number, number, number][] = [
 ];
 
 export function PermissionsSection({ slug, workspace, title }: SectionProps) {
-	const isAdmin = ADMIN.includes(workspace.role);
+	const canAdmin = isAdmin(workspace.role);
 	const [update] = useMutation(UPDATE_WORKSPACE, {
 		refetchQueries: ["Settings"],
 	});
@@ -642,7 +642,7 @@ export function PermissionsSection({ slug, workspace, title }: SectionProps) {
 					<Toggle
 						checked={workspace.settings[key]}
 						label={t}
-						disabled={!isAdmin}
+						disabled={!canAdmin}
 						onChange={async (value) => {
 							try {
 								await update({
