@@ -3330,3 +3330,12 @@ h3.sub {
 .collapsed .side .sitem:has(> .av) {
   padding: 0 7px;
 }
+/* Zadaci's font is wider than the reference's; 248px fits "Two-factor authentication" */
+.set {
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+@media (max-width: 900px) {
+  .set {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
