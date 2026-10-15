@@ -1,4 +1,12 @@
 import type { ReactNode } from "react";
+import {
+	SelectContent,
+	SelectItem,
+	Select as SelectRoot,
+	SelectTrigger,
+	SelectValue,
+} from "#/components/ui/select";
+import { Switch } from "#/components/ui/switch";
 import { cn } from "#/lib/utils";
 
 // Building blocks ported from the reference settings page (srow / tog / sel / H).
@@ -50,14 +58,10 @@ export function Toggle({
 	disabled?: boolean;
 }) {
 	return (
-		<input
-			type="checkbox"
-			role="switch"
-			aria-checked={checked}
-			className="toggle"
+		<Switch
 			checked={checked}
+			onCheckedChange={onChange}
 			disabled={disabled}
-			onChange={(e) => onChange(e.target.checked)}
 			aria-label={label}
 		/>
 	);
@@ -78,21 +82,28 @@ export function Select({
 	disabled?: boolean;
 	className?: string;
 }) {
+	// Radix Select can't use "" as an item value; map it to a sentinel and back.
+	const EMPTY = "__none__";
 	return (
-		<select
-			className={cn("select", className)}
-			style={{ width: "auto", minWidth: 180 }}
-			value={value}
+		<SelectRoot
+			value={value || EMPTY}
+			onValueChange={(v) => onChange(v === EMPTY ? "" : v)}
 			disabled={disabled}
-			onChange={(e) => onChange(e.target.value)}
-			aria-label={label}
 		>
-			{options.map(([v, n]) => (
-				<option key={v} value={v}>
-					{n}
-				</option>
-			))}
-		</select>
+			<SelectTrigger
+				className={cn("min-w-[180px]", className)}
+				aria-label={label}
+			>
+				<SelectValue />
+			</SelectTrigger>
+			<SelectContent position="popper" className="max-h-72">
+				{options.map(([v, n]) => (
+					<SelectItem key={v || EMPTY} value={v || EMPTY}>
+						{n}
+					</SelectItem>
+				))}
+			</SelectContent>
+		</SelectRoot>
 	);
 }
 

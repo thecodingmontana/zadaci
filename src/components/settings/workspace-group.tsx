@@ -352,18 +352,17 @@ function InviteModal({
 					)}
 				</div>
 				<div className="field">
-					<label className="label" htmlFor="inv-role">
-						Role
-					</label>
-					<select
-						className="select"
-						id="inv-role"
+					<span className="label">Role</span>
+					<Select
 						value={role}
-						onChange={(e) => setRole(e.target.value)}
-					>
-						<option value="member">Member</option>
-						<option value="moderator">Admin</option>
-					</select>
+						options={[
+							["member", "Member"],
+							["moderator", "Admin"],
+						]}
+						onChange={setRole}
+						label="Role"
+						className="w-full"
+					/>
 				</div>
 			</form>
 		</Modal>
