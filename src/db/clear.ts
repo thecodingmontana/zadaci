@@ -1,0 +1,73 @@
+import "dotenv/config";
+import fs from "node:fs";
+import path from "node:path";
+import { sql } from "drizzle-orm";
+import { db, driver as pool } from ".";
+
+async function main() {
+  if (!db.query || Object.keys(db.query).length === 0) {
+    throw new Error("Schema not loaded");
+  }
+
+  // Get current database role
+  const result = await db.execute(sql.raw("SELECT current_user;"));
+  const currentRole = (result[0] as { current_user: string }).current_user;
+  console.log(`🔑 Current database role: ${currentRole}`);
+
+  // Drop drizzle schema (if it exists)
+  await db.execute(sql.raw(`DROP SCHEMA IF EXISTS "drizzle" CASCADE;`));
+
+  // Drop and recreate public schema
+  await db.execute(sql.raw(`DROP SCHEMA IF EXISTS public CASCADE;`));
+  await db.execute(sql.raw(`CREATE SCHEMA public;`));
+
+  // Roles that need access: the connecting role + Supabase's API roles
+  const rolesToGrant = Array.from(new Set([currentRole, "anon", "authenticated", "service_role"]));
+
+  for (const role of rolesToGrant) {
+    console.log(`🔐 Granting privileges to role: ${role}`);
+    await db.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO "${role}";`));
+    await db.execute(sql.raw(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${role}";`));
+    await db.execute(
+      sql.raw(`GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${role}";`),
+    );
+    await db.execute(
+      sql.raw(`GRANT ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA public TO "${role}";`),
+    );
+    await db.execute(
+      sql.raw(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "${role}";`),
+    );
+    await db.execute(
+      sql.raw(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "${role}";`),
+    );
+    await db.execute(
+      sql.raw(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO "${role}";`),
+    );
+  }
+
+  const migrationsDir = path.join(process.cwd(), "src", "db", "migrations");
+  console.log("migrationsDir", migrationsDir);
+
+  if (fs.existsSync(migrationsDir)) {
+    for (const entry of fs.readdirSync(migrationsDir)) {
+      fs.rmSync(path.join(migrationsDir, entry), {
+        recursive: true,
+        force: true,
+      });
+    }
+    console.log(`🗑️  Cleared all contents inside: ${migrationsDir}`);
+  } else {
+    console.log(`⚠️  No migrations directory found at: ${migrationsDir}`);
+  }
+
+  console.log("✅ Database schemas dropped, privileges restored, and migrations folder cleared");
+}
+
+main()
+  .catch((err) => {
+    console.error("❌ Error clearing database and migrations folder:", err);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await pool.end();
+  });

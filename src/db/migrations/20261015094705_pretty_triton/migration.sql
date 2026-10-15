@@ -105,6 +105,16 @@ CREATE TABLE "app_direct_message_receipt" (
 	"deleted_at" timestamp(3) with time zone
 );
 --> statement-breakpoint
+CREATE TABLE "app_favorite" (
+	"id" varchar(16) PRIMARY KEY,
+	"user_id" varchar(16) NOT NULL,
+	"workspace_id" varchar(16) NOT NULL,
+	"entity_type" varchar(20) NOT NULL,
+	"entity_id" varchar(16) NOT NULL,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "app_feedback" (
 	"id" varchar(16) PRIMARY KEY,
 	"user_id" varchar(16) NOT NULL,
@@ -129,6 +139,10 @@ CREATE TABLE "app_project" (
 	"id" varchar(16) PRIMARY KEY,
 	"title" text NOT NULL,
 	"description" text,
+	"icon" varchar(60),
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"archived_at" timestamp(3) with time zone,
+	"color" varchar(20),
 	"status" "status" DEFAULT 'idea'::"status" NOT NULL,
 	"priority" "priority" DEFAULT 'none'::"priority" NOT NULL,
 	"workspace_id" varchar(16) NOT NULL,
@@ -216,6 +230,8 @@ CREATE TABLE "app_team" (
 	"workspace_id" varchar(16) NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"color" varchar(20),
+	"icon" varchar(60),
+	"description" text,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp(3) with time zone
@@ -289,6 +305,7 @@ CREATE TABLE "app_user" (
 	"image" text,
 	"two_factor_enabled" boolean DEFAULT false,
 	"whats_new_last_seen_version" varchar(20),
+	"preferences" jsonb DEFAULT '{}' NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
 );
@@ -315,8 +332,14 @@ CREATE TABLE "app_verification" (
 CREATE TABLE "app_workspace" (
 	"id" varchar(16) PRIMARY KEY,
 	"name" varchar(255) NOT NULL,
-	"image_url" text NOT NULL,
+	"slug" varchar(48) NOT NULL UNIQUE,
+	"image_url" text,
 	"invite_code" text NOT NULL UNIQUE,
+	"use_case" varchar(20),
+	"team_size" varchar(10),
+	"default_view" varchar(10) DEFAULT 'board' NOT NULL,
+	"color" varchar(20),
+	"settings" jsonb DEFAULT '{}' NOT NULL,
 	"user_id" varchar(16) NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
@@ -369,6 +392,8 @@ CREATE INDEX "direct_message_author_id_idx" ON "app_direct_message" ("author_id"
 CREATE INDEX "dm_receipt_message_id_idx" ON "app_direct_message_receipt" ("direct_message_id");--> statement-breakpoint
 CREATE INDEX "dm_receipt_member_id_idx" ON "app_direct_message_receipt" ("member_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "dm_receipt_message_member_unique" ON "app_direct_message_receipt" ("direct_message_id","member_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "favorite_user_entity_idx" ON "app_favorite" ("user_id","entity_type","entity_id");--> statement-breakpoint
+CREATE INDEX "favorite_workspace_idx" ON "app_favorite" ("workspace_id");--> statement-breakpoint
 CREATE INDEX "note_workspace_id_idx" ON "app_note" ("workspace_id");--> statement-breakpoint
 CREATE INDEX "project_workspace_id_idx" ON "app_project" ("workspace_id");--> statement-breakpoint
 CREATE INDEX "project_team_id_idx" ON "app_project" ("team_id");--> statement-breakpoint
@@ -401,6 +426,7 @@ CREATE INDEX "workspace_invite_workspace_id_idx" ON "app_workspace_invite_reques
 CREATE INDEX "workspace_invite_invited_by_idx" ON "app_workspace_invite_request" ("invited_by");--> statement-breakpoint
 CREATE INDEX "workspace_members_user_id_idx" ON "app_workspace_members" ("user_id");--> statement-breakpoint
 CREATE INDEX "workspace_members_workspace_id_idx" ON "app_workspace_members" ("workspace_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "workspace_members_active_idx" ON "app_workspace_members" ("workspace_id","user_id") WHERE "deleted_at" is null;--> statement-breakpoint
 ALTER TABLE "app_channel" ADD CONSTRAINT "app_channel_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_channel" ADD CONSTRAINT "app_channel_created_by_app_user_id_fkey" FOREIGN KEY ("created_by") REFERENCES "app_user"("id");--> statement-breakpoint
 ALTER TABLE "app_channel_members" ADD CONSTRAINT "app_channel_members_channel_id_app_channel_id_fkey" FOREIGN KEY ("channel_id") REFERENCES "app_channel"("id") ON DELETE CASCADE;--> statement-breakpoint
@@ -420,6 +446,8 @@ ALTER TABLE "app_direct_message" ADD CONSTRAINT "app_direct_message_conversation
 ALTER TABLE "app_direct_message" ADD CONSTRAINT "app_direct_message_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id");--> statement-breakpoint
 ALTER TABLE "app_direct_message_receipt" ADD CONSTRAINT "app_direct_message_receipt_Hg5ChsgZATC8_fkey" FOREIGN KEY ("direct_message_id") REFERENCES "app_direct_message"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_direct_message_receipt" ADD CONSTRAINT "app_direct_message_receipt_NEUYKDqPyHWL_fkey" FOREIGN KEY ("member_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_favorite" ADD CONSTRAINT "app_favorite_user_id_app_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app_user"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "app_favorite" ADD CONSTRAINT "app_favorite_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_feedback" ADD CONSTRAINT "app_feedback_user_id_app_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app_user"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_note" ADD CONSTRAINT "app_note_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "app_project" ADD CONSTRAINT "app_project_workspace_id_app_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "app_workspace"("id") ON DELETE CASCADE;--> statement-breakpoint

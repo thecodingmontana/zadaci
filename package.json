@@ -18,6 +18,8 @@
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
+    "db:clear": "tsx --env-file=.env.local ./src/db/clear.ts",
+    "db:reset": "pnpm run db:clear && pnpm run db:generate && pnpm run db:migrate",
     "test": "node --env-file=.env.local --import tsx --test --test-concurrency=1 'tests/**/*.test.ts' 'src/**/*.test.ts'"
   },
   "dependencies": {

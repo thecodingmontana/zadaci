@@ -1,5 +1,9 @@
 allowBuilds:
   esbuild: true
+  lightningcss: true
+skills:
+  dirs:
+    - .claude/skills
 minimumReleaseAgeExclude:
   - '@tanstack/db-ivm@0.2.0'
   - '@tanstack/db@0.14.0'
@@ -13,3 +17,16 @@ minimumReleaseAgeExclude:
   - '@tanstack/router-utils@1.162.4'
   - '@tanstack/start-plugin-core@1.171.53'
   - '@tanstack/start-server-core@1.169.43'
+permissions:
+  '@apollo/client':
+    skills: true
+  '@tanstack/devtools-event-client':
+    skills: true
+  '@tanstack/devtools-vite':
+    skills: true
+  '@tanstack/react-start':
+    skills: true
+  dotenv:
+    skills: true
+  drizzle-kit:
+    skills: true

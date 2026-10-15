@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX "workspace_members_active_idx" ON "app_workspace_members" ("workspace_id","user_id") WHERE "deleted_at" is null;
