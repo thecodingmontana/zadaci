@@ -1,0 +1,2 @@
+ALTER TABLE "app_workspace_invite_request" ADD COLUMN "team_id" varchar(16);--> statement-breakpoint
+ALTER TABLE "app_workspace_invite_request" ADD CONSTRAINT "app_workspace_invite_request_team_id_app_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "app_team"("id") ON DELETE SET NULL;

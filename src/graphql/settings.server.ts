@@ -41,12 +41,15 @@ export const settingsTypeDefs = /* GraphQL */ `
 		email: String!
 		image: String
 		isMe: Boolean!
+		title: String
+		tz: String
 	}
 
 	type Invite {
 		id: ID!
 		email: String!
 		role: String!
+		teamId: ID
 	}
 
 	type CloudinaryUpload {
@@ -91,7 +94,12 @@ export const settingsTypeDefs = /* GraphQL */ `
 		deleteWorkspace(slug: String!): Boolean!
 		workspaceLogoUpload(slug: String!): CloudinaryUpload!
 		setWorkspaceImage(slug: String!, imageUrl: String): Workspace!
-		inviteMembers(slug: String!, emails: [String!]!, role: String!): [Invite!]!
+		inviteMembers(
+			slug: String!
+			emails: [String!]!
+			role: String!
+			teamId: ID
+		): [Invite!]!
 		revokeInvite(slug: String!, id: ID!): Boolean!
 		resendInvite(slug: String!, id: ID!): Boolean!
 		updateMemberRole(slug: String!, memberId: ID!, role: String!): Member!
@@ -108,7 +116,7 @@ const JSONScalar = new GraphQLScalarType({
 const INVITE_ROLES = z.enum([USER_ROLE.MODERATOR, USER_ROLE.MEMBER]);
 
 /** The signed-in user's workspace, failing unless their role is in `roles`. */
-async function requireWorkspace(
+export async function requireWorkspace(
 	ctx: GraphQLContext,
 	slug: string,
 	roles?: readonly string[],
@@ -127,7 +135,7 @@ async function requireWorkspace(
 	return { user, workspace };
 }
 
-function parse<T>(schema: z.ZodType<T>, value: unknown): T {
+export function parse<T>(schema: z.ZodType<T>, value: unknown): T {
 	const result = schema.safeParse(value);
 	if (!result.success)
 		badInput(result.error.issues[0]?.message ?? "Invalid input");
@@ -165,6 +173,7 @@ const memberRows = (workspaceId: string) =>
 			name: tables.user.name,
 			email: tables.user.email,
 			image: tables.user.image,
+			preferences: tables.user.preferences,
 		})
 		.from(tables.workspace_members)
 		.innerJoin(
@@ -203,10 +212,15 @@ export const settingsResolvers = {
 		}),
 		members: async (w: Workspace, _: unknown, ctx: GraphQLContext) => {
 			const me = requireUser(ctx).id;
-			return (await memberRows(w.id)).map((m) => ({
-				...m,
-				isMe: m.userId === me,
-			}));
+			return (await memberRows(w.id)).map(({ preferences, ...m }) => {
+				const p = (preferences ?? {}) as { title?: string; tz?: string };
+				return {
+					...m,
+					isMe: m.userId === me,
+					title: p.title || null,
+					tz: p.tz || null,
+				};
+			});
 		},
 		invites: (w: Workspace) =>
 			isAdmin(w.role)
@@ -215,6 +229,7 @@ export const settingsResolvers = {
 							id: tables.workspace_invite_request.id,
 							email: tables.workspace_invite_request.email,
 							role: tables.workspace_invite_request.role,
+							teamId: tables.workspace_invite_request.team_id,
 						})
 						.from(tables.workspace_invite_request)
 						.where(
@@ -421,7 +436,12 @@ export const settingsResolvers = {
 
 		inviteMembers: async (
 			_: unknown,
-			args: { slug: string; emails: string[]; role: string },
+			args: {
+				slug: string;
+				emails: string[];
+				role: string;
+				teamId?: string | null;
+			},
 			ctx: GraphQLContext,
 		) => {
 			const { user, workspace } = await requireWorkspace(
@@ -430,6 +450,19 @@ export const settingsResolvers = {
 				ADMIN_ROLES,
 			);
 			const role = parse(INVITE_ROLES, args.role);
+			if (args.teamId) {
+				const [team] = await db
+					.select({ id: tables.team.id })
+					.from(tables.team)
+					.where(
+						and(
+							eq(tables.team.id, args.teamId),
+							eq(tables.team.workspace_id, workspace.id),
+							isNull(tables.team.deleted_at),
+						),
+					);
+				if (!team) badInput("That team doesn't exist anymore");
+			}
 			const emails = [
 				...new Set(
 					args.emails.map((e) => e.trim().toLowerCase()).filter(Boolean),
@@ -472,6 +505,7 @@ export const settingsResolvers = {
 						role,
 						workspace_id: workspace.id,
 						invited_by: user.id,
+						team_id: args.teamId || null,
 						expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
 					})),
 				)
@@ -479,6 +513,7 @@ export const settingsResolvers = {
 					id: tables.workspace_invite_request.id,
 					email: tables.workspace_invite_request.email,
 					role: tables.workspace_invite_request.role,
+					teamId: tables.workspace_invite_request.team_id,
 				});
 			await sendInviteEmails(workspace, user.name, created);
 			return created;
@@ -601,10 +636,21 @@ export const settingsResolvers = {
 				badInput("The workspace owner can't be removed");
 			// New invite code in the same transaction, so the removed member's old link stops working.
 			await db.transaction(async (tx) => {
+				// They lose their projects, teams and task assignments too (reference removeMember).
+				const now = new Date();
 				await tx
 					.update(tables.workspace_members)
-					.set({ deleted_at: new Date() })
+					.set({ deleted_at: now })
 					.where(eq(tables.workspace_members.id, target.id));
+				for (const t of [
+					tables.project_members,
+					tables.team_members,
+					tables.task_assignees,
+				])
+					await tx
+						.update(t)
+						.set({ deleted_at: now })
+						.where(and(eq(t.member_id, target.id), isNull(t.deleted_at)));
 				await tx
 					.update(tables.workspace)
 					.set({ invite_code: generateInviteCode() })

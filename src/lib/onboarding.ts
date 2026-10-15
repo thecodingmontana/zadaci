@@ -185,3 +185,23 @@ export const PCOLORS: Record<string, string> = {
 	green: "#3D8E5F",
 	slate: "#6B7280",
 };
+
+// Team icons: the reference app's picker set as Iconify classes (written out so Tailwind finds them).
+export const TEAM_ICONS = [
+	"icon-[solar--users-group-rounded-linear]",
+	"icon-[solar--global-linear]",
+	"icon-[solar--smartphone-linear]",
+	"icon-[hugeicons--megaphone-01]",
+	"icon-[solar--rocket-linear]",
+	"icon-[solar--widget-4-linear]",
+	"icon-[solar--buildings-2-linear]",
+	"icon-[solar--widget-linear]",
+	"icon-[solar--palette-linear]",
+	"icon-[solar--code-linear]",
+	"icon-[solar--case-linear]",
+	"icon-[solar--target-linear]",
+	"icon-[solar--layers-linear]",
+	"icon-[solar--bolt-linear]",
+	"icon-[solar--heart-linear]",
+	"icon-[solar--stars-linear]",
+] as const;

@@ -1,4 +1,13 @@
-import { and, count, eq, isNull, max, notInArray } from "drizzle-orm";
+import {
+	and,
+	asc,
+	count,
+	eq,
+	getTableColumns,
+	isNull,
+	max,
+	notInArray,
+} from "drizzle-orm";
 import { db, tables } from "#/db";
 import { STATUS } from "#/db/enums";
 
@@ -14,8 +23,25 @@ export const membersTypeDefs = /* GraphQL */ `
 		lastActiveAt: String
 	}
 
+	type ProfileTask {
+		id: ID!
+		name: String!
+		status: String!
+		priority: String!
+		dueDate: String
+		projectId: ID!
+		projectTitle: String!
+		projectColor: String
+	}
+
+	type MemberProfile {
+		projects: [Project!]!
+		tasks: [ProfileTask!]!
+	}
+
 	extend type Workspace {
 		memberStats: [MemberStats!]!
+		memberProfile(memberId: ID!): MemberProfile!
 	}
 `;
 
@@ -100,6 +126,70 @@ export const membersResolvers = {
 				openTasks: taskCount.get(member.id) ?? 0,
 				lastActiveAt: member.lastActive?.toISOString() ?? null,
 			}));
+		},
+		// One person's active projects and assigned tasks, for their profile page.
+		memberProfile: async (w: { id: string }, args: { memberId: string }) => {
+			const liveProject = and(
+				eq(tables.project.workspace_id, w.id),
+				isNull(tables.project.deleted_at),
+			);
+			const [projects, tasks] = await Promise.all([
+				db
+					.select(getTableColumns(tables.project))
+					.from(tables.project_members)
+					.innerJoin(
+						tables.project,
+						eq(tables.project.id, tables.project_members.project_id),
+					)
+					.where(
+						and(
+							liveProject,
+							eq(tables.project_members.member_id, args.memberId),
+							isNull(tables.project_members.deleted_at),
+							isNull(tables.project.archived_at),
+							notInArray(tables.project.status, DONE),
+						),
+					)
+					.orderBy(asc(tables.project.title)),
+				db
+					.select({
+						id: tables.task.id,
+						name: tables.task.name,
+						status: tables.task.status,
+						priority: tables.task.priority,
+						due: tables.task.due_date,
+						projectId: tables.project.id,
+						projectTitle: tables.project.title,
+						projectColor: tables.project.color,
+					})
+					.from(tables.task_assignees)
+					.innerJoin(
+						tables.task,
+						eq(tables.task.id, tables.task_assignees.task_id),
+					)
+					.innerJoin(
+						tables.project,
+						eq(tables.project.id, tables.task.project_id),
+					)
+					.where(
+						and(
+							liveProject,
+							eq(tables.task_assignees.member_id, args.memberId),
+							isNull(tables.task_assignees.deleted_at),
+							isNull(tables.task.deleted_at),
+						),
+					)
+					// shortcut: first 200 assigned tasks by due date; paginate once people carry more
+					.orderBy(asc(tables.task.due_date))
+					.limit(200),
+			]);
+			return {
+				projects,
+				tasks: tasks.map(({ due, ...t }) => ({
+					...t,
+					dueDate: due?.toISOString() ?? null,
+				})),
+			};
 		},
 	},
 };

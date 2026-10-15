@@ -1,6 +1,7 @@
 import {
 	and,
 	asc,
+	desc,
 	eq,
 	getTableColumns,
 	ilike,
@@ -308,10 +309,37 @@ const resolvers = {
 			if (existing) return existing;
 
 			return db.transaction(async (tx) => {
+				// An emailed invite decides their role and team; the bare link makes a member.
+				const [invite] = await tx
+					.select({
+						role: tables.workspace_invite_request.role,
+						teamId: tables.team.id,
+					})
+					.from(tables.workspace_invite_request)
+					.leftJoin(
+						tables.team,
+						and(
+							eq(tables.team.id, tables.workspace_invite_request.team_id),
+							isNull(tables.team.deleted_at),
+						),
+					)
+					.where(
+						and(
+							eq(tables.workspace_invite_request.workspace_id, workspace.id),
+							eq(
+								tables.workspace_invite_request.email,
+								user.email.toLowerCase(),
+							),
+							eq(tables.workspace_invite_request.status, "PENDING"),
+							isNull(tables.workspace_invite_request.deleted_at),
+						),
+					)
+					.orderBy(desc(tables.workspace_invite_request.created_at))
+					.limit(1);
 				const [member] = await tx
 					.insert(tables.workspace_members)
 					.values({
-						role: USER_ROLE.MEMBER,
+						role: invite?.role ?? USER_ROLE.MEMBER,
 						user_id: user.id,
 						workspace_id: workspace.id,
 					})
@@ -319,6 +347,10 @@ const resolvers = {
 					.onConflictDoNothing()
 					.returning();
 				if (!member) return { ...workspace, role: USER_ROLE.MEMBER };
+				if (invite?.teamId)
+					await tx
+						.insert(tables.team_members)
+						.values({ team_id: invite.teamId, member_id: member.id });
 				// Mark any emailed invite for this address as used
 				await tx
 					.update(tables.workspace_invite_request)

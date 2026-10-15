@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+	type AnyPgColumn,
 	index,
 	jsonb,
 	text,
@@ -8,6 +9,7 @@ import {
 	varchar,
 } from "drizzle-orm/pg-core";
 import { USER_ROLE, user_role_enum } from "./enums";
+import { team } from "./team";
 import { user } from "./user";
 import { generateNanoId, pgTable, syncable } from "./utils";
 
@@ -87,6 +89,11 @@ export const workspace_invite_request = pgTable(
 		invited_by: varchar("invited_by", { length: 255 })
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
+		// the team the person joins, picked in the invite modal
+		team_id: varchar("team_id", { length: 16 }).references(
+			(): AnyPgColumn => team.id,
+			{ onDelete: "set null" },
+		),
 		...syncable,
 	},
 	(table) => [
