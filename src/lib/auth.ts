@@ -51,6 +51,8 @@ export const auth = betterAuth({
 		google: {
 			clientId: requireEnv("GOOGLE_CLIENT_ID"),
 			clientSecret: requireEnv("GOOGLE_CLIENT_SECRET"),
+			// ID-token sign-in creates a session without the /callback hook below, which would skip 2FA.
+			disableIdTokenSignIn: true,
 		},
 	},
 	hooks: {

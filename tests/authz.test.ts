@@ -32,3 +32,16 @@ test("only owners and admins change workspace settings or delete projects", asyn
 	const del = await gql(member, `mutation($s: String!, $p: ID!) { deleteProject(slug: $s, projectId: $p) }`, { s: slug, p: projectId });
 	assert.equal(code(del), "FORBIDDEN");
 });
+
+test("Google ID-token sign-in is disabled, so it can't skip two-step verification", async () => {
+	const { auth } = await import("#/lib/auth");
+	const res = await auth.handler(
+		new Request("http://localhost:3000/api/auth/sign-in/social", {
+			method: "POST",
+			headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+			body: JSON.stringify({ provider: "google", idToken: { token: "not-a-real-token" } }),
+		}),
+	);
+	const body = (await res.json()) as { code?: string };
+	assert.equal(body.code, "ID_TOKEN_NOT_SUPPORTED");
+});
