@@ -1815,7 +1815,7 @@ svg.logo {
   justify-content: center;
   padding: 0;
 }
-.collapsed .sitem > span:not(.pico),
+.collapsed .sitem > span:not(.pico):not(.i),
 .collapsed .sitem .ct,
 .collapsed .sgroup-h,
 .collapsed .ws-name,
@@ -3231,7 +3231,7 @@ h3.sub {
   }
 }
 /* project rows wrap their label in a link (the expand button can't live inside it) */
-.collapsed .sitem > a > span:not(.pico) {
+.collapsed .sitem > a > span:not(.pico):not(.i) {
   display: none !important;
 }
 .collapsed .sitem > a {
