@@ -219,7 +219,7 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 							</div>
 						</div>
 					</div>
-					<div className="col" style={{ gap: 14, maxWidth: 440 }}>
+					<div className="col" style={{ gap: 14 }}>
 						<div className="field">
 							<label className="label" htmlFor="ws-name">
 								Workspace name

@@ -3264,3 +3264,7 @@ h3.sub {
 .sitem:has([data-state="open"]) .sdot {
   display: none;
 }
+/* Zadaci: settings pages use the full content width */
+.set-in {
+  max-width: none;
+}
