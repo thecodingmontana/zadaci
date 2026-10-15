@@ -623,25 +623,41 @@ export function PermissionsSection({ slug, workspace, title }: SectionProps) {
 	return (
 		<>
 			<SettingsHeader title={title} lead="Control what each role can do." />
-			<SRow t="Members can create projects">
-				<Toggle
-					checked={permCreate}
-					label="Members can create projects"
-					disabled={!isAdmin}
-					onChange={async (value) => {
-						try {
-							await update({
-								variables: { slug, input: { settings: { permCreate: value } } },
-							});
-							toast.success("Preference saved", { duration: 1500 });
-						} catch (error) {
-							toast.error("Couldn't save that", {
-								desc: (error as Error).message,
-							});
-						}
-					}}
-				/>
-			</SRow>
+			{(
+				[
+					["permCreate", "Members can create projects", undefined],
+					[
+						"permGuests",
+						"Members can invite guests",
+						"Guests only see projects they are added to.",
+					],
+					[
+						"permPublic",
+						"Allow public share links",
+						"Anyone with the link can view a project.",
+					],
+				] as const
+			).map(([key, t, d]) => (
+				<SRow key={key} t={t} d={d}>
+					<Toggle
+						checked={workspace.settings[key]}
+						label={t}
+						disabled={!isAdmin}
+						onChange={async (value) => {
+							try {
+								await update({
+									variables: { slug, input: { settings: { [key]: value } } },
+								});
+								toast.success("Preference saved", { duration: 1500 });
+							} catch (error) {
+								toast.error("Couldn't save that", {
+									desc: (error as Error).message,
+								});
+							}
+						}}
+					/>
+				</SRow>
+			))}
 			<SBlock title="Role permissions">
 				<div style={{ marginTop: 12 }}>
 					<div className="panel" style={{ overflowX: "auto" }}>

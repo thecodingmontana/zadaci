@@ -246,7 +246,12 @@ export type SettingsData = {
 		| (WorkspaceSummary & {
 				color: string | null;
 				inviteCode: string;
-				settings: { permCreate: boolean; showDoneBoard: boolean };
+				settings: {
+					permCreate: boolean;
+					permGuests: boolean;
+					permPublic: boolean;
+					showDoneBoard: boolean;
+				};
 				projectCount: number;
 				archivedProjects: {
 					id: string;

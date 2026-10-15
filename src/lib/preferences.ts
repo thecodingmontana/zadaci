@@ -127,9 +127,20 @@ export const PREF_DEFAULTS = {
 } satisfies Required<Preferences>;
 
 export const workspaceSettingsPatch = z
-	.object({ permCreate: z.boolean(), showDoneBoard: z.boolean() })
+	.object({
+		permCreate: z.boolean(),
+		permGuests: z.boolean(),
+		permPublic: z.boolean(),
+		showDoneBoard: z.boolean(),
+	})
 	.partial()
 	.strict();
-export const WS_SETTINGS_DEFAULTS = { permCreate: true, showDoneBoard: true };
+// shortcut: permGuests/permPublic are stored only; enforce them when guests and share links exist
+export const WS_SETTINGS_DEFAULTS = {
+	permCreate: true,
+	permGuests: true,
+	permPublic: false,
+	showDoneBoard: true,
+};
 
 export type ResolvedPreferences = typeof PREF_DEFAULTS;

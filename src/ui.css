@@ -3339,3 +3339,7 @@ h3.sub {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* a little air between settings nav items */
+.set-nav .sitem + .sitem {
+  margin-top: 2px;
+}
