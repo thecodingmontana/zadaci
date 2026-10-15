@@ -8,9 +8,8 @@ import { isDicebearUrl } from "#/lib/dicebear";
 import { sendInviteEmails } from "#/lib/email.server";
 import { requireEnv } from "#/lib/env";
 import { EMAIL_RE } from "#/lib/onboarding";
+import { can, type Permission } from "#/lib/permissions";
 import {
-	ADMIN_ROLES,
-	isAdmin,
 	PREF_DEFAULTS,
 	preferencesPatch,
 	ROLE_LABEL,
@@ -22,6 +21,7 @@ import { logActivity, notify } from "./activity.server";
 import {
 	badInput,
 	findWorkspaces,
+	forbidden,
 	type GraphQLContext,
 	generateInviteCode,
 	requireUser,
@@ -113,13 +113,17 @@ const JSONScalar = new GraphQLScalarType({
 	parseValue: (v) => v,
 });
 
-const INVITE_ROLES = z.enum([USER_ROLE.MODERATOR, USER_ROLE.MEMBER]);
+const INVITE_ROLES = z.enum([
+	USER_ROLE.MODERATOR,
+	USER_ROLE.MEMBER,
+	USER_ROLE.GUEST,
+]);
 
 /** The signed-in user's workspace, failing unless their role is in `roles`. */
 export async function requireWorkspace(
 	ctx: GraphQLContext,
 	slug: string,
-	roles?: readonly string[],
+	permission?: Permission,
 ) {
 	const user = requireUser(ctx);
 	const [workspace] = await findWorkspaces(user.id, slug);
@@ -127,11 +131,11 @@ export async function requireWorkspace(
 		throw new GraphQLError("Workspace not found", {
 			extensions: { code: "NOT_FOUND" },
 		});
-	if (roles && !roles.includes(workspace.role ?? "")) {
-		throw new GraphQLError("You don't have permission to do that", {
-			extensions: { code: "FORBIDDEN" },
-		});
-	}
+	if (
+		permission &&
+		!can(workspace.role, permission, workspace.settings as object)
+	)
+		forbidden();
 	return { user, workspace };
 }
 
@@ -223,7 +227,7 @@ export const settingsResolvers = {
 			});
 		},
 		invites: (w: Workspace) =>
-			isAdmin(w.role)
+			can(w.role, "inviteMembers", w.settings as object)
 				? db
 						.select({
 							id: tables.workspace_invite_request.id,
@@ -315,7 +319,11 @@ export const settingsResolvers = {
 			args: { slug: string; input: Record<string, unknown> },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
+			const { workspace } = await requireWorkspace(
+				ctx,
+				args.slug,
+				"workspaceSettings",
+			);
 			const input = parse(
 				z
 					.object({
@@ -369,9 +377,11 @@ export const settingsResolvers = {
 			args: { slug: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, [
-				USER_ROLE.OWNER,
-			]);
+			const { workspace } = await requireWorkspace(
+				ctx,
+				args.slug,
+				"deleteWorkspace",
+			);
 			// Soft delete; frees the URL so it can be reused.
 			await db
 				.update(tables.workspace)
@@ -388,7 +398,11 @@ export const settingsResolvers = {
 			args: { slug: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
+			const { workspace } = await requireWorkspace(
+				ctx,
+				args.slug,
+				"workspaceSettings",
+			);
 			const { cloud, key, secret } = cloudinary();
 			const params = {
 				folder: "zadaci/workspaces",
@@ -413,7 +427,11 @@ export const settingsResolvers = {
 			args: { slug: string; imageUrl: string | null },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
+			const { workspace } = await requireWorkspace(
+				ctx,
+				args.slug,
+				"workspaceSettings",
+			);
 			// Only accept images we signed for this workspace, or a generated DiceBear avatar.
 			const allowed = `https://res.cloudinary.com/${cloudinary().cloud}/image/upload/`;
 			if (
@@ -444,12 +462,13 @@ export const settingsResolvers = {
 			},
 			ctx: GraphQLContext,
 		) => {
-			const { user, workspace } = await requireWorkspace(
-				ctx,
-				args.slug,
-				ADMIN_ROLES,
-			);
+			const { user, workspace } = await requireWorkspace(ctx, args.slug);
 			const role = parse(INVITE_ROLES, args.role);
+			// Guests can be invited by members when "Members can invite guests" is on.
+			const needed =
+				role === USER_ROLE.GUEST ? "inviteGuests" : "inviteMembers";
+			if (!can(workspace.role, needed, workspace.settings as object))
+				forbidden();
 			if (args.teamId) {
 				const [team] = await db
 					.select({ id: tables.team.id })
@@ -527,7 +546,7 @@ export const settingsResolvers = {
 			const { user, workspace } = await requireWorkspace(
 				ctx,
 				args.slug,
-				ADMIN_ROLES,
+				"inviteMembers",
 			);
 			const [invite] = await db
 				.update(tables.workspace_invite_request)
@@ -555,7 +574,11 @@ export const settingsResolvers = {
 			args: { slug: string; id: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
+			const { workspace } = await requireWorkspace(
+				ctx,
+				args.slug,
+				"inviteMembers",
+			);
 			await db
 				.update(tables.workspace_invite_request)
 				.set({ status: "REVOKED" })
@@ -576,7 +599,7 @@ export const settingsResolvers = {
 			const { user, workspace } = await requireWorkspace(
 				ctx,
 				args.slug,
-				ADMIN_ROLES,
+				"manageRoles",
 			);
 			const role = parse(INVITE_ROLES, args.role);
 			const target = (await memberRows(workspace.id)).find(
@@ -626,7 +649,7 @@ export const settingsResolvers = {
 			const { user, workspace } = await requireWorkspace(
 				ctx,
 				args.slug,
-				ADMIN_ROLES,
+				"manageRoles",
 			);
 			const target = (await memberRows(workspace.id)).find(
 				(m) => m.id === args.memberId,

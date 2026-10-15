@@ -10,6 +10,8 @@ export enum USER_ROLE {
 	OWNER = "owner",
 	MODERATOR = "moderator",
 	MEMBER = "member",
+	// only sees projects they're added to (see src/lib/permissions.ts)
+	GUEST = "guest",
 }
 
 export enum STATUS {

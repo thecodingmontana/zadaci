@@ -2,12 +2,14 @@ import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { GraphQLError } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
-import { isAdmin, WS_SETTINGS_DEFAULTS } from "#/lib/preferences";
+import { can, type Permission } from "#/lib/permissions";
 import { logActivity, notify, projectUserIds } from "./activity.server";
 import {
 	badInput,
 	findWorkspaces,
+	forbidden,
 	type GraphQLContext,
+	projectScope,
 	requireUser,
 } from "./schema.server";
 
@@ -40,6 +42,7 @@ async function requireProject(
 	ctx: GraphQLContext,
 	slug: string,
 	projectId: string,
+	permission?: Permission,
 ) {
 	const user = requireUser(ctx);
 	const [workspace] = await findWorkspaces(user.id, slug);
@@ -55,9 +58,15 @@ async function requireProject(
 				eq(tables.project.id, projectId),
 				eq(tables.project.workspace_id, workspace.id),
 				isNull(tables.project.deleted_at),
+				projectScope(workspace),
 			),
 		);
 	if (!project) badInput("Project not found");
+	if (
+		permission &&
+		!can(workspace.role, permission, workspace.settings as object)
+	)
+		forbidden();
 	return { user, workspace, project };
 }
 
@@ -141,7 +150,7 @@ export const projectsResolvers = {
 		teamId: (p: Project) => p.team_id,
 	},
 	Workspace: {
-		archivedProjects: (w: { id: string }) =>
+		archivedProjects: (w: { id: string; role?: string; memberId?: string }) =>
 			db
 				.select()
 				.from(tables.project)
@@ -150,6 +159,7 @@ export const projectsResolvers = {
 						eq(tables.project.workspace_id, w.id),
 						isNull(tables.project.deleted_at),
 						isNotNull(tables.project.archived_at),
+						projectScope(w),
 					),
 				)
 				.orderBy(asc(tables.project.title)),
@@ -196,6 +206,7 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
+				"editProjects",
 			);
 			const title = z
 				.string()
@@ -230,20 +241,9 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
+				"createProjects",
 			);
 			// A duplicate is a new project, so it follows "Members can create projects".
-			const { permCreate } = {
-				...WS_SETTINGS_DEFAULTS,
-				...(workspace.settings as object),
-			};
-			if (!permCreate && !isAdmin(workspace.role)) {
-				throw new GraphQLError(
-					"Only owners and admins can create projects in this workspace",
-					{
-						extensions: { code: "FORBIDDEN" },
-					},
-				);
-			}
 			const copy = await db.transaction(async (tx) => {
 				const { id: _id, created_at: _c, updated_at: _u, ...rest } = project;
 				const [copy] = await tx
@@ -322,6 +322,7 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
+				"editProjects",
 			);
 			if (args.direction !== "up" && args.direction !== "down")
 				badInput("Direction must be up or down");
@@ -350,6 +351,7 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
+				"editProjects",
 			);
 			const [updated] = await db
 				.update(tables.project)
@@ -383,12 +385,8 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
+				"deleteProjects",
 			);
-			if (!isAdmin(workspace.role)) {
-				throw new GraphQLError("Only owners and admins can delete projects", {
-					extensions: { code: "FORBIDDEN" },
-				});
-			}
 			await db.transaction(async (tx) => {
 				const now = new Date();
 				await tx

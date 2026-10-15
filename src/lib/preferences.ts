@@ -135,7 +135,7 @@ export const workspaceSettingsPatch = z
 	})
 	.partial()
 	.strict();
-// shortcut: permGuests/permPublic are stored only; enforce them when guests and share links exist
+// shortcut: permPublic is stored only; enforce it when public share links exist
 export const WS_SETTINGS_DEFAULTS = {
 	permCreate: true,
 	permGuests: true,
@@ -145,12 +145,9 @@ export const WS_SETTINGS_DEFAULTS = {
 
 export type ResolvedPreferences = typeof PREF_DEFAULTS;
 
-/** Roles that manage the workspace (owner, and "moderator" shown as Admin). Shared by UI and server. */
-export const ADMIN_ROLES: readonly string[] = ["owner", "moderator"];
 export const ROLE_LABEL: Record<string, string> = {
 	owner: "Owner",
 	moderator: "Admin",
 	member: "Member",
+	guest: "Guest",
 };
-export const isAdmin = (role: string | null | undefined) =>
-	ADMIN_ROLES.includes(role ?? "");

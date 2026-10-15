@@ -11,11 +11,12 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db, tables } from "#/db";
-import { ADMIN_ROLES } from "#/lib/preferences";
+import { ADMIN_ROLES, can } from "#/lib/permissions";
 import {
 	badInput,
 	findWorkspaces,
 	type GraphQLContext,
+	projectScope,
 	requireUser,
 } from "./schema.server";
 
@@ -204,7 +205,7 @@ async function requireSlug(ctx: GraphQLContext, slug: string) {
 export const activityResolvers = {
 	Workspace: {
 		activity: async (
-			w: { id: string },
+			w: { id: string; role?: string; memberId?: string },
 			args: { filter?: string | null; actorId?: string | null },
 		) => {
 			const filter =
@@ -230,6 +231,13 @@ export const activityResolvers = {
 					and(
 						eq(tables.activity.workspace_id, w.id),
 						filter,
+						// guests see workspace-wide events plus their own projects' events
+						can(w.role, "viewAllProjects")
+							? undefined
+							: or(
+									isNull(tables.activity.project_id),
+									projectScope(w, tables.activity.project_id),
+								),
 						args.actorId
 							? eq(tables.activity.actor_id, args.actorId)
 							: undefined,

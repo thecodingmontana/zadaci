@@ -5,10 +5,12 @@ import {
 	eq,
 	getTableColumns,
 	ilike,
+	inArray,
 	isNull,
 	or,
 	sql,
 } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { GraphQLError } from "graphql";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
@@ -23,13 +25,17 @@ import {
 	USE_CASES,
 	VIEWS,
 } from "#/lib/onboarding";
+import { can } from "#/lib/permissions";
 import { adminUserIds, logActivity, notify } from "./activity.server";
 
 export type GraphQLContext = {
 	user: { id: string; email: string; name: string } | null;
 };
 
-type Workspace = typeof tables.workspace.$inferSelect & { role?: string };
+type Workspace = typeof tables.workspace.$inferSelect & {
+	role?: string;
+	memberId?: string;
+};
 type Project = typeof tables.project.$inferSelect;
 
 const typeDefs = /* GraphQL */ `
@@ -163,6 +169,12 @@ export function badInput(message: string): never {
 	throw new GraphQLError(message, { extensions: { code: "BAD_USER_INPUT" } });
 }
 
+export function forbidden(): never {
+	throw new GraphQLError("You don't have permission to do that", {
+		extensions: { code: "FORBIDDEN" },
+	});
+}
+
 const membership = (userId: string) =>
 	and(
 		eq(tables.workspace_members.user_id, userId),
@@ -178,6 +190,7 @@ export async function findWorkspaces(
 		.select({
 			workspace: tables.workspace,
 			role: tables.workspace_members.role,
+			memberId: tables.workspace_members.id,
 		})
 		.from(tables.workspace_members)
 		.innerJoin(
@@ -190,7 +203,34 @@ export async function findWorkspaces(
 				: membership(userId),
 		)
 		.orderBy(asc(tables.workspace.created_at));
-	return rows.map((row) => ({ ...row.workspace, role: row.role }));
+	return rows.map((row) => ({
+		...row.workspace,
+		role: row.role,
+		memberId: row.memberId,
+	}));
+}
+
+/**
+ * Which projects the viewer may see: everything, except for guests, who only see
+ * projects they were added to. Use inside `and(...)` on queries over projects.
+ */
+export function projectScope(
+	w: { role?: string; memberId?: string },
+	column: AnyPgColumn = tables.project.id,
+) {
+	if (can(w.role, "viewAllProjects")) return undefined;
+	return inArray(
+		column,
+		db
+			.select({ id: tables.project_members.project_id })
+			.from(tables.project_members)
+			.where(
+				and(
+					eq(tables.project_members.member_id, w.memberId ?? ""),
+					isNull(tables.project_members.deleted_at),
+				),
+			),
+	);
 }
 
 const resolvers = {
@@ -224,6 +264,7 @@ const resolvers = {
 							eq(tables.project.workspace_id, workspace.id),
 							isNull(tables.task.deleted_at),
 							isNull(tables.project.deleted_at),
+							projectScope(workspace),
 							ilike(tables.task.name, like),
 						),
 					)
@@ -235,6 +276,7 @@ const resolvers = {
 						and(
 							eq(tables.project.workspace_id, workspace.id),
 							isNull(tables.project.deleted_at),
+							projectScope(workspace),
 							ilike(tables.project.title, like),
 						),
 					)
@@ -550,6 +592,7 @@ const resolvers = {
 						eq(tables.project.workspace_id, w.id),
 						isNull(tables.project.deleted_at),
 						isNull(tables.project.archived_at),
+						projectScope(w),
 					),
 				)
 				.orderBy(

@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { STATUS } from "#/db/enums";
+import { projectScope } from "./schema.server";
 
 // Per-member numbers for the Members directory, fetched in four grouped queries
 // rather than one query per member.
@@ -128,10 +129,15 @@ export const membersResolvers = {
 			}));
 		},
 		// One person's active projects and assigned tasks, for their profile page.
-		memberProfile: async (w: { id: string }, args: { memberId: string }) => {
+		memberProfile: async (
+			w: { id: string; role?: string; memberId?: string },
+			args: { memberId: string },
+		) => {
+			// only what the viewer may see (guests: their own projects)
 			const liveProject = and(
 				eq(tables.project.workspace_id, w.id),
 				isNull(tables.project.deleted_at),
+				projectScope(w),
 			);
 			const [projects, tasks] = await Promise.all([
 				db

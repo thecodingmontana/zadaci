@@ -2,7 +2,6 @@ import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { PCOLORS, TEAM_ICONS } from "#/lib/onboarding";
-import { ADMIN_ROLES } from "#/lib/preferences";
 import { logActivity } from "./activity.server";
 import type { GraphQLContext } from "./schema.server";
 import { badInput } from "./schema.server";
@@ -124,7 +123,7 @@ export const teamsResolvers = {
 			const { user, workspace } = await requireWorkspace(
 				ctx,
 				args.slug,
-				ADMIN_ROLES,
+				"manageTeams",
 			);
 			const input = parse(teamInput, args.input);
 			await checkName(workspace.id, input.name);
@@ -161,7 +160,7 @@ export const teamsResolvers = {
 			const { user, workspace } = await requireWorkspace(
 				ctx,
 				args.slug,
-				ADMIN_ROLES,
+				"manageTeams",
 			);
 			const team = await requireTeam(workspace.id, args.id);
 			const input = parse(teamInput, args.input);
@@ -197,7 +196,7 @@ export const teamsResolvers = {
 			const { user, workspace } = await requireWorkspace(
 				ctx,
 				args.slug,
-				ADMIN_ROLES,
+				"manageTeams",
 			);
 			const team = await requireTeam(workspace.id, args.id);
 			// People and projects stay; they just lose the team.
