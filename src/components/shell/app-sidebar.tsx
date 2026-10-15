@@ -83,7 +83,11 @@ function SideTip({
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent side={collapsed ? "right" : "bottom"} sideOffset={6}>
+			<TooltipContent
+				side={collapsed ? "right" : "bottom"}
+				sideOffset={6}
+				className="max-[900px]:hidden"
+			>
 				{label}
 			</TooltipContent>
 		</Tooltip>
@@ -326,7 +330,7 @@ export function AppSidebar({
 					<SideTip label="Expand sidebar">
 						<button
 							type="button"
-							className="sitem"
+							className="sitem side-expand"
 							onClick={toggleSide}
 							aria-label="Expand sidebar"
 						>
@@ -449,7 +453,7 @@ export function AppSidebar({
 										</button>
 									</span>
 								</div>
-								<div className={cn("sub", open && !collapsed && "open")}>
+								<div className={cn("sub", open && "open")}>
 									{PROJECT_TABS.map(({ tab, label, icon }) => (
 										<Link
 											key={tab}

@@ -171,7 +171,7 @@ export function CommandMenuProvider({
 }) {
 	const navigate = useNavigate();
 	const mod = useModKey();
-	const { toggleSide: toggleSidebar } = useShell();
+	const { toggleSide: toggleSidebar, setMnav } = useShell();
 	const [pal, setPal] = useState<Palette | null>(null);
 	const [shortcuts, setShortcuts] = useState(false);
 	const gPending = useRef(0);
@@ -180,7 +180,15 @@ export function CommandMenuProvider({
 		navigate({
 			href: `/w/${slug}${path ? `/${path}` : ""}${search ? `?${search}` : ""}`,
 		});
-	const open = (mode: Mode) => setPal({ mode, q: "", scope: "all", hl: 0 });
+	// Overlays close the phone drawer first so they never open underneath it.
+	const open = (mode: Mode) => {
+		setMnav(false);
+		setPal({ mode, q: "", scope: "all", hl: 0 });
+	};
+	const showShortcuts = () => {
+		setMnav(false);
+		setShortcuts(true);
+	};
 	const toggleDark = () =>
 		setAppearance({ theme: isDark() ? "light" : "dark" });
 
@@ -219,7 +227,7 @@ export function CommandMenuProvider({
 				open("search");
 			} else if (e.key === "?") {
 				e.preventDefault();
-				setShortcuts(true);
+				showShortcuts();
 			} else if (e.key === "[") {
 				e.preventDefault();
 				toggleSidebar();
@@ -336,7 +344,7 @@ export function CommandMenuProvider({
 			name: "Keyboard shortcuts",
 			icon: "icon-[solar--keyboard-linear]",
 			kbd: ["?"],
-			run: () => setShortcuts(true),
+			run: showShortcuts,
 		},
 		{
 			id: "c-out",
@@ -354,7 +362,7 @@ export function CommandMenuProvider({
 			value={{
 				openPalette: () => open("cmd"),
 				openSearch: () => open("search"),
-				openShortcuts: () => setShortcuts(true),
+				openShortcuts: showShortcuts,
 			}}
 		>
 			{children}

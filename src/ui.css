@@ -1812,32 +1812,6 @@ svg.logo {
   padding: 6px 8px 8px;
   border-top: 1px solid var(--q-border);
 }
-.collapsed .side .sitem {
-  justify-content: center;
-  padding: 0;
-}
-.collapsed .side .sitem > span:not(.pico):not(.i),
-.collapsed .side .sitem .ct,
-.collapsed .side .sgroup-h,
-.collapsed .side .ws-name,
-.collapsed .side .ws .chev-d,
-.collapsed .side .sitem .sdot,
-.collapsed .side .sitem .fav,
-.collapsed .side .sitem .hov,
-.collapsed .side .sub,
-.collapsed .side-search,
-.collapsed .side .sitem .chev {
-  display: none !important;
-}
-.collapsed .side .sgroup {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--q-border);
-}
-.collapsed .side .ws {
-  justify-content: center;
-  padding: 5px 0;
-}
 
 .main {
   display: flex;
@@ -3231,13 +3205,6 @@ h3.sub {
     scrollbar-color: var(--q-border-strong) transparent;
   }
 }
-/* project rows wrap their label in a link (the expand button can't live inside it) */
-.collapsed .side .sitem > a > span:not(.pico):not(.i) {
-  display: none !important;
-}
-.collapsed .side .sitem > a {
-  justify-content: center;
-}
 
 /* ---- ported skip link ---- */
 .skip {
@@ -3286,28 +3253,6 @@ h3.sub {
 .side .ws .chev-d {
   transition: opacity 150ms ease-out;
 }
-.collapsed .side .sitem > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
-.collapsed .side .sitem > a > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
-.collapsed .side .ws-name,
-.collapsed .side .ws .chev-d {
-  display: revert !important;
-  opacity: 0;
-  pointer-events: none;
-}
-.collapsed .side .sitem,
-.collapsed .side .sitem > a {
-  justify-content: flex-start;
-  padding: 0 10px;
-  overflow: hidden;
-}
-.collapsed .side .sitem > a {
-  padding: 0;
-}
-.collapsed .side .ws {
-  justify-content: flex-start;
-  padding: 5px 7px;
-  overflow: hidden;
-}
 @media (prefers-reduced-motion: reduce) {
   .shell {
     transition: none;
@@ -3315,20 +3260,6 @@ h3.sub {
 }
 :root[data-motion="reduce"] .shell {
   transition: none;
-}
-/* collapsed: projects show as a plain icon, sized like the nav icons (no tile) */
-.collapsed .side .sitem .pico {
-  width: 16px;
-  height: 16px;
-  background: transparent;
-}
-.collapsed .side .sitem .pico > span {
-  width: 16px;
-  height: 16px;
-}
-/* collapsed: the account row's 22px avatar needs more room than a 16px icon */
-.collapsed .side .sitem:has(> .av) {
-  padding: 0 7px;
 }
 /* Zadaci's font is wider than the reference's; 248px fits "Two-factor authentication" */
 .set {
@@ -3342,4 +3273,120 @@ h3.sub {
 /* a little air between settings nav items */
 .set-nav .sitem + .sitem {
   margin-top: 4px;
+}
+
+/* Collapse-to-icons is a desktop layout; on phones the sidebar is a full drawer. */
+@media (min-width: 901px) {
+  .collapsed .side .sitem {
+    justify-content: center;
+    padding: 0;
+  }
+  .collapsed .side .sitem > span:not(.pico):not(.i),
+  .collapsed .side .sitem .ct,
+  .collapsed .side .sgroup-h,
+  .collapsed .side .ws-name,
+  .collapsed .side .ws .chev-d,
+  .collapsed .side .sitem .sdot,
+  .collapsed .side .sitem .fav,
+  .collapsed .side .sitem .hov,
+  .collapsed .side .sub,
+  .collapsed .side-search,
+  .collapsed .side .sitem .chev {
+    display: none !important;
+  }
+  .collapsed .side .sgroup {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--q-border);
+  }
+  .collapsed .side .ws {
+    justify-content: center;
+    padding: 5px 0;
+  }
+  /* project rows wrap their label in a link (the expand button can't live inside it) */
+  .collapsed .side .sitem > a > span:not(.pico):not(.i) {
+    display: none !important;
+  }
+  .collapsed .side .sitem > a {
+    justify-content: center;
+  }
+  .collapsed .side .sitem > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
+  .collapsed .side .sitem > a > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
+  .collapsed .side .ws-name,
+  .collapsed .side .ws .chev-d {
+    display: revert !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .collapsed .side .sitem,
+  .collapsed .side .sitem > a {
+    justify-content: flex-start;
+    padding: 0 10px;
+    overflow: hidden;
+  }
+  .collapsed .side .sitem > a {
+    padding: 0;
+  }
+  .collapsed .side .ws {
+    justify-content: flex-start;
+    padding: 5px 7px;
+    overflow: hidden;
+  }
+  /* collapsed: projects show as a plain icon, sized like the nav icons (no tile) */
+  .collapsed .side .sitem .pico {
+    width: 16px;
+    height: 16px;
+    background: transparent;
+  }
+  .collapsed .side .sitem .pico > span {
+    width: 16px;
+    height: 16px;
+  }
+  /* collapsed: the account row's 22px avatar needs more room than a 16px icon */
+  .collapsed .side .sitem:has(> .av) {
+    padding: 0 7px;
+  }
+}
+/* phones: the settings nav is a swipeable tab row, so hide its scrollbar like the sidebar does */
+@media (max-width: 900px) {
+  .set-nav {
+    scrollbar-width: none;
+  }
+  .set-nav::-webkit-scrollbar {
+    display: none;
+  }
+}
+/* phones: the drawer is always full width, so the desktop "Expand sidebar" row has no job */
+@media (max-width: 900px) {
+  .side-expand {
+    display: none;
+  }
+  /* one scroll area: the page scrolls and the settings tabs stick to the top */
+  .set {
+    height: auto;
+  }
+  .set-body {
+    overflow: visible;
+  }
+  .set-nav {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+}
+/* dialogs open above the phone drawer (z 70), never underneath it */
+.scrim {
+  z-index: 75;
+}
+.modal-wrap {
+  z-index: 76;
+}
+/* touch screens have no hover: keep project row actions reachable */
+@media (hover: none) {
+  .sitem .hov {
+    display: flex;
+  }
+  .sitem .sdot {
+    display: none;
+  }
 }
