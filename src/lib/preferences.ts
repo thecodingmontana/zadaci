@@ -147,5 +147,10 @@ export type ResolvedPreferences = typeof PREF_DEFAULTS;
 
 /** Roles that manage the workspace (owner, and "moderator" shown as Admin). Shared by UI and server. */
 export const ADMIN_ROLES: readonly string[] = ["owner", "moderator"];
+export const ROLE_LABEL: Record<string, string> = {
+	owner: "Owner",
+	moderator: "Admin",
+	member: "Member",
+};
 export const isAdmin = (role: string | null | undefined) =>
 	ADMIN_ROLES.includes(role ?? "");

@@ -51,11 +51,13 @@ export function Topbar({
 	projects,
 	teams,
 	user,
+	unread,
 }: {
 	slug: string;
 	projects: ShellProject[];
 	teams: ShellTeam[];
 	user: ShellUser;
+	unread: number;
 }) {
 	const crumbs = useCrumbs(slug, projects, teams);
 	const navigate = useNavigate();
@@ -114,6 +116,20 @@ export function Topbar({
 				aria-label="Notifications"
 			>
 				<span className="icon-[solar--bell-linear] size-4" aria-hidden="true" />
+				{unread > 0 && (
+					<span
+						style={{
+							position: "absolute",
+							top: 6,
+							right: 7,
+							width: 7,
+							height: 7,
+							borderRadius: "50%",
+							background: "var(--q-accent)",
+							boxShadow: "0 0 0 2px var(--q-surface)",
+						}}
+					/>
+				)}
 			</Link>
 			<Menu>
 				<MenuTrigger
@@ -185,7 +201,7 @@ export function Topbar({
 	);
 }
 
-export function BottomNav({ slug }: { slug: string }) {
+export function BottomNav({ slug, unread }: { slug: string; unread: number }) {
 	const { setMnav } = useShell();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	return (
@@ -197,6 +213,7 @@ export function BottomNav({ slug }: { slug: string }) {
 					<>
 						<span className={cn(nav.icon, "size-[19px]")} aria-hidden="true" />
 						<span>{nav.label}</span>
+						{nav.path === "inbox" && unread > 0 && <span className="bdot" />}
 					</>
 				);
 				return nav.path ? (

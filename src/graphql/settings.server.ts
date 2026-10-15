@@ -12,10 +12,12 @@ import {
 	isAdmin,
 	PREF_DEFAULTS,
 	preferencesPatch,
+	ROLE_LABEL,
 	WS_COLORS,
 	WS_SETTINGS_DEFAULTS,
 	workspaceSettingsPatch,
 } from "#/lib/preferences";
+import { logActivity, notify } from "./activity.server";
 import {
 	badInput,
 	findWorkspaces,
@@ -32,6 +34,7 @@ export const settingsTypeDefs = /* GraphQL */ `
 
 	type Member {
 		id: ID!
+		userId: ID!
 		role: String!
 		name: String!
 		email: String!
@@ -451,6 +454,14 @@ export const settingsResolvers = {
 			for (const p of pending) taken.add(p.email.toLowerCase());
 			const fresh = emails.filter((e) => !taken.has(e));
 			if (!fresh.length) return [];
+			await logActivity(db, {
+				workspace_id: workspace.id,
+				actor_id: user.id,
+				kind: "member",
+				verb: "invited",
+				target: fresh.length === 1 ? fresh[0] : `${fresh.length} people`,
+				extra: `as ${ROLE_LABEL[role]?.toLowerCase()}`,
+			});
 			return db
 				.insert(tables.workspace_invite_request)
 				.values(
@@ -513,6 +524,27 @@ export const settingsResolvers = {
 						ne(tables.workspace_members.role, USER_ROLE.OWNER),
 					),
 				);
+			if (target.role !== role) {
+				const label = ROLE_LABEL[role]?.toLowerCase();
+				await logActivity(db, {
+					workspace_id: workspace.id,
+					actor_id: user.id,
+					kind: "member",
+					verb: "changed the role of",
+					target: target.name,
+					extra: `to ${label}`,
+				});
+				if (target.userId !== user.id)
+					await notify(db, [
+						{
+							user_id: target.userId,
+							workspace_id: workspace.id,
+							actor_id: user.id,
+							type: "update",
+							text: `changed your role in ${workspace.name} to ${label}`,
+						},
+					]);
+			}
 			return { ...target, role, isMe: target.userId === user.id };
 		},
 
@@ -521,7 +553,11 @@ export const settingsResolvers = {
 			args: { slug: string; memberId: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace } = await requireWorkspace(ctx, args.slug, ADMIN_ROLES);
+			const { user, workspace } = await requireWorkspace(
+				ctx,
+				args.slug,
+				ADMIN_ROLES,
+			);
 			const target = (await memberRows(workspace.id)).find(
 				(m) => m.id === args.memberId,
 			);
@@ -538,6 +574,14 @@ export const settingsResolvers = {
 					.update(tables.workspace)
 					.set({ invite_code: generateInviteCode() })
 					.where(eq(tables.workspace.id, workspace.id));
+				await logActivity(tx, {
+					workspace_id: workspace.id,
+					actor_id: user.id,
+					kind: "member",
+					verb: "removed",
+					target: target.name,
+					extra: "from the workspace",
+				});
 			});
 			return true;
 		},

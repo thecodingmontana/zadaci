@@ -23,18 +23,13 @@ import {
 	UPDATE_WORKSPACE,
 } from "#/graphql/operations";
 import { EMAIL_RE, PCOLORS } from "#/lib/onboarding";
-import { isAdmin } from "#/lib/preferences";
+import { isAdmin, ROLE_LABEL } from "#/lib/preferences";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import type { SectionProps } from "./general";
 import { SBlock, Select, SettingsHeader, SRow, Toggle } from "./ui";
 
 // Our roles shown with the reference app's names.
-const ROLE_LABEL: Record<string, string> = {
-	owner: "Owner",
-	moderator: "Admin",
-	member: "Member",
-};
 const ROLE_HELP: Record<string, string> = {
 	moderator: "Manage members, settings, and all projects",
 	member: "Create projects and work on tasks",

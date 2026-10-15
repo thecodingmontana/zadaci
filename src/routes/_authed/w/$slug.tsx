@@ -1,11 +1,11 @@
-import { useSuspenseQuery } from "@apollo/client/react";
+import { useQuery, useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
 import { AppSidebar } from "#/components/shell/app-sidebar";
 import { CommandMenuProvider } from "#/components/shell/command-menu";
 import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
 import { TooltipProvider } from "#/components/ui/tooltip";
-import { SHELL } from "#/graphql/operations";
+import { NOTIFICATION_COUNTS, SHELL } from "#/graphql/operations";
 import { getSidebarOpen } from "#/lib/session";
 import { cn } from "#/lib/utils";
 
@@ -40,6 +40,15 @@ function ShellLayout() {
 	const { user } = Route.useRouteContext();
 	const { collapsed, mnav, setMnav } = useShell();
 	const { data } = useSuspenseQuery(SHELL, { variables: { slug } });
+	// One poller for the sidebar, bell and bottom-nav badges; reading marks them refetch it too.
+	const counts = useQuery(NOTIFICATION_COUNTS, {
+		variables: { slug },
+		pollInterval: 60_000,
+	}).data?.workspace;
+	const unread = {
+		all: counts?.unreadNotifications ?? 0,
+		inbox: counts?.unreadInbox ?? 0,
+	};
 	const workspace = data.workspace;
 	if (!workspace) return null;
 
@@ -66,6 +75,7 @@ function ShellLayout() {
 						projects={workspace.projects}
 						teams={workspace.teams}
 						user={user}
+						unread={unread}
 					/>
 					{mnav && (
 						<div
@@ -80,12 +90,13 @@ function ShellLayout() {
 							projects={workspace.projects}
 							teams={workspace.teams}
 							user={user}
+							unread={unread.all}
 						/>
 						<div className="content" id="main-content" tabIndex={-1}>
 							<Outlet />
 						</div>
 					</main>
-					<BottomNav slug={slug} />
+					<BottomNav slug={slug} unread={unread.inbox} />
 				</div>
 			</CommandMenuProvider>
 		</TooltipProvider>

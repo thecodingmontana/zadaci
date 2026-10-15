@@ -1,12 +1,18 @@
 import { createSchema, createYoga } from "graphql-yoga";
 import { auth, secondFactors } from "#/lib/auth";
+import { activityResolvers, activityTypeDefs } from "./activity.server";
 import { projectsResolvers, projectsTypeDefs } from "./projects.server";
 import { type GraphQLContext, resolvers, typeDefs } from "./schema.server";
 import { settingsResolvers, settingsTypeDefs } from "./settings.server";
 
 const schema = createSchema<GraphQLContext>({
-	typeDefs: [typeDefs, settingsTypeDefs, projectsTypeDefs],
-	resolvers: [resolvers, settingsResolvers, projectsResolvers],
+	typeDefs: [typeDefs, settingsTypeDefs, projectsTypeDefs, activityTypeDefs],
+	resolvers: [
+		resolvers,
+		settingsResolvers,
+		projectsResolvers,
+		activityResolvers,
+	],
 });
 
 export const yoga = createYoga<object, GraphQLContext>({

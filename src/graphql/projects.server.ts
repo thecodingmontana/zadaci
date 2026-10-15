@@ -3,6 +3,7 @@ import { GraphQLError } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { isAdmin, WS_SETTINGS_DEFAULTS } from "#/lib/preferences";
+import { logActivity, notify, projectUserIds } from "./activity.server";
 import {
 	badInput,
 	findWorkspaces,
@@ -71,6 +72,48 @@ const visibleProjects = (workspaceId: string) =>
 			),
 		)
 		.orderBy(asc(tables.project.sort_order), asc(tables.project.created_at));
+
+const projectActivity = (
+	workspaceId: string,
+	actorId: string,
+	project: Project,
+	verb: string,
+	extra?: string,
+) =>
+	logActivity(db, {
+		workspace_id: workspaceId,
+		actor_id: actorId,
+		kind: "project",
+		verb,
+		target: project.title,
+		extra,
+		project_id: project.id,
+	});
+
+/** Tell the project's other members; a deleted project keeps its name in the snippet. */
+async function notifyProject(
+	workspaceId: string,
+	actorId: string,
+	project: Project,
+	text: string,
+	snippet?: string,
+) {
+	const users = await projectUserIds(db, project.id);
+	await notify(
+		db,
+		users
+			.filter((id) => id !== actorId)
+			.map((id) => ({
+				user_id: id,
+				workspace_id: workspaceId,
+				actor_id: actorId,
+				type: "update",
+				text,
+				snippet,
+				project_id: project.id,
+			})),
+	);
+}
 
 export const projectsResolvers = {
 	Project: {
@@ -147,7 +190,11 @@ export const projectsResolvers = {
 			args: { slug: string; projectId: string; title: string },
 			ctx: GraphQLContext,
 		) => {
-			const { project } = await requireProject(ctx, args.slug, args.projectId);
+			const { user, workspace, project } = await requireProject(
+				ctx,
+				args.slug,
+				args.projectId,
+			);
 			const title = z
 				.string()
 				.trim()
@@ -161,6 +208,14 @@ export const projectsResolvers = {
 				.set({ title: title.data })
 				.where(eq(tables.project.id, project.id))
 				.returning();
+			if (title.data !== project.title)
+				await projectActivity(
+					workspace.id,
+					user.id,
+					project,
+					"renamed project",
+					`to “${title.data}”`,
+				);
 			return updated;
 		},
 
@@ -169,7 +224,7 @@ export const projectsResolvers = {
 			args: { slug: string; projectId: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace, project } = await requireProject(
+			const { user, workspace, project } = await requireProject(
 				ctx,
 				args.slug,
 				args.projectId,
@@ -187,7 +242,7 @@ export const projectsResolvers = {
 					},
 				);
 			}
-			return db.transaction(async (tx) => {
+			const copy = await db.transaction(async (tx) => {
 				const { id: _id, created_at: _c, updated_at: _u, ...rest } = project;
 				const [copy] = await tx
 					.insert(tables.project)
@@ -246,6 +301,14 @@ export const projectsResolvers = {
 				}
 				return copy;
 			});
+			await projectActivity(
+				workspace.id,
+				user.id,
+				project,
+				"duplicated project",
+				`as “${copy.title}”`,
+			);
+			return copy;
 		},
 
 		moveProject: async (
@@ -281,12 +344,31 @@ export const projectsResolvers = {
 			args: { slug: string; projectId: string; archived: boolean },
 			ctx: GraphQLContext,
 		) => {
-			const { project } = await requireProject(ctx, args.slug, args.projectId);
+			const { user, workspace, project } = await requireProject(
+				ctx,
+				args.slug,
+				args.projectId,
+			);
 			const [updated] = await db
 				.update(tables.project)
 				.set({ archived_at: args.archived ? new Date() : null })
 				.where(eq(tables.project.id, project.id))
 				.returning();
+			if (args.archived !== !!project.archived_at) {
+				const verb = args.archived ? "archived" : "restored";
+				await projectActivity(
+					workspace.id,
+					user.id,
+					project,
+					`${verb} project`,
+				);
+				await notifyProject(
+					workspace.id,
+					user.id,
+					project,
+					`${verb} the project`,
+				);
+			}
 			return updated;
 		},
 
@@ -295,7 +377,7 @@ export const projectsResolvers = {
 			args: { slug: string; projectId: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace, project } = await requireProject(
+			const { user, workspace, project } = await requireProject(
 				ctx,
 				args.slug,
 				args.projectId,
@@ -324,6 +406,14 @@ export const projectsResolvers = {
 						),
 					);
 			});
+			await projectActivity(workspace.id, user.id, project, "deleted project");
+			await notifyProject(
+				workspace.id,
+				user.id,
+				project,
+				"deleted the project",
+				project.title,
+			);
 			return true;
 		},
 	},

@@ -21,6 +21,7 @@ import {
 	USE_CASES,
 	VIEWS,
 } from "#/lib/onboarding";
+import { adminUserIds, logActivity, notify } from "./activity.server";
 
 export type GraphQLContext = {
 	user: { id: string; email: string; name: string } | null;
@@ -345,6 +346,25 @@ const resolvers = {
 					await tx
 						.insert(tables.channel_members)
 						.values({ channel_id: general.id, member_id: member.id });
+				await logActivity(tx, {
+					workspace_id: workspace.id,
+					actor_id: user.id,
+					kind: "member",
+					verb: "joined the workspace",
+				});
+				const admins = await adminUserIds(tx, workspace.id);
+				await notify(
+					tx,
+					admins
+						.filter((id) => id !== user.id)
+						.map((id) => ({
+							user_id: id,
+							workspace_id: workspace.id,
+							actor_id: user.id,
+							type: "update",
+							text: `joined ${workspace.name}`,
+						})),
+				);
 				return { ...workspace, role: member.role };
 			});
 		},
@@ -418,6 +438,15 @@ const resolvers = {
 					await tx
 						.insert(tables.project_members)
 						.values({ project_id: project.id, member_id: member.id });
+
+					await logActivity(tx, {
+						workspace_id: workspace.id,
+						actor_id: user.id,
+						kind: "project",
+						verb: "created project",
+						target: project.title,
+						project_id: project.id,
+					});
 
 					await tx.insert(tables.task).values(
 						template.tasks.map((name) => ({

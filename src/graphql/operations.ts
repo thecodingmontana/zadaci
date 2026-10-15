@@ -488,3 +488,143 @@ export const DELETE_PROJECT: TypedDocumentNode<
 		deleteProject(slug: $slug, projectId: $projectId)
 	}
 `;
+
+export type ActivityItem = {
+	id: string;
+	kind: string;
+	verb: string;
+	target: string | null;
+	extra: string | null;
+	projectId: string | null;
+	taskId: string | null;
+	actor: { id: string; name: string; image: string | null } | null;
+	createdAt: string;
+};
+
+export const ACTIVITY: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			activity: ActivityItem[];
+			members: { id: string; userId: string; name: string }[];
+		} | null;
+	},
+	{ slug: string; filter: string; actorId?: string }
+> = gql`
+	query Activity($slug: String!, $filter: String!, $actorId: ID) {
+		workspace(slug: $slug) {
+			id
+			activity(filter: $filter, actorId: $actorId) {
+				id
+				kind
+				verb
+				target
+				extra
+				projectId
+				taskId
+				actor {
+					id
+					name
+					image
+				}
+				createdAt
+			}
+			members {
+				id
+				userId
+				name
+			}
+		}
+	}
+`;
+
+export type NotificationItem = {
+	id: string;
+	type: string;
+	text: string;
+	snippet: string | null;
+	projectId: string | null;
+	projectTitle: string | null;
+	projectColor: string | null;
+	taskId: string | null;
+	taskTitle: string | null;
+	actor: { id: string; name: string; image: string | null } | null;
+	read: boolean;
+	createdAt: string;
+};
+
+export const NOTIFICATIONS: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			unreadNotifications: number;
+			notifications: NotificationItem[];
+		} | null;
+	},
+	{ slug: string; unread: boolean }
+> = gql`
+	query Notifications($slug: String!, $unread: Boolean!) {
+		workspace(slug: $slug) {
+			id
+			unreadNotifications
+			notifications(unread: $unread) {
+				id
+				type
+				text
+				snippet
+				projectId
+				projectTitle
+				projectColor
+				taskId
+				taskTitle
+				actor {
+					id
+					name
+					image
+				}
+				read
+				createdAt
+			}
+		}
+	}
+`;
+
+export const NOTIFICATION_COUNTS: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			unreadNotifications: number;
+			unreadInbox: number;
+		} | null;
+	},
+	{ slug: string }
+> = gql`
+	query NotificationCounts($slug: String!) {
+		workspace(slug: $slug) {
+			id
+			unreadNotifications
+			unreadInbox
+		}
+	}
+`;
+
+export const SET_NOTIFICATION_READ: TypedDocumentNode<
+	{ setNotificationRead: { id: string; read: boolean } },
+	{ slug: string; id: string; read: boolean }
+> = gql`
+	mutation SetNotificationRead($slug: String!, $id: ID!, $read: Boolean!) {
+		setNotificationRead(slug: $slug, id: $id, read: $read) {
+			id
+			read
+		}
+	}
+`;
+
+export const MARK_ALL_NOTIFICATIONS_READ: TypedDocumentNode<
+	{ markAllNotificationsRead: number },
+	{ slug: string }
+> = gql`
+	mutation MarkAllNotificationsRead($slug: String!) {
+		markAllNotificationsRead(slug: $slug)
+	}
+`;

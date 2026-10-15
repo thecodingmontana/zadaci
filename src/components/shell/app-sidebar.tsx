@@ -98,10 +98,14 @@ function SItem({
 	slug,
 	item,
 	on,
+	ct,
+	dot,
 }: {
 	slug: string;
 	item: NavItem;
 	on: boolean;
+	ct?: number;
+	dot?: boolean;
 }) {
 	const props = {
 		className: cn("sitem", on && "on"),
@@ -111,6 +115,7 @@ function SItem({
 		<>
 			<span className={cn(item.icon, "i size-4 shrink-0")} aria-hidden="true" />
 			<span className="trunc">{item.label}</span>
+			{!!ct && <span className={cn("ct", dot && "dotc")}>{ct}</span>}
 		</>
 	);
 	const link =
@@ -216,12 +221,14 @@ export function AppSidebar({
 	projects,
 	teams,
 	user,
+	unread,
 }: {
 	workspace: WorkspaceSummary;
 	workspaces: WorkspaceSummary[];
 	projects: ShellProject[];
 	teams: ShellTeam[];
 	user: ShellUser;
+	unread: { all: number; inbox: number };
 }) {
 	const slug = workspace.slug;
 	const navigate = useNavigate();
@@ -347,6 +354,14 @@ export function AppSidebar({
 						slug={slug}
 						item={item}
 						on={isActive(item.path)}
+						ct={
+							item.path === "inbox"
+								? unread.inbox
+								: item.path === "notifications"
+									? unread.all
+									: undefined
+						}
+						dot={item.path === "inbox"}
 					/>
 				))}
 
