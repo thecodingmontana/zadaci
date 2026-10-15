@@ -1,4 +1,13 @@
-import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
+import {
+	and,
+	asc,
+	eq,
+	getTableColumns,
+	ilike,
+	isNull,
+	or,
+	sql,
+} from "drizzle-orm";
 import { GraphQLError } from "graphql";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
@@ -452,10 +461,22 @@ const resolvers = {
 		teamSize: (w: Workspace) => w.team_size,
 		defaultView: (w: Workspace) => w.default_view,
 		// shortcut: one query per workspace/project; add a DataLoader when lists get long
-		projects: (w: Workspace) =>
+		// Favorite flag joined in one query instead of one lookup per project.
+		projects: (w: Workspace, _: unknown, ctx: GraphQLContext) =>
 			db
-				.select()
+				.select({
+					...getTableColumns(tables.project),
+					isFavorite: sql<boolean>`${tables.favorite.id} is not null`,
+				})
 				.from(tables.project)
+				.leftJoin(
+					tables.favorite,
+					and(
+						eq(tables.favorite.entity_type, "project"),
+						eq(tables.favorite.entity_id, tables.project.id),
+						eq(tables.favorite.user_id, ctx.user?.id ?? ""),
+					),
+				)
 				.where(
 					and(
 						eq(tables.project.workspace_id, w.id),

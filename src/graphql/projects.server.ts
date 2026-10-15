@@ -74,7 +74,12 @@ const visibleProjects = (workspaceId: string) =>
 
 export const projectsResolvers = {
 	Project: {
-		isFavorite: async (p: Project, _: unknown, ctx: GraphQLContext) => {
+		isFavorite: async (
+			p: Project & { isFavorite?: boolean },
+			_: unknown,
+			ctx: GraphQLContext,
+		) => {
+			if (typeof p.isFavorite === "boolean") return p.isFavorite; // already joined by Workspace.projects
 			if (!ctx.user) return false;
 			const [row] = await db
 				.select({ id: tables.favorite.id })

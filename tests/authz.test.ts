@@ -92,3 +92,15 @@ test("inviting the same email twice keeps one pending invite", async () => {
 	const ws = await gql(owner, `query($s: String!) { workspace(slug: $s) { invites { email } } }`, { s: slug });
 	assert.deepEqual(ws.data?.workspace.invites, [{ email: "pat@acme.dev" }]);
 });
+
+test("favorites are per user", async () => {
+	const owner = await makeUser("owner");
+	const member = await makeUser("member");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(member, inviteCode);
+	const Q = `query($s: String!) { workspace(slug: $s) { projects { id isFavorite } } }`;
+	const p = (await gql(owner, Q, { s: slug })).data?.workspace.projects[0].id;
+	await gql(owner, `mutation($s: String!, $p: ID!) { toggleFavorite(slug: $s, projectId: $p) }`, { s: slug, p });
+	assert.equal((await gql(owner, Q, { s: slug })).data?.workspace.projects[0].isFavorite, true);
+	assert.equal((await gql(member, Q, { s: slug })).data?.workspace.projects[0].isFavorite, false);
+});
