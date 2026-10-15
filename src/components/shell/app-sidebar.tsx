@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { type ReactElement, useState } from "react";
 import { Av } from "#/components/q/av";
 import {
 	Menu,
@@ -10,6 +10,11 @@ import {
 	MenuTrigger,
 } from "#/components/q/menu";
 import { WsLogo } from "#/components/q/ws-logo";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "#/components/ui/tooltip";
 import type {
 	ShellProject,
 	ShellTeam,
@@ -62,6 +67,28 @@ function useActive(slug: string) {
 	};
 }
 
+/** shadcn tooltip to the right of a sidebar item, only while the sidebar is collapsed to icons. */
+function SideTip({
+	label,
+	children,
+	always,
+}: {
+	label: string;
+	children: ReactElement;
+	always?: boolean;
+}) {
+	const { collapsed } = useShell();
+	if (!collapsed && !always) return children;
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>{children}</TooltipTrigger>
+			<TooltipContent side={collapsed ? "right" : "bottom"} sideOffset={6}>
+				{label}
+			</TooltipContent>
+		</Tooltip>
+	);
+}
+
 function SItem({
 	slug,
 	item,
@@ -71,12 +98,9 @@ function SItem({
 	item: NavItem;
 	on: boolean;
 }) {
-	const { collapsed } = useShell();
 	const props = {
 		className: cn("sitem", on && "on"),
 		"aria-current": on ? ("page" as const) : undefined,
-		"data-tip": collapsed ? item.label : undefined,
-		"data-tip-pos": collapsed ? "right" : undefined,
 	};
 	const body = (
 		<>
@@ -84,22 +108,21 @@ function SItem({
 			<span className="trunc">{item.label}</span>
 		</>
 	);
-	if (item.path === "settings") {
-		return (
+	const link =
+		item.path === "settings" ? (
 			<Link to="/w/$slug/settings" params={{ slug }} {...props}>
 				{body}
 			</Link>
+		) : item.path ? (
+			<Link to="/w/$slug/$" params={{ slug, _splat: item.path }} {...props}>
+				{body}
+			</Link>
+		) : (
+			<Link to="/w/$slug" params={{ slug }} {...props}>
+				{body}
+			</Link>
 		);
-	}
-	return item.path ? (
-		<Link to="/w/$slug/$" params={{ slug, _splat: item.path }} {...props}>
-			{body}
-		</Link>
-	) : (
-		<Link to="/w/$slug" params={{ slug }} {...props}>
-			{body}
-		</Link>
-	);
+	return <SideTip label={item.label}>{link}</SideTip>;
 }
 
 export function UserMenuContent({
@@ -280,37 +303,38 @@ export function AppSidebar({
 						</MenuContent>
 					</Menu>
 					{!collapsed && (
-						<button
-							type="button"
-							className="ibtn ibtn-sm hide-m"
-							onClick={toggleSide}
-							data-tip="Collapse sidebar  ["
-							aria-label="Collapse sidebar"
-						>
-							<span
-								className="icon-[solar--sidebar-minimalistic-linear] size-[15px]"
-								aria-hidden="true"
-							/>
-						</button>
+						<SideTip label="Collapse sidebar  [" always>
+							<button
+								type="button"
+								className="ibtn ibtn-sm hide-m"
+								onClick={toggleSide}
+								aria-label="Collapse sidebar"
+							>
+								<span
+									className="icon-[solar--sidebar-minimalistic-linear] size-[15px]"
+									aria-hidden="true"
+								/>
+							</button>
+						</SideTip>
 					)}
 				</div>
 			</div>
 
 			<div className="side-scroll">
 				{collapsed && (
-					<button
-						type="button"
-						className="sitem"
-						onClick={toggleSide}
-						data-tip="Expand sidebar"
-						data-tip-pos="right"
-						aria-label="Expand sidebar"
-					>
-						<span
-							className="i icon-[solar--sidebar-minimalistic-linear] size-4"
-							aria-hidden="true"
-						/>
-					</button>
+					<SideTip label="Expand sidebar">
+						<button
+							type="button"
+							className="sitem"
+							onClick={toggleSide}
+							aria-label="Expand sidebar"
+						>
+							<span
+								className="i icon-[solar--sidebar-minimalistic-linear] size-4"
+								aria-hidden="true"
+							/>
+						</button>
+					</SideTip>
 				)}
 				{MAIN_NAV.map((item) => (
 					<SItem
@@ -337,18 +361,19 @@ export function AppSidebar({
 					<div className="sgroup-h">
 						<span>Projects</span>
 						<span className="sp" />
-						<Link
-							to="/w/$slug/$"
-							params={{ slug, _splat: "projects" }}
-							className="ibtn ibtn-xs"
-							data-tip="New project"
-							aria-label="New project"
-						>
-							<span
-								className="icon-[hugeicons--plus-sign] size-3.5"
-								aria-hidden="true"
-							/>
-						</Link>
+						<SideTip label="New project" always>
+							<Link
+								to="/w/$slug/$"
+								params={{ slug, _splat: "projects" }}
+								className="ibtn ibtn-xs"
+								aria-label="New project"
+							>
+								<span
+									className="icon-[hugeicons--plus-sign] size-3.5"
+									aria-hidden="true"
+								/>
+							</Link>
+						</SideTip>
 					</div>
 					{projects.map((p, index) => {
 						const base = `/w/${slug}/p/${p.id}`;
@@ -358,37 +383,37 @@ export function AppSidebar({
 						return (
 							<div key={p.id} className="sproj">
 								<div className={cn("sitem", on && "on")}>
-									<Link
-										to="/w/$slug/p/$projectId"
-										params={{ slug, projectId: p.id }}
-										className="row grow"
-										style={{ gap: 9, height: "100%" }}
-										aria-current={on ? "page" : undefined}
-										data-tip={collapsed ? p.title : undefined}
-										data-tip-pos={collapsed ? "right" : undefined}
-									>
-										<span
-											className="pico"
-											style={{ "--c": color } as React.CSSProperties}
+									<SideTip label={p.title}>
+										<Link
+											to="/w/$slug/p/$projectId"
+											params={{ slug, projectId: p.id }}
+											className="row grow"
+											style={{ gap: 9, height: "100%" }}
+											aria-current={on ? "page" : undefined}
 										>
 											<span
-												className={cn(
-													p.icon ?? "icon-[solar--folder-linear]",
-													"i size-3",
-												)}
-												aria-hidden="true"
-											/>
-										</span>
-										<span className="trunc">{p.title}</span>
-										{p.isFavorite && (
-											<span className="fav" role="img" aria-label="Favorite">
+												className="pico"
+												style={{ "--c": color } as React.CSSProperties}
+											>
 												<span
-													className="icon-[solar--star-linear] size-[11px]"
+													className={cn(
+														p.icon ?? "icon-[solar--folder-linear]",
+														"i size-3",
+													)}
 													aria-hidden="true"
 												/>
 											</span>
-										)}
-									</Link>
+											<span className="trunc">{p.title}</span>
+											{p.isFavorite && (
+												<span className="fav" role="img" aria-label="Favorite">
+													<span
+														className="icon-[solar--star-linear] size-[11px]"
+														aria-hidden="true"
+													/>
+												</span>
+											)}
+										</Link>
+									</SideTip>
 									<span
 										className="sdot"
 										style={{ background: STATUS_DOT[p.status] }}
@@ -478,17 +503,15 @@ export function AppSidebar({
 
 			<div className="side-bot">
 				<Menu>
-					<MenuTrigger
-						className="sitem"
-						data-tip={collapsed ? "Help" : undefined}
-						data-tip-pos={collapsed ? "right" : undefined}
-					>
-						<span
-							className="i icon-[solar--question-circle-linear] size-4 shrink-0"
-							aria-hidden="true"
-						/>
-						<span>Help & resources</span>
-					</MenuTrigger>
+					<SideTip label="Help & resources">
+						<MenuTrigger className="sitem">
+							<span
+								className="i icon-[solar--question-circle-linear] size-4 shrink-0"
+								aria-hidden="true"
+							/>
+							<span>Help & resources</span>
+						</MenuTrigger>
+					</SideTip>
 					<MenuContent width={260} align="start">
 						<MenuLabel>Help & resources</MenuLabel>
 						<MenuItem
@@ -513,27 +536,27 @@ export function AppSidebar({
 					on={isActive(SETTINGS_NAV.path)}
 				/>
 				<Menu>
-					<MenuTrigger
-						className="sitem"
-						style={{ height: 36 }}
-						data-tip={collapsed ? "Profile" : undefined}
-						data-tip-pos={collapsed ? "right" : undefined}
-						aria-label="Account menu"
-					>
-						<Av name={user.name} image={user.image} />
-						<span
-							className="trunc"
-							style={{ color: "var(--q-text)", fontWeight: 500 }}
+					<SideTip label="Account">
+						<MenuTrigger
+							className="sitem"
+							style={{ height: 36 }}
+							aria-label="Account menu"
 						>
-							{user.name}
-						</span>
-						<span className="ct">
+							<Av name={user.name} image={user.image} />
 							<span
-								className="icon-[solar--sort-vertical-linear] size-[13px]"
-								aria-hidden="true"
-							/>
-						</span>
-					</MenuTrigger>
+								className="trunc"
+								style={{ color: "var(--q-text)", fontWeight: 500 }}
+							>
+								{user.name}
+							</span>
+							<span className="ct">
+								<span
+									className="icon-[solar--sort-vertical-linear] size-[13px]"
+									aria-hidden="true"
+								/>
+							</span>
+						</MenuTrigger>
+					</SideTip>
 					<UserMenuContent user={user} slug={slug} />
 				</Menu>
 			</div>

@@ -4,6 +4,7 @@ import { AppSidebar } from "#/components/shell/app-sidebar";
 import { CommandMenuProvider } from "#/components/shell/command-menu";
 import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
+import { TooltipProvider } from "#/components/ui/tooltip";
 import { SHELL } from "#/graphql/operations";
 import { getSidebarOpen } from "#/lib/session";
 import { cn } from "#/lib/utils";
@@ -43,44 +44,50 @@ function ShellLayout() {
 	if (!workspace) return null;
 
 	return (
-		<CommandMenuProvider
-			slug={slug}
-			workspaces={data.workspaces}
-			projects={workspace.projects}
-		>
-			<a href="#main-content" className="skip">
-				Skip to content
-			</a>
-			<div
-				className={cn("shell h-dvh", collapsed && "collapsed", mnav && "mnav")}
+		<TooltipProvider delayDuration={200}>
+			<CommandMenuProvider
+				slug={slug}
+				workspaces={data.workspaces}
+				projects={workspace.projects}
 			>
-				<AppSidebar
-					workspace={workspace}
-					workspaces={data.workspaces}
-					projects={workspace.projects}
-					teams={workspace.teams}
-					user={user}
-				/>
-				{mnav && (
-					<div
-						className="side-scrim"
-						onClick={() => setMnav(false)}
-						aria-hidden="true"
-					/>
-				)}
-				<main className="main" id="main">
-					<Topbar
-						slug={slug}
+				<a href="#main-content" className="skip">
+					Skip to content
+				</a>
+				<div
+					className={cn(
+						"shell h-dvh",
+						collapsed && "collapsed",
+						mnav && "mnav",
+					)}
+				>
+					<AppSidebar
+						workspace={workspace}
+						workspaces={data.workspaces}
 						projects={workspace.projects}
 						teams={workspace.teams}
 						user={user}
 					/>
-					<div className="content" id="main-content" tabIndex={-1}>
-						<Outlet />
-					</div>
-				</main>
-				<BottomNav slug={slug} />
-			</div>
-		</CommandMenuProvider>
+					{mnav && (
+						<div
+							className="side-scrim"
+							onClick={() => setMnav(false)}
+							aria-hidden="true"
+						/>
+					)}
+					<main className="main" id="main">
+						<Topbar
+							slug={slug}
+							projects={workspace.projects}
+							teams={workspace.teams}
+							user={user}
+						/>
+						<div className="content" id="main-content" tabIndex={-1}>
+							<Outlet />
+						</div>
+					</main>
+					<BottomNav slug={slug} />
+				</div>
+			</CommandMenuProvider>
+		</TooltipProvider>
 	);
 }
