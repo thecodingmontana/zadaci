@@ -3390,3 +3390,31 @@ h3.sub {
     display: none;
   }
 }
+
+/* team icon picker (reference auth.css); options are native radios in labels, like .sw */
+.iconpick {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+.iconpick label {
+  height: 32px;
+  border-radius: var(--q-r-sm);
+  display: grid;
+  place-items: center;
+  color: var(--q-text-2);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.iconpick label:hover {
+  background: var(--q-surface-2);
+}
+.iconpick label.on {
+  border-color: var(--q-accent);
+  color: var(--q-accent);
+  background: var(--q-accent-soft);
+}
+.iconpick label:has(:focus-visible) {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 2px;
+}

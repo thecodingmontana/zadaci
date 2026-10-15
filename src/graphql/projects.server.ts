@@ -19,6 +19,7 @@ export const projectsTypeDefs = /* GraphQL */ `
 	extend type Project {
 		isFavorite: Boolean!
 		archivedAt: String
+		teamId: ID
 	}
 
 	extend type Workspace {
@@ -137,6 +138,7 @@ export const projectsResolvers = {
 			return !!row;
 		},
 		archivedAt: (p: Project) => p.archived_at?.toISOString() ?? null,
+		teamId: (p: Project) => p.team_id,
 	},
 	Workspace: {
 		archivedProjects: (w: { id: string }) =>

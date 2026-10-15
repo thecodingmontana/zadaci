@@ -1,5 +1,10 @@
 import { useSuspenseQuery } from "@apollo/client/react";
-import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	notFound,
+	useNavigate,
+} from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { Av } from "#/components/q/av";
@@ -10,6 +15,8 @@ import {
 	MemberRole,
 	TeamsGrid,
 } from "#/components/settings/workspace-group";
+import { TeamAvatars } from "#/components/teams/team-avatars";
+import { TeamModal } from "#/components/teams/team-modal";
 import {
 	MEMBER_STATS,
 	type MemberStats,
@@ -28,7 +35,7 @@ const TABS = [
 ] as const;
 const ROLES = ["owner", "moderator", "member"] as const;
 
-export const Route = createFileRoute("/_authed/w/$slug/members")({
+export const Route = createFileRoute("/_authed/w/$slug/members/")({
 	validateSearch: z.object({
 		tab: z.enum(["members", "teams", "roles"]).optional(),
 	}),
@@ -60,6 +67,7 @@ function MembersPage() {
 		variables: { slug },
 	});
 	const [inviting, setInviting] = useState(false);
+	const [newTeam, setNewTeam] = useState(false);
 	const workspace = data.workspace;
 	if (!workspace) return null;
 	const canAdmin = isAdmin(workspace.role);
@@ -120,28 +128,25 @@ function MembersPage() {
 						<span className="muted" style={{ fontSize: 13 }}>
 							{workspace.teams.length} teams
 						</span>
+						<span className="sp" />
+						{canAdmin && (
+							<button
+								type="button"
+								className="btn btn-secondary btn-sm"
+								onClick={() => setNewTeam(true)}
+							>
+								<span
+									className="icon-[hugeicons--plus-sign] size-[13px]"
+									aria-hidden="true"
+								/>
+								New team
+							</button>
+						)}
 					</div>
 					<TeamsGrid
 						slug={slug}
 						teams={workspace.teams}
-						avatars={(teamId) => {
-							const ms = teamMembers(teamId);
-							return (
-								<span className="avs">
-									{ms.slice(0, 4).map((m) => (
-										<Av
-											key={m.id}
-											name={m.name}
-											image={m.image}
-											className="sm"
-										/>
-									))}
-									{ms.length > 4 && (
-										<span className="av sm more">+{ms.length - 4}</span>
-									)}
-								</span>
-							);
-						}}
+						avatars={(teamId) => <TeamAvatars members={teamMembers(teamId)} />}
 					/>
 				</>
 			) : tab === "roles" ? (
@@ -152,6 +157,16 @@ function MembersPage() {
 					workspace={workspace}
 					stats={stats}
 					canAdmin={canAdmin}
+				/>
+			)}
+			{canAdmin && (
+				<TeamModal
+					open={newTeam}
+					onOpenChange={setNewTeam}
+					slug={slug}
+					members={workspace.members}
+					teams={workspace.teams}
+					stats={stats}
 				/>
 			)}
 			{canAdmin && (
@@ -254,7 +269,12 @@ function MembersTable({
 								return (
 									<tr key={m.id}>
 										<td style={{ paddingLeft: 14 }}>
-											<span className="row" style={{ gap: 10 }}>
+											<Link
+												to="/w/$slug/members/$memberId"
+												params={{ slug, memberId: m.id }}
+												className="row"
+												style={{ gap: 10, textAlign: "left" }}
+											>
 												<Av name={m.name} image={m.image} className="md" />
 												<span className="col">
 													<b style={{ fontWeight: 500 }}>
@@ -273,7 +293,7 @@ function MembersTable({
 														{m.email}
 													</span>
 												</span>
-											</span>
+											</Link>
 										</td>
 										<td style={{ textAlign: "left" }}>
 											<MemberRole slug={slug} m={m} canAdmin={canAdmin} />
@@ -299,7 +319,12 @@ function MembersTable({
 											</span>
 										</td>
 										<td>
-											<MemberActions slug={slug} m={m} canAdmin={canAdmin} />
+											<MemberActions
+												slug={slug}
+												m={m}
+												canAdmin={canAdmin}
+												openTasks={s?.openTasks}
+											/>
 										</td>
 									</tr>
 								);

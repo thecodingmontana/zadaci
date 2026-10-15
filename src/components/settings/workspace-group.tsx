@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client/react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { Av } from "#/components/q/av";
 import { ConfirmModal } from "#/components/q/confirm";
@@ -9,6 +9,9 @@ import {
 	MenuItem,
 	MenuLabel,
 	MenuSeparator,
+	MenuSub,
+	MenuSubContent,
+	MenuSubTrigger,
 	MenuTrigger,
 } from "#/components/q/menu";
 import { Modal } from "#/components/q/modal";
@@ -38,6 +41,52 @@ const ROLE_HELP: Record<string, string> = {
 
 const MEMBER_REFETCH = { refetchQueries: ["Settings", "MemberStats"] };
 
+const ROLE_CHOICES = ["moderator", "member"] as const;
+
+/** Changes a member's role with the toast the reference shows. */
+function useChangeRole(slug: string) {
+	const [updateRole] = useMutation(UPDATE_MEMBER_ROLE, MEMBER_REFETCH);
+	return async (m: SettingsMember, role: string) => {
+		if (m.role === role) return;
+		try {
+			await updateRole({ variables: { slug, memberId: m.id, role } });
+			toast.success(
+				`${m.name} is now ${role === "moderator" ? "an admin" : "a member"}`,
+			);
+		} catch (error) {
+			toast.error("Couldn't change the role", {
+				desc: (error as Error).message,
+			});
+		}
+	};
+}
+
+function RoleChoices({ slug, m }: { slug: string; m: SettingsMember }) {
+	const changeRole = useChangeRole(slug);
+	return (
+		<>
+			<MenuLabel>Role for {m.name}</MenuLabel>
+			{ROLE_CHOICES.map((r) => (
+				<MenuItem
+					key={r}
+					checked={m.role === r}
+					onSelect={() => changeRole(m, r)}
+				>
+					<div className="grow" style={{ whiteSpace: "normal" }}>
+						<div style={{ fontWeight: 500 }}>{ROLE_LABEL[r]}</div>
+						<div className="faint" style={{ fontSize: 11.5 }}>
+							{ROLE_HELP[r]}
+						</div>
+					</div>
+				</MenuItem>
+			))}
+		</>
+	);
+}
+
+const canManage = (m: SettingsMember, canAdmin: boolean) =>
+	canAdmin && !m.isMe && m.role !== "owner";
+
 /** Role pill: fixed for the owner and non-admins, a role picker for admins. */
 export function MemberRole({
 	slug,
@@ -48,7 +97,6 @@ export function MemberRole({
 	m: SettingsMember;
 	canAdmin: boolean;
 }) {
-	const [updateRole] = useMutation(UPDATE_MEMBER_ROLE, MEMBER_REFETCH);
 	if (m.role === "owner")
 		return (
 			<span className="pillbtn">
@@ -59,7 +107,7 @@ export function MemberRole({
 				Owner
 			</span>
 		);
-	if (!canAdmin || m.isMe)
+	if (!canManage(m, canAdmin))
 		return <span className="pillbtn">{ROLE_LABEL[m.role]}</span>;
 	return (
 		<Menu>
@@ -71,53 +119,27 @@ export function MemberRole({
 				/>
 			</MenuTrigger>
 			<MenuContent width={260}>
-				<MenuLabel>Role for {m.name}</MenuLabel>
-				{(["moderator", "member"] as const).map((r) => (
-					<MenuItem
-						key={r}
-						checked={m.role === r}
-						onSelect={async () => {
-							if (m.role === r) return;
-							try {
-								await updateRole({
-									variables: { slug, memberId: m.id, role: r },
-								});
-								toast.success(
-									`${m.name} is now ${r === "moderator" ? "an admin" : "a member"}`,
-								);
-							} catch (error) {
-								toast.error("Couldn't change the role", {
-									desc: (error as Error).message,
-								});
-							}
-						}}
-					>
-						<div className="grow" style={{ whiteSpace: "normal" }}>
-							<div style={{ fontWeight: 500 }}>{ROLE_LABEL[r]}</div>
-							<div className="faint" style={{ fontSize: 11.5 }}>
-								{ROLE_HELP[r]}
-							</div>
-						</div>
-					</MenuItem>
-				))}
+				<RoleChoices slug={slug} m={m} />
 			</MenuContent>
 		</Menu>
 	);
 }
 
-/** The member "…" menu: copy email, and remove for admins. */
+/** The member "…" menu (reference member context menu). */
 export function MemberActions({
 	slug,
 	m,
 	canAdmin,
+	openTasks = 0,
 }: {
 	slug: string;
 	m: SettingsMember;
 	canAdmin: boolean;
+	openTasks?: number;
 }) {
+	const navigate = useNavigate();
 	const [removing, setRemoving] = useState(false);
 	const [removeMember] = useMutation(REMOVE_MEMBER, MEMBER_REFETCH);
-	const canRemove = canAdmin && !m.isMe && m.role !== "owner";
 	return (
 		<>
 			<Menu>
@@ -132,6 +154,17 @@ export function MemberActions({
 				</MenuTrigger>
 				<MenuContent>
 					<MenuItem
+						icon="icon-[solar--user-linear]"
+						onSelect={() =>
+							navigate({
+								to: "/w/$slug/members/$memberId",
+								params: { slug, memberId: m.id },
+							})
+						}
+					>
+						View profile
+					</MenuItem>
+					<MenuItem
 						icon="icon-[solar--letter-linear]"
 						onSelect={async () => {
 							await navigator.clipboard.writeText(m.email);
@@ -140,8 +173,16 @@ export function MemberActions({
 					>
 						Copy email
 					</MenuItem>
-					{canRemove && (
+					{canManage(m, canAdmin) && (
 						<>
+							<MenuSub>
+								<MenuSubTrigger icon="icon-[solar--shield-user-linear]">
+									Change role…
+								</MenuSubTrigger>
+								<MenuSubContent width={260}>
+									<RoleChoices slug={slug} m={m} />
+								</MenuSubContent>
+							</MenuSub>
 							<MenuSeparator />
 							<MenuItem
 								icon="icon-[solar--user-minus-linear]"
@@ -158,8 +199,8 @@ export function MemberActions({
 				open={removing}
 				onOpenChange={setRemoving}
 				title={`Remove ${m.name}?`}
-				body="They'll lose access to this workspace and its projects. You can invite them again later."
-				ok="Remove"
+				body={`${m.name} will lose access to this workspace immediately.${openTasks ? ` Their ${openTasks} open task${openTasks > 1 ? "s" : ""} will become unassigned.` : ""}`}
+				ok="Remove member"
 				danger
 				icon="icon-[solar--user-minus-linear]"
 				onConfirm={async () => {
@@ -171,7 +212,7 @@ export function MemberActions({
 						});
 						throw error;
 					}
-					toast.success(`${m.name} was removed`);
+					toast.success(`Removed ${m.name}`);
 				}}
 			/>
 		</>
@@ -310,10 +351,15 @@ export function InviteModal({
 	open: boolean;
 	onOpenChange: (o: boolean) => void;
 	slug: string;
-	workspace: { name: string; inviteCode: string };
+	workspace: {
+		name: string;
+		inviteCode: string;
+		teams: { id: string; name: string }[];
+	};
 }) {
 	const [raw, setRaw] = useState("");
 	const [role, setRole] = useState("member");
+	const [teamId, setTeamId] = useState("");
 	const [err, setErr] = useState("");
 	const [invite, { loading }] = useMutation(INVITE_MEMBERS, MEMBER_REFETCH);
 
@@ -328,7 +374,9 @@ export function InviteModal({
 		if (bad.length) return setErr(`${bad[0]} isn't a valid email address`);
 		setErr("");
 		try {
-			await invite({ variables: { slug, emails: list, role } });
+			await invite({
+				variables: { slug, emails: list, role, teamId: teamId || null },
+			});
 			setRaw("");
 			onOpenChange(false);
 			toast.success(
@@ -411,18 +459,33 @@ export function InviteModal({
 						</span>
 					)}
 				</div>
-				<div className="field">
-					<span className="label">Role</span>
-					<Select
-						value={role}
-						options={[
-							["member", "Member"],
-							["moderator", "Admin"],
-						]}
-						onChange={setRole}
-						label="Role"
-						className="w-full"
-					/>
+				<div className="row" style={{ gap: 12 }}>
+					<div className="field grow">
+						<span className="label">Role</span>
+						<Select
+							value={role}
+							options={[
+								["member", "Member"],
+								["moderator", "Admin"],
+							]}
+							onChange={setRole}
+							label="Role"
+							className="w-full"
+						/>
+					</div>
+					<div className="field grow">
+						<span className="label">Team</span>
+						<Select
+							value={teamId}
+							options={[
+								["", "No team"],
+								...workspace.teams.map((t) => [t.id, t.name] as const),
+							]}
+							onChange={setTeamId}
+							label="Team"
+							className="w-full"
+						/>
+					</div>
 				</div>
 			</form>
 		</Modal>

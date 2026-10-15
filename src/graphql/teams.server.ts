@@ -30,7 +30,7 @@ export const teamsTypeDefs = /* GraphQL */ `
 const teamInput = z.object({
 	name: z.string().trim().min(1, "Give the team a name").max(255),
 	description: z.string().trim().max(500).nullish(),
-	icon: z.enum(TEAM_ICONS),
+	icon: z.enum(TEAM_ICONS.map(([icon]) => icon) as [string, ...string[]]),
 	color: z.enum(Object.keys(PCOLORS) as [string, ...string[]]),
 	memberIds: z.array(z.string()).max(500),
 });

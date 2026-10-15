@@ -219,11 +219,14 @@ export const SEARCH: TypedDocumentNode<
 
 export type SettingsMember = {
 	id: string;
+	userId: string;
 	role: string;
 	name: string;
 	email: string;
 	image: string | null;
 	isMe: boolean;
+	title: string | null;
+	tz: string | null;
 };
 export type SettingsTeam = {
 	id: string;
@@ -260,7 +263,12 @@ export type SettingsData = {
 					color: string | null;
 				}[];
 				members: SettingsMember[];
-				invites: { id: string; email: string; role: string }[];
+				invites: {
+					id: string;
+					email: string;
+					role: string;
+					teamId: string | null;
+				}[];
 				teams: SettingsTeam[];
 		  })
 		| null;
@@ -294,16 +302,20 @@ export const SETTINGS: TypedDocumentNode<SettingsData, { slug: string }> = gql`
 			}
 			members {
 				id
+				userId
 				role
 				name
 				email
 				image
 				isMe
+				title
+				tz
 			}
 			invites {
 				id
 				email
 				role
+				teamId
 			}
 			teams {
 				id
@@ -386,10 +398,15 @@ export const SET_WORKSPACE_IMAGE: TypedDocumentNode<
 
 export const INVITE_MEMBERS: TypedDocumentNode<
 	{ inviteMembers: { id: string; email: string }[] },
-	{ slug: string; emails: string[]; role: string }
+	{ slug: string; emails: string[]; role: string; teamId?: string | null }
 > = gql`
-	mutation InviteMembers($slug: String!, $emails: [String!]!, $role: String!) {
-		inviteMembers(slug: $slug, emails: $emails, role: $role) {
+	mutation InviteMembers(
+		$slug: String!
+		$emails: [String!]!
+		$role: String!
+		$teamId: ID
+	) {
+		inviteMembers(slug: $slug, emails: $emails, role: $role, teamId: $teamId) {
 			id
 			email
 		}
@@ -659,6 +676,133 @@ export const MEMBER_STATS: TypedDocumentNode<
 				activeProjects
 				openTasks
 				lastActiveAt
+			}
+		}
+	}
+`;
+
+export type TeamInput = {
+	name: string;
+	description: string;
+	icon: string;
+	color: string;
+	memberIds: string[];
+};
+
+export const CREATE_TEAM: TypedDocumentNode<
+	{ createTeam: { id: string; name: string } },
+	{ slug: string; input: TeamInput }
+> = gql`
+	mutation CreateTeam($slug: String!, $input: TeamInput!) {
+		createTeam(slug: $slug, input: $input) {
+			id
+			name
+		}
+	}
+`;
+
+export const UPDATE_TEAM: TypedDocumentNode<
+	{ updateTeam: { id: string; name: string } },
+	{ slug: string; id: string; input: TeamInput }
+> = gql`
+	mutation UpdateTeam($slug: String!, $id: ID!, $input: TeamInput!) {
+		updateTeam(slug: $slug, id: $id, input: $input) {
+			id
+			name
+		}
+	}
+`;
+
+export const DELETE_TEAM: TypedDocumentNode<
+	{ deleteTeam: boolean },
+	{ slug: string; id: string }
+> = gql`
+	mutation DeleteTeam($slug: String!, $id: ID!) {
+		deleteTeam(slug: $slug, id: $id)
+	}
+`;
+
+export type ProfileTask = {
+	id: string;
+	name: string;
+	status: string;
+	priority: string;
+	dueDate: string | null;
+	projectId: string;
+	projectTitle: string;
+	projectColor: string | null;
+};
+
+export const MEMBER_PROFILE: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			memberProfile: {
+				projects: {
+					id: string;
+					title: string;
+					icon: string | null;
+					color: string | null;
+					status: string;
+				}[];
+				tasks: ProfileTask[];
+			};
+		} | null;
+	},
+	{ slug: string; memberId: string }
+> = gql`
+	query MemberProfile($slug: String!, $memberId: ID!) {
+		workspace(slug: $slug) {
+			id
+			memberProfile(memberId: $memberId) {
+				projects {
+					id
+					title
+					icon
+					color
+					status
+				}
+				tasks {
+					id
+					name
+					status
+					priority
+					dueDate
+					projectId
+					projectTitle
+					projectColor
+				}
+			}
+		}
+	}
+`;
+
+export const WORKSPACE_PROJECTS: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			projects: {
+				id: string;
+				title: string;
+				icon: string | null;
+				color: string | null;
+				status: string;
+				teamId: string | null;
+			}[];
+		} | null;
+	},
+	{ slug: string }
+> = gql`
+	query WorkspaceProjects($slug: String!) {
+		workspace(slug: $slug) {
+			id
+			projects {
+				id
+				title
+				icon
+				color
+				status
+				teamId
 			}
 		}
 	}

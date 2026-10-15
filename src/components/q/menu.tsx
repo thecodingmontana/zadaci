@@ -77,3 +77,51 @@ export const MenuLabel = ({ children }: { children: ReactNode }) => (
 	<DropdownMenu.Label className="mh">{children}</DropdownMenu.Label>
 );
 export const MenuSeparator = () => <DropdownMenu.Separator className="msep" />;
+
+export const MenuSub = DropdownMenu.Sub;
+
+export function MenuSubTrigger({
+	icon,
+	children,
+}: {
+	icon?: string;
+	children: ReactNode;
+}) {
+	return (
+		<DropdownMenu.SubTrigger className="mi">
+			{icon && (
+				<span
+					className={cn(icon, "i size-[15px] shrink-0")}
+					aria-hidden="true"
+				/>
+			)}
+			{children}
+			<span className="r">
+				<span
+					className="icon-[solar--alt-arrow-right-linear] size-3"
+					aria-hidden="true"
+				/>
+			</span>
+		</DropdownMenu.SubTrigger>
+	);
+}
+
+export function MenuSubContent({
+	children,
+	width,
+}: {
+	children: ReactNode;
+	width?: number;
+}) {
+	return (
+		<DropdownMenu.Portal>
+			<DropdownMenu.SubContent
+				className="pop enter"
+				sideOffset={6}
+				style={{ position: "relative", width }}
+			>
+				{children}
+			</DropdownMenu.SubContent>
+		</DropdownMenu.Portal>
+	);
+}

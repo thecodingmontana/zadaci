@@ -25,10 +25,13 @@ import { Route as AuthTwoFactorSetupRouteImport } from './routes/auth/two-factor
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
 import { Route as AuthedWSlugActivityRouteImport } from './routes/_authed/w/$slug/activity'
-import { Route as AuthedWSlugMembersRouteImport } from './routes/_authed/w/$slug/members'
 import { Route as AuthedWSlugNotificationsRouteImport } from './routes/_authed/w/$slug/notifications'
 import { Route as AuthedWSlugSettingsRouteImport } from './routes/_authed/w/$slug/settings'
+import { Route as AuthedWSlugMembersIndexRouteImport } from './routes/_authed/w/$slug/members.index'
+import { Route as AuthedWSlugMembersMemberIdRouteImport } from './routes/_authed/w/$slug/members.$memberId'
 import { Route as AuthedWSlugPProjectIdRouteImport } from './routes/_authed/w/$slug/p.$projectId'
+import { Route as AuthedWSlugTeamsIndexRouteImport } from './routes/_authed/w/$slug/teams.index'
+import { Route as AuthedWSlugTeamsTeamIdRouteImport } from './routes/_authed/w/$slug/teams.$teamId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -109,11 +112,6 @@ const AuthedWSlugActivityRoute = AuthedWSlugActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
-const AuthedWSlugMembersRoute = AuthedWSlugMembersRouteImport.update({
-  id: '/members',
-  path: '/members',
-  getParentRoute: () => AuthedWSlugRoute,
-} as any)
 const AuthedWSlugNotificationsRoute =
   AuthedWSlugNotificationsRouteImport.update({
     id: '/notifications',
@@ -125,9 +123,30 @@ const AuthedWSlugSettingsRoute = AuthedWSlugSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
+const AuthedWSlugMembersIndexRoute = AuthedWSlugMembersIndexRouteImport.update({
+  id: '/members/',
+  path: '/members/',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugMembersMemberIdRoute =
+  AuthedWSlugMembersMemberIdRouteImport.update({
+    id: '/members/$memberId',
+    path: '/members/$memberId',
+    getParentRoute: () => AuthedWSlugRoute,
+  } as any)
 const AuthedWSlugPProjectIdRoute = AuthedWSlugPProjectIdRouteImport.update({
   id: '/p/$projectId',
   path: '/p/$projectId',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugTeamsIndexRoute = AuthedWSlugTeamsIndexRouteImport.update({
+  id: '/teams/',
+  path: '/teams/',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugTeamsTeamIdRoute = AuthedWSlugTeamsTeamIdRouteImport.update({
+  id: '/teams/$teamId',
+  path: '/teams/$teamId',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
 
@@ -146,11 +165,14 @@ export interface FileRoutesByFullPath {
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
-  '/w/$slug/members': typeof AuthedWSlugMembersRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug/': typeof AuthedWSlugIndexRoute
+  '/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
   '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
+  '/w/$slug/teams/$teamId': typeof AuthedWSlugTeamsTeamIdRoute
+  '/w/$slug/members/': typeof AuthedWSlugMembersIndexRoute
+  '/w/$slug/teams/': typeof AuthedWSlugTeamsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -166,11 +188,14 @@ export interface FileRoutesByTo {
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
-  '/w/$slug/members': typeof AuthedWSlugMembersRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug': typeof AuthedWSlugIndexRoute
+  '/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
   '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
+  '/w/$slug/teams/$teamId': typeof AuthedWSlugTeamsTeamIdRoute
+  '/w/$slug/members': typeof AuthedWSlugMembersIndexRoute
+  '/w/$slug/teams': typeof AuthedWSlugTeamsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -189,11 +214,14 @@ export interface FileRoutesById {
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/_authed/w/$slug/activity': typeof AuthedWSlugActivityRoute
-  '/_authed/w/$slug/members': typeof AuthedWSlugMembersRoute
   '/_authed/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/_authed/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/_authed/w/$slug/': typeof AuthedWSlugIndexRoute
+  '/_authed/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
   '/_authed/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
+  '/_authed/w/$slug/teams/$teamId': typeof AuthedWSlugTeamsTeamIdRoute
+  '/_authed/w/$slug/members/': typeof AuthedWSlugMembersIndexRoute
+  '/_authed/w/$slug/teams/': typeof AuthedWSlugTeamsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -212,11 +240,14 @@ export interface FileRouteTypes {
     | '/auth/two-factor/'
     | '/w/$slug/$'
     | '/w/$slug/activity'
-    | '/w/$slug/members'
     | '/w/$slug/notifications'
     | '/w/$slug/settings'
     | '/w/$slug/'
+    | '/w/$slug/members/$memberId'
     | '/w/$slug/p/$projectId'
+    | '/w/$slug/teams/$teamId'
+    | '/w/$slug/members/'
+    | '/w/$slug/teams/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -232,11 +263,14 @@ export interface FileRouteTypes {
     | '/auth/two-factor'
     | '/w/$slug/$'
     | '/w/$slug/activity'
-    | '/w/$slug/members'
     | '/w/$slug/notifications'
     | '/w/$slug/settings'
     | '/w/$slug'
+    | '/w/$slug/members/$memberId'
     | '/w/$slug/p/$projectId'
+    | '/w/$slug/teams/$teamId'
+    | '/w/$slug/members'
+    | '/w/$slug/teams'
   id:
     | '__root__'
     | '/'
@@ -254,11 +288,14 @@ export interface FileRouteTypes {
     | '/auth/two-factor/'
     | '/_authed/w/$slug/$'
     | '/_authed/w/$slug/activity'
-    | '/_authed/w/$slug/members'
     | '/_authed/w/$slug/notifications'
     | '/_authed/w/$slug/settings'
     | '/_authed/w/$slug/'
+    | '/_authed/w/$slug/members/$memberId'
     | '/_authed/w/$slug/p/$projectId'
+    | '/_authed/w/$slug/teams/$teamId'
+    | '/_authed/w/$slug/members/'
+    | '/_authed/w/$slug/teams/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -387,13 +424,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugActivityRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
-    '/_authed/w/$slug/members': {
-      id: '/_authed/w/$slug/members'
-      path: '/members'
-      fullPath: '/w/$slug/members'
-      preLoaderRoute: typeof AuthedWSlugMembersRouteImport
-      parentRoute: typeof AuthedWSlugRoute
-    }
     '/_authed/w/$slug/notifications': {
       id: '/_authed/w/$slug/notifications'
       path: '/notifications'
@@ -408,11 +438,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugSettingsRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
+    '/_authed/w/$slug/members/': {
+      id: '/_authed/w/$slug/members/'
+      path: '/members'
+      fullPath: '/w/$slug/members/'
+      preLoaderRoute: typeof AuthedWSlugMembersIndexRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/members/$memberId': {
+      id: '/_authed/w/$slug/members/$memberId'
+      path: '/members/$memberId'
+      fullPath: '/w/$slug/members/$memberId'
+      preLoaderRoute: typeof AuthedWSlugMembersMemberIdRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
     '/_authed/w/$slug/p/$projectId': {
       id: '/_authed/w/$slug/p/$projectId'
       path: '/p/$projectId'
       fullPath: '/w/$slug/p/$projectId'
       preLoaderRoute: typeof AuthedWSlugPProjectIdRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/teams/': {
+      id: '/_authed/w/$slug/teams/'
+      path: '/teams'
+      fullPath: '/w/$slug/teams/'
+      preLoaderRoute: typeof AuthedWSlugTeamsIndexRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/teams/$teamId': {
+      id: '/_authed/w/$slug/teams/$teamId'
+      path: '/teams/$teamId'
+      fullPath: '/w/$slug/teams/$teamId'
+      preLoaderRoute: typeof AuthedWSlugTeamsTeamIdRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
   }
@@ -421,21 +479,27 @@ declare module '@tanstack/react-router' {
 interface AuthedWSlugRouteChildren {
   AuthedWSlugSplatRoute: typeof AuthedWSlugSplatRoute
   AuthedWSlugActivityRoute: typeof AuthedWSlugActivityRoute
-  AuthedWSlugMembersRoute: typeof AuthedWSlugMembersRoute
   AuthedWSlugNotificationsRoute: typeof AuthedWSlugNotificationsRoute
   AuthedWSlugSettingsRoute: typeof AuthedWSlugSettingsRoute
   AuthedWSlugIndexRoute: typeof AuthedWSlugIndexRoute
+  AuthedWSlugMembersMemberIdRoute: typeof AuthedWSlugMembersMemberIdRoute
   AuthedWSlugPProjectIdRoute: typeof AuthedWSlugPProjectIdRoute
+  AuthedWSlugTeamsTeamIdRoute: typeof AuthedWSlugTeamsTeamIdRoute
+  AuthedWSlugMembersIndexRoute: typeof AuthedWSlugMembersIndexRoute
+  AuthedWSlugTeamsIndexRoute: typeof AuthedWSlugTeamsIndexRoute
 }
 
 const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugSplatRoute: AuthedWSlugSplatRoute,
   AuthedWSlugActivityRoute: AuthedWSlugActivityRoute,
-  AuthedWSlugMembersRoute: AuthedWSlugMembersRoute,
   AuthedWSlugNotificationsRoute: AuthedWSlugNotificationsRoute,
   AuthedWSlugSettingsRoute: AuthedWSlugSettingsRoute,
   AuthedWSlugIndexRoute: AuthedWSlugIndexRoute,
+  AuthedWSlugMembersMemberIdRoute: AuthedWSlugMembersMemberIdRoute,
   AuthedWSlugPProjectIdRoute: AuthedWSlugPProjectIdRoute,
+  AuthedWSlugTeamsTeamIdRoute: AuthedWSlugTeamsTeamIdRoute,
+  AuthedWSlugMembersIndexRoute: AuthedWSlugMembersIndexRoute,
+  AuthedWSlugTeamsIndexRoute: AuthedWSlugTeamsIndexRoute,
 }
 
 const AuthedWSlugRouteWithChildren = AuthedWSlugRoute._addFileChildren(
@@ -473,3 +537,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
