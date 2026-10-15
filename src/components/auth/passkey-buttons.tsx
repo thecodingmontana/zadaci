@@ -58,18 +58,20 @@ export function AddPasskeyButton({
 	onAdded,
 	className,
 	size,
+	variant = "outline",
 	label = "Add a passkey",
 }: {
 	onAdded?: () => void;
 	className?: string;
 	size?: "default" | "lg";
+	variant?: "default" | "outline";
 	label?: string;
 }) {
 	const [busy, setBusy] = useState(false);
 
 	return (
 		<Button
-			variant="outline"
+			variant={variant}
 			size={size}
 			className={className}
 			disabled={busy}

@@ -1,14 +1,13 @@
 import { useRouteContext, useRouter } from "@tanstack/react-router";
 import { QRCodeSVG } from "qrcode.react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { AddPasskeyButton } from "#/components/auth/passkey-buttons";
 import { ConfirmModal } from "#/components/q/confirm";
 import { Modal } from "#/components/q/modal";
 import { authClient } from "#/lib/auth-client";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { SBlock, SettingsHeader, SRow } from "./ui";
-
-const CANCELLED = ["AUTH_CANCELLED", "ERROR_CEREMONY_ABORTED"];
 
 function ago(date: string | Date) {
 	const s = Math.max(0, (Date.now() - new Date(date).getTime()) / 1000);
@@ -66,16 +65,6 @@ export function PasskeysSection({ title }: { title: string }) {
 	useEffect(() => {
 		load();
 	}, [load]);
-
-	async function add() {
-		const { error } = await authClient.passkey.addPasskey();
-		if (!error) {
-			toast.success("Passkey added");
-			return load();
-		}
-		if (!("code" in error && CANCELLED.includes(error.code)))
-			toast.error("Couldn't add a passkey", { desc: error.message });
-	}
 
 	async function rename(event: FormEvent) {
 		event.preventDefault();
@@ -142,13 +131,7 @@ export function PasskeysSection({ title }: { title: string }) {
 				))
 			)}
 			<div style={{ marginTop: 16 }}>
-				<button type="button" className="btn btn-primary" onClick={add}>
-					<span
-						className="icon-[hugeicons--plus-sign] size-3.5"
-						aria-hidden="true"
-					/>
-					Add a passkey
-				</button>
+				<AddPasskeyButton variant="default" onAdded={load} />
 			</div>
 			<Modal
 				open={!!renaming}
