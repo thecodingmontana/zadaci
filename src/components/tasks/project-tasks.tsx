@@ -3,21 +3,35 @@ import { useState } from "react";
 import { TASKS, type TaskItem } from "#/graphql/operations";
 import { applyView, groupTasks } from "#/lib/view-engine";
 import { BoardView } from "./board-view";
+import { CalendarView } from "./calendar-view";
 import { TaskViewProvider, useTaskView } from "./context";
 import { ListView } from "./list-view";
+import { useNewTask } from "./new-task";
+import { ColumnsMenu, TableView } from "./table-view";
+import {
+	TimelineControls,
+	TimelineView,
+	useTimelineState,
+} from "./timeline-view";
 import { PROJECT_FIELDS, useViewState, ViewToolbar } from "./toolbar";
 
 // A project's task tabs (reference project.js taskViewBody): toolbar plus one view.
+
+export type TaskViewType = "list" | "board" | "table" | "calendar" | "timeline";
 
 export function ProjectTasks({
 	slug,
 	projectId,
 	type,
+	milestones,
+	color,
 }: {
 	slug: string;
 	projectId: string;
-	/** which view; more join as they are built */
-	type: "list" | "board";
+	type: TaskViewType;
+	/** shown on the timeline */
+	milestones: { id: string; name: string; date: string }[];
+	color: string;
 }) {
 	const { data, loading } = useQuery(TASKS, {
 		variables: { slug, projectId },
@@ -32,7 +46,12 @@ export function ProjectTasks({
 			members={workspace.members}
 			projects={workspace.projects}
 		>
-			<Body projectId={projectId} type={type} tasks={workspace.tasks} />
+			<Body
+				projectId={projectId}
+				type={type}
+				tasks={workspace.tasks}
+				milestones={milestones.map((m) => ({ ...m, color }))}
+			/>
 		</TaskViewProvider>
 	);
 }
@@ -41,26 +60,29 @@ function Body({
 	projectId,
 	type,
 	tasks,
+	milestones,
 }: {
 	projectId: string;
-	type: "list" | "board";
+	type: TaskViewType;
 	tasks: TaskItem[];
+	milestones: { id: string; name: string; date: string; color: string }[];
 }) {
-	const { members, projects, member, project, canEdit, create } = useTaskView();
-	const [view, setView] = useViewState(`p:${projectId}`);
-	const [adding, setAdding] = useState(false);
+	const { members, projects, member, project, canEdit } = useTaskView();
+	const [view, setView] = useViewState(`p:${projectId}`, {
+		hidden: ["start", "created", "deps", "project"],
+	});
+	const [tl, setTl] = useTimelineState(projectId, "status");
+	const [todayTick, setTodayTick] = useState(0);
+	const newTask = useNewTask();
 	const shown = applyView(tasks, view, {
 		assignee: (id) => member(id)?.name ?? "zzz",
 		project: (id) => project(id)?.title ?? "",
 	});
 	const groups = groupTasks(shown, view.group, { members, projects });
 	const editable = canEdit(projectId);
-	const addBtn = editable && (
-		<button
-			type="button"
-			className="btn btn-primary btn-sm"
-			onClick={() => setAdding(true)}
-		>
+	const add = editable ? () => newTask({ projectId }) : undefined;
+	const addBtn = add && (
+		<button type="button" className="btn btn-primary btn-sm" onClick={add}>
 			<span
 				className="icon-[hugeicons--plus-sign] size-[13px]"
 				aria-hidden="true"
@@ -100,18 +122,22 @@ function Body({
 			</button>
 		</div>
 	);
+	const toolbar = (opts: { group?: boolean; extra?: React.ReactNode }) => (
+		<ViewToolbar
+			view={view}
+			setView={setView}
+			fields={PROJECT_FIELDS}
+			group={opts.group ?? true}
+			extra={opts.extra}
+			right={addBtn}
+		/>
+	);
 
-	return (
-		<>
-			<ViewToolbar
-				view={view}
-				setView={setView}
-				fields={PROJECT_FIELDS}
-				group={type !== "board"}
-				right={addBtn}
-			/>
-			{type === "board" ? (
-				tasks.length ? (
+	if (type === "board")
+		return (
+			<>
+				{toolbar({ group: false })}
+				{tasks.length ? (
 					<BoardView
 						tasks={shown}
 						projectId={projectId}
@@ -119,68 +145,82 @@ function Body({
 					/>
 				) : (
 					emptyAll
-				)
-			) : (
-				<div className="list-wrap">
-					{!tasks.length ? (
-						emptyAll
-					) : !shown.length ? (
-						emptyFilter
-					) : (
-						<ListView
-							groups={groups}
-							view={view}
-							setView={setView}
-							projectId={projectId}
-						/>
-					)}
-				</div>
-			)}
-			{adding && (
-				<QuickAdd
-					onClose={() => setAdding(false)}
-					onAdd={(title) => create({ projectId, title, status: "todo" })}
+				)}
+			</>
+		);
+	if (type === "table")
+		return (
+			<>
+				{toolbar({
+					extra: <ColumnsMenu view={view} setView={setView} hideProject />,
+				})}
+				{!tasks.length ? (
+					emptyAll
+				) : shown.length ? (
+					<TableView
+						groups={groups}
+						view={view}
+						setView={setView}
+						projectId={projectId}
+						onNew={add}
+					/>
+				) : (
+					emptyFilter
+				)}
+			</>
+		);
+	if (type === "calendar")
+		return (
+			<>
+				{toolbar({ group: false })}
+				<CalendarView
+					tasks={shown}
+					projectId={projectId}
+					storageKey={projectId}
 				/>
-			)}
-		</>
-	);
-}
-
-// shortcut: a one-line "New task" until the task modal (step 2d) replaces it
-function QuickAdd({
-	onClose,
-	onAdd,
-}: {
-	onClose: () => void;
-	onAdd: (title: string) => Promise<unknown>;
-}) {
-	const [title, setTitle] = useState("");
+			</>
+		);
+	if (type === "timeline")
+		return (
+			<>
+				{toolbar({
+					group: false,
+					extra: (
+						<TimelineControls
+							state={tl}
+							setState={setTl}
+							onToday={() => setTodayTick((n) => n + 1)}
+						/>
+					),
+				})}
+				<TimelineView
+					tasks={shown}
+					milestones={milestones}
+					zoom={tl.zoom}
+					group={tl.group}
+					project={projectId}
+					todayTick={todayTick}
+					onNew={add}
+				/>
+			</>
+		);
 	return (
-		<div
-			className="addrow"
-			style={{ background: "var(--q-surface-2)", margin: "0 var(--q-gutter)" }}
-		>
-			<span
-				className="icon-[hugeicons--plus-sign] size-3.5"
-				aria-hidden="true"
-			/>
-			<input
-				className="inline-in"
-				placeholder="Task name — press Enter to add, Esc to cancel"
-				aria-label="New task name"
-				value={title}
-				onChange={(e) => setTitle(e.target.value)}
-				onKeyDown={async (e) => {
-					if (e.key === "Escape") onClose();
-					if (e.key === "Enter" && title.trim()) {
-						await onAdd(title.trim());
-						setTitle("");
-					}
-				}}
-				onBlur={() => !title.trim() && onClose()}
-				// biome-ignore lint/a11y/noAutofocus: opened by the New task button to type a name
-				autoFocus
-			/>
-		</div>
+		<>
+			{toolbar({})}
+			<div className="list-wrap">
+				{!tasks.length ? (
+					emptyAll
+				) : !shown.length ? (
+					emptyFilter
+				) : (
+					<ListView
+						groups={groups}
+						view={view}
+						setView={setView}
+						projectId={projectId}
+					/>
+				)}
+			</div>
+		</>
 	);
 }

@@ -10,6 +10,7 @@ import {
 	MenuSeparator,
 	MenuTrigger,
 } from "#/components/q/menu";
+import { useNewTask } from "#/components/tasks/new-task";
 import type { ShellProject, ShellTeam } from "#/graphql/operations";
 import { cn } from "#/lib/utils";
 import { type ShellUser, UserMenuContent } from "./app-sidebar";
@@ -64,6 +65,7 @@ export function Topbar({
 }) {
 	const crumbs = useCrumbs(slug, projects, teams);
 	const [creatingProject, setCreatingProject] = useState(false);
+	const newTask = useNewTask();
 	const navigate = useNavigate();
 	const { setMnav } = useShell();
 	const { openPalette } = useCommandMenu();
@@ -152,12 +154,9 @@ export function Topbar({
 				</MenuTrigger>
 				<MenuContent width={220}>
 					<MenuLabel>Create</MenuLabel>
-					{/* shortcut: task creation arrives with the tasks step */}
 					<MenuItem
 						icon="icon-[solar--check-circle-linear]"
-						onSelect={() => {}}
-						disabled
-						r={<kbd>N</kbd>}
+						onSelect={() => newTask()}
 					>
 						Task
 					</MenuItem>

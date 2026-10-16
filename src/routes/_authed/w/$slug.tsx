@@ -11,6 +11,7 @@ import { CommandMenuProvider } from "#/components/shell/command-menu";
 import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
 import { TaskDrawer } from "#/components/tasks/drawer";
+import { NewTaskProvider } from "#/components/tasks/new-task";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { NOTIFICATION_COUNTS, SHELL } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
@@ -76,65 +77,67 @@ function ShellLayout() {
 
 	return (
 		<TooltipProvider delayDuration={200}>
-			<CommandMenuProvider
-				slug={slug}
-				workspaces={data.workspaces}
-				projects={workspace.projects}
-			>
-				<a href="#main-content" className="skip">
-					Skip to content
-				</a>
-				<div
-					className={cn(
-						"shell h-dvh",
-						collapsed && "collapsed",
-						mnav && "mnav",
-					)}
+			<NewTaskProvider slug={slug} onCreated={(id) => setTask(id)}>
+				<CommandMenuProvider
+					slug={slug}
+					workspaces={data.workspaces}
+					projects={workspace.projects}
 				>
-					<AppSidebar
-						workspace={workspace}
-						workspaces={data.workspaces}
-						projects={workspace.projects}
-						teams={workspace.teams}
-						user={user}
-						unread={unread}
-					/>
-					{mnav && (
-						<div
-							className="side-scrim"
-							onClick={() => setMnav(false)}
-							aria-hidden="true"
-						/>
-					)}
-					<main className="main" id="main">
-						<Topbar
-							slug={slug}
+					<a href="#main-content" className="skip">
+						Skip to content
+					</a>
+					<div
+						className={cn(
+							"shell h-dvh",
+							collapsed && "collapsed",
+							mnav && "mnav",
+						)}
+					>
+						<AppSidebar
+							workspace={workspace}
+							workspaces={data.workspaces}
 							projects={workspace.projects}
 							teams={workspace.teams}
 							user={user}
-							unread={unread.all}
-							canCreateProjects={can(
-								workspace.role,
-								"createProjects",
-								workspace.settings,
-							)}
+							unread={unread}
 						/>
-						<div className="content" id="main-content" tabIndex={-1}>
-							<Outlet />
-						</div>
-						{task && (
-							<TaskDrawer
-								key={task}
-								slug={slug}
-								taskId={task}
-								onClose={() => setTask(undefined)}
-								onOpen={(id) => setTask(id)}
+						{mnav && (
+							<div
+								className="side-scrim"
+								onClick={() => setMnav(false)}
+								aria-hidden="true"
 							/>
 						)}
-					</main>
-					<BottomNav slug={slug} unread={unread.inbox} />
-				</div>
-			</CommandMenuProvider>
+						<main className="main" id="main">
+							<Topbar
+								slug={slug}
+								projects={workspace.projects}
+								teams={workspace.teams}
+								user={user}
+								unread={unread.all}
+								canCreateProjects={can(
+									workspace.role,
+									"createProjects",
+									workspace.settings,
+								)}
+							/>
+							<div className="content" id="main-content" tabIndex={-1}>
+								<Outlet />
+							</div>
+							{task && (
+								<TaskDrawer
+									key={task}
+									slug={slug}
+									taskId={task}
+									onClose={() => setTask(undefined)}
+									onOpen={(id) => setTask(id)}
+								/>
+							)}
+						</main>
+						<BottomNav slug={slug} unread={unread.inbox} />
+					</div>
+				</CommandMenuProvider>
+			</NewTaskProvider>
 		</TooltipProvider>
 	);
 }

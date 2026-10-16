@@ -1,6 +1,6 @@
 import type { TypedDocumentNode } from "@apollo/client";
 import { gql } from "@apollo/client";
-import { useMutation, useQuery } from "@apollo/client/react";
+import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import { Link } from "@tanstack/react-router";
 import DOMPurify from "dompurify";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -9,8 +9,6 @@ import { Av } from "#/components/q/av";
 import { StatusIcon } from "#/components/q/status-icon";
 import {
 	type ActivityItem,
-	ADD_ATTACHMENT,
-	ATTACHMENT_UPLOAD,
 	REMOVE_ATTACHMENT,
 	SET_DEPENDENCIES,
 	TASK_DETAIL,
@@ -36,6 +34,7 @@ import { TASK_REFETCH, TaskViewProvider, useTaskView } from "./context";
 import { DrawerConversation } from "./drawer-conversation";
 import { DatePick, PickList, PickPopover } from "./pick";
 import { TaskMenu } from "./task-menu";
+import { uploadToTask } from "./upload";
 
 // The task drawer (reference overlays/drawer.js drawerHtml), opened from any page with
 // ?task=<id>. Subtasks are tasks too, so opening one shows it here with a way back.
@@ -831,68 +830,25 @@ function Subtasks({
 }
 
 type Upload = { id: string; name: string; pct: number };
-const MAX_UPLOAD = 25 * 1024 * 1024;
 
 /** Files on the task, uploaded straight to Cloudinary with a signed request. */
 function Attachments({ t, editable }: { t: TaskDetail; editable: boolean }) {
 	const { slug } = useTaskView();
 	const [uploads, setUploads] = useState<Upload[]>([]);
-	const [sign] = useMutation(ATTACHMENT_UPLOAD);
-	const [add] = useMutation(ADD_ATTACHMENT, { refetchQueries: TASK_REFETCH });
+	const client = useApolloClient();
 	const [remove] = useMutation(REMOVE_ATTACHMENT, {
 		refetchQueries: TASK_REFETCH,
 	});
 
 	async function upload(files: FileList | File[]) {
 		for (const file of files) {
-			if (file.size > MAX_UPLOAD) {
-				toast.error(`${file.name} is over 25 MB`);
-				continue;
-			}
 			const id = crypto.randomUUID();
 			setUploads((u) => [...u, { id, name: file.name, pct: 0 }]);
 			try {
-				const { data } = await sign({ variables: { slug, taskId: t.id } });
-				const params = data?.attachmentUpload;
-				if (!params) throw new Error("No upload slot");
-				const body = new FormData();
-				body.append("file", file);
-				body.append("api_key", params.apiKey);
-				body.append("timestamp", String(params.timestamp));
-				body.append("signature", params.signature);
-				body.append("public_id", params.publicId);
-				body.append("folder", params.folder);
-				const result = await new Promise<{ secure_url: string; bytes: number }>(
-					(resolve, reject) => {
-						const xhr = new XMLHttpRequest();
-						xhr.open("POST", params.url);
-						xhr.upload.onprogress = (e) =>
-							e.lengthComputable &&
-							setUploads((u) =>
-								u.map((x) =>
-									x.id === id
-										? { ...x, pct: Math.round((e.loaded / e.total) * 100) }
-										: x,
-								),
-							);
-						xhr.onload = () =>
-							xhr.status < 300
-								? resolve(JSON.parse(xhr.responseText))
-								: reject(new Error("Upload failed"));
-						xhr.onerror = () => reject(new Error("Upload failed"));
-						xhr.send(body);
-					},
+				await uploadToTask(client, slug, t.id, file, (pct) =>
+					setUploads((u) => u.map((x) => (x.id === id ? { ...x, pct } : x))),
 				);
-				await add({
-					variables: {
-						slug,
-						taskId: t.id,
-						name: file.name,
-						url: result.secure_url,
-						mime: file.type || null,
-						size: result.bytes,
-					},
-				});
+				await client.refetchQueries({ include: TASK_REFETCH });
 			} catch (error) {
 				toast.error(`Couldn't upload ${file.name}`, {
 					desc: (error as Error).message,

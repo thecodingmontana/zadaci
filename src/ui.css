@@ -5040,3 +5040,13 @@ table.tbl {
   font-weight: 600;
   box-shadow: none;
 }
+
+/* phone-only blocks (reference base.css) */
+.only-m {
+  display: none;
+}
+@media (max-width: 640px) {
+  .only-m {
+    display: block;
+  }
+}

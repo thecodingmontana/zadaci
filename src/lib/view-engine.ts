@@ -59,6 +59,8 @@ export type ViewState = {
 	q: string;
 	/** table columns the viewer hid */
 	hidden: string[];
+	/** table column widths the viewer dragged */
+	colW: Record<string, number>;
 };
 
 export const DEFAULT_VIEW: ViewState = {
@@ -67,6 +69,7 @@ export const DEFAULT_VIEW: ViewState = {
 	group: "status",
 	q: "",
 	hidden: ["start", "created", "deps"],
+	colW: {},
 };
 
 export const DUE_BUCKETS = [

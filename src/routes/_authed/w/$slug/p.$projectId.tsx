@@ -3,7 +3,12 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { ActivityItem } from "#/components/activity/activity-item";
-import { PIcon, PStatus, StatusMenu } from "#/components/projects/bits";
+import {
+	PIcon,
+	PStatus,
+	projectColor,
+	StatusMenu,
+} from "#/components/projects/bits";
 import { ProjectOverview } from "#/components/projects/overview";
 import { ProjectModal } from "#/components/projects/project-modal";
 import { ShareModal } from "#/components/projects/share-modal";
@@ -272,10 +277,20 @@ function ProjectPage() {
 							</div>
 						)}
 					</div>
-				) : tab === "list" || tab === "board" ? (
-					<ProjectTasks slug={slug} projectId={project.id} type={tab} />
+				) : tab === "list" ||
+					tab === "board" ||
+					tab === "table" ||
+					tab === "calendar" ||
+					tab === "timeline" ? (
+					<ProjectTasks
+						slug={slug}
+						projectId={project.id}
+						type={tab}
+						milestones={project.milestones}
+						color={projectColor(project.color)}
+					/>
 				) : (
-					// shortcut: board, table, calendar, timeline and files views come in the next steps
+					// shortcut: the files view comes in the next step
 					<ComingSoon title={`${current.label} view`} icon={current.icon} />
 				)}
 			</div>
