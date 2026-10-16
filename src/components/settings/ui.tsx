@@ -94,7 +94,10 @@ export function Select({
 				className={cn("min-w-[180px]", className)}
 				aria-label={label}
 			>
-				<SelectValue />
+				{/* the label is given directly: Radix only learns it once the list has mounted */}
+				<SelectValue>
+					{options.find(([v]) => (v || EMPTY) === (value || EMPTY))?.[1]}
+				</SelectValue>
 			</SelectTrigger>
 			<SelectContent position="popper" className="max-h-72">
 				{options.map(([v, n]) => (
