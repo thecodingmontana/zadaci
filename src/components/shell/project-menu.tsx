@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client/react";
 import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
+import { ShareModal } from "#/components/projects/share-modal";
 import { ConfirmModal } from "#/components/q/confirm";
 import {
 	Menu,
@@ -19,11 +20,10 @@ import {
 	type ShellProject,
 	TOGGLE_FAVORITE,
 } from "#/graphql/operations";
-import type { Permission } from "#/lib/permissions";
+import { hasRight, type Permission } from "#/lib/permissions";
 import { toast } from "#/lib/toast";
 
 // The project "…" menu, ported from the reference app's project context menu.
-// Share is left out until projects can be shared publicly.
 
 export function ProjectMenu({
 	slug,
@@ -38,7 +38,10 @@ export function ProjectMenu({
 	count: number;
 	allowed: (permission: Permission) => boolean;
 }) {
-	const canEdit = allowed("editProjects");
+	// renaming and archiving follow the viewer's right on this project (Share)
+	const canEdit = hasRight(project.myAccess, "edit");
+	const canReorder = allowed("editProjects");
+	const [sharing, setSharing] = useState(false);
 	const navigate = useNavigate();
 	const [renaming, setRenaming] = useState(false);
 	const [title, setTitle] = useState(project.title);
@@ -118,6 +121,12 @@ export function ProjectMenu({
 						</MenuItem>
 					)}
 					<MenuItem
+						icon="icon-[solar--share-linear]"
+						onSelect={() => setSharing(true)}
+					>
+						Share
+					</MenuItem>
+					<MenuItem
 						icon="icon-[solar--link-linear]"
 						onSelect={run(async () => {
 							await navigator.clipboard.writeText(
@@ -141,8 +150,8 @@ export function ProjectMenu({
 							Duplicate
 						</MenuItem>
 					)}
-					{canEdit && count > 1 && <MenuSeparator />}
-					{canEdit && index > 0 && (
+					{canReorder && count > 1 && <MenuSeparator />}
+					{canReorder && index > 0 && (
 						<MenuItem
 							icon="icon-[solar--arrow-up-linear]"
 							onSelect={run(
@@ -153,7 +162,7 @@ export function ProjectMenu({
 							Move up in sidebar
 						</MenuItem>
 					)}
-					{canEdit && index < count - 1 && (
+					{canReorder && index < count - 1 && (
 						<MenuItem
 							icon="icon-[solar--arrow-down-linear]"
 							onSelect={run(
@@ -228,6 +237,12 @@ export function ProjectMenu({
 					</div>
 				</form>
 			</Modal>
+			<ShareModal
+				open={sharing}
+				onOpenChange={setSharing}
+				slug={slug}
+				projectId={project.id}
+			/>
 			<ConfirmModal
 				open={deleting}
 				onOpenChange={setDeleting}

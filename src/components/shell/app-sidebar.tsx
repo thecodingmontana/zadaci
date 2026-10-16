@@ -435,6 +435,19 @@ export function AppSidebar({
 													/>
 												</span>
 											)}
+											{p.access === "private" && (
+												<span
+													className="faint"
+													style={{ marginLeft: 4, display: "inline-flex" }}
+													role="img"
+													aria-label="Private"
+												>
+													<span
+														className="icon-[solar--lock-keyhole-linear] size-[11px]"
+														aria-hidden="true"
+													/>
+												</span>
+											)}
 										</Link>
 									</SideTip>
 									<span

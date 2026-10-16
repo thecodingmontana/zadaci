@@ -126,6 +126,9 @@ export type ShellProject = {
 	color: string | null;
 	status: string;
 	isFavorite: boolean;
+	access: string;
+	/** the viewer's right: view, comment, edit or full */
+	myAccess: import("#/lib/permissions").ProjectRight | null;
 };
 export type ShellTeam = {
 	id: string;
@@ -169,6 +172,8 @@ export const SHELL: TypedDocumentNode<
 				color
 				status
 				isFavorite
+				access
+				myAccess
 			}
 			teams {
 				id
@@ -807,6 +812,127 @@ export const WORKSPACE_PROJECTS: TypedDocumentNode<
 				status
 				teamId
 			}
+		}
+	}
+`;
+
+export type ProjectMember = {
+	memberId: string;
+	name: string;
+	email: string;
+	image: string | null;
+	role: string;
+	permission: import("#/lib/permissions").ProjectRight;
+	isLead: boolean;
+	isMe: boolean;
+};
+
+export const PROJECT_SHARE: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			name: string;
+			members: SettingsMember[];
+			project: {
+				id: string;
+				title: string;
+				access: string;
+				myAccess: import("#/lib/permissions").ProjectRight | null;
+				members: ProjectMember[];
+			} | null;
+		} | null;
+	},
+	{ slug: string; projectId: string }
+> = gql`
+	query ProjectShare($slug: String!, $projectId: ID!) {
+		workspace(slug: $slug) {
+			id
+			name
+			members {
+				id
+				userId
+				role
+				name
+				email
+				image
+				isMe
+				title
+				tz
+			}
+			project(id: $projectId) {
+				id
+				title
+				access
+				myAccess
+				members {
+					memberId
+					name
+					email
+					image
+					role
+					permission
+					isLead
+					isMe
+				}
+			}
+		}
+	}
+`;
+
+export const SHARE_PROJECT: TypedDocumentNode<
+	{ shareProject: boolean },
+	{ slug: string; projectId: string; memberId: string; permission: string }
+> = gql`
+	mutation ShareProject(
+		$slug: String!
+		$projectId: ID!
+		$memberId: ID!
+		$permission: String!
+	) {
+		shareProject(
+			slug: $slug
+			projectId: $projectId
+			memberId: $memberId
+			permission: $permission
+		)
+	}
+`;
+
+export const UNSHARE_PROJECT: TypedDocumentNode<
+	{ unshareProject: boolean },
+	{ slug: string; projectId: string; memberId: string }
+> = gql`
+	mutation UnshareProject($slug: String!, $projectId: ID!, $memberId: ID!) {
+		unshareProject(slug: $slug, projectId: $projectId, memberId: $memberId)
+	}
+`;
+
+export const INVITE_TO_PROJECT: TypedDocumentNode<
+	{ inviteToProject: boolean },
+	{ slug: string; projectId: string; email: string; permission: string }
+> = gql`
+	mutation InviteToProject(
+		$slug: String!
+		$projectId: ID!
+		$email: String!
+		$permission: String!
+	) {
+		inviteToProject(
+			slug: $slug
+			projectId: $projectId
+			email: $email
+			permission: $permission
+		)
+	}
+`;
+
+export const SET_PROJECT_ACCESS: TypedDocumentNode<
+	{ setProjectAccess: { id: string } },
+	{ slug: string; projectId: string; access: string }
+> = gql`
+	mutation SetProjectAccess($slug: String!, $projectId: ID!, $access: String!) {
+		setProjectAccess(slug: $slug, projectId: $projectId, access: $access) {
+			id
 		}
 	}
 `;
