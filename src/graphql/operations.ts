@@ -1063,7 +1063,15 @@ export type ProjectTask = {
 	dueDate: string | null;
 };
 
+export type SavedView = {
+	id: string;
+	name: string;
+	type: "list" | "board" | "table";
+	filters: import("#/lib/view-engine").Filter[];
+};
+
 export type ProjectDetail = ProjectSummary & {
+	savedViews: SavedView[];
 	milestones: { id: string; name: string; date: string }[];
 	members: ProjectMember[];
 	tasks: ProjectTask[];
@@ -1091,6 +1099,12 @@ export const PROJECT_PAGE: TypedDocumentNode<
 			role
 			project(id: $projectId) {
 				...ProjectFields
+				savedViews {
+					id
+					name
+					type
+					filters
+				}
 				milestones {
 					id
 					name
@@ -1681,5 +1695,42 @@ export const RENAME_ATTACHMENT: TypedDocumentNode<
 			id
 			name
 		}
+	}
+`;
+
+export const SAVE_VIEW: TypedDocumentNode<
+	{ saveView: { id: string } },
+	{
+		slug: string;
+		projectId: string;
+		name: string;
+		type: string;
+		filters: unknown;
+	}
+> = gql`
+	mutation SaveView($slug: String!, $projectId: ID!, $name: String!, $type: String!, $filters: JSON!) {
+		saveView(slug: $slug, projectId: $projectId, name: $name, type: $type, filters: $filters) {
+			id
+		}
+	}
+`;
+
+export const RENAME_VIEW: TypedDocumentNode<
+	{ renameView: { id: string } },
+	{ slug: string; id: string; name: string }
+> = gql`
+	mutation RenameView($slug: String!, $id: ID!, $name: String!) {
+		renameView(slug: $slug, id: $id, name: $name) {
+			id
+		}
+	}
+`;
+
+export const DELETE_VIEW: TypedDocumentNode<
+	{ deleteView: boolean },
+	{ slug: string; id: string }
+> = gql`
+	mutation DeleteView($slug: String!, $id: ID!) {
+		deleteView(slug: $slug, id: $id)
 	}
 `;

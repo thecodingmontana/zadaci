@@ -11,6 +11,10 @@ import {
 } from "#/components/projects/bits";
 import { ProjectOverview } from "#/components/projects/overview";
 import { ProjectModal } from "#/components/projects/project-modal";
+import {
+	SavedViewTab,
+	SaveViewButton,
+} from "#/components/projects/saved-views";
 import { ShareModal } from "#/components/projects/share-modal";
 import { AvStack } from "#/components/q/av";
 import { PROJECT_PAGE_TABS } from "#/components/shell/nav";
@@ -36,7 +40,11 @@ const TABS = PROJECT_PAGE_TABS.map((t) => t.tab);
 
 export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 	validateSearch: z.object({
-		tab: z.enum(TABS as [string, ...string[]]).optional(),
+		// a built-in view, or "v:<id>" for a saved view
+		tab: z
+			.string()
+			.refine((t) => TABS.includes(t as never) || t.startsWith("v:"))
+			.optional(),
 	}),
 	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
@@ -85,6 +93,7 @@ function ProjectPage() {
 
 	const canEdit = hasRight(project.myAccess, "edit");
 	const stats = workspace.projectStats.find((s) => s.projectId === project.id);
+	const savedView = project.savedViews.find((v) => tab === `v:${v.id}`);
 	const activity = feed?.workspace?.activity ?? [];
 
 	return (
@@ -229,6 +238,17 @@ function ProjectPage() {
 							{t.label}
 						</Link>
 					))}
+					{project.savedViews.map((v) => (
+						<SavedViewTab
+							key={v.id}
+							slug={slug}
+							projectId={projectId}
+							view={v}
+							on={tab === `v:${v.id}`}
+							editable={canEdit}
+						/>
+					))}
+					{canEdit && <SaveViewButton slug={slug} projectId={projectId} />}
 				</nav>
 			</div>
 			<div className="pbody">
@@ -287,6 +307,29 @@ function ProjectPage() {
 						milestones={project.milestones}
 						color={projectColor(project.color)}
 					/>
+				) : tab.startsWith("v:") ? (
+					savedView ? (
+						<ProjectTasks
+							key={savedView.id}
+							slug={slug}
+							projectId={project.id}
+							type={savedView.type}
+							milestones={project.milestones}
+							color={projectColor(project.color)}
+							savedView={savedView}
+						/>
+					) : (
+						<div className="empty-state">
+							<div className="glyph">
+								<span
+									className="icon-[hugeicons--filter] size-5"
+									aria-hidden="true"
+								/>
+							</div>
+							<h2 className="es-h">This view was deleted</h2>
+							<p>Pick another tab to keep going.</p>
+						</div>
+					)
 				) : tab === "files" ? (
 					<FilesView
 						slug={slug}

@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client/react";
 import { useState } from "react";
-import { TASKS, type TaskItem } from "#/graphql/operations";
+import { type SavedView, TASKS, type TaskItem } from "#/graphql/operations";
 import { applyView, groupTasks } from "#/lib/view-engine";
 import { BoardView } from "./board-view";
 import { CalendarView } from "./calendar-view";
@@ -25,6 +25,7 @@ export function ProjectTasks({
 	type,
 	milestones,
 	color,
+	savedView,
 }: {
 	slug: string;
 	projectId: string;
@@ -32,6 +33,8 @@ export function ProjectTasks({
 	/** shown on the timeline */
 	milestones: { id: string; name: string; date: string }[];
 	color: string;
+	/** a saved view tab: its own filters, starting from the saved ones */
+	savedView?: SavedView;
 }) {
 	const { data, loading } = useQuery(TASKS, {
 		variables: { slug, projectId },
@@ -49,6 +52,7 @@ export function ProjectTasks({
 			<Body
 				projectId={projectId}
 				type={type}
+				savedView={savedView}
 				tasks={workspace.tasks}
 				milestones={milestones.map((m) => ({ ...m, color }))}
 			/>
@@ -58,19 +62,25 @@ export function ProjectTasks({
 
 function Body({
 	projectId,
+	savedView,
 	type,
 	tasks,
 	milestones,
 }: {
 	projectId: string;
+	savedView?: SavedView;
 	type: TaskViewType;
 	tasks: TaskItem[];
 	milestones: { id: string; name: string; date: string; color: string }[];
 }) {
 	const { members, projects, member, project, canEdit } = useTaskView();
-	const [view, setView] = useViewState(`p:${projectId}`, {
-		hidden: ["start", "created", "deps", "project"],
-	});
+	const [view, setView] = useViewState(
+		savedView ? `sv:${savedView.id}` : `p:${projectId}`,
+		{
+			hidden: ["start", "created", "deps", "project"],
+			...(savedView && { filters: savedView.filters }),
+		},
+	);
 	const [tl, setTl] = useTimelineState(projectId, "status");
 	const [todayTick, setTodayTick] = useState(0);
 	const newTask = useNewTask();
