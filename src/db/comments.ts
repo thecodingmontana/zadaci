@@ -1,4 +1,11 @@
-import { type AnyPgColumn, index, text, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+	type AnyPgColumn,
+	index,
+	jsonb,
+	text,
+	varchar,
+} from "drizzle-orm/pg-core";
 import { generateNanoId, pgTable, syncable } from "./utils";
 import { workspace_members } from "./workspace";
 
@@ -12,7 +19,7 @@ export const comment = pgTable(
 		entity_id: varchar("entity_id", { length: 16 }).notNull(),
 		author_id: varchar("author_id", { length: 16 })
 			.notNull()
-			.references(() => workspace_members.id),
+			.references(() => workspace_members.id, { onDelete: "cascade" }),
 		content: text("content").notNull(),
 		parent_id: varchar("parent_id", { length: 16 }).references(
 			(): AnyPgColumn => comment.id,
@@ -20,6 +27,8 @@ export const comment = pgTable(
 				onDelete: "set null",
 			},
 		),
+		// emoji -> member ids who reacted
+		reactions: jsonb("reactions").notNull().default(sql`'{}'::jsonb`),
 		...syncable,
 	},
 	(table) => [

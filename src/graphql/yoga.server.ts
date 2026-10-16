@@ -10,6 +10,8 @@ import { projectsResolvers, projectsTypeDefs } from "./projects.server";
 import { type GraphQLContext, resolvers, typeDefs } from "./schema.server";
 import { settingsResolvers, settingsTypeDefs } from "./settings.server";
 import { sharingResolvers, sharingTypeDefs } from "./sharing.server";
+import { taskExtrasResolvers, taskExtrasTypeDefs } from "./task-extras.server";
+import { tasksResolvers, tasksTypeDefs } from "./tasks.server";
 import { teamsResolvers, teamsTypeDefs } from "./teams.server";
 
 const schema = createSchema<GraphQLContext>({
@@ -22,6 +24,8 @@ const schema = createSchema<GraphQLContext>({
 		teamsTypeDefs,
 		sharingTypeDefs,
 		projectDetailsTypeDefs,
+		tasksTypeDefs,
+		taskExtrasTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -32,6 +36,8 @@ const schema = createSchema<GraphQLContext>({
 		teamsResolvers,
 		sharingResolvers,
 		projectDetailsResolvers,
+		tasksResolvers,
+		taskExtrasResolvers,
 	],
 });
 

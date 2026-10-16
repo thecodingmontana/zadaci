@@ -146,7 +146,7 @@ export function parse<T>(schema: z.ZodType<T>, value: unknown): T {
 	return result.data;
 }
 
-function cloudinary() {
+export function cloudinary() {
 	return {
 		cloud: requireEnv("CLOUDINARY_CLOUD_NAME"),
 		key: requireEnv("CLOUDINARY_API_KEY"),

@@ -1,0 +1,1 @@
+ALTER TABLE "app_comment" DROP CONSTRAINT "app_comment_author_id_app_workspace_members_id_fkey", ADD CONSTRAINT "app_comment_author_id_app_workspace_members_id_fkey" FOREIGN KEY ("author_id") REFERENCES "app_workspace_members"("id") ON DELETE CASCADE;

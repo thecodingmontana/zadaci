@@ -50,3 +50,14 @@ export function fmtDay(day: string | null | undefined, long = false) {
 /** Whole days from today until a "YYYY-MM-DD" day (negative when it has passed). */
 export const daysUntil = (day: string) =>
 	differenceInCalendarDays(parseISO(day), new Date());
+
+/** "Today", "Tomorrow", "Yesterday", a weekday this week, else "Oct 31" (reference relDate). */
+export function relDay(day: string | null | undefined) {
+	if (!day) return "";
+	const n = daysUntil(day);
+	if (n === 0) return "Today";
+	if (n === 1) return "Tomorrow";
+	if (n === -1) return "Yesterday";
+	if (n > 1 && n < 7) return format(parseISO(day), "EEE");
+	return fmtDay(day);
+}

@@ -37,7 +37,6 @@ type Workspace = typeof tables.workspace.$inferSelect & {
 	role?: string;
 	memberId?: string;
 };
-type Project = typeof tables.project.$inferSelect;
 
 const typeDefs = /* GraphQL */ `
 	type User {
@@ -558,12 +557,18 @@ const resolvers = {
 					});
 
 					await tx.insert(tables.task).values(
-						template.tasks.map((name) => ({
+						template.tasks.map((name, i) => ({
 							name,
 							status: STATUS.TODO,
 							project_id: project.id,
+							number: i + 1,
+							sort_order: i + 1,
 						})),
 					);
+					await tx
+						.update(tables.project)
+						.set({ task_seq: template.tasks.length })
+						.where(eq(tables.project.id, project.id));
 
 					if (invites.length) {
 						const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -659,20 +664,6 @@ const resolvers = {
 					),
 				)
 				.orderBy(asc(tables.team.name)),
-	},
-	Project: {
-		tasks: (p: Project) =>
-			db
-				.select()
-				.from(tables.task)
-				.where(
-					and(
-						eq(tables.task.project_id, p.id),
-						isNull(tables.task.parent_task_id),
-						isNull(tables.task.deleted_at),
-					),
-				)
-				.orderBy(asc(tables.task.created_at)),
 	},
 };
 

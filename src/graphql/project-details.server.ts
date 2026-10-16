@@ -380,6 +380,9 @@ export const projectDetailsResolvers = {
 							status: i === 0 ? STATUS.TODO : STATUS.IDEA,
 							priority: i === 0 ? PRIORITY.HIGH : PRIORITY.MEDIUM,
 							due_date: addDays(5 + i * 5),
+							start_date: addDays(i * 5),
+							number: i + 1,
+							sort_order: i + 1,
 						})
 						.returning({ id: tables.task.id });
 					if (i === 0 && task)
@@ -389,6 +392,11 @@ export const projectDetailsResolvers = {
 							assigned_at: new Date(),
 						});
 				}
+				if (template.tasks.length)
+					await tx
+						.update(tables.project)
+						.set({ task_seq: template.tasks.length })
+						.where(eq(tables.project.id, project.id));
 				await logActivity(tx, {
 					workspace_id: workspace.id,
 					actor_id: user.id,

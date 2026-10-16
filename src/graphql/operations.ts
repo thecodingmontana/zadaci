@@ -1206,3 +1206,212 @@ export const DELETE_MILESTONE: TypedDocumentNode<
 		deleteMilestone(slug: $slug, projectId: $projectId, id: $id)
 	}
 `;
+
+// ---- tasks ----
+
+export type TaskItem = {
+	id: string;
+	key: string;
+	number: number;
+	name: string;
+	status: string;
+	priority: string;
+	projectId: string;
+	parentId: string | null;
+	assigneeId: string | null;
+	dueDate: string | null;
+	startDate: string | null;
+	labels: string[];
+	estimate: string | null;
+	recur: string | null;
+	sortOrder: number;
+	completedAt: string | null;
+	archivedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+	isFavorite: boolean;
+	subtaskCount: number;
+	subtaskDone: number;
+	commentCount: number;
+	attachmentCount: number;
+	dependsOn: string[];
+};
+
+export const TASK_FIELDS = gql`
+	fragment TaskFields on Task {
+		id
+		key
+		number
+		name
+		status
+		priority
+		projectId
+		parentId
+		assigneeId
+		dueDate
+		startDate
+		labels
+		estimate
+		recur
+		sortOrder
+		completedAt
+		archivedAt
+		createdAt
+		updatedAt
+		isFavorite
+		subtaskCount
+		subtaskDone
+		commentCount
+		attachmentCount
+		dependsOn
+	}
+`;
+
+/** Tasks for a view, plus the people and projects their rows refer to. */
+export const TASKS: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			role: string;
+			tasks: TaskItem[];
+			members: SettingsMember[];
+			projects: ProjectSummary[];
+		} | null;
+	},
+	{ slug: string; projectId?: string | null; assigneeId?: string | null }
+> = gql`
+	${TASK_FIELDS}
+	${PROJECT_FIELDS}
+	query Tasks($slug: String!, $projectId: ID, $assigneeId: ID) {
+		workspace(slug: $slug) {
+			id
+			role
+			tasks(projectId: $projectId, assigneeId: $assigneeId) {
+				...TaskFields
+			}
+			members {
+				id
+				userId
+				role
+				name
+				email
+				image
+				isMe
+				title
+				tz
+			}
+			projects {
+				...ProjectFields
+			}
+		}
+	}
+`;
+
+export type TaskPatch = Partial<{
+	title: string;
+	description: string | null;
+	status: string;
+	priority: string;
+	assigneeId: string | null;
+	dueDate: string | null;
+	startDate: string | null;
+	labels: string[];
+	estimate: string | null;
+	recur: string | null;
+	projectId: string;
+	sortOrder: number;
+}>;
+
+export const CREATE_TASK: TypedDocumentNode<
+	{ createTask: TaskItem },
+	{
+		slug: string;
+		input: TaskPatch & {
+			projectId: string;
+			title: string;
+			parentId?: string | null;
+		};
+	}
+> = gql`
+	${TASK_FIELDS}
+	mutation CreateTask($slug: String!, $input: TaskInput!) {
+		createTask(slug: $slug, input: $input) {
+			...TaskFields
+		}
+	}
+`;
+
+export const UPDATE_TASK: TypedDocumentNode<
+	{ updateTask: TaskItem },
+	{ slug: string; id: string; patch: TaskPatch }
+> = gql`
+	${TASK_FIELDS}
+	mutation UpdateTask($slug: String!, $id: ID!, $patch: TaskPatch!) {
+		updateTask(slug: $slug, id: $id, patch: $patch) {
+			...TaskFields
+		}
+	}
+`;
+
+export const BULK_UPDATE_TASKS: TypedDocumentNode<
+	{ bulkUpdateTasks: number },
+	{ slug: string; ids: string[]; patch: TaskPatch }
+> = gql`
+	mutation BulkUpdateTasks($slug: String!, $ids: [ID!]!, $patch: TaskPatch!) {
+		bulkUpdateTasks(slug: $slug, ids: $ids, patch: $patch)
+	}
+`;
+
+export const DELETE_TASKS: TypedDocumentNode<
+	{ deleteTasks: number },
+	{ slug: string; ids: string[] }
+> = gql`
+	mutation DeleteTasks($slug: String!, $ids: [ID!]!) {
+		deleteTasks(slug: $slug, ids: $ids)
+	}
+`;
+
+export const ARCHIVE_TASK: TypedDocumentNode<
+	{ archiveTask: TaskItem },
+	{ slug: string; id: string; archived: boolean }
+> = gql`
+	${TASK_FIELDS}
+	mutation ArchiveTask($slug: String!, $id: ID!, $archived: Boolean!) {
+		archiveTask(slug: $slug, id: $id, archived: $archived) {
+			...TaskFields
+		}
+	}
+`;
+
+export const DUPLICATE_TASK: TypedDocumentNode<
+	{ duplicateTask: TaskItem },
+	{ slug: string; id: string }
+> = gql`
+	${TASK_FIELDS}
+	mutation DuplicateTask($slug: String!, $id: ID!) {
+		duplicateTask(slug: $slug, id: $id) {
+			...TaskFields
+		}
+	}
+`;
+
+export const SET_DEPENDENCIES: TypedDocumentNode<
+	{ setDependencies: TaskItem },
+	{ slug: string; id: string; dependsOn: string[] }
+> = gql`
+	${TASK_FIELDS}
+	mutation SetDependencies($slug: String!, $id: ID!, $dependsOn: [ID!]!) {
+		setDependencies(slug: $slug, id: $id, dependsOn: $dependsOn) {
+			...TaskFields
+		}
+	}
+`;
+
+export const TOGGLE_TASK_FAVORITE: TypedDocumentNode<
+	{ toggleTaskFavorite: boolean },
+	{ slug: string; id: string }
+> = gql`
+	mutation ToggleTaskFavorite($slug: String!, $id: ID!) {
+		toggleTaskFavorite(slug: $slug, id: $id)
+	}
+`;

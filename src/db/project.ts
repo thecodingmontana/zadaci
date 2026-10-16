@@ -1,8 +1,10 @@
 import { sql } from "drizzle-orm";
 import {
 	type AnyPgColumn,
+	doublePrecision,
 	index,
 	integer,
+	jsonb,
 	text,
 	timestamp,
 	uniqueIndex,
@@ -17,7 +19,7 @@ import {
 	status_enum,
 } from "./enums";
 import { team } from "./team";
-import { generateNanoId, pgTable, syncable } from "./utils";
+import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
 export const project = pgTable(
@@ -51,6 +53,8 @@ export const project = pgTable(
 		start_date: timestamp("start_date", { mode: "date" }),
 		// short code that prefixes task keys, e.g. WEB-103
 		key: varchar("key", { length: 6 }).notNull().default("PRJ"),
+		// last task number handed out in this project (bumped atomically per new task)
+		task_seq: integer("task_seq").notNull().default(0),
 		// "workspace": everyone can view and comment; "private": only people invited
 		access: varchar("access", { length: 20 }).notNull().default("workspace"),
 		// the project lead always has full access
@@ -112,12 +116,97 @@ export const task = pgTable(
 			},
 		),
 		due_date: timestamp("due_date", { mode: "date" }),
+		start_date: timestamp("start_date", { mode: "date" }),
+		// per-project counter behind the task key (WEB-103)
+		number: integer("number").notNull().default(0),
+		// fractional so drag and drop can drop between two tasks without renumbering
+		sort_order: doublePrecision("sort_order").notNull().default(0),
+		// fixed label ids from src/lib/tasks.ts LABELS
+		labels: text("labels").array().notNull().default(sql`'{}'::text[]`),
+		estimate: varchar("estimate", { length: 20 }),
+		// Daily | Weekdays | Weekly | Every 2 weeks | Monthly
+		recur: varchar("recur", { length: 20 }),
+		completed_at: timestamp("completed_at", {
+			mode: "date",
+			withTimezone: true,
+		}),
+		archived_at: timestamp("archived_at", { mode: "date", withTimezone: true }),
 		...syncable,
 	},
 	(table) => [
 		index("tasks_project_id_idx").on(table.project_id),
 		index("tasks_parent_task_id_idx").on(table.parent_task_id),
 	],
+);
+
+// "Blocked by": a task waits on the tasks it depends on.
+export const task_dependency = pgTable(
+	"task_dependency",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		task_id: varchar("task_id", { length: 16 })
+			.notNull()
+			.references(() => task.id, { onDelete: "cascade" }),
+		depends_on_id: varchar("depends_on_id", { length: 16 })
+			.notNull()
+			.references(() => task.id, { onDelete: "cascade" }),
+		...timestamps,
+	},
+	(table) => [
+		uniqueIndex("task_dependency_pair_idx").on(
+			table.task_id,
+			table.depends_on_id,
+		),
+		index("task_dependency_depends_on_idx").on(table.depends_on_id),
+	],
+);
+
+// Files on a task (uploaded to Cloudinary); the project Files tab lists them all.
+export const task_attachment = pgTable(
+	"task_attachment",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		task_id: varchar("task_id", { length: 16 })
+			.notNull()
+			.references(() => task.id, { onDelete: "cascade" }),
+		name: varchar("name", { length: 255 }).notNull(),
+		url: text("url").notNull(),
+		mime: varchar("mime", { length: 120 }),
+		size: integer("size").notNull().default(0),
+		uploaded_by: varchar("uploaded_by", { length: 16 }).references(
+			() => workspace_members.id,
+			{ onDelete: "set null" },
+		),
+		...syncable,
+	},
+	(table) => [index("task_attachment_task_id_idx").on(table.task_id)],
+);
+
+// Saved filters shown as extra tabs on a project (reference savedViews).
+export const saved_view = pgTable(
+	"saved_view",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		project_id: varchar("project_id", { length: 16 })
+			.notNull()
+			.references(() => project.id, { onDelete: "cascade" }),
+		name: varchar("name", { length: 100 }).notNull(),
+		// list | board | table
+		type: varchar("type", { length: 20 }).notNull(),
+		filters: jsonb("filters").notNull().default(sql`'[]'::jsonb`),
+		created_by: varchar("created_by", { length: 16 }).references(
+			() => workspace_members.id,
+			{ onDelete: "set null" },
+		),
+		...syncable,
+	},
+	(table) => [index("saved_view_project_id_idx").on(table.project_id)],
 );
 
 export const task_assignees = pgTable(
