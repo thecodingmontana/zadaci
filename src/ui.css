@@ -5050,3 +5050,8 @@ table.tbl {
     display: block;
   }
 }
+
+/* pages inside a project's flex body keep their full width (they centre with auto margins) */
+.pbody > .page {
+  width: 100%;
+}
