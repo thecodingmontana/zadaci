@@ -15,6 +15,7 @@ import {
 import { PCOLORS } from "#/lib/onboarding";
 import { can } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
+import { reloadOnEnter } from "#/lib/routing";
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/_authed/w/$slug/members/$memberId")({
 	validateSearch: z.object({
 		tab: z.enum(["assigned", "completed"]).optional(),
 	}),
+	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const { slug, memberId } = params;
 		const q = context.apolloClient.query;

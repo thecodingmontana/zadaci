@@ -25,6 +25,7 @@ import {
 } from "#/graphql/operations";
 import { can, ROLES } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
+import { reloadOnEnter } from "#/lib/routing";
 import { ago } from "#/lib/time";
 
 // Ported from the reference app's member directory (Members, Teams, Roles & permissions).
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/_authed/w/$slug/members/")({
 	validateSearch: z.object({
 		tab: z.enum(["members", "teams", "roles"]).optional(),
 	}),
+	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const [{ data }] = await Promise.all([
 			context.apolloClient.query({

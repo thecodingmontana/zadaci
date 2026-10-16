@@ -1415,3 +1415,209 @@ export const TOGGLE_TASK_FAVORITE: TypedDocumentNode<
 		toggleTaskFavorite(slug: $slug, id: $id)
 	}
 `;
+
+export type TaskComment = {
+	id: string;
+	text: string;
+	createdAt: string;
+	author: { id: string; name: string; image: string | null } | null;
+	authorMemberId: string | null;
+	isMine: boolean;
+	reactions: { emoji: string; count: number; mine: boolean; names: string[] }[];
+};
+
+export type TaskAttachment = {
+	id: string;
+	taskId: string;
+	name: string;
+	url: string;
+	mime: string | null;
+	size: number;
+	uploadedBy: string | null;
+	createdAt: string;
+};
+
+export type TaskDetail = TaskItem & {
+	description: string | null;
+	subtasks: TaskItem[];
+	comments: TaskComment[];
+	attachments: TaskAttachment[];
+};
+
+/** Everything the task drawer shows. */
+export const TASK_DETAIL: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			role: string;
+			task: TaskDetail | null;
+			activity: ActivityItem[];
+			members: SettingsMember[];
+			projects: ProjectSummary[];
+		} | null;
+	},
+	{ slug: string; id: string }
+> = gql`
+	${TASK_FIELDS}
+	${PROJECT_FIELDS}
+	query TaskDetail($slug: String!, $id: ID!) {
+		workspace(slug: $slug) {
+			id
+			role
+			task(id: $id) {
+				...TaskFields
+				description
+				subtasks {
+					...TaskFields
+				}
+				comments {
+					id
+					text
+					createdAt
+					author {
+						id
+						name
+						image
+					}
+					authorMemberId
+					isMine
+					reactions {
+						emoji
+						count
+						mine
+						names
+					}
+				}
+				attachments {
+					id
+					taskId
+					name
+					url
+					mime
+					size
+					uploadedBy
+					createdAt
+				}
+			}
+			activity(taskId: $id) {
+				id
+				kind
+				verb
+				target
+				extra
+				projectId
+				taskId
+				actor {
+					id
+					name
+					image
+				}
+				createdAt
+			}
+			members {
+				id
+				userId
+				role
+				name
+				email
+				image
+				isMe
+				title
+				tz
+			}
+			projects {
+				...ProjectFields
+			}
+		}
+	}
+`;
+
+export const ADD_COMMENT: TypedDocumentNode<
+	{ addComment: TaskComment },
+	{ slug: string; taskId: string; text: string }
+> = gql`
+	mutation AddComment($slug: String!, $taskId: ID!, $text: String!) {
+		addComment(slug: $slug, taskId: $taskId, text: $text) {
+			id
+		}
+	}
+`;
+
+export const DELETE_COMMENT: TypedDocumentNode<
+	{ deleteComment: boolean },
+	{ slug: string; id: string }
+> = gql`
+	mutation DeleteComment($slug: String!, $id: ID!) {
+		deleteComment(slug: $slug, id: $id)
+	}
+`;
+
+export const REACT_TO_COMMENT: TypedDocumentNode<
+	{ reactToComment: { id: string } },
+	{ slug: string; id: string; emoji: string }
+> = gql`
+	mutation ReactToComment($slug: String!, $id: ID!, $emoji: String!) {
+		reactToComment(slug: $slug, id: $id, emoji: $emoji) {
+			id
+		}
+	}
+`;
+
+export const ATTACHMENT_UPLOAD: TypedDocumentNode<
+	{
+		attachmentUpload: {
+			url: string;
+			apiKey: string;
+			timestamp: number;
+			signature: string;
+			publicId: string;
+			folder: string;
+		};
+	},
+	{ slug: string; taskId: string }
+> = gql`
+	mutation AttachmentUpload($slug: String!, $taskId: ID!) {
+		attachmentUpload(slug: $slug, taskId: $taskId) {
+			url
+			apiKey
+			timestamp
+			signature
+			publicId
+			folder
+		}
+	}
+`;
+
+export const ADD_ATTACHMENT: TypedDocumentNode<
+	{ addAttachment: { id: string } },
+	{
+		slug: string;
+		taskId: string;
+		name: string;
+		url: string;
+		mime?: string | null;
+		size: number;
+	}
+> = gql`
+	mutation AddAttachment(
+		$slug: String!
+		$taskId: ID!
+		$name: String!
+		$url: String!
+		$mime: String
+		$size: Int!
+	) {
+		addAttachment(slug: $slug, taskId: $taskId, name: $name, url: $url, mime: $mime, size: $size) {
+			id
+		}
+	}
+`;
+
+export const REMOVE_ATTACHMENT: TypedDocumentNode<
+	{ removeAttachment: boolean },
+	{ slug: string; id: string }
+> = gql`
+	mutation RemoveAttachment($slug: String!, $id: ID!) {
+		removeAttachment(slug: $slug, id: $id)
+	}
+`;

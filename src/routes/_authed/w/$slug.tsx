@@ -1,16 +1,27 @@
 import { useQuery, useSuspenseQuery } from "@apollo/client/react";
-import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	notFound,
+	Outlet,
+	useRouter,
+} from "@tanstack/react-router";
+import { z } from "zod";
 import { AppSidebar } from "#/components/shell/app-sidebar";
 import { CommandMenuProvider } from "#/components/shell/command-menu";
 import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
+import { TaskDrawer } from "#/components/tasks/drawer";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { NOTIFICATION_COUNTS, SHELL } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
+import { reloadOnEnter } from "#/lib/routing";
 import { getSidebarOpen } from "#/lib/session";
 import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/_authed/w/$slug")({
+	// ?task=<id> opens the task drawer over any workspace page
+	validateSearch: z.object({ task: z.string().optional() }),
+	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const [{ data }, sidebarOpen] = await Promise.all([
 			context.apolloClient.query({
@@ -41,6 +52,16 @@ function ShellLayout() {
 	const { user } = Route.useRouteContext();
 	const { collapsed, mnav, setMnav } = useShell();
 	const { data } = useSuspenseQuery(SHELL, { variables: { slug } });
+	const { task } = Route.useSearch();
+	const router = useRouter();
+	const setTask = (id: string | undefined) =>
+		router.navigate({
+			to: ".",
+			search: ((prev: Record<string, unknown>) => ({
+				...prev,
+				task: id,
+			})) as never,
+		});
 	// One poller for the sidebar, bell and bottom-nav badges; reading marks them refetch it too.
 	const counts = useQuery(NOTIFICATION_COUNTS, {
 		variables: { slug },
@@ -101,6 +122,15 @@ function ShellLayout() {
 						<div className="content" id="main-content" tabIndex={-1}>
 							<Outlet />
 						</div>
+						{task && (
+							<TaskDrawer
+								key={task}
+								slug={slug}
+								taskId={task}
+								onClose={() => setTask(undefined)}
+								onOpen={(id) => setTask(id)}
+							/>
+						)}
 					</main>
 					<BottomNav slug={slug} unread={unread.inbox} />
 				</div>

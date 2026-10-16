@@ -2,10 +2,12 @@ import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { WORKSPACE } from "#/graphql/operations";
+import { reloadOnEnter } from "#/lib/routing";
 import { toast } from "#/lib/toast";
 
 // shortcut: simple home until the dashboard (stats, upcoming/overdue tabs) is built
 export const Route = createFileRoute("/_authed/w/$slug/")({
+	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const { data } = await context.apolloClient.query({
 			query: WORKSPACE,

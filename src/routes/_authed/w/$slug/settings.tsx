@@ -26,6 +26,7 @@ import {
 	TeamsSection,
 } from "#/components/settings/workspace-group";
 import { SETTINGS } from "#/graphql/operations";
+import { reloadOnEnter } from "#/lib/routing";
 import { cn } from "#/lib/utils";
 
 // Ported from the reference settings page; Billing is omitted (Zadaci is free) and
@@ -100,6 +101,7 @@ const SET_NAV: [string, [Section, string, string][]][] = [
 
 export const Route = createFileRoute("/_authed/w/$slug/settings")({
 	validateSearch: z.object({ sec: z.enum(SECTIONS).optional() }),
+	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const { data } = await context.apolloClient.query({
 			query: SETTINGS,

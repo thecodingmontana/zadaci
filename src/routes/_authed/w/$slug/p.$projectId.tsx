@@ -20,6 +20,7 @@ import {
 } from "#/graphql/operations";
 import { can, hasRight } from "#/lib/permissions";
 import { pstat } from "#/lib/projects";
+import { reloadOnEnter } from "#/lib/routing";
 import { byDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 	validateSearch: z.object({
 		tab: z.enum(TABS as [string, ...string[]]).optional(),
 	}),
+	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const { slug, projectId } = params;
 		const [{ data }] = await Promise.all([

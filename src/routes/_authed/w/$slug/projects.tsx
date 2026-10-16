@@ -20,6 +20,7 @@ import {
 } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
 import { PSTAT } from "#/lib/projects";
+import { reloadOnEnter } from "#/lib/routing";
 import { ago, fmtDay } from "#/lib/time";
 
 // Ported from the reference app's Projects page: grid, list and table layouts.
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/_authed/w/$slug/projects")({
 		sort: z.enum(["recent", "name", "due", "progress"]).optional(),
 		view: z.enum(["grid", "list", "table"]).optional(),
 	}),
+	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const { data } = await context.apolloClient.query({
 			query: PROJECTS,

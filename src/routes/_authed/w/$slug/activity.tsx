@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ActivityItem } from "#/components/activity/activity-item";
 import { Select } from "#/components/settings/ui";
 import { ACTIVITY } from "#/graphql/operations";
+import { reloadOnEnter } from "#/lib/routing";
 import { byDay } from "#/lib/time";
 
 // Ported from the reference app's Activity page: the workspace feed, grouped by day.
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/_authed/w/$slug/activity")({
 		who: z.string().optional(),
 	}),
 	loaderDeps: ({ search }) => search,
+	shouldReload: reloadOnEnter,
 	loader: ({ context, params, deps }) =>
 		context.apolloClient.query({
 			query: ACTIVITY,

@@ -8,6 +8,7 @@ import {
 	type NotificationItem,
 	SET_NOTIFICATION_READ,
 } from "#/graphql/operations";
+import { reloadOnEnter } from "#/lib/routing";
 import { ago, byDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -17,6 +18,7 @@ import { cn } from "#/lib/utils";
 export const Route = createFileRoute("/_authed/w/$slug/notifications")({
 	validateSearch: z.object({ filter: z.enum(["all", "unread"]).optional() }),
 	loaderDeps: ({ search }) => search,
+	shouldReload: reloadOnEnter,
 	loader: ({ context, params, deps }) =>
 		context.apolloClient.query({
 			query: NOTIFICATIONS,

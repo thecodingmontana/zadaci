@@ -6,10 +6,12 @@ import { TeamsGrid } from "#/components/settings/workspace-group";
 import { TeamModal } from "#/components/teams/team-modal";
 import { MEMBER_STATS, SETTINGS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
+import { reloadOnEnter } from "#/lib/routing";
 
 // Ported from the reference app's Teams page.
 
 export const Route = createFileRoute("/_authed/w/$slug/teams/")({
+	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const [{ data }] = await Promise.all([
 			context.apolloClient.query({

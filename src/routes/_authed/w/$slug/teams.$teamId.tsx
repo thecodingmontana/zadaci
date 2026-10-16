@@ -13,11 +13,13 @@ import { PCOLORS } from "#/lib/onboarding";
 import { can } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { pstat } from "#/lib/projects";
+import { reloadOnEnter } from "#/lib/routing";
 import { cn } from "#/lib/utils";
 
 // Ported from the reference app's team page: projects and members of one team.
 
 export const Route = createFileRoute("/_authed/w/$slug/teams/$teamId")({
+	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const variables = { slug: params.slug };
 		const [{ data }] = await Promise.all([
