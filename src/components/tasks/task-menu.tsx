@@ -1,0 +1,271 @@
+import { useMutation } from "@apollo/client/react";
+import { useState } from "react";
+import { projectColor } from "#/components/projects/bits";
+import { Av } from "#/components/q/av";
+import { ConfirmModal } from "#/components/q/confirm";
+import {
+	Menu,
+	MenuContent,
+	MenuItem,
+	MenuSeparator,
+	MenuSub,
+	MenuSubContent,
+	MenuSubTrigger,
+	MenuTrigger,
+} from "#/components/q/menu";
+import { StatusIcon } from "#/components/q/status-icon";
+import {
+	ARCHIVE_TASK,
+	DELETE_TASKS,
+	DUPLICATE_TASK,
+	type TaskItem,
+	TOGGLE_TASK_FAVORITE,
+} from "#/graphql/operations";
+import { PRIORITIES, TASK_STATUSES } from "#/lib/tasks";
+import { toast } from "#/lib/toast";
+import { PrIcon } from "./bits";
+import { TASK_REFETCH, useTaskView } from "./context";
+
+// The task "…" menu (reference context menu for tasks).
+
+export function TaskMenu({
+	t,
+	className = "ibtn ibtn-sm",
+}: {
+	t: TaskItem;
+	className?: string;
+}) {
+	const { slug, update, openTask, canEdit, members, projects } = useTaskView();
+	const [deleting, setDeleting] = useState(false);
+	const refetch = { refetchQueries: TASK_REFETCH };
+	const [favorite] = useMutation(TOGGLE_TASK_FAVORITE, refetch);
+	const [duplicate] = useMutation(DUPLICATE_TASK, refetch);
+	const [archive] = useMutation(ARCHIVE_TASK, refetch);
+	const [remove] = useMutation(DELETE_TASKS, refetch);
+	const editable = canEdit(t.projectId);
+	const done = t.status === "completed";
+	const fail = (what: string) => (error: Error) =>
+		toast.error(what, { desc: error.message });
+
+	return (
+		<>
+			<Menu>
+				<MenuTrigger
+					className={className}
+					aria-label="More actions"
+					onClick={(e) => e.stopPropagation()}
+				>
+					<span
+						className="icon-[solar--menu-dots-bold] size-[15px]"
+						aria-hidden="true"
+					/>
+				</MenuTrigger>
+				<MenuContent width={220}>
+					<MenuItem
+						icon="icon-[solar--sidebar-minimalistic-linear]"
+						onSelect={() => openTask(t.id)}
+					>
+						Open
+					</MenuItem>
+					{editable && (
+						<MenuItem
+							icon={
+								done
+									? "icon-[solar--restart-linear]"
+									: "icon-[solar--check-circle-linear]"
+							}
+							onSelect={() =>
+								update(t, { status: done ? "todo" : "completed" })
+							}
+						>
+							{done ? "Reopen" : "Mark complete"}
+						</MenuItem>
+					)}
+					{editable && (
+						<>
+							<MenuSeparator />
+							<MenuSub>
+								<MenuSubTrigger icon="icon-[solar--record-circle-linear]">
+									Status…
+								</MenuSubTrigger>
+								<MenuSubContent width={200}>
+									{TASK_STATUSES.map((s) => (
+										<MenuItem
+											key={s.id}
+											checked={t.status === s.id}
+											onSelect={() => update(t, { status: s.id })}
+										>
+											<StatusIcon status={s.id} />
+											{s.name}
+										</MenuItem>
+									))}
+								</MenuSubContent>
+							</MenuSub>
+							<MenuSub>
+								<MenuSubTrigger icon="icon-[solar--user-linear]">
+									Assign to…
+								</MenuSubTrigger>
+								<MenuSubContent width={220}>
+									<MenuItem
+										checked={!t.assigneeId}
+										onSelect={() => update(t, { assigneeId: null })}
+									>
+										Unassigned
+									</MenuItem>
+									{members.map((m) => (
+										<MenuItem
+											key={m.id}
+											checked={t.assigneeId === m.id}
+											onSelect={() => update(t, { assigneeId: m.id })}
+										>
+											<Av name={m.name} image={m.image} className="sm" />
+											{m.isMe ? `${m.name} (you)` : m.name}
+										</MenuItem>
+									))}
+								</MenuSubContent>
+							</MenuSub>
+							<MenuSub>
+								<MenuSubTrigger icon="icon-[solar--chart-2-linear]">
+									Priority…
+								</MenuSubTrigger>
+								<MenuSubContent width={200}>
+									{PRIORITIES.map((p) => (
+										<MenuItem
+											key={p.id}
+											checked={t.priority === p.id}
+											onSelect={() => update(t, { priority: p.id })}
+										>
+											<PrIcon p={p.id} />
+											{p.name}
+										</MenuItem>
+									))}
+								</MenuSubContent>
+							</MenuSub>
+							{!t.parentId && (
+								<MenuSub>
+									<MenuSubTrigger icon="icon-[solar--folder-path-connect-linear]">
+										Move to project…
+									</MenuSubTrigger>
+									<MenuSubContent width={220}>
+										{projects
+											.filter((p) => p.status !== "complete" && canEdit(p.id))
+											.map((p) => (
+												<MenuItem
+													key={p.id}
+													checked={t.projectId === p.id}
+													onSelect={() =>
+														p.id !== t.projectId &&
+														update(t, { projectId: p.id })
+													}
+												>
+													<span
+														className="pdot"
+														style={
+															{
+																"--c": projectColor(p.color),
+															} as React.CSSProperties
+														}
+													/>
+													{p.title}
+												</MenuItem>
+											))}
+									</MenuSubContent>
+								</MenuSub>
+							)}
+						</>
+					)}
+					<MenuSeparator />
+					<MenuItem
+						icon="icon-[solar--star-linear]"
+						onSelect={() =>
+							favorite({ variables: { slug, id: t.id } }).catch(
+								fail("Couldn't update favorites"),
+							)
+						}
+					>
+						{t.isFavorite ? "Remove from favorites" : "Add to favorites"}
+					</MenuItem>
+					<MenuItem
+						icon="icon-[solar--link-linear]"
+						onSelect={async () => {
+							await navigator.clipboard.writeText(
+								`${location.origin}/w/${slug}/p/${t.projectId}?task=${t.id}`,
+							);
+							toast.success("Link copied");
+						}}
+					>
+						Copy link
+					</MenuItem>
+					{editable && (
+						<>
+							<MenuItem
+								icon="icon-[solar--copy-linear]"
+								onSelect={() =>
+									duplicate({ variables: { slug, id: t.id } })
+										.then(({ data }) =>
+											toast.success("Task duplicated", {
+												action: data
+													? {
+															label: "Open",
+															onClick: () => openTask(data.duplicateTask.id),
+														}
+													: undefined,
+											}),
+										)
+										.catch(fail("Couldn't duplicate the task"))
+								}
+							>
+								Duplicate
+							</MenuItem>
+							<MenuItem
+								icon="icon-[solar--archive-linear]"
+								onSelect={() =>
+									archive({ variables: { slug, id: t.id, archived: true } })
+										.then(() =>
+											toast.success(`Archived “${t.name}”`, {
+												action: {
+													label: "Undo",
+													onClick: () =>
+														archive({
+															variables: { slug, id: t.id, archived: false },
+														}),
+												},
+											}),
+										)
+										.catch(fail("Couldn't archive the task"))
+								}
+							>
+								Archive
+							</MenuItem>
+							<MenuSeparator />
+							<MenuItem
+								icon="icon-[solar--trash-bin-minimalistic-linear]"
+								danger
+								onSelect={() => setDeleting(true)}
+							>
+								Delete
+							</MenuItem>
+						</>
+					)}
+				</MenuContent>
+			</Menu>
+			<ConfirmModal
+				open={deleting}
+				onOpenChange={setDeleting}
+				title={`Delete “${t.name}”?`}
+				body={`${t.subtaskCount ? `Its ${t.subtaskCount} subtask${t.subtaskCount > 1 ? "s" : ""} will be deleted too. ` : ""}This can't be undone.`}
+				ok="Delete task"
+				danger
+				onConfirm={async () => {
+					try {
+						await remove({ variables: { slug, ids: [t.id] } });
+					} catch (error) {
+						fail("Couldn't delete the task")(error as Error);
+						throw error;
+					}
+					toast.success("Task deleted");
+				}}
+			/>
+		</>
+	);
+}

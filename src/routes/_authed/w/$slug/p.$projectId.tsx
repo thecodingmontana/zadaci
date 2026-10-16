@@ -11,6 +11,7 @@ import { AvStack } from "#/components/q/av";
 import { ComingSoon } from "#/components/shell/coming-soon";
 import { PROJECT_PAGE_TABS } from "#/components/shell/nav";
 import { ProjectMenu } from "#/components/shell/project-menu";
+import { ProjectTasks } from "#/components/tasks/project-tasks";
 import {
 	ACTIVITY,
 	PROJECT_PAGE,
@@ -269,8 +270,10 @@ function ProjectPage() {
 							</div>
 						)}
 					</div>
+				) : tab === "list" ? (
+					<ProjectTasks slug={slug} projectId={project.id} type="list" />
 				) : (
-					// shortcut: task views (board, list, table, calendar, timeline, files) come with the tasks step
+					// shortcut: board, table, calendar, timeline and files views come in the next steps
 					<ComingSoon title={`${current.label} view`} icon={current.icon} />
 				)}
 			</div>
