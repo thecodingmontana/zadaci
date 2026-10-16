@@ -17,13 +17,15 @@ const admin: Rule = (role) => (ADMIN_ROLES as readonly string[]).includes(role);
 const notGuest: Rule = (role) => role !== "guest";
 
 export const PERMISSIONS = {
-	viewAllProjects: { label: "See every project", allow: notGuest },
-	comment: { label: "Comment on tasks", allow: () => true },
-	editTasks: { label: "Create and edit tasks", allow: notGuest },
-	editProjects: {
-		label: "Rename, archive and reorder projects",
+	viewAllProjects: {
+		label: "See projects shared with the workspace",
 		allow: notGuest,
 	},
+	manageAllProjects: {
+		label: "Full access to every project, private ones too",
+		allow: admin,
+	},
+	editProjects: { label: "Reorder projects in the sidebar", allow: notGuest },
 	createProjects: {
 		label: "Create projects",
 		allow: (role, s) => admin(role, s) || (role === "member" && s.permCreate),
@@ -57,3 +59,39 @@ export function can(
 		...settings,
 	});
 }
+
+// ---- project rights (the Share modal) ----
+
+export const PROJECT_RIGHTS = ["view", "comment", "edit", "full"] as const;
+export type ProjectRight = (typeof PROJECT_RIGHTS)[number];
+export const PROJECT_RIGHT_LABEL: Record<ProjectRight, string> = {
+	view: "Can view",
+	comment: "Can comment",
+	edit: "Can edit",
+	full: "Full access",
+};
+
+/**
+ * What someone may do in one project, or null when they can't see it.
+ * `membership` is undefined when they aren't on the project, null when they are
+ * with the default for their role, or the right they were given in Share.
+ */
+export function projectRight(
+	role: string | null | undefined,
+	project: { access: string; isLead: boolean },
+	membership: string | null | undefined,
+): ProjectRight | null {
+	if (can(role, "manageAllProjects") || project.isLead) return "full";
+	if (membership !== undefined)
+		return (PROJECT_RIGHTS as readonly string[]).includes(membership ?? "")
+			? (membership as ProjectRight)
+			: role === "guest"
+				? "comment"
+				: "edit";
+	if (project.access === "workspace" && can(role, "viewAllProjects"))
+		return "comment";
+	return null;
+}
+
+export const hasRight = (right: ProjectRight | null, needed: ProjectRight) =>
+	!!right && PROJECT_RIGHTS.indexOf(right) >= PROJECT_RIGHTS.indexOf(needed);

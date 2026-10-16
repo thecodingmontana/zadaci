@@ -2,7 +2,13 @@ import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { GraphQLError } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
-import { can, type Permission } from "#/lib/permissions";
+import {
+	can,
+	hasRight,
+	type Permission,
+	type ProjectRight,
+	projectRight,
+} from "#/lib/permissions";
 import { logActivity, notify, projectUserIds } from "./activity.server";
 import {
 	badInput,
@@ -22,6 +28,11 @@ export const projectsTypeDefs = /* GraphQL */ `
 		isFavorite: Boolean!
 		archivedAt: String
 		teamId: ID
+		"workspace (everyone can view and comment) or private (invited people only)"
+		access: String!
+		leadId: ID
+		"the viewer's right here: view, comment, edit or full"
+		myAccess: String
 	}
 
 	extend type Workspace {
@@ -38,11 +49,37 @@ export const projectsTypeDefs = /* GraphQL */ `
 	}
 `;
 
-async function requireProject(
+/** The viewer's right on one project (null when they can't see it). */
+export async function viewerRight(
+	workspace: { role?: string; memberId?: string },
+	project: Project,
+) {
+	const [row] = await db
+		.select({ permission: tables.project_members.permission })
+		.from(tables.project_members)
+		.where(
+			and(
+				eq(tables.project_members.project_id, project.id),
+				eq(tables.project_members.member_id, workspace.memberId ?? ""),
+				isNull(tables.project_members.deleted_at),
+			),
+		);
+	return projectRight(
+		workspace.role,
+		{ access: project.access, isLead: project.lead_id === workspace.memberId },
+		row ? row.permission : undefined,
+	);
+}
+
+/**
+ * A project the viewer can see, failing like a missing project when they can't.
+ * `need` checks a workspace permission and/or the viewer's right on the project.
+ */
+export async function requireProject(
 	ctx: GraphQLContext,
 	slug: string,
 	projectId: string,
-	permission?: Permission,
+	need: { permission?: Permission; right?: ProjectRight } = {},
 ) {
 	const user = requireUser(ctx);
 	const [workspace] = await findWorkspaces(user.id, slug);
@@ -63,11 +100,13 @@ async function requireProject(
 		);
 	if (!project) badInput("Project not found");
 	if (
-		permission &&
-		!can(workspace.role, permission, workspace.settings as object)
+		need.permission &&
+		!can(workspace.role, need.permission, workspace.settings as object)
 	)
 		forbidden();
-	return { user, workspace, project };
+	const right = await viewerRight(workspace, project);
+	if (need.right && !hasRight(right, need.right)) forbidden();
+	return { user, workspace, project, right };
 }
 
 const visibleProjects = (workspaceId: string) =>
@@ -148,6 +187,30 @@ export const projectsResolvers = {
 		},
 		archivedAt: (p: Project) => p.archived_at?.toISOString() ?? null,
 		teamId: (p: Project) => p.team_id,
+		leadId: (p: Project) => p.lead_id,
+		// precomputed by Workspace.projects; looked up for projects returned elsewhere
+		myAccess: async (
+			p: Project & { myAccess?: string | null },
+			_: unknown,
+			ctx: GraphQLContext,
+		) => {
+			if (p.myAccess !== undefined) return p.myAccess;
+			if (!ctx.user) return null;
+			const [member] = await db
+				.select({
+					role: tables.workspace_members.role,
+					memberId: tables.workspace_members.id,
+				})
+				.from(tables.workspace_members)
+				.where(
+					and(
+						eq(tables.workspace_members.workspace_id, p.workspace_id),
+						eq(tables.workspace_members.user_id, ctx.user.id),
+						isNull(tables.workspace_members.deleted_at),
+					),
+				);
+			return member ? viewerRight(member, p) : null;
+		},
 	},
 	Workspace: {
 		archivedProjects: (w: { id: string; role?: string; memberId?: string }) =>
@@ -206,7 +269,7 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
-				"editProjects",
+				{ right: "edit" },
 			);
 			const title = z
 				.string()
@@ -241,7 +304,7 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
-				"createProjects",
+				{ permission: "createProjects" },
 			);
 			// A duplicate is a new project, so it follows "Members can create projects".
 			const copy = await db.transaction(async (tx) => {
@@ -252,6 +315,8 @@ export const projectsResolvers = {
 						...rest,
 						title: `${project.title} (copy)`,
 						sort_order: project.sort_order + 1,
+						// whoever duplicates it leads the copy
+						lead_id: workspace.memberId ?? null,
 					})
 					.returning();
 				if (!copy) throw new Error("Project insert returned nothing");
@@ -285,7 +350,10 @@ export const projectsResolvers = {
 					if (row) ids.set(id, row.id);
 				}
 				const members = await tx
-					.select({ member_id: tables.project_members.member_id })
+					.select({
+						member_id: tables.project_members.member_id,
+						permission: tables.project_members.permission,
+					})
 					.from(tables.project_members)
 					.where(
 						and(
@@ -293,14 +361,18 @@ export const projectsResolvers = {
 							isNull(tables.project_members.deleted_at),
 						),
 					);
-				if (members.length) {
-					await tx.insert(tables.project_members).values(
-						members.map((m) => ({
-							project_id: copy.id,
-							member_id: m.member_id,
-						})),
-					);
-				}
+				if (
+					workspace.memberId &&
+					!members.some((m) => m.member_id === workspace.memberId)
+				)
+					members.push({ member_id: workspace.memberId, permission: null });
+				await tx.insert(tables.project_members).values(
+					members.map((m) => ({
+						project_id: copy.id,
+						member_id: m.member_id,
+						permission: m.permission,
+					})),
+				);
 				return copy;
 			});
 			await projectActivity(
@@ -322,7 +394,7 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
-				"editProjects",
+				{ permission: "editProjects" },
 			);
 			if (args.direction !== "up" && args.direction !== "down")
 				badInput("Direction must be up or down");
@@ -351,7 +423,7 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
-				"editProjects",
+				{ right: "edit" },
 			);
 			const [updated] = await db
 				.update(tables.project)
@@ -385,7 +457,7 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
-				"deleteProjects",
+				{ permission: "deleteProjects" },
 			);
 			await db.transaction(async (tx) => {
 				const now = new Date();

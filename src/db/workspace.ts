@@ -9,6 +9,7 @@ import {
 	varchar,
 } from "drizzle-orm/pg-core";
 import { USER_ROLE, user_role_enum } from "./enums";
+import { project } from "./project";
 import { team } from "./team";
 import { user } from "./user";
 import { generateNanoId, pgTable, syncable } from "./utils";
@@ -94,6 +95,12 @@ export const workspace_invite_request = pgTable(
 			(): AnyPgColumn => team.id,
 			{ onDelete: "set null" },
 		),
+		// sharing a project with a new email invites them and adds them to it on join
+		project_id: varchar("project_id", { length: 16 }).references(
+			(): AnyPgColumn => project.id,
+			{ onDelete: "set null" },
+		),
+		project_permission: varchar("project_permission", { length: 20 }),
 		...syncable,
 	},
 	(table) => [

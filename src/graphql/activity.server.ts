@@ -231,8 +231,8 @@ export const activityResolvers = {
 					and(
 						eq(tables.activity.workspace_id, w.id),
 						filter,
-						// guests see workspace-wide events plus their own projects' events
-						can(w.role, "viewAllProjects")
+						// workspace-wide events, plus events from projects the viewer can see
+						can(w.role, "manageAllProjects")
 							? undefined
 							: or(
 									isNull(tables.activity.project_id),

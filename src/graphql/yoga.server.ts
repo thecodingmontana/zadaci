@@ -5,6 +5,7 @@ import { membersResolvers, membersTypeDefs } from "./members.server";
 import { projectsResolvers, projectsTypeDefs } from "./projects.server";
 import { type GraphQLContext, resolvers, typeDefs } from "./schema.server";
 import { settingsResolvers, settingsTypeDefs } from "./settings.server";
+import { sharingResolvers, sharingTypeDefs } from "./sharing.server";
 import { teamsResolvers, teamsTypeDefs } from "./teams.server";
 
 const schema = createSchema<GraphQLContext>({
@@ -15,6 +16,7 @@ const schema = createSchema<GraphQLContext>({
 		activityTypeDefs,
 		membersTypeDefs,
 		teamsTypeDefs,
+		sharingTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -23,6 +25,7 @@ const schema = createSchema<GraphQLContext>({
 		activityResolvers,
 		membersResolvers,
 		teamsResolvers,
+		sharingResolvers,
 	],
 });
 

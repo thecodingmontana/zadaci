@@ -25,7 +25,7 @@ import {
 	USE_CASES,
 	VIEWS,
 } from "#/lib/onboarding";
-import { can } from "#/lib/permissions";
+import { can, projectRight } from "#/lib/permissions";
 import { adminUserIds, logActivity, notify } from "./activity.server";
 
 export type GraphQLContext = {
@@ -211,23 +211,40 @@ export async function findWorkspaces(
 }
 
 /**
- * Which projects the viewer may see: everything, except for guests, who only see
- * projects they were added to. Use inside `and(...)` on queries over projects.
+ * Which projects the viewer may see (src/lib/permissions.ts projectRight): admins see all;
+ * others see projects shared with the workspace (not guests) and ones they lead or were
+ * added to. Use inside `and(...)` on any column holding a project id.
  */
 export function projectScope(
-	w: { role?: string; memberId?: string },
+	w: { id: string; role?: string; memberId?: string },
 	column: AnyPgColumn = tables.project.id,
 ) {
-	if (can(w.role, "viewAllProjects")) return undefined;
+	if (can(w.role, "manageAllProjects")) return undefined;
+	const memberId = w.memberId ?? "";
+	const mine = db
+		.select({ id: tables.project_members.project_id })
+		.from(tables.project_members)
+		.where(
+			and(
+				eq(tables.project_members.member_id, memberId),
+				isNull(tables.project_members.deleted_at),
+			),
+		);
 	return inArray(
 		column,
 		db
-			.select({ id: tables.project_members.project_id })
-			.from(tables.project_members)
+			.select({ id: tables.project.id })
+			.from(tables.project)
 			.where(
 				and(
-					eq(tables.project_members.member_id, w.memberId ?? ""),
-					isNull(tables.project_members.deleted_at),
+					eq(tables.project.workspace_id, w.id),
+					or(
+						can(w.role, "viewAllProjects")
+							? eq(tables.project.access, "workspace")
+							: undefined,
+						eq(tables.project.lead_id, memberId),
+						inArray(tables.project.id, mine),
+					),
 				),
 			),
 	);
@@ -356,6 +373,9 @@ const resolvers = {
 					.select({
 						role: tables.workspace_invite_request.role,
 						teamId: tables.team.id,
+						projectId: tables.workspace_invite_request.project_id,
+						projectPermission:
+							tables.workspace_invite_request.project_permission,
 					})
 					.from(tables.workspace_invite_request)
 					.leftJoin(
@@ -393,6 +413,13 @@ const resolvers = {
 					await tx
 						.insert(tables.team_members)
 						.values({ team_id: invite.teamId, member_id: member.id });
+				// invited from a project's Share modal: they land on that project
+				if (invite?.projectId)
+					await tx.insert(tables.project_members).values({
+						project_id: invite.projectId,
+						member_id: member.id,
+						permission: invite.projectPermission,
+					});
 				// Mark any emailed invite for this address as used
 				await tx
 					.update(tables.workspace_invite_request)
@@ -510,6 +537,7 @@ const resolvers = {
 							color: "indigo",
 							status: STATUS.TODO,
 							workspace_id: workspace.id,
+							lead_id: member.id,
 						})
 						.returning();
 					if (!project) throw new Error("Project insert returned nothing");
@@ -577,6 +605,8 @@ const resolvers = {
 				.select({
 					...getTableColumns(tables.project),
 					isFavorite: sql<boolean>`${tables.favorite.id} is not null`,
+					onProject: tables.project_members.id,
+					permission: tables.project_members.permission,
 				})
 				.from(tables.project)
 				.leftJoin(
@@ -587,6 +617,15 @@ const resolvers = {
 						eq(tables.favorite.user_id, ctx.user?.id ?? ""),
 					),
 				)
+				// the viewer's own membership, for their right on each project
+				.leftJoin(
+					tables.project_members,
+					and(
+						eq(tables.project_members.project_id, tables.project.id),
+						eq(tables.project_members.member_id, w.memberId ?? ""),
+						isNull(tables.project_members.deleted_at),
+					),
+				)
 				.where(
 					and(
 						eq(tables.project.workspace_id, w.id),
@@ -595,9 +634,16 @@ const resolvers = {
 						projectScope(w),
 					),
 				)
-				.orderBy(
-					asc(tables.project.sort_order),
-					asc(tables.project.created_at),
+				.orderBy(asc(tables.project.sort_order), asc(tables.project.created_at))
+				.then((rows) =>
+					rows.map(({ onProject, permission, ...p }) => ({
+						...p,
+						myAccess: projectRight(
+							w.role,
+							{ access: p.access, isLead: p.lead_id === w.memberId },
+							onProject ? permission : undefined,
+						),
+					})),
 				),
 		teams: (w: Workspace) =>
 			db

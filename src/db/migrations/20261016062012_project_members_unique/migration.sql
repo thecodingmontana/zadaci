@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "project_members_active_idx" ON "app_project_members" ("project_id","member_id") WHERE "deleted_at" is null;

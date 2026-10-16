@@ -1,9 +1,11 @@
+import { sql } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	index,
 	integer,
 	text,
 	timestamp,
+	uniqueIndex,
 	varchar,
 } from "drizzle-orm/pg-core";
 import { PRIORITY, priority_enum, STATUS, status_enum } from "./enums";
@@ -37,6 +39,13 @@ export const project = pgTable(
 			onDelete: "set null",
 		}),
 		due_date: timestamp("due_date", { mode: "date" }),
+		// "workspace": everyone can view and comment; "private": only people invited
+		access: varchar("access", { length: 20 }).notNull().default("workspace"),
+		// the project lead always has full access
+		lead_id: varchar("lead_id", { length: 16 }).references(
+			() => workspace_members.id,
+			{ onDelete: "set null" },
+		),
 		...syncable,
 	},
 	(table) => [
@@ -57,10 +66,16 @@ export const project_members = pgTable(
 		member_id: varchar("member_id", { length: 16 })
 			.notNull()
 			.references(() => workspace_members.id, { onDelete: "cascade" }),
+		// view | comment | edit | full; null uses the role default (see projectRight)
+		permission: varchar("permission", { length: 20 }),
 		...syncable,
 	},
 	(table) => [
 		index("project_members_project_id_idx").on(table.project_id),
+		// one live row per person per project
+		uniqueIndex("project_members_active_idx")
+			.on(table.project_id, table.member_id)
+			.where(sql`${table.deleted_at} is null`),
 		index("project_members_member_id_idx").on(table.member_id),
 	],
 );
