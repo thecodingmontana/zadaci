@@ -6,6 +6,7 @@ import {
 	isOverdue,
 	matchFilter,
 	orderBetween,
+	planDrop,
 	type ViewTask,
 } from "./view-engine";
 
@@ -124,4 +125,25 @@ assert.deepEqual(byAssignee[1]?.set, { assigneeId: null });
 assert.equal(orderBetween(1, 2), 1.5);
 assert.equal(orderBetween(undefined, 1), 0);
 assert.equal(orderBetween(4, undefined), 5);
+
+// drag and drop: reorder inside a group, or move into another and take its value
+const cols = groupTasks(
+	applyView([late, soon, none], DEFAULT_VIEW, {}, today),
+	"status",
+);
+assert.deepEqual(
+	planDrop(cols, "d", "todo", "todo", "b"),
+	{ sortOrder: 0, set: {} },
+	"to the top, before b (1)",
+);
+assert.equal(
+	planDrop(cols, "b", "todo", "todo", "b"),
+	null,
+	"dropped on itself",
+);
+assert.deepEqual(
+	planDrop(cols, "b", "todo", "completed", "grp:completed"),
+	{ sortOrder: 1, set: { status: "completed" } },
+	"into an empty column",
+);
 console.log("view engine ok");

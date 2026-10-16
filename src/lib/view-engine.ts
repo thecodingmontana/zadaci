@@ -254,3 +254,39 @@ export function orderBetween(
 	if (after === undefined) return before + 1;
 	return (before + after) / 2;
 }
+
+/**
+ * Where a dragged task lands: its new sort order (from the neighbours it ends up between)
+ * and the group values it takes on when it changes group. `overId` is the task it was
+ * dropped on, or anything else for "the end of the group".
+ */
+export function planDrop<T extends Pick<ViewTask, "id" | "sortOrder">>(
+	groups: Group<T>[],
+	taskId: string,
+	fromGroup: string,
+	toGroup: string,
+	overId: string,
+) {
+	const target = groups.find((g) => g.key === toGroup);
+	const all = groups.flatMap((g) => g.tasks);
+	if (!target) return null;
+	let ids = target.tasks.map((t) => t.id);
+	if (fromGroup === toGroup) {
+		const from = ids.indexOf(taskId);
+		const to = ids.indexOf(overId);
+		if (from < 0 || to < 0 || from === to) return null;
+		ids.splice(from, 1);
+		ids.splice(to, 0, taskId);
+	} else {
+		ids = ids.filter((id) => id !== taskId);
+		const at = ids.indexOf(overId);
+		ids.splice(at < 0 ? ids.length : at, 0, taskId);
+	}
+	const i = ids.indexOf(taskId);
+	const order = (id: string | undefined) =>
+		all.find((t) => t.id === id)?.sortOrder;
+	return {
+		sortOrder: orderBetween(order(ids[i - 1]), order(ids[i + 1])),
+		set: fromGroup === toGroup ? {} : target.set,
+	};
+}

@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client/react";
 import { useState } from "react";
 import { TASKS, type TaskItem } from "#/graphql/operations";
 import { applyView, groupTasks } from "#/lib/view-engine";
+import { BoardView } from "./board-view";
 import { TaskViewProvider, useTaskView } from "./context";
 import { ListView } from "./list-view";
 import { PROJECT_FIELDS, useViewState, ViewToolbar } from "./toolbar";
@@ -11,11 +12,12 @@ import { PROJECT_FIELDS, useViewState, ViewToolbar } from "./toolbar";
 export function ProjectTasks({
 	slug,
 	projectId,
+	type,
 }: {
 	slug: string;
 	projectId: string;
-	/** which view; more join "list" as they are built */
-	type: "list";
+	/** which view; more join as they are built */
+	type: "list" | "board";
 }) {
 	const { data, loading } = useQuery(TASKS, {
 		variables: { slug, projectId },
@@ -30,12 +32,20 @@ export function ProjectTasks({
 			members={workspace.members}
 			projects={workspace.projects}
 		>
-			<Body projectId={projectId} tasks={workspace.tasks} />
+			<Body projectId={projectId} type={type} tasks={workspace.tasks} />
 		</TaskViewProvider>
 	);
 }
 
-function Body({ projectId, tasks }: { projectId: string; tasks: TaskItem[] }) {
+function Body({
+	projectId,
+	type,
+	tasks,
+}: {
+	projectId: string;
+	type: "list" | "board";
+	tasks: TaskItem[];
+}) {
 	const { members, projects, member, project, canEdit, create } = useTaskView();
 	const [view, setView] = useViewState(`p:${projectId}`);
 	const [adding, setAdding] = useState(false);
@@ -97,22 +107,35 @@ function Body({ projectId, tasks }: { projectId: string; tasks: TaskItem[] }) {
 				view={view}
 				setView={setView}
 				fields={PROJECT_FIELDS}
+				group={type !== "board"}
 				right={addBtn}
 			/>
-			<div className="list-wrap">
-				{!tasks.length ? (
-					emptyAll
-				) : !shown.length ? (
-					emptyFilter
-				) : (
-					<ListView
-						groups={groups}
-						view={view}
-						setView={setView}
+			{type === "board" ? (
+				tasks.length ? (
+					<BoardView
+						tasks={shown}
 						projectId={projectId}
+						storageKey={projectId}
 					/>
-				)}
-			</div>
+				) : (
+					emptyAll
+				)
+			) : (
+				<div className="list-wrap">
+					{!tasks.length ? (
+						emptyAll
+					) : !shown.length ? (
+						emptyFilter
+					) : (
+						<ListView
+							groups={groups}
+							view={view}
+							setView={setView}
+							projectId={projectId}
+						/>
+					)}
+				</div>
+			)}
 			{adding && (
 				<QuickAdd
 					onClose={() => setAdding(false)}

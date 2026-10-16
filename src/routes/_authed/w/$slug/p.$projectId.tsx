@@ -270,8 +270,8 @@ function ProjectPage() {
 							</div>
 						)}
 					</div>
-				) : tab === "list" ? (
-					<ProjectTasks slug={slug} projectId={project.id} type="list" />
+				) : tab === "list" || tab === "board" ? (
+					<ProjectTasks slug={slug} projectId={project.id} type={tab} />
 				) : (
 					// shortcut: board, table, calendar, timeline and files views come in the next steps
 					<ComingSoon title={`${current.label} view`} icon={current.icon} />

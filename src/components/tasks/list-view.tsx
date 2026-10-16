@@ -13,7 +13,6 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import {
-	arrayMove,
 	SortableContext,
 	sortableKeyboardCoordinates,
 	useSortable,
@@ -35,7 +34,7 @@ import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import {
 	type Group,
-	orderBetween,
+	planDrop,
 	type SortField,
 	type ViewState,
 } from "#/lib/view-engine";
@@ -135,35 +134,18 @@ export function ListView({
 
 	function onDragEnd({ active, over }: DragEndEvent) {
 		setDragging(null);
-		if (!over || active.id === over.id) return;
 		const task = all.find((t) => t.id === active.id);
-		const fromGroup = active.data.current?.group as string | undefined;
-		const toGroup =
-			(over.data.current?.group as string | undefined) ??
-			String(over.id).replace(/^grp:/, "");
-		const target = groups.find((g) => g.key === toGroup);
-		if (!task || !target) return;
-		let list = target.tasks.map((t) => t.id);
-		if (fromGroup === toGroup) {
-			list = arrayMove(
-				list,
-				list.indexOf(task.id),
-				list.indexOf(String(over.id)),
-			);
-		} else {
-			list = list.filter((id) => id !== task.id);
-			const at = list.indexOf(String(over.id));
-			list.splice(at < 0 ? list.length : at, 0, task.id);
-		}
-		const i = list.indexOf(task.id);
-		const order = (id: string | undefined) =>
-			all.find((t) => t.id === id)?.sortOrder;
+		if (!over || !task) return;
+		const fromGroup = String(active.data.current?.group ?? "");
+		const toGroup = String(
+			over.data.current?.group ?? String(over.id).replace(/^grp:/, ""),
+		);
+		const plan = planDrop(groups, task.id, fromGroup, toGroup, String(over.id));
+		if (!plan) return;
+		// order only means something when the list is in manual order
 		const patch = {
-			// order only means something when the list is in manual order
-			...(view.sort.f === "manual" && {
-				sortOrder: orderBetween(order(list[i - 1]), order(list[i + 1])),
-			}),
-			...(fromGroup !== toGroup && target.set),
+			...(view.sort.f === "manual" && { sortOrder: plan.sortOrder }),
+			...plan.set,
 		};
 		if (Object.keys(patch).length) update(task, patch);
 	}
