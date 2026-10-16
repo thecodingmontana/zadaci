@@ -25,9 +25,13 @@ import { Route as AuthTwoFactorSetupRouteImport } from './routes/auth/two-factor
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
 import { Route as AuthedWSlugActivityRouteImport } from './routes/_authed/w/$slug/activity'
+import { Route as AuthedWSlugCalendarRouteImport } from './routes/_authed/w/$slug/calendar'
+import { Route as AuthedWSlugMyTasksRouteImport } from './routes/_authed/w/$slug/my-tasks'
 import { Route as AuthedWSlugNotificationsRouteImport } from './routes/_authed/w/$slug/notifications'
 import { Route as AuthedWSlugProjectsRouteImport } from './routes/_authed/w/$slug/projects'
 import { Route as AuthedWSlugSettingsRouteImport } from './routes/_authed/w/$slug/settings'
+import { Route as AuthedWSlugTasksRouteImport } from './routes/_authed/w/$slug/tasks'
+import { Route as AuthedWSlugTimelineRouteImport } from './routes/_authed/w/$slug/timeline'
 import { Route as AuthedWSlugMembersIndexRouteImport } from './routes/_authed/w/$slug/members.index'
 import { Route as AuthedWSlugMembersMemberIdRouteImport } from './routes/_authed/w/$slug/members.$memberId'
 import { Route as AuthedWSlugPProjectIdRouteImport } from './routes/_authed/w/$slug/p.$projectId'
@@ -113,6 +117,16 @@ const AuthedWSlugActivityRoute = AuthedWSlugActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
+const AuthedWSlugCalendarRoute = AuthedWSlugCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugMyTasksRoute = AuthedWSlugMyTasksRouteImport.update({
+  id: '/my-tasks',
+  path: '/my-tasks',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
 const AuthedWSlugNotificationsRoute =
   AuthedWSlugNotificationsRouteImport.update({
     id: '/notifications',
@@ -127,6 +141,16 @@ const AuthedWSlugProjectsRoute = AuthedWSlugProjectsRouteImport.update({
 const AuthedWSlugSettingsRoute = AuthedWSlugSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugTasksRoute = AuthedWSlugTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugTimelineRoute = AuthedWSlugTimelineRouteImport.update({
+  id: '/timeline',
+  path: '/timeline',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
 const AuthedWSlugMembersIndexRoute = AuthedWSlugMembersIndexRouteImport.update({
@@ -171,9 +195,13 @@ export interface FileRoutesByFullPath {
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
+  '/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
+  '/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/w/$slug/projects': typeof AuthedWSlugProjectsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
+  '/w/$slug/tasks': typeof AuthedWSlugTasksRoute
+  '/w/$slug/timeline': typeof AuthedWSlugTimelineRoute
   '/w/$slug/': typeof AuthedWSlugIndexRoute
   '/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
   '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
@@ -195,9 +223,13 @@ export interface FileRoutesByTo {
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
+  '/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
+  '/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/w/$slug/projects': typeof AuthedWSlugProjectsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
+  '/w/$slug/tasks': typeof AuthedWSlugTasksRoute
+  '/w/$slug/timeline': typeof AuthedWSlugTimelineRoute
   '/w/$slug': typeof AuthedWSlugIndexRoute
   '/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
   '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
@@ -222,9 +254,13 @@ export interface FileRoutesById {
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/_authed/w/$slug/activity': typeof AuthedWSlugActivityRoute
+  '/_authed/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
+  '/_authed/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
   '/_authed/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/_authed/w/$slug/projects': typeof AuthedWSlugProjectsRoute
   '/_authed/w/$slug/settings': typeof AuthedWSlugSettingsRoute
+  '/_authed/w/$slug/tasks': typeof AuthedWSlugTasksRoute
+  '/_authed/w/$slug/timeline': typeof AuthedWSlugTimelineRoute
   '/_authed/w/$slug/': typeof AuthedWSlugIndexRoute
   '/_authed/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
   '/_authed/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
@@ -249,9 +285,13 @@ export interface FileRouteTypes {
     | '/auth/two-factor/'
     | '/w/$slug/$'
     | '/w/$slug/activity'
+    | '/w/$slug/calendar'
+    | '/w/$slug/my-tasks'
     | '/w/$slug/notifications'
     | '/w/$slug/projects'
     | '/w/$slug/settings'
+    | '/w/$slug/tasks'
+    | '/w/$slug/timeline'
     | '/w/$slug/'
     | '/w/$slug/members/$memberId'
     | '/w/$slug/p/$projectId'
@@ -273,9 +313,13 @@ export interface FileRouteTypes {
     | '/auth/two-factor'
     | '/w/$slug/$'
     | '/w/$slug/activity'
+    | '/w/$slug/calendar'
+    | '/w/$slug/my-tasks'
     | '/w/$slug/notifications'
     | '/w/$slug/projects'
     | '/w/$slug/settings'
+    | '/w/$slug/tasks'
+    | '/w/$slug/timeline'
     | '/w/$slug'
     | '/w/$slug/members/$memberId'
     | '/w/$slug/p/$projectId'
@@ -299,9 +343,13 @@ export interface FileRouteTypes {
     | '/auth/two-factor/'
     | '/_authed/w/$slug/$'
     | '/_authed/w/$slug/activity'
+    | '/_authed/w/$slug/calendar'
+    | '/_authed/w/$slug/my-tasks'
     | '/_authed/w/$slug/notifications'
     | '/_authed/w/$slug/projects'
     | '/_authed/w/$slug/settings'
+    | '/_authed/w/$slug/tasks'
+    | '/_authed/w/$slug/timeline'
     | '/_authed/w/$slug/'
     | '/_authed/w/$slug/members/$memberId'
     | '/_authed/w/$slug/p/$projectId'
@@ -436,6 +484,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugActivityRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
+    '/_authed/w/$slug/calendar': {
+      id: '/_authed/w/$slug/calendar'
+      path: '/calendar'
+      fullPath: '/w/$slug/calendar'
+      preLoaderRoute: typeof AuthedWSlugCalendarRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/my-tasks': {
+      id: '/_authed/w/$slug/my-tasks'
+      path: '/my-tasks'
+      fullPath: '/w/$slug/my-tasks'
+      preLoaderRoute: typeof AuthedWSlugMyTasksRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
     '/_authed/w/$slug/notifications': {
       id: '/_authed/w/$slug/notifications'
       path: '/notifications'
@@ -455,6 +517,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/w/$slug/settings'
       preLoaderRoute: typeof AuthedWSlugSettingsRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/tasks': {
+      id: '/_authed/w/$slug/tasks'
+      path: '/tasks'
+      fullPath: '/w/$slug/tasks'
+      preLoaderRoute: typeof AuthedWSlugTasksRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/timeline': {
+      id: '/_authed/w/$slug/timeline'
+      path: '/timeline'
+      fullPath: '/w/$slug/timeline'
+      preLoaderRoute: typeof AuthedWSlugTimelineRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
     '/_authed/w/$slug/members/': {
@@ -498,9 +574,13 @@ declare module '@tanstack/react-router' {
 interface AuthedWSlugRouteChildren {
   AuthedWSlugSplatRoute: typeof AuthedWSlugSplatRoute
   AuthedWSlugActivityRoute: typeof AuthedWSlugActivityRoute
+  AuthedWSlugCalendarRoute: typeof AuthedWSlugCalendarRoute
+  AuthedWSlugMyTasksRoute: typeof AuthedWSlugMyTasksRoute
   AuthedWSlugNotificationsRoute: typeof AuthedWSlugNotificationsRoute
   AuthedWSlugProjectsRoute: typeof AuthedWSlugProjectsRoute
   AuthedWSlugSettingsRoute: typeof AuthedWSlugSettingsRoute
+  AuthedWSlugTasksRoute: typeof AuthedWSlugTasksRoute
+  AuthedWSlugTimelineRoute: typeof AuthedWSlugTimelineRoute
   AuthedWSlugIndexRoute: typeof AuthedWSlugIndexRoute
   AuthedWSlugMembersMemberIdRoute: typeof AuthedWSlugMembersMemberIdRoute
   AuthedWSlugPProjectIdRoute: typeof AuthedWSlugPProjectIdRoute
@@ -512,9 +592,13 @@ interface AuthedWSlugRouteChildren {
 const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugSplatRoute: AuthedWSlugSplatRoute,
   AuthedWSlugActivityRoute: AuthedWSlugActivityRoute,
+  AuthedWSlugCalendarRoute: AuthedWSlugCalendarRoute,
+  AuthedWSlugMyTasksRoute: AuthedWSlugMyTasksRoute,
   AuthedWSlugNotificationsRoute: AuthedWSlugNotificationsRoute,
   AuthedWSlugProjectsRoute: AuthedWSlugProjectsRoute,
   AuthedWSlugSettingsRoute: AuthedWSlugSettingsRoute,
+  AuthedWSlugTasksRoute: AuthedWSlugTasksRoute,
+  AuthedWSlugTimelineRoute: AuthedWSlugTimelineRoute,
   AuthedWSlugIndexRoute: AuthedWSlugIndexRoute,
   AuthedWSlugMembersMemberIdRoute: AuthedWSlugMembersMemberIdRoute,
   AuthedWSlugPProjectIdRoute: AuthedWSlugPProjectIdRoute,

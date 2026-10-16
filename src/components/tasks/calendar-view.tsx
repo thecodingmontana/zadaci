@@ -115,7 +115,7 @@ export function CalendarView({
 								out={!isSameMonth(d, cursor)}
 								today={isSameDay(d, today)}
 							>
-								{projectId && canEdit(projectId) && (
+								{(projectId ? canEdit(projectId) : true) && (
 									<button
 										type="button"
 										className="ibtn ibtn-xs add"
@@ -154,7 +154,7 @@ export function CalendarView({
 									{format(d, "EEE")}
 								</span>
 								<span className="sp" />
-								{projectId && canEdit(projectId) && (
+								{(projectId ? canEdit(projectId) : true) && (
 									<button
 										type="button"
 										className="ibtn ibtn-xs"

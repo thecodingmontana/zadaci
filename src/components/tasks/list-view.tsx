@@ -102,6 +102,8 @@ export function ListView({
 	projectId,
 	complete,
 	empty,
+	groupIcon,
+	drag = true,
 }: {
 	groups: Group<TaskItem>[];
 	view: ViewState;
@@ -112,10 +114,16 @@ export function ListView({
 	/** round "complete" checkboxes instead of selection (My Tasks) */
 	complete?: boolean;
 	empty?: ReactNode;
+	/** custom group icons (My Tasks); default comes from what the group sets */
+	groupIcon?: (key: string) => ReactNode;
+	/** drag and drop to reorder; off where order means nothing (My Tasks) */
+	drag?: boolean;
 }) {
 	const { slug, update, canEdit, projects } = useTaskView();
 	const [selected, setSelected] = useState<Set<string>>(new Set());
-	const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+	const [collapsed, setCollapsed] = useState<Set<string>>(
+		() => new Set(groups.filter((g) => g.collapsed).map((g) => g.key)),
+	);
 	const [dragging, setDragging] = useState<TaskItem | null>(null);
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -215,6 +223,7 @@ export function ListView({
 								{showHeaders && (
 									<GroupHead
 										g={g}
+										icon={groupIcon?.(g.key)}
 										open={open}
 										onToggle={() => {
 											const next = new Set(collapsed);
@@ -232,6 +241,7 @@ export function ListView({
 											cols={cols}
 											tpl={tpl}
 											complete={complete}
+											drag={drag}
 											selected={selected.has(t.id)}
 											onSelect={() => {
 												const next = new Set(selected);
@@ -335,18 +345,22 @@ function GroupHead({
 	g,
 	open,
 	onToggle,
+	icon: custom,
 }: {
 	g: Group<TaskItem>;
 	open: boolean;
 	onToggle: () => void;
+	icon?: ReactNode;
 }) {
 	const { member, project } = useTaskView();
 	const { setNodeRef, isOver } = useDroppable({
 		id: `grp:${g.key}`,
 		data: { group: g.key },
 	});
-	let icon: ReactNode = null;
-	if (g.set.status) icon = <StatusIcon status={g.set.status} />;
+	let icon: ReactNode = custom ?? null;
+	if (custom) {
+		// the caller chose the icon
+	} else if (g.set.status) icon = <StatusIcon status={g.set.status} />;
 	else if (g.set.priority) icon = <PrIcon p={g.set.priority} />;
 	else if ("assigneeId" in g.set) {
 		const m = member(g.set.assigneeId ?? null);
@@ -408,6 +422,7 @@ function Row({
 	cols,
 	tpl,
 	complete,
+	drag,
 	selected,
 	onSelect,
 }: {
@@ -416,6 +431,7 @@ function Row({
 	cols: Col[];
 	tpl: string;
 	complete?: boolean;
+	drag: boolean;
 	selected: boolean;
 	onSelect: () => void;
 }) {
@@ -431,7 +447,7 @@ function Row({
 	} = useSortable({
 		id: t.id,
 		data: { group },
-		disabled: !editable,
+		disabled: !editable || !drag,
 	});
 	const [editing, setEditing] = useState(false);
 	const [title, setTitle] = useState(t.name);
@@ -466,7 +482,7 @@ function Row({
 					aria-label={`Drag ${t.name}`}
 					disabled={!editable}
 				>
-					{editable && (
+					{editable && drag && (
 						<span
 							className="icon-[hugeicons--drag-drop-vertical] size-3.5"
 							aria-hidden="true"

@@ -184,7 +184,10 @@ export type Group<T> = {
 		priority: string;
 		assigneeId: string | null;
 		projectId: string;
+		dueDate: string;
 	}>;
+	/** starts folded (My Tasks "Completed") */
+	collapsed?: boolean;
 };
 
 /**
