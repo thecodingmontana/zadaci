@@ -3,6 +3,7 @@ import { customAlphabet } from "nanoid";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { hasRight } from "#/lib/permissions";
+import { taskKey } from "#/lib/tasks";
 import { logActivity, notify } from "./activity.server";
 import { requireProject } from "./projects.server";
 import {
@@ -39,7 +40,10 @@ export const taskExtrasTypeDefs = /* GraphQL */ `
 
 	type Attachment {
 		id: ID!
-		taskId: ID!
+		projectId: ID!
+		taskId: ID
+		"the task key when the file is on a task"
+		taskKey: String
 		name: String!
 		url: String!
 		mime: String
@@ -70,15 +74,18 @@ export const taskExtrasTypeDefs = /* GraphQL */ `
 		addComment(slug: String!, taskId: ID!, text: String!): TaskComment!
 		deleteComment(slug: String!, id: ID!): Boolean!
 		reactToComment(slug: String!, id: ID!, emoji: String!): TaskComment!
-		attachmentUpload(slug: String!, taskId: ID!): CloudinaryUpload!
+		"upload slot for a task file, or a project file when taskId is left out"
+		attachmentUpload(slug: String!, taskId: ID, projectId: ID): CloudinaryUpload!
 		addAttachment(
 			slug: String!
-			taskId: ID!
+			taskId: ID
+			projectId: ID
 			name: String!
 			url: String!
 			mime: String
 			size: Int!
 		): Attachment!
+		renameAttachment(slug: String!, id: ID!, name: String!): Attachment!
 		removeAttachment(slug: String!, id: ID!): Boolean!
 		saveView(
 			slug: String!
@@ -275,9 +282,14 @@ async function notifyComment(
 	]);
 }
 
-const attachmentShape = (a: typeof tables.task_attachment.$inferSelect) => ({
+const attachmentShape = (
+	a: typeof tables.task_attachment.$inferSelect,
+	taskKey: string | null = null,
+) => ({
 	id: a.id,
+	projectId: a.project_id,
 	taskId: a.task_id,
+	taskKey,
 	name: a.name,
 	url: a.url,
 	mime: a.mime,
@@ -322,27 +334,39 @@ export const taskExtrasResolvers = {
 					),
 				)
 				.orderBy(asc(tables.task_attachment.created_at))
-				.then((rows) => rows.map(attachmentShape)),
+				.then((rows) => rows.map((r) => attachmentShape(r))),
 	},
 	Project: {
 		// every file on the project's tasks (Files tab)
-		attachments: (p: { id: string }) =>
+		attachments: (p: { id: string; key?: string }) =>
 			db
-				.select({ a: tables.task_attachment })
+				.select({
+					a: tables.task_attachment,
+					number: tables.task.number,
+					taskDeleted: tables.task.deleted_at,
+				})
 				.from(tables.task_attachment)
-				.innerJoin(
+				.leftJoin(
 					tables.task,
 					eq(tables.task.id, tables.task_attachment.task_id),
 				)
 				.where(
 					and(
-						eq(tables.task.project_id, p.id),
-						isNull(tables.task.deleted_at),
+						eq(tables.task_attachment.project_id, p.id),
 						isNull(tables.task_attachment.deleted_at),
 					),
 				)
 				.orderBy(asc(tables.task_attachment.created_at))
-				.then((rows) => rows.map((r) => attachmentShape(r.a))),
+				.then((rows) =>
+					rows
+						.filter((r) => !r.taskDeleted)
+						.map((r) =>
+							attachmentShape(
+								r.a,
+								r.number && p.key ? taskKey(p.key, r.number) : null,
+							),
+						),
+				),
 		savedViews: (p: { id: string }) =>
 			db
 				.select()
@@ -443,13 +467,13 @@ export const taskExtrasResolvers = {
 
 		attachmentUpload: async (
 			_: unknown,
-			args: { slug: string; taskId: string },
+			args: { slug: string; taskId?: string | null; projectId?: string | null },
 			ctx: GraphQLContext,
 		) => {
-			const { task } = await requireTask(ctx, args.slug, args.taskId, "edit");
+			const target = await fileTarget(ctx, args.slug, args);
 			const { cloud, key, secret } = cloudinary();
 			const params = {
-				folder: `zadaci/tasks/${task.id}`,
+				folder: target.folder,
 				public_id: fileId(),
 				timestamp: Math.floor(Date.now() / 1000),
 			};
@@ -467,7 +491,8 @@ export const taskExtrasResolvers = {
 			_: unknown,
 			args: {
 				slug: string;
-				taskId: string;
+				taskId?: string | null;
+				projectId?: string | null;
 				name: string;
 				url: string;
 				mime?: string | null;
@@ -475,43 +500,62 @@ export const taskExtrasResolvers = {
 			},
 			ctx: GraphQLContext,
 		) => {
-			const { user, workspace, task } = await requireTask(
-				ctx,
-				args.slug,
-				args.taskId,
-				"edit",
-			);
+			const target = await fileTarget(ctx, args.slug, args);
 			const { cloud } = cloudinary();
-			// only files we signed for this task: our Cloudinary account and this task's folder
+			// only files we signed a slot for: our Cloudinary account and this task or project folder
 			if (
 				!args.url.startsWith(`https://res.cloudinary.com/${cloud}/`) ||
-				!args.url.includes(`/zadaci/tasks/${task.id}/`)
+				!args.url.includes(`/${target.folder}/`)
 			)
-				badInput("That file didn't come from this task's upload");
+				badInput("That file didn't come from this upload");
 			const name = z.string().trim().min(1).max(255).safeParse(args.name);
 			if (!name.success) badInput("The file needs a name");
 			const [row] = await db
 				.insert(tables.task_attachment)
 				.values({
-					task_id: task.id,
+					project_id: target.projectId,
+					task_id: target.task?.id ?? null,
 					name: name.data,
 					url: args.url,
 					mime: args.mime?.slice(0, 120) ?? null,
 					size: Math.max(0, Math.min(args.size, 2 ** 31 - 1)),
-					uploaded_by: workspace.memberId ?? null,
+					uploaded_by: target.workspace.memberId ?? null,
 				})
 				.returning();
 			if (!row) throw new Error("Attachment insert returned nothing");
 			await logActivity(db, {
-				workspace_id: workspace.id,
-				actor_id: user.id,
-				kind: "task",
-				verb: "added a file to",
-				target: task.name,
+				workspace_id: target.workspace.id,
+				actor_id: target.userId,
+				kind: target.task ? "task" : "project",
+				verb: target.task ? "added a file to" : "uploaded a file to",
+				target: target.task?.name ?? target.projectTitle,
 				extra: name.data,
-				project_id: task.project_id,
-				task_id: task.id,
+				project_id: target.projectId,
+				task_id: target.task?.id ?? null,
 			});
+			return attachmentShape(row);
+		},
+
+		renameAttachment: async (
+			_: unknown,
+			args: { slug: string; id: string; name: string },
+			ctx: GraphQLContext,
+		) => {
+			const file = await requireFile(ctx, args.slug, args.id);
+			const name = z
+				.string()
+				.trim()
+				.min(1, "The file needs a name")
+				.max(255)
+				.safeParse(args.name);
+			if (!name.success)
+				badInput(name.error.issues[0]?.message ?? "Invalid name");
+			const [row] = await db
+				.update(tables.task_attachment)
+				.set({ name: name.data })
+				.where(eq(tables.task_attachment.id, file.id))
+				.returning();
+			if (!row) badInput("File not found");
 			return attachmentShape(row);
 		},
 
@@ -520,35 +564,11 @@ export const taskExtrasResolvers = {
 			args: { slug: string; id: string },
 			ctx: GraphQLContext,
 		) => {
-			const [file] = await db
-				.select()
-				.from(tables.task_attachment)
-				.where(
-					and(
-						eq(tables.task_attachment.id, args.id),
-						isNull(tables.task_attachment.deleted_at),
-					),
-				);
-			if (!file) badInput("File not found");
-			const { user, workspace, task } = await requireTask(
-				ctx,
-				args.slug,
-				file.task_id,
-				"edit",
-			);
+			const file = await requireFile(ctx, args.slug, args.id);
 			await db
 				.update(tables.task_attachment)
 				.set({ deleted_at: new Date() })
 				.where(eq(tables.task_attachment.id, file.id));
-			await logActivity(db, {
-				workspace_id: workspace.id,
-				actor_id: user.id,
-				kind: "task",
-				verb: "removed a file from",
-				target: task.name,
-				project_id: task.project_id,
-				task_id: task.id,
-			});
 			return true;
 		},
 
@@ -632,4 +652,61 @@ async function requireView(ctx: GraphQLContext, slug: string, id: string) {
 	if (!view) badInput("View not found");
 	await requireProject(ctx, slug, view.project_id, { right: "edit" });
 	return view;
+}
+
+/** Where an upload goes: a task you can edit, or a project you can edit. */
+async function fileTarget(
+	ctx: GraphQLContext,
+	slug: string,
+	args: { taskId?: string | null; projectId?: string | null },
+) {
+	if (args.taskId) {
+		const { user, workspace, task } = await requireTask(
+			ctx,
+			slug,
+			args.taskId,
+			"edit",
+		);
+		return {
+			userId: user.id,
+			workspace,
+			task,
+			projectId: task.project_id,
+			projectTitle: "",
+			folder: `zadaci/tasks/${task.id}`,
+		};
+	}
+	if (!args.projectId) badInput("Pick a task or a project for the file");
+	const { user, workspace, project } = await requireProject(
+		ctx,
+		slug,
+		args.projectId,
+		{
+			right: "edit",
+		},
+	);
+	return {
+		userId: user.id,
+		workspace,
+		task: null,
+		projectId: project.id,
+		projectTitle: project.title,
+		folder: `zadaci/projects/${project.id}`,
+	};
+}
+
+/** A file in a project the viewer can edit. */
+async function requireFile(ctx: GraphQLContext, slug: string, id: string) {
+	const [file] = await db
+		.select()
+		.from(tables.task_attachment)
+		.where(
+			and(
+				eq(tables.task_attachment.id, id),
+				isNull(tables.task_attachment.deleted_at),
+			),
+		);
+	if (!file) badInput("File not found");
+	await requireProject(ctx, slug, file.project_id, { right: "edit" });
+	return file;
 }

@@ -34,7 +34,7 @@ import { TASK_REFETCH, TaskViewProvider, useTaskView } from "./context";
 import { DrawerConversation } from "./drawer-conversation";
 import { DatePick, PickList, PickPopover } from "./pick";
 import { TaskMenu } from "./task-menu";
-import { uploadToTask } from "./upload";
+import { uploadFile } from "./upload";
 
 // The task drawer (reference overlays/drawer.js drawerHtml), opened from any page with
 // ?task=<id>. Subtasks are tasks too, so opening one shows it here with a way back.
@@ -845,7 +845,7 @@ function Attachments({ t, editable }: { t: TaskDetail; editable: boolean }) {
 			const id = crypto.randomUUID();
 			setUploads((u) => [...u, { id, name: file.name, pct: 0 }]);
 			try {
-				await uploadToTask(client, slug, t.id, file, (pct) =>
+				await uploadFile(client, slug, { taskId: t.id }, file, (pct) =>
 					setUploads((u) => u.map((x) => (x.id === id ? { ...x, pct } : x))),
 				);
 				await client.refetchQueries({ include: TASK_REFETCH });

@@ -163,16 +163,19 @@ export const task_dependency = pgTable(
 	],
 );
 
-// Files on a task (uploaded to Cloudinary); the project Files tab lists them all.
+// Files uploaded to Cloudinary: on a project's Files tab, and optionally on one of its tasks.
 export const task_attachment = pgTable(
 	"task_attachment",
 	{
 		id: varchar("id", { length: 16 })
 			.primaryKey()
 			.$defaultFn(() => generateNanoId()),
-		task_id: varchar("task_id", { length: 16 })
+		project_id: varchar("project_id", { length: 16 })
 			.notNull()
-			.references(() => task.id, { onDelete: "cascade" }),
+			.references(() => project.id, { onDelete: "cascade" }),
+		task_id: varchar("task_id", { length: 16 }).references(() => task.id, {
+			onDelete: "cascade",
+		}),
 		name: varchar("name", { length: 255 }).notNull(),
 		url: text("url").notNull(),
 		mime: varchar("mime", { length: 120 }),
@@ -183,7 +186,10 @@ export const task_attachment = pgTable(
 		),
 		...syncable,
 	},
-	(table) => [index("task_attachment_task_id_idx").on(table.task_id)],
+	(table) => [
+		index("task_attachment_task_id_idx").on(table.task_id),
+		index("task_attachment_project_id_idx").on(table.project_id),
+	],
 );
 
 // Saved filters shown as extra tabs on a project (reference savedViews).

@@ -1,21 +1,22 @@
 import type { ApolloClient } from "@apollo/client";
 import { ADD_ATTACHMENT, ATTACHMENT_UPLOAD } from "#/graphql/operations";
 
-// Uploads one file straight to Cloudinary with a signed request, then records it on the task.
+// Uploads one file straight to Cloudinary with a signed request, then records it on the
+// task, or on the project when there is no task.
 
 export const MAX_UPLOAD = 25 * 1024 * 1024;
 
-export async function uploadToTask(
+export async function uploadFile(
 	client: ApolloClient,
 	slug: string,
-	taskId: string,
+	target: { taskId?: string; projectId?: string },
 	file: File,
 	onProgress?: (pct: number) => void,
 ) {
 	if (file.size > MAX_UPLOAD) throw new Error(`${file.name} is over 25 MB`);
 	const { data } = await client.mutate({
 		mutation: ATTACHMENT_UPLOAD,
-		variables: { slug, taskId },
+		variables: { slug, ...target },
 	});
 	const params = data?.attachmentUpload;
 	if (!params) throw new Error("No upload slot");
@@ -45,7 +46,7 @@ export async function uploadToTask(
 		mutation: ADD_ATTACHMENT,
 		variables: {
 			slug,
-			taskId,
+			...target,
 			name: file.name,
 			url: result.secure_url,
 			mime: file.type || null,

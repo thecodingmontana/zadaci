@@ -29,7 +29,7 @@ import {
 	ProjectPick,
 	StatusPick,
 } from "./pick";
-import { uploadToTask } from "./upload";
+import { uploadFile } from "./upload";
 
 // The "New task" modal (reference taskModal + newTask/submitTask), opened from anywhere in
 // the workspace with useNewTask()(prefill).
@@ -185,7 +185,7 @@ function TaskModal({
 				});
 			for (const file of form.files) {
 				try {
-					await uploadToTask(client, slug, task.id, file);
+					await uploadFile(client, slug, { taskId: task.id }, file);
 				} catch (error) {
 					toast.error(`Couldn't upload ${file.name}`, {
 						desc: (error as Error).message,

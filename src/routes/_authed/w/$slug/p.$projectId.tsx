@@ -13,9 +13,9 @@ import { ProjectOverview } from "#/components/projects/overview";
 import { ProjectModal } from "#/components/projects/project-modal";
 import { ShareModal } from "#/components/projects/share-modal";
 import { AvStack } from "#/components/q/av";
-import { ComingSoon } from "#/components/shell/coming-soon";
 import { PROJECT_PAGE_TABS } from "#/components/shell/nav";
 import { ProjectMenu } from "#/components/shell/project-menu";
+import { FilesView } from "#/components/tasks/files-view";
 import { ProjectTasks } from "#/components/tasks/project-tasks";
 import {
 	ACTIVITY,
@@ -86,8 +86,6 @@ function ProjectPage() {
 	const canEdit = hasRight(project.myAccess, "edit");
 	const stats = workspace.projectStats.find((s) => s.projectId === project.id);
 	const activity = feed?.workspace?.activity ?? [];
-	const current =
-		PROJECT_PAGE_TABS.find((t) => t.tab === tab) ?? PROJECT_PAGE_TABS[1];
 
 	return (
 		<div className="page flush">
@@ -289,10 +287,13 @@ function ProjectPage() {
 						milestones={project.milestones}
 						color={projectColor(project.color)}
 					/>
-				) : (
-					// shortcut: the files view comes in the next step
-					<ComingSoon title={`${current.label} view`} icon={current.icon} />
-				)}
+				) : tab === "files" ? (
+					<FilesView
+						slug={slug}
+						projectId={project.id}
+						members={workspace.members}
+					/>
+				) : null}
 			</div>
 			{canEdit && (
 				<ProjectModal

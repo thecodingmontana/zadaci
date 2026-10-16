@@ -1428,7 +1428,9 @@ export type TaskComment = {
 
 export type TaskAttachment = {
 	id: string;
-	taskId: string;
+	projectId: string;
+	taskId: string | null;
+	taskKey: string | null;
 	name: string;
 	url: string;
 	mime: string | null;
@@ -1490,7 +1492,9 @@ export const TASK_DETAIL: TypedDocumentNode<
 				}
 				attachments {
 					id
+					projectId
 					taskId
+					taskKey
 					name
 					url
 					mime
@@ -1574,10 +1578,10 @@ export const ATTACHMENT_UPLOAD: TypedDocumentNode<
 			folder: string;
 		};
 	},
-	{ slug: string; taskId: string }
+	{ slug: string; taskId?: string | null; projectId?: string | null }
 > = gql`
-	mutation AttachmentUpload($slug: String!, $taskId: ID!) {
-		attachmentUpload(slug: $slug, taskId: $taskId) {
+	mutation AttachmentUpload($slug: String!, $taskId: ID, $projectId: ID) {
+		attachmentUpload(slug: $slug, taskId: $taskId, projectId: $projectId) {
 			url
 			apiKey
 			timestamp
@@ -1592,7 +1596,8 @@ export const ADD_ATTACHMENT: TypedDocumentNode<
 	{ addAttachment: { id: string } },
 	{
 		slug: string;
-		taskId: string;
+		taskId?: string | null;
+		projectId?: string | null;
 		name: string;
 		url: string;
 		mime?: string | null;
@@ -1601,13 +1606,22 @@ export const ADD_ATTACHMENT: TypedDocumentNode<
 > = gql`
 	mutation AddAttachment(
 		$slug: String!
-		$taskId: ID!
+		$taskId: ID
+		$projectId: ID
 		$name: String!
 		$url: String!
 		$mime: String
 		$size: Int!
 	) {
-		addAttachment(slug: $slug, taskId: $taskId, name: $name, url: $url, mime: $mime, size: $size) {
+		addAttachment(
+			slug: $slug
+			taskId: $taskId
+			projectId: $projectId
+			name: $name
+			url: $url
+			mime: $mime
+			size: $size
+		) {
 			id
 		}
 	}
@@ -1619,5 +1633,53 @@ export const REMOVE_ATTACHMENT: TypedDocumentNode<
 > = gql`
 	mutation RemoveAttachment($slug: String!, $id: ID!) {
 		removeAttachment(slug: $slug, id: $id)
+	}
+`;
+
+export const PROJECT_FILES: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			project: {
+				id: string;
+				myAccess: string | null;
+				attachments: TaskAttachment[];
+			} | null;
+		} | null;
+	},
+	{ slug: string; projectId: string }
+> = gql`
+	query ProjectFiles($slug: String!, $projectId: ID!) {
+		workspace(slug: $slug) {
+			id
+			project(id: $projectId) {
+				id
+				myAccess
+				attachments {
+					id
+					projectId
+					taskId
+					taskKey
+					name
+					url
+					mime
+					size
+					uploadedBy
+					createdAt
+				}
+			}
+		}
+	}
+`;
+
+export const RENAME_ATTACHMENT: TypedDocumentNode<
+	{ renameAttachment: { id: string; name: string } },
+	{ slug: string; id: string; name: string }
+> = gql`
+	mutation RenameAttachment($slug: String!, $id: ID!, $name: String!) {
+		renameAttachment(slug: $slug, id: $id, name: $name) {
+			id
+			name
+		}
 	}
 `;

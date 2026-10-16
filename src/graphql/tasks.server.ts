@@ -278,7 +278,7 @@ export async function enrichTasks(
 	};
 	const assigneeMap = by(assignees);
 	const commentMap = by(comments);
-	const fileMap = by(files);
+	const fileMap = by(files.map((f) => ({ ...f, taskId: f.taskId ?? "" })));
 	const depMap = by(deps);
 	const favs = new Set(favorites.map((f) => f.taskId));
 	return rows.map(({ task, projectKey }) => {
@@ -645,6 +645,16 @@ async function moveToProject(
 			.update(tables.task)
 			.set({ project_id: projectId, number: await nextNumber(db, projectId) })
 			.where(eq(tables.task.id, id));
+	// its files follow it
+	await db
+		.update(tables.task_attachment)
+		.set({ project_id: projectId })
+		.where(
+			inArray(tables.task_attachment.task_id, [
+				task.id,
+				...children.map((c) => c.id),
+			]),
+		);
 	await db
 		.delete(tables.task_dependency)
 		.where(eq(tables.task_dependency.task_id, task.id));
