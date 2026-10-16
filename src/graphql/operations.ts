@@ -534,12 +534,17 @@ export const ACTIVITY: TypedDocumentNode<
 			members: { id: string; userId: string; name: string }[];
 		} | null;
 	},
-	{ slug: string; filter: string; actorId?: string }
+	{ slug: string; filter: string; actorId?: string; projectId?: string }
 > = gql`
-	query Activity($slug: String!, $filter: String!, $actorId: ID) {
+	query Activity(
+		$slug: String!
+		$filter: String!
+		$actorId: ID
+		$projectId: ID
+	) {
 		workspace(slug: $slug) {
 			id
-			activity(filter: $filter, actorId: $actorId) {
+			activity(filter: $filter, actorId: $actorId, projectId: $projectId) {
 				id
 				kind
 				verb
@@ -934,5 +939,270 @@ export const SET_PROJECT_ACCESS: TypedDocumentNode<
 		setProjectAccess(slug: $slug, projectId: $projectId, access: $access) {
 			id
 		}
+	}
+`;
+
+export type ProjectStats = {
+	projectId: string;
+	total: number;
+	done: number;
+	overdue: number;
+	statusCounts: { status: string; count: number }[];
+	memberIds: string[];
+	lastActivityAt: string | null;
+};
+
+export type ProjectSummary = {
+	id: string;
+	title: string;
+	description: string | null;
+	icon: string | null;
+	color: string | null;
+	status: string;
+	key: string;
+	isFavorite: boolean;
+	access: string;
+	myAccess: import("#/lib/permissions").ProjectRight | null;
+	leadId: string | null;
+	teamId: string | null;
+	startDate: string | null;
+	dueDate: string | null;
+};
+
+const PROJECT_FIELDS = gql`
+	fragment ProjectFields on Project {
+		id
+		title
+		description
+		icon
+		color
+		status
+		key
+		isFavorite
+		access
+		myAccess
+		leadId
+		teamId
+		startDate
+		dueDate
+	}
+`;
+
+const STATS_FIELDS = gql`
+	fragment StatsFields on ProjectStats {
+		projectId
+		total
+		done
+		overdue
+		statusCounts {
+			status
+			count
+		}
+		memberIds
+		lastActivityAt
+	}
+`;
+
+/** Projects page: every visible project with its numbers, plus people and teams to show them. */
+export const PROJECTS: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			role: string;
+			settings: { permCreate: boolean; permGuests: boolean };
+			projects: ProjectSummary[];
+			projectStats: ProjectStats[];
+			members: SettingsMember[];
+			teams: SettingsTeam[];
+		} | null;
+	},
+	{ slug: string }
+> = gql`
+	${PROJECT_FIELDS}
+	${STATS_FIELDS}
+	query Projects($slug: String!) {
+		workspace(slug: $slug) {
+			id
+			role
+			settings
+			projects {
+				...ProjectFields
+			}
+			projectStats {
+				...StatsFields
+			}
+			members {
+				id
+				userId
+				role
+				name
+				email
+				image
+				isMe
+				title
+				tz
+			}
+			teams {
+				id
+				name
+				color
+				icon
+				description
+				memberCount
+				projectCount
+			}
+		}
+	}
+`;
+
+export type ProjectTask = {
+	id: string;
+	name: string;
+	status: string;
+	priority: string;
+	dueDate: string | null;
+};
+
+export type ProjectDetail = ProjectSummary & {
+	milestones: { id: string; name: string; date: string }[];
+	members: ProjectMember[];
+	tasks: ProjectTask[];
+};
+
+/** One project page: the project, its numbers, and the people and teams it refers to. */
+export const PROJECT_PAGE: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			role: string;
+			project: ProjectDetail | null;
+			projectStats: ProjectStats[];
+			members: SettingsMember[];
+			teams: SettingsTeam[];
+		} | null;
+	},
+	{ slug: string; projectId: string }
+> = gql`
+	${PROJECT_FIELDS}
+	${STATS_FIELDS}
+	query ProjectPage($slug: String!, $projectId: ID!) {
+		workspace(slug: $slug) {
+			id
+			role
+			project(id: $projectId) {
+				...ProjectFields
+				milestones {
+					id
+					name
+					date
+				}
+				members {
+					memberId
+					name
+					email
+					image
+					role
+					permission
+					isLead
+					isMe
+				}
+				tasks {
+					id
+					name
+					status
+					priority
+					dueDate
+				}
+			}
+			projectStats {
+				...StatsFields
+			}
+			members {
+				id
+				userId
+				role
+				name
+				email
+				image
+				isMe
+				title
+				tz
+			}
+			teams {
+				id
+				name
+				color
+				icon
+				description
+				memberCount
+				projectCount
+			}
+		}
+	}
+`;
+
+export type ProjectFormInput = {
+	title: string;
+	description?: string | null;
+	icon: string;
+	color: string;
+	teamId?: string | null;
+	leadId?: string | null;
+	dueDate?: string | null;
+	template?: string;
+};
+
+export const CREATE_PROJECT: TypedDocumentNode<
+	{ createProject: { id: string; title: string } },
+	{ slug: string; input: ProjectFormInput }
+> = gql`
+	mutation CreateProject($slug: String!, $input: ProjectInput!) {
+		createProject(slug: $slug, input: $input) {
+			id
+			title
+		}
+	}
+`;
+
+export const UPDATE_PROJECT: TypedDocumentNode<
+	{ updateProject: { id: string } },
+	{
+		slug: string;
+		projectId: string;
+		input: Partial<Omit<ProjectFormInput, "template">> & {
+			status?: string;
+			startDate?: string | null;
+		};
+	}
+> = gql`
+	mutation UpdateProject($slug: String!, $projectId: ID!, $input: ProjectPatch!) {
+		updateProject(slug: $slug, projectId: $projectId, input: $input) {
+			id
+		}
+	}
+`;
+
+export const ADD_MILESTONE: TypedDocumentNode<
+	{ addMilestone: { id: string } },
+	{ slug: string; projectId: string; name: string; date: string }
+> = gql`
+	mutation AddMilestone(
+		$slug: String!
+		$projectId: ID!
+		$name: String!
+		$date: String!
+	) {
+		addMilestone(slug: $slug, projectId: $projectId, name: $name, date: $date) {
+			id
+		}
+	}
+`;
+
+export const DELETE_MILESTONE: TypedDocumentNode<
+	{ deleteMilestone: boolean },
+	{ slug: string; projectId: string; id: string }
+> = gql`
+	mutation DeleteMilestone($slug: String!, $projectId: ID!, $id: ID!) {
+		deleteMilestone(slug: $slug, projectId: $projectId, id: $id)
 	}
 `;

@@ -3418,3 +3418,57 @@ h3.sub {
   outline: 2px solid var(--q-accent);
   outline-offset: 2px;
 }
+
+/* project page body and the template picker (reference motion.css, auth.css) */
+.pbody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.opt {
+  border: 1px solid var(--q-border);
+  border-radius: var(--q-r-lg);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  background: var(--q-surface);
+  transition: border-color var(--q-dur);
+}
+.opt:hover {
+  border-color: var(--q-border-strong);
+}
+.opt.on {
+  border-color: var(--q-accent);
+  box-shadow: 0 0 0 3px var(--q-accent-soft);
+}
+.opt:has(:focus-visible) {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 2px;
+}
+.opt .i {
+  color: var(--q-text-2);
+}
+.opt.on .i {
+  color: var(--q-accent);
+}
+.opt b {
+  font-weight: 500;
+  font-size: var(--q-fs);
+}
+.opt span {
+  font-size: var(--q-fs-xs);
+  color: var(--q-text-3);
+}
+.tmpls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .tmpls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

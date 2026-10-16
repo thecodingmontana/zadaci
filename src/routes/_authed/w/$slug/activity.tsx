@@ -1,10 +1,10 @@
 import { useSuspenseQuery } from "@apollo/client/react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { Av } from "#/components/q/av";
+import { ActivityItem } from "#/components/activity/activity-item";
 import { Select } from "#/components/settings/ui";
-import { ACTIVITY, type ActivityItem } from "#/graphql/operations";
-import { ago, byDay } from "#/lib/time";
+import { ACTIVITY } from "#/graphql/operations";
+import { byDay } from "#/lib/time";
 
 // Ported from the reference app's Activity page: the workspace feed, grouped by day.
 
@@ -39,6 +39,7 @@ export const Route = createFileRoute("/_authed/w/$slug/activity")({
 function ActivityPage() {
 	const { slug } = Route.useParams();
 	const { filter = "all", who } = Route.useSearch();
+	const { user } = Route.useRouteContext();
 	const navigate = useNavigate({ from: Route.fullPath });
 	const { data } = useSuspenseQuery(ACTIVITY, {
 		variables: { slug, filter, actorId: who },
@@ -101,7 +102,7 @@ function ActivityPage() {
 						<div className="day-h">{day}</div>
 						<div className="feed lined">
 							{list.map((a) => (
-								<ActivityRow key={a.id} slug={slug} a={a} />
+								<ActivityItem key={a.id} slug={slug} a={a} meId={user.id} />
 							))}
 						</div>
 					</div>
@@ -118,39 +119,6 @@ function ActivityPage() {
 					<p>Changes to tasks and projects will appear here.</p>
 				</div>
 			)}
-		</div>
-	);
-}
-
-function ActivityRow({ slug, a }: { slug: string; a: ActivityItem }) {
-	const { user } = Route.useRouteContext();
-	const name = a.actor
-		? a.actor.id === user.id
-			? "You"
-			: a.actor.name
-		: "Someone";
-	return (
-		<div className="fitem">
-			<Av name={a.actor?.name ?? "?"} image={a.actor?.image} className="sm" />
-			<div className="grow">
-				<b>{name}</b> <span className="muted">{a.verb}</span>{" "}
-				{a.target &&
-					(a.projectId ? (
-						<Link
-							to="/w/$slug/p/$projectId"
-							params={{ slug, projectId: a.projectId }}
-							className="obj"
-						>
-							{a.target}
-						</Link>
-					) : (
-						<b>{a.target}</b>
-					))}{" "}
-				{a.extra && <span className="muted">{a.extra}</span>}
-			</div>
-			<time dateTime={a.createdAt} suppressHydrationWarning>
-				{ago(a.createdAt)}
-			</time>
 		</div>
 	);
 }

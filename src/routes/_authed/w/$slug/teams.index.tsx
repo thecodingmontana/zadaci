@@ -1,8 +1,8 @@
 import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
+import { AvStack } from "#/components/q/av";
 import { TeamsGrid } from "#/components/settings/workspace-group";
-import { TeamAvatars } from "#/components/teams/team-avatars";
 import { TeamModal } from "#/components/teams/team-modal";
 import { MEMBER_STATS, SETTINGS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
@@ -68,8 +68,8 @@ function TeamsPage() {
 					slug={slug}
 					teams={workspace.teams}
 					avatars={(teamId) => (
-						<TeamAvatars
-							members={workspace.members.filter((m) =>
+						<AvStack
+							people={workspace.members.filter((m) =>
 								stats
 									.find((s) => s.memberId === m.id)
 									?.teamIds.includes(teamId),

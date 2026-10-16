@@ -100,7 +100,7 @@ export const activityTypeDefs = /* GraphQL */ `
 	}
 
 	extend type Workspace {
-		activity(filter: String, actorId: ID): [Activity!]!
+		activity(filter: String, actorId: ID, projectId: ID): [Activity!]!
 		notifications(unread: Boolean): [Notification!]!
 		unreadNotifications: Int!
 		unreadInbox: Int!
@@ -206,7 +206,11 @@ export const activityResolvers = {
 	Workspace: {
 		activity: async (
 			w: { id: string; role?: string; memberId?: string },
-			args: { filter?: string | null; actorId?: string | null },
+			args: {
+				filter?: string | null;
+				actorId?: string | null;
+				projectId?: string | null;
+			},
 		) => {
 			const filter =
 				ACTIVITY_FILTERS[
@@ -240,6 +244,9 @@ export const activityResolvers = {
 								),
 						args.actorId
 							? eq(tables.activity.actor_id, args.actorId)
+							: undefined,
+						args.projectId
+							? eq(tables.activity.project_id, args.projectId)
 							: undefined,
 					),
 				)

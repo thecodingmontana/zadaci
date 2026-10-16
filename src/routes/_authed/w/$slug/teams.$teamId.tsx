@@ -12,6 +12,7 @@ import {
 import { PCOLORS } from "#/lib/onboarding";
 import { can } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
+import { pstat } from "#/lib/projects";
 import { cn } from "#/lib/utils";
 
 // Ported from the reference app's team page: projects and members of one team.
@@ -45,15 +46,6 @@ export const Route = createFileRoute("/_authed/w/$slug/teams/$teamId")({
 	}),
 	component: TeamPage,
 });
-
-const PROJECT_STATUS: Record<string, string> = {
-	idea: "Idea",
-	todo: "Planned",
-	in_progress: "In progress",
-	in_review: "In review",
-	completed: "Completed",
-	abandoned: "Abandoned",
-};
 
 function TeamPage() {
 	const { slug, teamId } = Route.useParams();
@@ -165,7 +157,7 @@ function TeamPage() {
 								</span>
 								<span className="tt">{p.title}</span>
 								<span className="faint" style={{ fontSize: 12 }}>
-									{PROJECT_STATUS[p.status] ?? p.status}
+									{pstat(p.status).name}
 								</span>
 							</Link>
 						))

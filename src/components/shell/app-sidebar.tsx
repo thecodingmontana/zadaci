@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactElement, useState } from "react";
+import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { Av } from "#/components/q/av";
 import {
 	Menu,
@@ -24,6 +25,7 @@ import { setAppearance, useAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
 import { PCOLORS } from "#/lib/onboarding";
 import { can, type Permission } from "#/lib/permissions";
+import { pstat } from "#/lib/projects";
 import { cn } from "#/lib/utils";
 import { useCommandMenu, useModKey } from "./command-menu";
 import {
@@ -40,23 +42,6 @@ import { useShell } from "./shell-state";
 // Sidebar ported from the reference app's renderSidebar (shell.js) and shell.css.
 
 export type ShellUser = { name: string; email: string; image?: string | null };
-
-const STATUS_DOT: Record<string, string> = {
-	idea: "var(--q-st-backlog)",
-	todo: "var(--q-st-todo)",
-	in_progress: "var(--q-st-progress)",
-	in_review: "var(--q-st-review)",
-	completed: "var(--q-st-done)",
-	abandoned: "var(--q-st-backlog)",
-};
-const STATUS_NAME: Record<string, string> = {
-	idea: "Idea",
-	todo: "To do",
-	in_progress: "In progress",
-	in_review: "In review",
-	completed: "Completed",
-	abandoned: "Abandoned",
-};
 
 function useActive(slug: string) {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -233,6 +218,7 @@ export function AppSidebar({
 	const slug = workspace.slug;
 	const navigate = useNavigate();
 	const allowed = (p: Permission) => can(workspace.role, p, workspace.settings);
+	const [creatingProject, setCreatingProject] = useState(false);
 	const isActive = useActive(slug);
 	const { collapsed, toggleSide } = useShell();
 	const { openPalette, openShortcuts } = useCommandMenu();
@@ -384,17 +370,17 @@ export function AppSidebar({
 						<span className="sp" />
 						{allowed("createProjects") && (
 							<SideTip label="New project" always>
-								<Link
-									to="/w/$slug/$"
-									params={{ slug, _splat: "projects" }}
+								<button
+									type="button"
 									className="ibtn ibtn-xs"
 									aria-label="New project"
+									onClick={() => setCreatingProject(true)}
 								>
 									<span
 										className="icon-[hugeicons--plus-sign] size-3.5"
 										aria-hidden="true"
 									/>
-								</Link>
+								</button>
 							</SideTip>
 						)}
 					</div>
@@ -452,8 +438,8 @@ export function AppSidebar({
 									</SideTip>
 									<span
 										className="sdot"
-										style={{ background: STATUS_DOT[p.status] }}
-										title={STATUS_NAME[p.status]}
+										style={{ background: pstat(p.status).c }}
+										title={pstat(p.status).name}
 									/>
 									<span className="hov">
 										<ProjectMenu
@@ -593,6 +579,11 @@ export function AppSidebar({
 					<UserMenuContent user={user} slug={slug} />
 				</Menu>
 			</div>
+			<ProjectModalLoader
+				open={creatingProject}
+				onOpenChange={setCreatingProject}
+				slug={slug}
+			/>
 		</nav>
 	);
 }

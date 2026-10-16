@@ -5,6 +5,7 @@ import {
 	format,
 	isToday,
 	isYesterday,
+	parseISO,
 } from "date-fns";
 
 /** "just now", "5m ago", "3h ago", "2d ago", then "Mar 4", like the reference feed. */
@@ -39,3 +40,13 @@ export function byDay<T extends { createdAt: string }>(items: T[]) {
 	}
 	return [...groups];
 }
+
+/** "Oct 31" (or "Oct 31, 2026" when `long`) from a "YYYY-MM-DD" day. */
+export function fmtDay(day: string | null | undefined, long = false) {
+	if (!day) return "—";
+	return format(parseISO(day), long ? "MMM d, yyyy" : "MMM d");
+}
+
+/** Whole days from today until a "YYYY-MM-DD" day (negative when it has passed). */
+export const daysUntil = (day: string) =>
+	differenceInCalendarDays(parseISO(day), new Date());

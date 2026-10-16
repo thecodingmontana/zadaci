@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client/react";
 import { useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
+import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { ShareModal } from "#/components/projects/share-modal";
 import { ConfirmModal } from "#/components/q/confirm";
 import {
@@ -10,13 +11,11 @@ import {
 	MenuSeparator,
 	MenuTrigger,
 } from "#/components/q/menu";
-import { Modal } from "#/components/q/modal";
 import {
 	ARCHIVE_PROJECT,
 	DELETE_PROJECT,
 	DUPLICATE_PROJECT,
 	MOVE_PROJECT,
-	RENAME_PROJECT,
 	type ShellProject,
 	TOGGLE_FAVORITE,
 } from "#/graphql/operations";
@@ -31,24 +30,27 @@ export function ProjectMenu({
 	index,
 	count,
 	allowed,
+	className = "ibtn ibtn-xs",
 }: {
 	slug: string;
 	project: ShellProject;
 	index: number;
 	count: number;
 	allowed: (permission: Permission) => boolean;
+	/** trigger look: the sidebar's small button by default */
+	className?: string;
 }) {
 	// renaming and archiving follow the viewer's right on this project (Share)
 	const canEdit = hasRight(project.myAccess, "edit");
 	const canReorder = allowed("editProjects");
 	const [sharing, setSharing] = useState(false);
 	const navigate = useNavigate();
-	const [renaming, setRenaming] = useState(false);
-	const [title, setTitle] = useState(project.title);
+	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
-	const refetch = { refetchQueries: ["Shell", "Settings"] };
+	const refetch = {
+		refetchQueries: ["Shell", "Settings", "Projects", "ProjectPage"],
+	};
 	const [toggleFavorite] = useMutation(TOGGLE_FAVORITE, refetch);
-	const [rename] = useMutation(RENAME_PROJECT, refetch);
 	const [duplicate] = useMutation(DUPLICATE_PROJECT, refetch);
 	const [move] = useMutation(MOVE_PROJECT, refetch);
 	const [archive] = useMutation(ARCHIVE_PROJECT, refetch);
@@ -58,25 +60,11 @@ export function ProjectMenu({
 	const run = (fn: () => Promise<unknown>, fail: string) => () =>
 		fn().catch((error: Error) => toast.error(fail, { desc: error.message }));
 
-	async function submitRename(event: FormEvent) {
-		event.preventDefault();
-		if (!title.trim()) return;
-		try {
-			await rename({ variables: { ...vars, title: title.trim() } });
-			setRenaming(false);
-			toast.success("Project renamed");
-		} catch (error) {
-			toast.error("Couldn't rename the project", {
-				desc: (error as Error).message,
-			});
-		}
-	}
-
 	return (
 		<>
 			<Menu>
 				<MenuTrigger
-					className="ibtn ibtn-xs"
+					className={className}
 					aria-label={`Options for ${project.title}`}
 				>
 					<span
@@ -113,8 +101,7 @@ export function ProjectMenu({
 						<MenuItem
 							icon="icon-[solar--pen-linear]"
 							onSelect={() => {
-								setTitle(project.title);
-								setRenaming(true);
+								setEditing(true);
 							}}
 						>
 							Rename & edit
@@ -182,7 +169,7 @@ export function ProjectMenu({
 								toast.success(`${project.title} archived`);
 							}, "Couldn't archive the project")}
 						>
-							{project.status === "completed" ? "Archive" : "Archive project"}
+							{project.status === "complete" ? "Archive" : "Archive project"}
 						</MenuItem>
 					)}
 					{allowed("deleteProjects") && (
@@ -196,47 +183,12 @@ export function ProjectMenu({
 					)}
 				</MenuContent>
 			</Menu>
-			<Modal
-				open={renaming}
-				onOpenChange={setRenaming}
-				title="Rename project"
-				size="sm"
-				footer={
-					<>
-						<span className="sp" />
-						<button
-							type="button"
-							className="btn btn-secondary"
-							onClick={() => setRenaming(false)}
-						>
-							Cancel
-						</button>
-						<button
-							type="submit"
-							form="rename-project"
-							className="btn btn-primary"
-							disabled={!title.trim()}
-						>
-							Save
-						</button>
-					</>
-				}
-			>
-				<form id="rename-project" className="modal-b" onSubmit={submitRename}>
-					<div className="field">
-						<label className="label" htmlFor="rename-project-name">
-							Project name
-						</label>
-						<input
-							className="input"
-							id="rename-project-name"
-							value={title}
-							onChange={(e) => setTitle(e.target.value)}
-							maxLength={255}
-						/>
-					</div>
-				</form>
-			</Modal>
+			<ProjectModalLoader
+				open={editing}
+				onOpenChange={setEditing}
+				slug={slug}
+				projectId={project.id}
+			/>
 			<ShareModal
 				open={sharing}
 				onOpenChange={setSharing}

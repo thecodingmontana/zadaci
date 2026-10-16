@@ -6,6 +6,7 @@ import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { NOTIFICATION_COUNTS, SHELL } from "#/graphql/operations";
+import { can } from "#/lib/permissions";
 import { getSidebarOpen } from "#/lib/session";
 import { cn } from "#/lib/utils";
 
@@ -91,6 +92,11 @@ function ShellLayout() {
 							teams={workspace.teams}
 							user={user}
 							unread={unread.all}
+							canCreateProjects={can(
+								workspace.role,
+								"createProjects",
+								workspace.settings,
+							)}
 						/>
 						<div className="content" id="main-content" tabIndex={-1}>
 							<Outlet />

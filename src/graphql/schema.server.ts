@@ -15,7 +15,7 @@ import { GraphQLError } from "graphql";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
 import { db, tables } from "#/db";
-import { CHANNEL_TYPE, STATUS, USER_ROLE } from "#/db/enums";
+import { CHANNEL_TYPE, PROJECT_STATUS, STATUS, USER_ROLE } from "#/db/enums";
 import { sendInviteEmails } from "#/lib/email.server";
 import {
 	EMAIL_RE,
@@ -26,6 +26,7 @@ import {
 	VIEWS,
 } from "#/lib/onboarding";
 import { can, projectRight } from "#/lib/permissions";
+import { makeKey } from "#/lib/projects";
 import { adminUserIds, logActivity, notify } from "./activity.server";
 
 export type GraphQLContext = {
@@ -535,7 +536,9 @@ const resolvers = {
 							description: `Created during setup from the ${template.name} template.`,
 							icon: template.icon,
 							color: "indigo",
-							status: STATUS.TODO,
+							status: PROJECT_STATUS.PLANNING,
+							key: makeKey(input.projectName),
+							start_date: new Date(),
 							workspace_id: workspace.id,
 							lead_id: member.id,
 						})

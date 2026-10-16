@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
+import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { Av } from "#/components/q/av";
 import {
 	Menu,
@@ -52,14 +53,17 @@ export function Topbar({
 	teams,
 	user,
 	unread,
+	canCreateProjects,
 }: {
 	slug: string;
 	projects: ShellProject[];
 	teams: ShellTeam[];
 	user: ShellUser;
 	unread: number;
+	canCreateProjects: boolean;
 }) {
 	const crumbs = useCrumbs(slug, projects, teams);
+	const [creatingProject, setCreatingProject] = useState(false);
 	const navigate = useNavigate();
 	const { setMnav } = useShell();
 	const { openPalette } = useCommandMenu();
@@ -148,7 +152,7 @@ export function Topbar({
 				</MenuTrigger>
 				<MenuContent width={220}>
 					<MenuLabel>Create</MenuLabel>
-					{/* shortcut: task/project/team creation isn't built yet; enable these with those features */}
+					{/* shortcut: task creation arrives with the tasks step */}
 					<MenuItem
 						icon="icon-[solar--check-circle-linear]"
 						onSelect={() => {}}
@@ -159,16 +163,16 @@ export function Topbar({
 					</MenuItem>
 					<MenuItem
 						icon="icon-[solar--folder-with-files-linear]"
-						onSelect={() => {}}
-						disabled
-						r={<kbd>P</kbd>}
+						onSelect={() => setCreatingProject(true)}
+						disabled={!canCreateProjects}
 					>
 						Project
 					</MenuItem>
 					<MenuItem
 						icon="icon-[solar--users-group-rounded-linear]"
-						onSelect={() => {}}
-						disabled
+						onSelect={() =>
+							navigate({ to: "/w/$slug/teams", params: { slug } })
+						}
 					>
 						Team
 					</MenuItem>
@@ -197,6 +201,11 @@ export function Topbar({
 				</MenuTrigger>
 				<UserMenuContent user={user} slug={slug} />
 			</Menu>
+			<ProjectModalLoader
+				open={creatingProject}
+				onOpenChange={setCreatingProject}
+				slug={slug}
+			/>
 		</header>
 	);
 }

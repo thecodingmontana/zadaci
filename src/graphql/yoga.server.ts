@@ -2,6 +2,10 @@ import { createSchema, createYoga } from "graphql-yoga";
 import { auth, secondFactors } from "#/lib/auth";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
 import { membersResolvers, membersTypeDefs } from "./members.server";
+import {
+	projectDetailsResolvers,
+	projectDetailsTypeDefs,
+} from "./project-details.server";
 import { projectsResolvers, projectsTypeDefs } from "./projects.server";
 import { type GraphQLContext, resolvers, typeDefs } from "./schema.server";
 import { settingsResolvers, settingsTypeDefs } from "./settings.server";
@@ -17,6 +21,7 @@ const schema = createSchema<GraphQLContext>({
 		membersTypeDefs,
 		teamsTypeDefs,
 		sharingTypeDefs,
+		projectDetailsTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -26,6 +31,7 @@ const schema = createSchema<GraphQLContext>({
 		membersResolvers,
 		teamsResolvers,
 		sharingResolvers,
+		projectDetailsResolvers,
 	],
 });
 

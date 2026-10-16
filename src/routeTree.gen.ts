@@ -26,6 +26,7 @@ import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/i
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
 import { Route as AuthedWSlugActivityRouteImport } from './routes/_authed/w/$slug/activity'
 import { Route as AuthedWSlugNotificationsRouteImport } from './routes/_authed/w/$slug/notifications'
+import { Route as AuthedWSlugProjectsRouteImport } from './routes/_authed/w/$slug/projects'
 import { Route as AuthedWSlugSettingsRouteImport } from './routes/_authed/w/$slug/settings'
 import { Route as AuthedWSlugMembersIndexRouteImport } from './routes/_authed/w/$slug/members.index'
 import { Route as AuthedWSlugMembersMemberIdRouteImport } from './routes/_authed/w/$slug/members.$memberId'
@@ -118,6 +119,11 @@ const AuthedWSlugNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthedWSlugRoute,
   } as any)
+const AuthedWSlugProjectsRoute = AuthedWSlugProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
 const AuthedWSlugSettingsRoute = AuthedWSlugSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
+  '/w/$slug/projects': typeof AuthedWSlugProjectsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug/': typeof AuthedWSlugIndexRoute
   '/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
+  '/w/$slug/projects': typeof AuthedWSlugProjectsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug': typeof AuthedWSlugIndexRoute
   '/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/_authed/w/$slug/activity': typeof AuthedWSlugActivityRoute
   '/_authed/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
+  '/_authed/w/$slug/projects': typeof AuthedWSlugProjectsRoute
   '/_authed/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/_authed/w/$slug/': typeof AuthedWSlugIndexRoute
   '/_authed/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/w/$slug/$'
     | '/w/$slug/activity'
     | '/w/$slug/notifications'
+    | '/w/$slug/projects'
     | '/w/$slug/settings'
     | '/w/$slug/'
     | '/w/$slug/members/$memberId'
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/w/$slug/$'
     | '/w/$slug/activity'
     | '/w/$slug/notifications'
+    | '/w/$slug/projects'
     | '/w/$slug/settings'
     | '/w/$slug'
     | '/w/$slug/members/$memberId'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/_authed/w/$slug/$'
     | '/_authed/w/$slug/activity'
     | '/_authed/w/$slug/notifications'
+    | '/_authed/w/$slug/projects'
     | '/_authed/w/$slug/settings'
     | '/_authed/w/$slug/'
     | '/_authed/w/$slug/members/$memberId'
@@ -431,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugNotificationsRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
+    '/_authed/w/$slug/projects': {
+      id: '/_authed/w/$slug/projects'
+      path: '/projects'
+      fullPath: '/w/$slug/projects'
+      preLoaderRoute: typeof AuthedWSlugProjectsRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
     '/_authed/w/$slug/settings': {
       id: '/_authed/w/$slug/settings'
       path: '/settings'
@@ -480,6 +499,7 @@ interface AuthedWSlugRouteChildren {
   AuthedWSlugSplatRoute: typeof AuthedWSlugSplatRoute
   AuthedWSlugActivityRoute: typeof AuthedWSlugActivityRoute
   AuthedWSlugNotificationsRoute: typeof AuthedWSlugNotificationsRoute
+  AuthedWSlugProjectsRoute: typeof AuthedWSlugProjectsRoute
   AuthedWSlugSettingsRoute: typeof AuthedWSlugSettingsRoute
   AuthedWSlugIndexRoute: typeof AuthedWSlugIndexRoute
   AuthedWSlugMembersMemberIdRoute: typeof AuthedWSlugMembersMemberIdRoute
@@ -493,6 +513,7 @@ const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugSplatRoute: AuthedWSlugSplatRoute,
   AuthedWSlugActivityRoute: AuthedWSlugActivityRoute,
   AuthedWSlugNotificationsRoute: AuthedWSlugNotificationsRoute,
+  AuthedWSlugProjectsRoute: AuthedWSlugProjectsRoute,
   AuthedWSlugSettingsRoute: AuthedWSlugSettingsRoute,
   AuthedWSlugIndexRoute: AuthedWSlugIndexRoute,
   AuthedWSlugMembersMemberIdRoute: AuthedWSlugMembersMemberIdRoute,
@@ -537,12 +558,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

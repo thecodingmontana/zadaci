@@ -53,3 +53,25 @@ export function Av({
 		</span>
 	);
 }
+
+/** Up to `max` faces, then "+N" (reference avStack). */
+export function AvStack({
+	people,
+	max = 4,
+	size = "sm",
+}: {
+	people: { id: string; name: string; image?: string | null }[];
+	max?: number;
+	size?: "sm" | "md";
+}) {
+	return (
+		<span className="avs">
+			{people.slice(0, max).map((p) => (
+				<Av key={p.id} name={p.name} image={p.image} className={size} />
+			))}
+			{people.length > max && (
+				<span className={cn("av more", size)}>+{people.length - max}</span>
+			)}
+		</span>
+	);
+}

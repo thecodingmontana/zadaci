@@ -6,10 +6,11 @@ import {
 	getTableColumns,
 	isNull,
 	max,
+	ne,
 	notInArray,
 } from "drizzle-orm";
 import { db, tables } from "#/db";
-import { STATUS } from "#/db/enums";
+import { PROJECT_STATUS, STATUS } from "#/db/enums";
 import { projectScope } from "./schema.server";
 
 // Per-member numbers for the Members directory, fetched in four grouped queries
@@ -90,7 +91,7 @@ export const membersResolvers = {
 							isNull(tables.project.deleted_at),
 							isNull(tables.project.archived_at),
 							isNull(tables.project_members.deleted_at),
-							notInArray(tables.project.status, DONE),
+							ne(tables.project.status, PROJECT_STATUS.COMPLETE),
 						),
 					)
 					.groupBy(tables.project_members.member_id),
@@ -153,7 +154,7 @@ export const membersResolvers = {
 							eq(tables.project_members.member_id, args.memberId),
 							isNull(tables.project_members.deleted_at),
 							isNull(tables.project.archived_at),
-							notInArray(tables.project.status, DONE),
+							ne(tables.project.status, PROJECT_STATUS.COMPLETE),
 						),
 					)
 					.orderBy(asc(tables.project.title)),

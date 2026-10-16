@@ -27,6 +27,15 @@ export function statusToDbValue(status: string): STATUS | undefined {
 	return STATUS[status.replace(/ /g, "_") as keyof typeof STATUS];
 }
 
+// project health, as in the reference app (Planning, In Progress, At Risk, On Hold, Completed)
+export enum PROJECT_STATUS {
+	PLANNING = "planning",
+	ACTIVE = "active",
+	RISK = "risk",
+	HOLD = "hold",
+	COMPLETE = "complete",
+}
+
 export enum PRIORITY {
 	LOW = "low",
 	MEDIUM = "medium",
@@ -58,6 +67,10 @@ export enum COMMENT_ENTITY_TYPE {
 export const user_role_enum = pgEnum("user_role", enumToPgEnum(USER_ROLE));
 export const status_enum = pgEnum("status", enumToPgEnum(STATUS));
 export const priority_enum = pgEnum("priority", enumToPgEnum(PRIORITY));
+export const project_status_enum = pgEnum(
+	"project_status",
+	enumToPgEnum(PROJECT_STATUS),
+);
 export const channel_type_enum = pgEnum(
 	"channel_type",
 	enumToPgEnum(CHANNEL_TYPE),

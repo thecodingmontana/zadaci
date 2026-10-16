@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
-import { Av } from "#/components/q/av";
+import { Av, AvStack } from "#/components/q/av";
 import {
 	InviteActions,
 	InviteModal,
@@ -16,7 +16,6 @@ import {
 	PermissionsTable,
 	TeamsGrid,
 } from "#/components/settings/workspace-group";
-import { TeamAvatars } from "#/components/teams/team-avatars";
 import { TeamModal } from "#/components/teams/team-modal";
 import {
 	MEMBER_STATS,
@@ -151,7 +150,7 @@ function MembersPage() {
 					<TeamsGrid
 						slug={slug}
 						teams={workspace.teams}
-						avatars={(teamId) => <TeamAvatars members={teamMembers(teamId)} />}
+						avatars={(teamId) => <AvStack people={teamMembers(teamId)} />}
 					/>
 				</>
 			) : tab === "roles" ? (

@@ -8,7 +8,14 @@ import {
 	uniqueIndex,
 	varchar,
 } from "drizzle-orm/pg-core";
-import { PRIORITY, priority_enum, STATUS, status_enum } from "./enums";
+import {
+	PRIORITY,
+	PROJECT_STATUS,
+	priority_enum,
+	project_status_enum,
+	STATUS,
+	status_enum,
+} from "./enums";
 import { team } from "./team";
 import { generateNanoId, pgTable, syncable } from "./utils";
 import { workspace, workspace_members } from "./workspace";
@@ -30,7 +37,9 @@ export const project = pgTable(
 			withTimezone: true,
 		}),
 		color: varchar("color", { length: 20 }),
-		status: status_enum("status").default(STATUS.IDEA).notNull(),
+		status: project_status_enum("status")
+			.default(PROJECT_STATUS.PLANNING)
+			.notNull(),
 		priority: priority_enum("priority").default(PRIORITY.NONE).notNull(),
 		workspace_id: varchar("workspace_id", { length: 16 })
 			.notNull()
@@ -39,6 +48,9 @@ export const project = pgTable(
 			onDelete: "set null",
 		}),
 		due_date: timestamp("due_date", { mode: "date" }),
+		start_date: timestamp("start_date", { mode: "date" }),
+		// short code that prefixes task keys, e.g. WEB-103
+		key: varchar("key", { length: 6 }).notNull().default("PRJ"),
 		// "workspace": everyone can view and comment; "private": only people invited
 		access: varchar("access", { length: 20 }).notNull().default("workspace"),
 		// the project lead always has full access
@@ -155,4 +167,21 @@ export const tasks_activity = pgTable(
 		index("tasks_activity_task_id_idx").on(table.task_id),
 		index("tasks_activity_changed_by_idx").on(table.changed_by),
 	],
+);
+
+// Dated checkpoints shown on the project overview and the timeline.
+export const project_milestone = pgTable(
+	"project_milestone",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		project_id: varchar("project_id", { length: 16 })
+			.notNull()
+			.references(() => project.id, { onDelete: "cascade" }),
+		name: varchar("name", { length: 255 }).notNull(),
+		date: timestamp("date", { mode: "date" }).notNull(),
+		...syncable,
+	},
+	(table) => [index("project_milestone_project_id_idx").on(table.project_id)],
 );
