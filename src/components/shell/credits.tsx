@@ -8,19 +8,28 @@ export const REPO_URL = "https://github.com/thecodingmontana/zadaci";
 export const supportMailto = () =>
 	`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Zadaci support")}`;
 
-const BUILT_WITH: [string, string][] = [
-	["TanStack Start & Router", "https://tanstack.com"],
-	["React", "https://react.dev"],
-	["Apollo GraphQL", "https://www.apollographql.com"],
-	["Drizzle ORM", "https://orm.drizzle.team"],
-	["PostgreSQL", "https://www.postgresql.org"],
+// [name, link, logo] — projects without a logo in the icon set get a lettered tile
+const BUILT_WITH: [string, string, string?][] = [
+	["React", "https://react.dev", "icon-[logos--react]"],
+	[
+		"TypeScript",
+		"https://www.typescriptlang.org",
+		"icon-[logos--typescript-icon]",
+	],
+	["TanStack Start", "https://tanstack.com"],
+	["Vite", "https://vite.dev", "icon-[logos--vitejs]"],
+	["GraphQL", "https://graphql.org", "icon-[logos--graphql]"],
+	["Apollo", "https://www.apollographql.com", "icon-[logos--apollostack]"],
+	["Drizzle ORM", "https://orm.drizzle.team", "icon-[logos--drizzle-icon]"],
+	["PostgreSQL", "https://www.postgresql.org", "icon-[logos--postgresql]"],
 	["Better Auth", "https://www.better-auth.com"],
 	["Tiptap", "https://tiptap.dev"],
-	["Tailwind CSS", "https://tailwindcss.com"],
+	["Tailwind CSS", "https://tailwindcss.com", "icon-[logos--tailwindcss-icon]"],
 	["Radix UI", "https://www.radix-ui.com"],
-	["Motion", "https://motion.dev"],
-	["Iconify (Solar, Hugeicons)", "https://iconify.design"],
-	["Cloudinary", "https://cloudinary.com"],
+	["Motion", "https://motion.dev", "icon-[logos--framer]"],
+	["Iconify", "https://iconify.design"],
+	["Cloudinary", "https://cloudinary.com", "icon-[logos--cloudinary-icon]"],
+	["Biome", "https://biomejs.dev", "icon-[logos--biomejs-icon]"],
 ];
 
 export function CreditsModal({
@@ -32,7 +41,7 @@ export function CreditsModal({
 }) {
 	return (
 		<Modal open={open} onOpenChange={onOpenChange} title="Credits" size="sm">
-			<div className="credits">
+			<div className="modal-b credits">
 				<a
 					className="credits-maker"
 					href="https://x.com/codewithmontana"
@@ -42,31 +51,47 @@ export function CreditsModal({
 					<img
 						src="https://avatars.githubusercontent.com/u/63234437?v=4"
 						alt=""
-						width={40}
-						height={40}
+						width={44}
+						height={44}
 					/>
-					<span>
+					<span className="grow">
 						<span className="faint block" style={{ fontSize: 12 }}>
 							Designed and built by
 						</span>
 						<b>@codewithmontana</b>
 					</span>
+					<span
+						className="icon-[solar--arrow-right-up-linear] size-4 faint"
+						aria-hidden="true"
+					/>
 				</a>
-				<div className="mh" style={{ padding: "4px 0 6px" }}>
-					Built with open source
+				<div>
+					<div className="mh" style={{ padding: "0 0 8px" }}>
+						Built with open source
+					</div>
+					<ul className="credits-list">
+						{BUILT_WITH.map(([name, href, logo]) => (
+							<li key={name}>
+								<a href={href} target="_blank" rel="noreferrer">
+									{logo ? (
+										<span
+											className={`${logo} size-4 shrink-0`}
+											aria-hidden="true"
+										/>
+									) : (
+										<span className="credits-mono" aria-hidden="true">
+											{name[0]}
+										</span>
+									)}
+									<span className="trunc">{name}</span>
+								</a>
+							</li>
+						))}
+					</ul>
 				</div>
-				<ul className="credits-list">
-					{BUILT_WITH.map(([name, href]) => (
-						<li key={name}>
-							<a href={href} target="_blank" rel="noreferrer">
-								{name}
-							</a>
-						</li>
-					))}
-				</ul>
 				<div className="credits-links">
 					<a
-						className="btn btn-secondary btn-sm"
+						className="btn btn-secondary btn-sm grow"
 						href={REPO_URL}
 						target="_blank"
 						rel="noreferrer"
@@ -77,7 +102,7 @@ export function CreditsModal({
 						/>
 						Source code
 					</a>
-					<a className="btn btn-secondary btn-sm" href={supportMailto()}>
+					<a className="btn btn-secondary btn-sm grow" href={supportMailto()}>
 						<span
 							className="icon-[hugeicons--mail-01] size-4"
 							aria-hidden="true"
@@ -85,7 +110,7 @@ export function CreditsModal({
 						Contact support
 					</a>
 				</div>
-				<p className="faint" style={{ fontSize: 12, margin: 0 }}>
+				<p className="faint credits-foot">
 					Made with 💚 · © {new Date().getFullYear()} Zadaci
 				</p>
 			</div>

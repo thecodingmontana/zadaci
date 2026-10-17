@@ -523,20 +523,23 @@
 .credits {
 	display: flex;
 	flex-direction: column;
-	gap: 14px;
+	gap: 16px;
+	padding-bottom: 18px;
 }
 .credits-maker {
 	display: flex;
 	align-items: center;
 	gap: 12px;
-	padding: 12px;
-	border-radius: var(--q-r-sm);
+	padding: 12px 14px;
+	border-radius: var(--q-r-md, 10px);
+	border: 1px solid var(--q-border);
 	background: var(--q-surface-2);
 	color: var(--q-text);
+	transition: background var(--q-dur);
 }
 .credits-maker img {
-	width: 40px;
-	height: 40px;
+	width: 44px;
+	height: 44px;
 	border-radius: 50%;
 }
 .credits-maker:hover {
@@ -544,23 +547,51 @@
 }
 .credits-list {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	gap: 6px 16px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 6px;
 	margin: 0;
 	padding: 0;
 	list-style: none;
-	font-size: var(--q-fs-sm);
 }
 .credits .credits-list a {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	height: 34px;
+	padding: 0 10px;
+	border-radius: var(--q-r-sm);
+	border: 1px solid var(--q-border);
 	color: var(--q-text-2);
+	font-size: var(--q-fs-sm);
+	transition:
+		background var(--q-dur),
+		color var(--q-dur);
 }
 .credits .credits-list a:hover {
+	background: var(--q-surface-2);
 	color: var(--q-text);
-	text-decoration: underline;
-	text-underline-offset: 2px;
+}
+.credits-mono {
+	width: 16px;
+	height: 16px;
+	display: grid;
+	place-items: center;
+	border-radius: 4px;
+	background: var(--q-text);
+	color: var(--q-surface);
+	font-size: 10px;
+	font-weight: 700;
+	flex-shrink: 0;
 }
 .credits-links {
 	display: flex;
 	gap: 8px;
-	flex-wrap: wrap;
+}
+.credits-links .btn {
+	justify-content: center;
+}
+.credits-foot {
+	margin: 0;
+	text-align: center;
+	font-size: 12px;
 }
