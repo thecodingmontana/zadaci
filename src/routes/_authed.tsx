@@ -6,10 +6,13 @@ import { getSession } from "#/lib/session";
 // inside the app, so opening a task or switching tabs doesn't wait on a server round trip.
 // Full page loads always check, and every API request verifies the session on the server.
 const REUSE_MS = 5 * 60_000;
-let checked: {
-	at: number;
-	session: Awaited<ReturnType<typeof getSession>>;
-} | null = null;
+// an object, not a reassigned variable: the route component is code-split into another chunk
+const last: {
+	checked: {
+		at: number;
+		session: Awaited<ReturnType<typeof getSession>>;
+	} | null;
+} = { checked: null };
 
 export const Route = createFileRoute("/_authed")({
 	beforeLoad: async ({ location, cause }) => {
@@ -17,10 +20,11 @@ export const Route = createFileRoute("/_authed")({
 		const fresh =
 			inBrowser &&
 			cause === "stay" &&
-			checked &&
-			Date.now() - checked.at < REUSE_MS;
-		const session = fresh && checked ? checked.session : await getSession();
-		if (inBrowser && !fresh) checked = { at: Date.now(), session };
+			last.checked &&
+			Date.now() - last.checked.at < REUSE_MS;
+		const session =
+			fresh && last.checked ? last.checked.session : await getSession();
+		if (inBrowser && !fresh) last.checked = { at: Date.now(), session };
 		if (!session)
 			throw redirect({
 				to: "/auth/signin",
@@ -31,5 +35,14 @@ export const Route = createFileRoute("/_authed")({
 		return { user: session.user };
 	},
 	head: () => ({ meta: [NOINDEX] }),
-	component: Outlet,
+	component: AuthedLayout,
 });
+
+function AuthedLayout() {
+	const { user } = Route.useRouteContext();
+	// The server checked the session to render this page, so the first click inside the app
+	// can reuse that check instead of waiting on another round trip.
+	if (typeof window !== "undefined" && !last.checked)
+		last.checked = { at: Date.now(), session: { user, secured: true } };
+	return <Outlet />;
+}

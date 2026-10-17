@@ -587,3 +587,61 @@ export function AppSidebar({
 		</nav>
 	);
 }
+
+/** The sidebar while a workspace loads: real links, placeholders for its name and projects. */
+export function SidebarSkeleton({
+	slug,
+	user,
+}: {
+	slug: string;
+	user: ShellUser;
+}) {
+	return (
+		<nav className="side" aria-label="Main" aria-busy="true">
+			<div className="side-top">
+				<div className="ws grow" style={{ cursor: "default" }}>
+					<span
+						className="sk"
+						style={{ width: 22, height: 22, borderRadius: 6 }}
+					/>
+					<span className="sk" style={{ width: 96, height: 11 }} />
+				</div>
+			</div>
+			<div className="side-scroll">
+				{MAIN_NAV.map((item) => (
+					<SItem key={item.path} slug={slug} item={item} on={false} />
+				))}
+				<div className="sgroup">
+					<div className="sgroup-h">Workspace</div>
+					{WORKSPACE_NAV.map((item) => (
+						<SItem key={item.path} slug={slug} item={item} on={false} />
+					))}
+				</div>
+				<div className="sgroup">
+					<div className="sgroup-h">Projects</div>
+					{[62, 48, 70].map((w) => (
+						<div key={w} className="sitem" style={{ cursor: "default" }}>
+							<span
+								className="sk"
+								style={{ width: 16, height: 16, borderRadius: 4 }}
+							/>
+							<span className="sk" style={{ width: `${w}%`, height: 10 }} />
+						</div>
+					))}
+				</div>
+			</div>
+			<div className="side-bot">
+				<SItem slug={slug} item={SETTINGS_NAV} on={false} />
+				<div className="sitem" style={{ height: 36, cursor: "default" }}>
+					<Av name={user.name} image={user.image} />
+					<span
+						className="trunc"
+						style={{ color: "var(--q-text)", fontWeight: 500 }}
+					>
+						{user.name}
+					</span>
+				</div>
+			</div>
+		</nav>
+	);
+}

@@ -6,7 +6,7 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { z } from "zod";
-import { AppSidebar } from "#/components/shell/app-sidebar";
+import { AppSidebar, SidebarSkeleton } from "#/components/shell/app-sidebar";
 import { CommandMenuProvider } from "#/components/shell/command-menu";
 import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
@@ -35,8 +35,31 @@ export const Route = createFileRoute("/_authed/w/$slug")({
 		return { sidebarOpen };
 	},
 	head: ({ params }) => ({ meta: [{ title: `${params.slug} - Zadaci` }] }),
+	// opening a workspace: draw the sidebar right away while its projects load
+	pendingComponent: ShellSkeleton,
+	pendingMs: 150,
+	pendingMinMs: 200,
 	component: WorkspaceShell,
 });
+
+function ShellSkeleton() {
+	const { slug } = Route.useParams();
+	const { user } = Route.useRouteContext();
+	// only shown during in-app navigation, so the cookie is readable here
+	const open =
+		typeof document === "undefined" ||
+		!document.cookie.includes("sidebar_state=false");
+	return (
+		<ShellProvider defaultCollapsed={!open}>
+			<TooltipProvider delayDuration={200}>
+				<div className={cn("shell h-dvh", !open && "collapsed")}>
+					<SidebarSkeleton slug={slug} user={user} />
+					<main className="main" id="main" />
+				</div>
+			</TooltipProvider>
+		</ShellProvider>
+	);
+}
 
 function WorkspaceShell() {
 	const { sidebarOpen } = Route.useLoaderData();
