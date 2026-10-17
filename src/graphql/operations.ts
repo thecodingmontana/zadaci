@@ -32,12 +32,6 @@ export const WORKSPACE: TypedDocumentNode<
 		workspace:
 			| (WorkspaceSummary & {
 					inviteCode: string;
-					projects: {
-						id: string;
-						title: string;
-						icon: string | null;
-						tasks: { id: string; name: string; status: string }[];
-					}[];
 			  })
 			| null;
 	},
@@ -52,16 +46,6 @@ export const WORKSPACE: TypedDocumentNode<
 			defaultView
 			role
 			inviteCode
-			projects {
-				id
-				title
-				icon
-				tasks {
-					id
-					name
-					status
-				}
-			}
 		}
 	}
 `;
