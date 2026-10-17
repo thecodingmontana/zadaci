@@ -1,9 +1,6 @@
-import { useApolloClient } from "@apollo/client/react";
 import type { Editor } from "@tiptap/react";
 import { useEffect, useState } from "react";
 import { Modal } from "#/components/q/modal";
-import { sendToCloudinary } from "#/components/tasks/upload";
-import { NOTE_COVER_UPLOAD } from "#/graphql/note-operations";
 import {
 	EMBED_PROVIDERS,
 	isImageSrc,
@@ -11,13 +8,11 @@ import {
 	toEmbed,
 } from "#/lib/note-embeds";
 import { toast } from "#/lib/toast";
-import { cn } from "#/lib/utils";
 import { INSERT_EVENT, type InsertKind } from "./blocks";
+import { ImagePicker } from "./image-picker";
 
 // Asks for what a media block shows: an image (upload or link), a YouTube link, or a link
 // from an embed provider. The "/" menu opens it.
-
-const MAX_IMAGE = 10 * 1024 * 1024;
 
 const COPY: Record<
 	InsertKind,
@@ -49,17 +44,13 @@ export function InsertDialog({
 	noteId: string;
 	editor: Editor;
 }) {
-	const client = useApolloClient();
 	const [kind, setKind] = useState<InsertKind | null>(null);
 	const [link, setLink] = useState("");
-	const [tab, setTab] = useState<"upload" | "link">("upload");
-	const [busy, setBusy] = useState(false);
 
 	useEffect(() => {
 		const open = (e: Event) => {
 			setKind((e as CustomEvent<InsertKind>).detail);
 			setLink("");
-			setTab("upload");
 		};
 		window.addEventListener(INSERT_EVENT, open);
 		return () => window.removeEventListener(INSERT_EVENT, open);
@@ -96,38 +87,8 @@ export function InsertDialog({
 		}
 	};
 
-	const upload = async (file: File) => {
-		if (!file.type.startsWith("image/"))
-			return toast.error("Pick an image file");
-		if (file.size > MAX_IMAGE) return toast.error("Images can be up to 10 MB");
-		setBusy(true);
-		try {
-			// the page's upload slot (its covers and images share a folder)
-			const { data } = await client.mutate({
-				mutation: NOTE_COVER_UPLOAD,
-				variables: { slug, id: noteId },
-			});
-			if (!data) throw new Error("No upload slot");
-			const { secure_url } = await sendToCloudinary(data.noteCoverUpload, file);
-			insert(() =>
-				editor
-					.chain()
-					.focus()
-					.setImage({ src: secure_url, alt: file.name })
-					.run(),
-			);
-		} catch (error) {
-			toast.error("Couldn't upload the image", {
-				desc: (error as Error).message,
-			});
-		} finally {
-			setBusy(false);
-		}
-	};
-
 	if (!kind) return null;
 	const copy = COPY[kind];
-	const showUpload = kind === "image" && tab === "upload";
 
 	return (
 		<Modal
@@ -135,45 +96,16 @@ export function InsertDialog({
 			onOpenChange={(o) => !o && close()}
 			title={copy.title}
 			size="sm"
-			busy={busy}
 		>
 			<div className="modal-b insert-media">
-				{kind === "image" && (
-					<div className="cover-tabs" role="tablist">
-						{(["upload", "link"] as const).map((t) => (
-							<button
-								key={t}
-								type="button"
-								role="tab"
-								aria-selected={tab === t}
-								className={cn(tab === t && "on")}
-								onClick={() => setTab(t)}
-							>
-								{t === "upload" ? "Upload" : "Link"}
-							</button>
-						))}
-					</div>
-				)}
-				{showUpload ? (
-					<label className={cn("insert-drop", busy && "is-loading")}>
-						<span
-							className="icon-[hugeicons--image-upload] size-6"
-							aria-hidden="true"
-						/>
-						<b>{busy ? "Uploading…" : "Choose an image"}</b>
-						<span className="faint">PNG, JPG, GIF or WebP, up to 10 MB</span>
-						<input
-							type="file"
-							accept="image/*"
-							className="sr"
-							disabled={busy}
-							onChange={(e) => {
-								const file = e.target.files?.[0];
-								e.target.value = "";
-								if (file) void upload(file);
-							}}
-						/>
-					</label>
+				{kind === "image" ? (
+					<ImagePicker
+						slug={slug}
+						noteId={noteId}
+						onPick={(src, alt) =>
+							insert(() => editor.chain().focus().setImage({ src, alt }).run())
+						}
+					/>
 				) : (
 					<form
 						className="insert-link"
@@ -196,7 +128,7 @@ export function InsertDialog({
 							className="btn btn-primary"
 							disabled={!link.trim()}
 						>
-							{kind === "image" ? "Add image" : "Embed"}
+							Embed
 						</button>
 					</form>
 				)}

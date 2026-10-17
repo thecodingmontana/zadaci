@@ -219,3 +219,42 @@ export const NOTE_COVER_UPLOAD: TypedDocumentNode<
 		}
 	}
 `;
+
+export type UnsplashPhoto = {
+	id: string;
+	thumb: string;
+	url: string;
+	alt: string | null;
+	author: string;
+	authorUrl: string;
+	downloadLocation: string;
+};
+
+export const UNSPLASH: TypedDocumentNode<
+	{ unsplash: { photos: UnsplashPhoto[]; totalPages: number } },
+	{ query?: string; page?: number }
+> = gql`
+	query Unsplash($query: String, $page: Int) {
+		unsplash(query: $query, page: $page) {
+			photos {
+				id
+				thumb
+				url
+				alt
+				author
+				authorUrl
+				downloadLocation
+			}
+			totalPages
+		}
+	}
+`;
+
+export const UNSPLASH_PICKED: TypedDocumentNode<
+	{ unsplashPicked: boolean },
+	{ downloadLocation: string }
+> = gql`
+	mutation UnsplashPicked($downloadLocation: String!) {
+		unsplashPicked(downloadLocation: $downloadLocation)
+	}
+`;

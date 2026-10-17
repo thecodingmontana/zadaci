@@ -748,3 +748,62 @@
 .insert-link .btn {
 	align-self: flex-end;
 }
+
+/* ---- shared image picker (upload, link, Unsplash) ---- */
+.img-picker .cover-tabs button {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+.img-picker > .insert-drop,
+.img-picker > .insert-link {
+	margin-top: 10px;
+}
+.unsplash {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding-top: 10px;
+}
+.unsplash-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+	max-height: 300px;
+	overflow-y: auto;
+}
+.unsplash-item {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+.unsplash-item button {
+	aspect-ratio: 3 / 2;
+	border-radius: var(--q-r-sm);
+	overflow: hidden;
+	background: var(--q-surface-2);
+}
+.unsplash-item img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform var(--q-dur);
+}
+.unsplash-item button:hover img {
+	transform: scale(1.04);
+}
+.unsplash-item a {
+	font-size: 11px;
+	color: var(--q-text-3);
+}
+.unsplash-sk {
+	aspect-ratio: 3 / 2;
+	border-radius: var(--q-r-sm);
+}
+.unsplash-foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 12px;
+}

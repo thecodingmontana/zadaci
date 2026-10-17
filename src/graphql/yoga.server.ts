@@ -14,6 +14,7 @@ import { sharingResolvers, sharingTypeDefs } from "./sharing.server";
 import { taskExtrasResolvers, taskExtrasTypeDefs } from "./task-extras.server";
 import { tasksResolvers, tasksTypeDefs } from "./tasks.server";
 import { teamsResolvers, teamsTypeDefs } from "./teams.server";
+import { unsplashResolvers, unsplashTypeDefs } from "./unsplash.server";
 
 const schema = createSchema<GraphQLContext>({
 	typeDefs: [
@@ -28,6 +29,7 @@ const schema = createSchema<GraphQLContext>({
 		tasksTypeDefs,
 		taskExtrasTypeDefs,
 		notesTypeDefs,
+		unsplashTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -41,6 +43,7 @@ const schema = createSchema<GraphQLContext>({
 		tasksResolvers,
 		taskExtrasResolvers,
 		notesResolvers,
+		unsplashResolvers,
 	],
 });
 
