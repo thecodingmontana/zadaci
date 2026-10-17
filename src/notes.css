@@ -489,3 +489,10 @@
 		min-height: 140px;
 	}
 }
+
+/* the block menu opens from here, beside the handle */
+.block-anchor {
+	width: 0;
+	height: 22px;
+	align-self: center;
+}

@@ -15,7 +15,13 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Menu, MenuContent, MenuTrigger } from "#/components/q/menu";
+import {
+	Menu,
+	MenuContent,
+	MenuItem,
+	MenuSeparator,
+	MenuTrigger,
+} from "#/components/q/menu";
 import {
 	type NoteDetail,
 	type NoteItem,
@@ -26,7 +32,7 @@ import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { NoteActions } from "./note-actions";
 import { NoteCover } from "./note-cover";
-import { SlashCommands } from "./slash-menu";
+import { SLASH_COMMANDS, SlashCommands } from "./slash-menu";
 
 // A note's page: emoji, title and a Tiptap body. Changes save on their own a moment after
 // you stop typing; a newer save by someone else is never overwritten.
@@ -320,13 +326,18 @@ function IconMenu({
 
 /** Notion's block handle: + adds a block below (and opens the / menu), ⋮⋮ drags the block. */
 function BlockHandle({ editor }: { editor: Editor }) {
-	const block = useRef<{ end: number } | null>(null);
+	const block = useRef<{ pos: number; size: number } | null>(null);
+	const [menuOpen, setMenuOpen] = useState(false);
+	const openMenu = setMenuOpen;
+	const at = () => block.current;
+
 	return (
 		<DragHandle
 			editor={editor}
 			className="block-handle"
 			onNodeChange={({ node, pos }) => {
-				block.current = node ? { end: pos + node.nodeSize } : null;
+				if (!menuOpen)
+					block.current = node ? { pos, size: node.nodeSize } : null;
 			}}
 		>
 			<button
@@ -335,12 +346,13 @@ function BlockHandle({ editor }: { editor: Editor }) {
 				aria-label="Add a block below"
 				data-tip="Add a block below"
 				onClick={() => {
-					const at = block.current?.end;
-					if (at == null) return;
+					const b = at();
+					if (!b) return;
+					const end = b.pos + b.size;
 					editor
 						.chain()
-						.insertContentAt(at, { type: "paragraph" })
-						.focus(at + 1)
+						.insertContentAt(end, { type: "paragraph" })
+						.focus(end + 1)
 						.insertContent("/")
 						.run();
 				}}
@@ -350,13 +362,118 @@ function BlockHandle({ editor }: { editor: Editor }) {
 					aria-hidden="true"
 				/>
 			</button>
-			<span className="ibtn ibtn-xs grip" data-tip="Drag to move">
+			{/* drag to move; click (or tap, where dragging isn't possible) for the block menu */}
+			{/* biome-ignore lint/a11y/useSemanticElements: some browsers won't start a drag from a <button>; role, tabIndex and keys give it button behaviour */}
+			<span
+				role="button"
+				tabIndex={0}
+				className="ibtn ibtn-xs grip"
+				aria-label="Drag to move, or click for block options"
+				data-tip="Drag to move · Click for options"
+				onClick={() => openMenu(true)}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						openMenu(true);
+					}
+				}}
+			>
 				<span
 					className="icon-[hugeicons--drag-drop-vertical] size-4"
 					aria-hidden="true"
 				/>
 			</span>
+			<Menu open={menuOpen} onOpenChange={openMenu}>
+				<MenuTrigger asChild>
+					<span className="block-anchor" aria-hidden="true" />
+				</MenuTrigger>
+				<MenuContent width={220} align="start">
+					<div className="mh">Turn into</div>
+					{SLASH_COMMANDS.filter((c) => c.title !== "Divider").map((c) => (
+						<MenuItem
+							key={c.title}
+							icon={c.icon}
+							onSelect={() => {
+								const b = at();
+								if (b)
+									c.run(
+										editor
+											.chain()
+											.focus()
+											.setTextSelection(b.pos + 1),
+									).run();
+							}}
+						>
+							{c.title}
+						</MenuItem>
+					))}
+					<MenuSeparator />
+					<MenuItem
+						icon="icon-[solar--arrow-up-linear]"
+						onSelect={() => {
+							const b = at();
+							if (b) moveBlock(editor, b.pos, -1);
+						}}
+					>
+						Move up
+					</MenuItem>
+					<MenuItem
+						icon="icon-[solar--arrow-down-linear]"
+						onSelect={() => {
+							const b = at();
+							if (b) moveBlock(editor, b.pos, 1);
+						}}
+					>
+						Move down
+					</MenuItem>
+					<MenuItem
+						icon="icon-[solar--copy-linear]"
+						onSelect={() => {
+							const b = at();
+							const node = b && editor.state.doc.nodeAt(b.pos);
+							if (b && node)
+								editor.view.dispatch(
+									editor.state.tr.insert(b.pos + b.size, node),
+								);
+						}}
+					>
+						Duplicate
+					</MenuItem>
+					<MenuItem
+						icon="icon-[solar--trash-bin-trash-linear]"
+						danger
+						onSelect={() => {
+							const b = at();
+							if (b)
+								editor.view.dispatch(
+									editor.state.tr.delete(b.pos, b.pos + b.size),
+								);
+						}}
+					>
+						Delete
+					</MenuItem>
+				</MenuContent>
+			</Menu>
 		</DragHandle>
+	);
+}
+
+/** Swaps a top-level block with the one above (-1) or below (1). */
+export function moveBlock(editor: Editor, pos: number, dir: -1 | 1) {
+	const { doc, tr } = editor.state;
+	let offset = 0;
+	let index = -1;
+	for (let i = 0; i < doc.childCount; i++) {
+		if (offset === pos) index = i;
+		offset += doc.child(i).nodeSize;
+	}
+	const node = doc.maybeChild(index);
+	const other = doc.maybeChild(index + dir);
+	if (!node || !other) return;
+	const from = dir < 0 ? pos - other.nodeSize : pos;
+	const to = from + node.nodeSize + other.nodeSize;
+	editor.view.dispatch(
+		tr.replaceWith(from, to, dir < 0 ? [node, other] : [other, node]),
 	);
 }
 

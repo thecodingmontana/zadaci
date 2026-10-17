@@ -350,7 +350,7 @@ export function NoteMenu({
 						aria-hidden="true"
 					/>
 				</MenuTrigger>
-				<MenuContent width={200} align="start">
+				<MenuContent width={240} align="end">
 					{children}
 					{note.canEdit && onAdd && (
 						<MenuItem icon="icon-[hugeicons--plus-sign]" onSelect={onAdd}>
