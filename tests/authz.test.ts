@@ -74,7 +74,10 @@ test("duplicating a project respects 'Members can create projects'", async () =>
 	assert.equal(code(await gql(member, DUP, { s: slug, p })), "FORBIDDEN");
 	await gql(owner, `mutation($s: String!) { updateWorkspace(slug: $s, input: { settings: { permCreate: true } }) { id } }`, { s: slug });
 	assert.equal(code(await gql(member, DUP, { s: slug, p })), "FORBIDDEN", "commenting on a project isn't enough to copy it");
+	const KEYS = `query($s: String!) { workspace(slug: $s) { projects { key } } }`;
 	assert.ok((await gql(owner, DUP, { s: slug, p })).data?.duplicateProject.id, "owners can still duplicate");
+	const keys = (await gql(owner, KEYS, { s: slug })).data?.workspace.projects.map((x: { key: string }) => x.key);
+	assert.equal(new Set(keys).size, keys.length, "the copy gets its own key");
 });
 
 test("joining twice at the same moment creates one membership", async () => {

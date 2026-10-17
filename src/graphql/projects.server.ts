@@ -9,6 +9,7 @@ import {
 	type ProjectRight,
 	projectRight,
 } from "#/lib/permissions";
+import { makeKey } from "#/lib/projects";
 import { logActivity, notify, projectUserIds } from "./activity.server";
 import {
 	badInput,
@@ -281,12 +282,16 @@ export const projectsResolvers = {
 				await db.delete(tables.favorite).where(where);
 				return false;
 			}
-			await db.insert(tables.favorite).values({
-				user_id: user.id,
-				workspace_id: workspace.id,
-				entity_type: "project",
-				entity_id: project.id,
-			});
+			await db
+				.insert(tables.favorite)
+				.values({
+					user_id: user.id,
+					workspace_id: workspace.id,
+					entity_type: "project",
+					entity_id: project.id,
+				})
+				// a double click: the first insert won, which is the same result
+				.onConflictDoNothing();
 			return true;
 		},
 
@@ -340,11 +345,26 @@ export const projectsResolvers = {
 			// copying everything in it needs edit rights there (the copier leads the copy).
 			const copy = await db.transaction(async (tx) => {
 				const { id: _id, created_at: _c, updated_at: _u, ...rest } = project;
+				// the copy needs its own key, or its tasks read WR-1, WR-2 like the original's
+				const taken = await tx
+					.select({ key: tables.project.key })
+					.from(tables.project)
+					.where(
+						and(
+							eq(tables.project.workspace_id, workspace.id),
+							isNull(tables.project.deleted_at),
+						),
+					);
+				const title = `${project.title} (copy)`;
 				const [copy] = await tx
 					.insert(tables.project)
 					.values({
 						...rest,
-						title: `${project.title} (copy)`,
+						title,
+						key: makeKey(
+							title,
+							taken.map((t) => t.key),
+						),
 						sort_order: project.sort_order + 1,
 						// whoever duplicates it leads the copy
 						lead_id: workspace.memberId ?? null,

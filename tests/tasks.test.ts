@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
+import { and, eq, isNull } from "drizzle-orm";
+import { db, tables } from "#/db";
 import { cleanup, gql, join, makeUser, makeWorkspace, type TestUser } from "./helpers";
 
 after(cleanup);
@@ -78,6 +80,28 @@ test("finishing a repeating task schedules the next one", async () => {
 			["todo", "2026-11-09"],
 		],
 	);
+});
+
+test("simultaneous clicks don't double up: one repeat, one assignee, one star", async () => {
+	const { owner, slug, project, memberId, create } = await setup();
+	const id = (await create(owner, { title: "Daily standup", recur: "Daily", dueDate: "2026-11-02" })).data?.createTask.id;
+	await Promise.all([1, 2, 3].map(() => gql(owner, UPDATE, { s: slug, id, p: { status: "completed" } })));
+	const tasks = (await gql(owner, TASKS, { s: slug, p: project.id })).data?.workspace.tasks;
+	assert.equal(tasks.filter((t: { title: string }) => t.title === "Daily standup").length, 2, "the done one and a single next copy");
+
+	const ownerId = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug })).data?.workspace.members.find(
+		(m: { isMe: boolean }) => m.isMe,
+	).id;
+	await Promise.all([memberId, ownerId, memberId].map((a) => gql(owner, UPDATE, { s: slug, id, p: { assigneeId: a } })));
+	const live = await db
+		.select({ id: tables.task_assignees.id })
+		.from(tables.task_assignees)
+		.where(and(eq(tables.task_assignees.task_id, id), isNull(tables.task_assignees.deleted_at)));
+	assert.equal(live.length, 1);
+
+	const STAR = `mutation($s: String!, $id: ID!) { toggleTaskFavorite(slug: $s, id: $id) }`;
+	const stars = await Promise.all([1, 2].map(() => gql(owner, STAR, { s: slug, id })));
+	assert.deepEqual(stars.map((r) => r.errors), [undefined, undefined], "a double click isn't an error");
 });
 
 test("people who can only comment can't change tasks, and guests off the project can't see them", async () => {

@@ -7,6 +7,7 @@ import {
 	inArray,
 	isNull,
 	max,
+	ne,
 	type SQL,
 	sql,
 } from "drizzle-orm";
@@ -453,19 +454,22 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 	}
 	if (patch.description !== undefined)
 		set.description = patch.description || null;
+	// status logs wait until the write confirms this request made the change
+	const statusLogs: [string, string?][] = [];
+	const statusAt = logs.length;
 	if (patch.status && patch.status !== task.status) {
 		set.status = patch.status as STATUS;
 		const done = patch.status === STATUS.COMPLETED;
 		set.completed_at = done ? new Date() : null;
 		if (task.parent_task_id)
-			logs.push([
+			statusLogs.push([
 				done ? "completed subtask on" : "reopened subtask on",
 				`“${task.name}”`,
 			]);
-		else if (done) logs.push(["completed"]);
-		else if (task.status === STATUS.COMPLETED) logs.push(["reopened"]);
+		else if (done) statusLogs.push(["completed"]);
+		else if (task.status === STATUS.COMPLETED) statusLogs.push(["reopened"]);
 		else
-			logs.push([
+			statusLogs.push([
 				"moved",
 				`from ${taskStatus(task.status).name} to ${taskStatus(patch.status).name}`,
 			]);
@@ -512,14 +516,36 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 	if (patch.sortOrder !== undefined) set.sort_order = patch.sortOrder;
 
 	let updated = task;
+	let statusApplied = false;
 	if (Object.keys(set).length) {
+		// Two people finishing a task at once: only the one whose write flips the status
+		// logs it and schedules the next repeat; the other's remaining fields still apply.
 		const [row] = await db
 			.update(tables.task)
 			.set(set)
-			.where(eq(tables.task.id, task.id))
+			.where(
+				and(
+					eq(tables.task.id, task.id),
+					set.status ? ne(tables.task.status, set.status) : undefined,
+				),
+			)
 			.returning();
-		if (row) updated = row;
+		if (row) {
+			updated = row;
+			statusApplied = !!set.status;
+		} else if (set.status) {
+			const { status: _s, completed_at: _c, ...rest } = set;
+			if (Object.keys(rest).length) {
+				const [other] = await db
+					.update(tables.task)
+					.set(rest)
+					.where(eq(tables.task.id, task.id))
+					.returning();
+				if (other) updated = other;
+			}
+		}
 	}
+	if (statusApplied) logs.splice(statusAt, 0, ...statusLogs);
 	if (patch.assigneeId !== undefined) {
 		const [current] = await db
 			.select({ memberId: tables.task_assignees.member_id })
@@ -531,9 +557,31 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 				),
 			);
 		const next = patch.assigneeId || null;
+		let changed = false;
 		if ((current?.memberId ?? null) !== next) {
 			await checkAssignee(actor.workspace.id, task.project_id, next);
-			await setAssignee(db, task.id, next);
+			// lock the task so two assigns at once can't both leave an assignee row
+			changed = await db.transaction(async (tx) => {
+				await tx
+					.select({ id: tables.task.id })
+					.from(tables.task)
+					.where(eq(tables.task.id, task.id))
+					.for("update");
+				const [now] = await tx
+					.select({ memberId: tables.task_assignees.member_id })
+					.from(tables.task_assignees)
+					.where(
+						and(
+							eq(tables.task_assignees.task_id, task.id),
+							isNull(tables.task_assignees.deleted_at),
+						),
+					);
+				if ((now?.memberId ?? null) === next) return false;
+				await setAssignee(tx, task.id, next);
+				return true;
+			});
+		}
+		if (changed) {
 			const person = next ? await memberName(next) : null;
 			logs.push(
 				task.parent_task_id
@@ -550,7 +598,12 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 		await taskActivity(actor, updated, verb, extra);
 
 	// A repeating task comes back: the next copy is due one interval later.
-	if (set.status === STATUS.COMPLETED && updated.recur && updated.due_date) {
+	if (
+		statusApplied &&
+		set.status === STATUS.COMPLETED &&
+		updated.recur &&
+		updated.due_date
+	) {
 		const due = addDays(updated.due_date, RECUR_DAYS[updated.recur] ?? 7);
 		const [assignee] = await db
 			.select({ memberId: tables.task_assignees.member_id })
@@ -1016,12 +1069,16 @@ export const tasksResolvers = {
 				await db.delete(tables.favorite).where(where);
 				return false;
 			}
-			await db.insert(tables.favorite).values({
-				user_id: user.id,
-				workspace_id: workspace.id,
-				entity_type: "task",
-				entity_id: task.id,
-			});
+			await db
+				.insert(tables.favorite)
+				.values({
+					user_id: user.id,
+					workspace_id: workspace.id,
+					entity_type: "task",
+					entity_id: task.id,
+				})
+				// a double click: the first insert won, which is the same result
+				.onConflictDoNothing();
 			return true;
 		},
 	},
