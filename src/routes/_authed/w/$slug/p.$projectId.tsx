@@ -388,8 +388,12 @@ function NoAccess({ slug }: { slug: string }) {
 					you.
 				</p>
 				<div className="row">
-					<Link to="/w/$slug" params={{ slug }} className="btn btn-secondary">
-						Go to Home
+					<Link
+						to="/w/$slug/projects"
+						params={{ slug }}
+						className="btn btn-secondary"
+					>
+						Back to projects
 					</Link>
 				</div>
 			</div>
