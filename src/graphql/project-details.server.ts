@@ -1,4 +1,4 @@
-import { and, asc, count, eq, isNull, max, min } from "drizzle-orm";
+import { and, asc, count, eq, gt, isNull, max, min } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { PRIORITY, PROJECT_STATUS, STATUS } from "#/db/enums";
@@ -130,6 +130,7 @@ const projectPatch = z
 	})
 	.partial();
 
+const DAY_MS = 86_400_000;
 const addDays = (days: number) => {
 	const d = new Date();
 	d.setUTCHours(0, 0, 0, 0);
@@ -174,6 +175,8 @@ export const projectDetailsResolvers = {
 	Project: {
 		startDate: (p: Project) => toDay(p.start_date),
 		dueDate: (p: Project) => toDay(p.due_date),
+		// shortcut: one query per project (fine for tens of projects); batch with a DataLoader
+		// if Overview/Timeline grow to hundreds of projects
 		milestones: (p: Project) =>
 			db
 				.select()
@@ -260,7 +263,16 @@ export const projectDetailsResolvers = {
 						at: max(tables.activity.created_at),
 					})
 					.from(tables.activity)
-					.where(eq(tables.activity.workspace_id, w.id))
+					// the log only grows; older projects fall back to their own updated time
+					.where(
+						and(
+							eq(tables.activity.workspace_id, w.id),
+							gt(
+								tables.activity.created_at,
+								new Date(Date.now() - 90 * DAY_MS),
+							),
+						),
+					)
 					.groupBy(tables.activity.project_id),
 			]);
 			return projects.map((p) => {

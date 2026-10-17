@@ -273,8 +273,11 @@ export async function enrichTasks(
 		]);
 	const by = <T extends { taskId: string }>(list: T[]) => {
 		const map = new Map<string, T[]>();
-		for (const item of list)
-			map.set(item.taskId, [...(map.get(item.taskId) ?? []), item]);
+		for (const item of list) {
+			const group = map.get(item.taskId);
+			if (group) group.push(item);
+			else map.set(item.taskId, [item]);
+		}
 		return map;
 	};
 	const assigneeMap = by(assignees);
@@ -282,8 +285,9 @@ export async function enrichTasks(
 	const fileMap = by(files.map((f) => ({ ...f, taskId: f.taskId ?? "" })));
 	const depMap = by(deps);
 	const favs = new Set(favorites.map((f) => f.taskId));
+	const subMap = new Map(subtasks.map((s) => [s.parentId, s]));
 	return rows.map(({ task, projectKey }) => {
-		const sub = subtasks.find((s) => s.parentId === task.id);
+		const sub = subMap.get(task.id);
 		return {
 			...task,
 			projectKey,
@@ -784,6 +788,8 @@ export const tasksResolvers = {
 			),
 	},
 	Workspace: {
+		// shortcut: returns every visible top-level task, unpaginated (fine for a few thousand
+		// per workspace); add a limit or cursor before workspaces grow past that
 		tasks: (
 			w: Workspace,
 			args: {
