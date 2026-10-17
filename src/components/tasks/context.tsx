@@ -44,6 +44,8 @@ type Ctx = {
 			title: string;
 			parentId?: string | null;
 		},
+		/** quiet: no progress or success toast, for inline adds where the card is the feedback */
+		opts?: { quiet?: boolean },
 	) => Promise<TaskItem | undefined>;
 	openTask: (id: string) => void;
 	member: (id: string | null) => SettingsMember | undefined;
@@ -151,8 +153,10 @@ export function TaskViewProvider({
 					});
 				}
 			},
-			create: async (input) => {
-				const id = toast.pending(`Adding “${input.title}”…`);
+			create: async (input, opts) => {
+				const id = opts?.quiet
+					? null
+					: toast.pending(`Adding “${input.title}”…`);
 				try {
 					const now = new Date().toISOString();
 					const { data } = await createTask({
@@ -226,30 +230,33 @@ export function TaskViewProvider({
 							: ["ProjectPage", "Projects", "NotificationCounts"],
 					});
 					const task = data?.createTask;
-					toast.update(id, {
-						title: task ? `Created ${task.key}` : `Added “${input.title}”`,
-						type: "success",
-						action: task
-							? {
-									label: "Open",
-									onClick: () =>
-										router.navigate({
-											to: ".",
-											search: ((prev: Record<string, unknown>) => ({
-												...prev,
-												task: task.id,
-											})) as never,
-										}),
-								}
-							: undefined,
-					});
+					if (id !== null)
+						toast.update(id, {
+							title: task ? `Created ${task.key}` : `Added “${input.title}”`,
+							type: "success",
+							action: task
+								? {
+										label: "Open",
+										onClick: () =>
+											router.navigate({
+												to: ".",
+												search: ((prev: Record<string, unknown>) => ({
+													...prev,
+													task: task.id,
+												})) as never,
+											}),
+									}
+								: undefined,
+						});
 					return task;
 				} catch (error) {
-					toast.update(id, {
+					const failed = {
 						title: "Couldn't add the task",
 						desc: (error as Error).message,
-						type: "error",
-					});
+						type: "error" as const,
+					};
+					if (id !== null) toast.update(id, failed);
+					else toast(failed);
 				}
 			},
 			openTask: (id) =>

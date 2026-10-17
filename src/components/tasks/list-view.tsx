@@ -686,7 +686,10 @@ function Composer({
 					if (e.key === "Enter" && title.trim()) {
 						const name = title.trim();
 						setTitle("");
-						await create({ projectId, title: name, ...group.set });
+						await create(
+							{ projectId, title: name, ...group.set },
+							{ quiet: true },
+						);
 					}
 				}}
 				onBlur={() => !title.trim() && setOpen(false)}
