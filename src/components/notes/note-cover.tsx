@@ -46,7 +46,9 @@ export function NoteCover({
 			className={cn("note-cover", moving !== null && "moving")}
 			style={coverBackground(cover, moving ?? coverY) ?? undefined}
 			onPointerDown={(e) => {
-				if (moving === null) return;
+				// presses on Save/Cancel are clicks, not the start of a drag
+				if (moving === null || (e.target as HTMLElement).closest(".cover-acts"))
+					return;
 				e.currentTarget.setPointerCapture(e.pointerId);
 				drag.current = { y: e.clientY, start: moving };
 			}}

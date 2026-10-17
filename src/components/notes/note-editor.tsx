@@ -99,14 +99,14 @@ export function NoteEditor({
 	slug,
 	note,
 	live,
-	menu,
+	onAdd,
 }: {
 	slug: string;
 	note: NoteDetail;
 	/** the sidebar's copy of the page, which follows saves (edited time, privacy, star) */
 	live: NoteItem;
-	/** the page's "…" menu, shown beside the save status */
-	menu?: ReactNode;
+	/** adds a page inside this one (from the page menu) */
+	onAdd: () => void;
 }) {
 	const client = useApolloClient();
 	const { queue, status } = useAutosave(slug, note);
@@ -134,6 +134,7 @@ export function NoteEditor({
 				link: { openOnClick: false, autolink: true },
 				// no forced empty line at the end of the page (Notion doesn't keep one)
 				trailingNode: false,
+				dropcursor: { color: "var(--q-accent)", width: 3 },
 			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
 			Highlight,
@@ -240,7 +241,7 @@ export function NoteEditor({
 						saving={status === "saving"}
 						failed={status === "error"}
 						isAuthor={note.isAuthor}
-						menu={menu}
+						onAdd={onAdd}
 					/>
 				</TopbarSlot>
 				<textarea

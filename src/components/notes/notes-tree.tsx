@@ -321,11 +321,14 @@ export function NoteMenu({
 	note,
 	onAdd,
 	className = "ibtn ibtn-xs",
+	children,
 }: {
 	slug: string;
 	note: NoteItem;
 	onAdd?: () => void;
 	className?: string;
+	/** extra items at the top (the page's own menu adds star, privacy and edited time) */
+	children?: ReactNode;
 }) {
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -348,6 +351,7 @@ export function NoteMenu({
 					/>
 				</MenuTrigger>
 				<MenuContent width={200} align="start">
+					{children}
 					{note.canEdit && onAdd && (
 						<MenuItem icon="icon-[hugeicons--plus-sign]" onSelect={onAdd}>
 							Add a page inside

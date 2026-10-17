@@ -473,3 +473,19 @@
 	background: var(--q-surface-2);
 	color: var(--q-text);
 }
+
+/* touch screens have no hover: keep the cover and add buttons visible */
+@media (hover: none) {
+	.cover-acts,
+	.note-adds {
+		opacity: 1;
+	}
+}
+@media (max-width: 900px) {
+	.cover-pop .cover-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+	.note-cover {
+		min-height: 140px;
+	}
+}

@@ -1,11 +1,7 @@
 import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { NoteEditor } from "#/components/notes/note-editor";
-import {
-	NoteMenu,
-	noteTitle,
-	useCreateNote,
-} from "#/components/notes/notes-tree";
+import { noteTitle, useCreateNote } from "#/components/notes/notes-tree";
 import { NotePageSkeleton } from "#/components/shell/page-skeletons";
 import { NOTE, NOTES } from "#/graphql/note-operations";
 import { reloadOnEnter } from "#/lib/routing";
@@ -54,14 +50,7 @@ function NotePage() {
 				slug={slug}
 				note={note}
 				live={live}
-				menu={
-					<NoteMenu
-						slug={slug}
-						note={live}
-						onAdd={() => void create(note.id)}
-						className="ibtn ibtn-sm"
-					/>
-				}
+				onAdd={() => void create(note.id)}
 			/>
 		</div>
 	);

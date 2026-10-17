@@ -1,6 +1,12 @@
 import { useMutation } from "@apollo/client/react";
-import { type ReactNode, useEffect, useState } from "react";
-import { Menu, MenuContent, MenuItem, MenuTrigger } from "#/components/q/menu";
+import { useEffect, useState } from "react";
+import {
+	Menu,
+	MenuContent,
+	MenuItem,
+	MenuSeparator,
+	MenuTrigger,
+} from "#/components/q/menu";
 import {
 	type NoteItem,
 	TOGGLE_NOTE_FAVORITE,
@@ -8,6 +14,7 @@ import {
 } from "#/graphql/note-operations";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { NoteMenu } from "./notes-tree";
 
 // The note's controls in the top bar, like Notion's: when it was edited (a spinner while
 // saving), who can see it, a star, and the page menu.
@@ -26,7 +33,7 @@ export function NoteActions({
 	saving,
 	failed,
 	isAuthor,
-	menu,
+	onAdd,
 }: {
 	slug: string;
 	note: NoteItem;
@@ -34,7 +41,8 @@ export function NoteActions({
 	failed: boolean;
 	/** only the author can make a page private or shared */
 	isAuthor: boolean;
-	menu: ReactNode;
+	/** adds a page inside this one */
+	onAdd: () => void;
 }) {
 	// "2m ago" moves on by itself
 	const [now, setNow] = useState(() => Date.now());
@@ -55,6 +63,10 @@ export function NoteActions({
 			}),
 	});
 
+	const star = () =>
+		toggleFavorite({ variables: { slug, id: note.id } }).catch((error: Error) =>
+			toast.error("Couldn't update favorites", { desc: error.message }),
+		);
 	const share = (isPrivate: boolean) =>
 		toast
 			.promise(
@@ -86,11 +98,13 @@ export function NoteActions({
 						<span className="sr">Saving</span>
 					</>
 				)}
-				{failed ? "Not saved" : edited(note.updatedAt, now)}
+				<span className="hide-m">
+					{failed ? "Not saved" : edited(note.updatedAt, now)}
+				</span>
 			</span>
 			<Menu>
 				<MenuTrigger
-					className="btn btn-ghost btn-sm"
+					className="btn btn-ghost btn-sm hide-m"
 					disabled={!isAuthor}
 					title={isAuthor ? undefined : "Only the author can change this"}
 				>
@@ -103,7 +117,9 @@ export function NoteActions({
 						)}
 						aria-hidden="true"
 					/>
-					{note.isPrivate ? "Private" : "Workspace"}
+					<span className="hide-m">
+						{note.isPrivate ? "Private" : "Workspace"}
+					</span>
 					{isAuthor && (
 						<span
 							className="icon-[solar--alt-arrow-down-linear] size-3"
@@ -140,7 +156,7 @@ export function NoteActions({
 			</Menu>
 			<button
 				type="button"
-				className={cn("ibtn ibtn-sm", note.isFavorite && "starred")}
+				className={cn("ibtn ibtn-sm hide-m", note.isFavorite && "starred")}
 				aria-label={
 					note.isFavorite ? "Remove from favorites" : "Add to favorites"
 				}
@@ -148,12 +164,7 @@ export function NoteActions({
 				data-tip={
 					note.isFavorite ? "Remove from favorites" : "Add to favorites"
 				}
-				onClick={() =>
-					toggleFavorite({ variables: { slug, id: note.id } }).catch(
-						(error: Error) =>
-							toast.error("Couldn't update favorites", { desc: error.message }),
-					)
-				}
+				onClick={star}
 			>
 				<span
 					className={cn(
@@ -165,7 +176,34 @@ export function NoteActions({
 					aria-hidden="true"
 				/>
 			</button>
-			{menu}
+			<NoteMenu slug={slug} note={note} onAdd={onAdd} className="ibtn ibtn-sm">
+				<div className="mh">
+					{failed ? "Not saved" : edited(note.updatedAt, now)}
+				</div>
+				<MenuItem
+					icon={
+						note.isFavorite
+							? "icon-[solar--star-bold]"
+							: "icon-[solar--star-linear]"
+					}
+					onSelect={star}
+				>
+					{note.isFavorite ? "Remove from favorites" : "Add to favorites"}
+				</MenuItem>
+				{isAuthor && (
+					<MenuItem
+						icon={
+							note.isPrivate
+								? "icon-[solar--users-group-rounded-linear]"
+								: "icon-[solar--lock-keyhole-minimalistic-linear]"
+						}
+						onSelect={() => share(!note.isPrivate)}
+					>
+						{note.isPrivate ? "Share with the workspace" : "Make private"}
+					</MenuItem>
+				)}
+				<MenuSeparator />
+			</NoteMenu>
 		</>
 	);
 }
