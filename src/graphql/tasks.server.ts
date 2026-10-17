@@ -326,6 +326,29 @@ export async function requireTask(
 	return { ...found, user, task };
 }
 
+/** Several tasks the viewer may change, checking each project once (bulk actions). */
+async function requireTasks(
+	ctx: GraphQLContext,
+	slug: string,
+	ids: string[],
+	right: ProjectRight,
+) {
+	const user = requireUser(ctx);
+	const tasks = await db
+		.select()
+		.from(tables.task)
+		.where(and(inArray(tables.task.id, ids), isNull(tables.task.deleted_at)));
+	if (tasks.length !== ids.length) badInput("Task not found");
+	const checked = new Map<string, Awaited<ReturnType<typeof requireProject>>>();
+	for (const t of tasks)
+		if (!checked.has(t.project_id))
+			checked.set(
+				t.project_id,
+				await requireProject(ctx, slug, t.project_id, { right }),
+			);
+	return { user, tasks, checked };
+}
+
 // ---- changing --------------------------------------------------------------
 
 const memberName = async (memberId: string) => {
@@ -697,37 +720,41 @@ async function moveToProject(
 	projectId: string,
 	title: string,
 ) {
-	const children = await db
-		.select({ id: tables.task.id })
-		.from(tables.task)
-		.where(eq(tables.task.parent_task_id, task.id));
-	for (const id of [task.id, ...children.map((c) => c.id)])
-		await db
-			.update(tables.task)
-			.set({ project_id: projectId, number: await nextNumber(db, projectId) })
-			.where(eq(tables.task.id, id));
-	// its files follow it
-	await db
-		.update(tables.task_attachment)
-		.set({ project_id: projectId })
-		.where(
-			inArray(tables.task_attachment.task_id, [
-				task.id,
-				...children.map((c) => c.id),
-			]),
+	// all or nothing, so a task and its subtasks never end up split across projects
+	await db.transaction(async (tx) => {
+		const children = await tx
+			.select({ id: tables.task.id })
+			.from(tables.task)
+			.where(eq(tables.task.parent_task_id, task.id));
+		for (const id of [task.id, ...children.map((c) => c.id)])
+			await tx
+				.update(tables.task)
+				.set({ project_id: projectId, number: await nextNumber(tx, projectId) })
+				.where(eq(tables.task.id, id));
+		// its files follow it
+		await tx
+			.update(tables.task_attachment)
+			.set({ project_id: projectId })
+			.where(
+				inArray(tables.task_attachment.task_id, [
+					task.id,
+					...children.map((c) => c.id),
+				]),
+			);
+		await tx
+			.delete(tables.task_dependency)
+			.where(eq(tables.task_dependency.task_id, task.id));
+		await tx
+			.delete(tables.task_dependency)
+			.where(eq(tables.task_dependency.depends_on_id, task.id));
+		await taskActivity(
+			actor,
+			{ ...task, project_id: projectId },
+			"moved",
+			`to ${title}`,
+			tx,
 		);
-	await db
-		.delete(tables.task_dependency)
-		.where(eq(tables.task_dependency.task_id, task.id));
-	await db
-		.delete(tables.task_dependency)
-		.where(eq(tables.task_dependency.depends_on_id, task.id));
-	await taskActivity(
-		actor,
-		{ ...task, project_id: projectId },
-		"moved",
-		`to ${title}`,
-	);
+	});
 }
 
 export const tasksResolvers = {
@@ -878,18 +905,22 @@ export const tasksResolvers = {
 				args.patch,
 			);
 			if (args.ids.length > 500) badInput("Update up to 500 tasks at a time");
-			let n = 0;
-			for (const id of new Set(args.ids)) {
-				const { user, workspace, task } = await requireTask(
-					ctx,
-					args.slug,
-					id,
-					"edit",
-				);
+			const ids = [...new Set(args.ids)];
+			if (!ids.length) return 0;
+			// access is checked for every task before anything changes
+			const { user, tasks, checked } = await requireTasks(
+				ctx,
+				args.slug,
+				ids,
+				"edit",
+			);
+			for (const task of tasks) {
+				const { workspace } = checked.get(task.project_id) as {
+					workspace: Workspace;
+				};
 				await applyPatch({ workspace, userId: user.id }, task, patch);
-				n++;
 			}
-			return n;
+			return tasks.length;
 		},
 
 		deleteTasks: async (
@@ -898,34 +929,39 @@ export const tasksResolvers = {
 			ctx: GraphQLContext,
 		) => {
 			if (args.ids.length > 500) badInput("Delete up to 500 tasks at a time");
-			let n = 0;
-			for (const id of new Set(args.ids)) {
-				const { task } = await requireTask(ctx, args.slug, id, "edit");
+			const ids = [...new Set(args.ids)];
+			if (!ids.length) return 0;
+			await requireTasks(ctx, args.slug, ids, "edit");
+			// all or nothing: the tasks, their subtasks, and everyone's stars on them
+			await db.transaction(async (tx) => {
 				const now = new Date();
-				await db
-					.update(tables.task)
-					.set({ deleted_at: now })
-					.where(eq(tables.task.id, task.id));
-				await db
+				const subtasks = await tx
 					.update(tables.task)
 					.set({ deleted_at: now })
 					.where(
 						and(
-							eq(tables.task.parent_task_id, task.id),
+							inArray(tables.task.parent_task_id, ids),
 							isNull(tables.task.deleted_at),
 						),
-					);
-				await db
+					)
+					.returning({ id: tables.task.id });
+				await tx
+					.update(tables.task)
+					.set({ deleted_at: now })
+					.where(inArray(tables.task.id, ids));
+				await tx
 					.delete(tables.favorite)
 					.where(
 						and(
 							eq(tables.favorite.entity_type, "task"),
-							eq(tables.favorite.entity_id, task.id),
+							inArray(tables.favorite.entity_id, [
+								...ids,
+								...subtasks.map((t) => t.id),
+							]),
 						),
 					);
-				n++;
-			}
-			return n;
+			});
+			return ids.length;
 		},
 
 		archiveTask: async (

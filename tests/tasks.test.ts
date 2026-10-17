@@ -104,6 +104,35 @@ test("simultaneous clicks don't double up: one repeat, one assignee, one star", 
 	assert.deepEqual(stars.map((r) => r.errors), [undefined, undefined], "a double click isn't an error");
 });
 
+test("moving and bulk-deleting take subtasks along, and one forbidden id stops the whole delete", async () => {
+	const { owner, member, slug, project, create } = await setup();
+	const other = (
+		await gql(owner, `mutation($s: String!, $i: ProjectInput!) { createProject(slug: $s, input: $i) { id key } }`, {
+			s: slug,
+			i: { title: "Beta Launch", icon: "icon-[solar--global-linear]", color: "teal", template: "blank" },
+		})
+	).data?.createProject;
+	const parent = (await create(owner, { title: "Move me" })).data?.createTask;
+	const child = (await create(owner, { title: "Child", parentId: parent.id })).data?.createTask;
+	await gql(owner, `mutation($s: String!, $id: ID!) { toggleTaskFavorite(slug: $s, id: $id) }`, { s: slug, id: child.id });
+
+	const moved = (await gql(owner, UPDATE, { s: slug, id: parent.id, p: { projectId: other.id } })).data?.updateTask;
+	assert.ok(moved.key.startsWith(`${other.key}-`), "renumbered in the new project");
+	const [movedChild] = await db.select({ projectId: tables.task.project_id }).from(tables.task).where(eq(tables.task.id, child.id));
+	assert.equal(movedChild?.projectId, other.id, "the subtask follows");
+
+	// the member can only comment, so a delete including the owner's task changes nothing
+	const mine = (await create(owner, { title: "Keep" })).data?.createTask;
+	const DEL = `mutation($s: String!, $ids: [ID!]!) { deleteTasks(slug: $s, ids: $ids) }`;
+	assert.equal(code(await gql(member, DEL, { s: slug, ids: [mine.id] })), "FORBIDDEN");
+	assert.equal((await gql(owner, DEL, { s: slug, ids: [parent.id] })).data?.deleteTasks, 1);
+	const [gone] = await db.select({ deletedAt: tables.task.deleted_at }).from(tables.task).where(eq(tables.task.id, child.id));
+	assert.ok(gone?.deletedAt, "subtasks go with their parent");
+	const stars = await db.select().from(tables.favorite).where(eq(tables.favorite.entity_id, child.id));
+	assert.deepEqual(stars, [], "and so do stars on them");
+	void project;
+});
+
 test("people who can only comment can't change tasks, and guests off the project can't see them", async () => {
 	const { owner, member, slug, create } = await setup();
 	const id = (await create(owner, { title: "Locked" })).data?.createTask.id;
