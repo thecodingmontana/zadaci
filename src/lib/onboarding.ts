@@ -157,11 +157,6 @@ export const TEMPLATES = [
 	},
 ] as const;
 
-export type UseCase = (typeof USE_CASES)[number]["id"];
-export type DefaultView = (typeof VIEWS)[number]["id"];
-export type TeamSize = (typeof TEAM_SIZES)[number];
-export type TemplateId = (typeof TEMPLATES)[number]["id"];
-
 export const MAX_INVITES = 3;
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

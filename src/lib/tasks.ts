@@ -8,7 +8,6 @@ export const TASK_STATUSES = [
 	{ id: "in_review", name: "Review", st: "review" },
 	{ id: "completed", name: "Done", st: "done" },
 ] as const;
-export type TaskStatus = (typeof TASK_STATUSES)[number]["id"];
 
 export const taskStatus = (id: string) =>
 	TASK_STATUSES.find((s) => s.id === id) ?? TASK_STATUSES[0];

@@ -78,7 +78,6 @@ export const PROJECT_TABS = [
 	{ tab: "timeline", label: "Timeline", icon: "icon-[hugeicons--chart-gantt]" },
 	{ tab: "files", label: "Files", icon: "icon-[solar--paperclip-linear]" },
 ] as const;
-export type ProjectTab = (typeof PROJECT_TABS)[number]["tab"];
 
 /** Tabs on the project page (reference PTABS); the sidebar shows the shorter PROJECT_TABS. */
 export const PROJECT_PAGE_TABS = [
@@ -91,7 +90,6 @@ export const PROJECT_PAGE_TABS = [
 	{ tab: "files", label: "Files", icon: "icon-[solar--paperclip-linear]" },
 	{ tab: "activity", label: "Activity", icon: "icon-[hugeicons--activity-01]" },
 ] as const;
-export type ProjectPageTab = (typeof PROJECT_PAGE_TABS)[number]["tab"];
 
 export const BOTTOM_NAV: NavItem[] = [
 	MAIN_NAV[0],

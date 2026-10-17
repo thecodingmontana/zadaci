@@ -446,17 +446,6 @@ export const TOGGLE_FAVORITE: TypedDocumentNode<
 	}
 `;
 
-export const RENAME_PROJECT: TypedDocumentNode<
-	{ renameProject: { id: string } },
-	ProjectVars & { title: string }
-> = gql`
-	mutation RenameProject($slug: String!, $projectId: ID!, $title: String!) {
-		renameProject(slug: $slug, projectId: $projectId, title: $title) {
-			id
-		}
-	}
-`;
-
 export const DUPLICATE_PROJECT: TypedDocumentNode<
 	{ duplicateProject: { id: string; title: string } },
 	ProjectVars

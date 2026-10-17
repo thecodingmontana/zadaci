@@ -23,10 +23,6 @@ export enum STATUS {
 	ABANDONED = "abandoned",
 }
 
-export function statusToDbValue(status: string): STATUS | undefined {
-	return STATUS[status.replace(/ /g, "_") as keyof typeof STATUS];
-}
-
 // project health, as in the reference app (Planning, In Progress, At Risk, On Hold, Completed)
 export enum PROJECT_STATUS {
 	PLANNING = "planning",
@@ -55,13 +51,6 @@ export enum USER_STATUS {
 	AWAY = "away",
 	DO_NOT_DISTURB = "dnd",
 	OFFLINE = "offline",
-}
-
-export enum COMMENT_ENTITY_TYPE {
-	TASK = "task",
-	SUBTASK = "subtask",
-	PROJECT = "project",
-	NOTE = "note",
 }
 
 export const user_role_enum = pgEnum("user_role", enumToPgEnum(USER_ROLE));
