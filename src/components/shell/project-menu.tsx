@@ -48,7 +48,13 @@ export function ProjectMenu({
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	const refetch = {
-		refetchQueries: ["Shell", "Settings", "Projects", "ProjectPage"],
+		refetchQueries: [
+			"Shell",
+			"Settings",
+			"Projects",
+			"ProjectPage",
+			"NotificationCounts",
+		],
 	};
 	const [toggleFavorite] = useMutation(TOGGLE_FAVORITE, refetch);
 	const [duplicate] = useMutation(DUPLICATE_PROJECT, refetch);

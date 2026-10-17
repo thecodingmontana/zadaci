@@ -213,7 +213,7 @@ export function AppSidebar({
 	projects: ShellProject[];
 	teams: ShellTeam[];
 	user: ShellUser;
-	unread: { all: number; inbox: number };
+	unread: { all: number; inbox: number; myTasks: number; archive: number };
 }) {
 	const slug = workspace.slug;
 	const navigate = useNavigate();
@@ -346,7 +346,9 @@ export function AppSidebar({
 								? unread.inbox
 								: item.path === "notifications"
 									? unread.all
-									: undefined
+									: item.path === "my-tasks"
+										? unread.myTasks
+										: undefined
 						}
 						dot={item.path === "inbox"}
 					/>
@@ -496,6 +498,7 @@ export function AppSidebar({
 						slug={slug}
 						item={ARCHIVE_NAV}
 						on={isActive(ARCHIVE_NAV.path)}
+						ct={unread.archive}
 					/>
 				</div>
 

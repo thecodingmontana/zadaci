@@ -94,6 +94,8 @@ function ShellLayout() {
 	const unread = {
 		all: counts?.unreadNotifications ?? 0,
 		inbox: counts?.unreadInbox ?? 0,
+		myTasks: counts?.myOpenTasks ?? 0,
+		archive: counts?.archivedCount ?? 0,
 	};
 	const workspace = data.workspace;
 	if (!workspace) return null;

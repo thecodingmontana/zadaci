@@ -21,6 +21,7 @@ export const TASK_REFETCH = [
 	"Projects",
 	"Activity",
 	"TaskDetail",
+	"NotificationCounts",
 ];
 
 type Ctx = {

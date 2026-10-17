@@ -598,6 +598,8 @@ export const NOTIFICATION_COUNTS: TypedDocumentNode<
 			id: string;
 			unreadNotifications: number;
 			unreadInbox: number;
+			myOpenTasks: number;
+			archivedCount: number;
 		} | null;
 	},
 	{ slug: string }
@@ -607,6 +609,8 @@ export const NOTIFICATION_COUNTS: TypedDocumentNode<
 			id
 			unreadNotifications
 			unreadInbox
+			myOpenTasks
+			archivedCount
 		}
 	}
 `;

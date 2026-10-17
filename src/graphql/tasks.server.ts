@@ -5,9 +5,11 @@ import {
 	desc,
 	eq,
 	inArray,
+	isNotNull,
 	isNull,
 	max,
 	ne,
+	notInArray,
 	type SQL,
 	sql,
 } from "drizzle-orm";
@@ -109,6 +111,9 @@ export const tasksTypeDefs = /* GraphQL */ `
 		"top-level tasks in projects the viewer can see"
 		tasks(projectId: ID, assigneeId: ID, includeArchived: Boolean): [Task!]!
 		task(id: ID!): Task
+		"sidebar badges: the viewer's open tasks, and archived tasks plus projects"
+		myOpenTasks: Int!
+		archivedCount: Int!
 	}
 
 	extend type Mutation {
@@ -827,6 +832,69 @@ export const tasksResolvers = {
 				),
 				requireUser(ctx).id,
 			),
+		myOpenTasks: async (w: Workspace) => {
+			const [row] = await db
+				.select({ n: count() })
+				.from(tables.task)
+				.innerJoin(
+					tables.project,
+					eq(tables.project.id, tables.task.project_id),
+				)
+				.innerJoin(
+					tables.task_assignees,
+					and(
+						eq(tables.task_assignees.task_id, tables.task.id),
+						isNull(tables.task_assignees.deleted_at),
+					),
+				)
+				.where(
+					and(
+						eq(tables.project.workspace_id, w.id),
+						projectScope(w),
+						isNull(tables.project.deleted_at),
+						isNull(tables.project.archived_at),
+						isNull(tables.task.deleted_at),
+						isNull(tables.task.archived_at),
+						isNull(tables.task.parent_task_id),
+						eq(tables.task_assignees.member_id, w.memberId ?? ""),
+						notInArray(tables.task.status, [
+							STATUS.COMPLETED,
+							STATUS.ABANDONED,
+						]),
+					),
+				);
+			return row?.n ?? 0;
+		},
+		archivedCount: async (w: Workspace) => {
+			const visible = and(
+				eq(tables.project.workspace_id, w.id),
+				projectScope(w),
+				isNull(tables.project.deleted_at),
+			);
+			const [[tasks], [projects]] = await Promise.all([
+				db
+					.select({ n: count() })
+					.from(tables.task)
+					.innerJoin(
+						tables.project,
+						eq(tables.project.id, tables.task.project_id),
+					)
+					.where(
+						and(
+							visible,
+							isNull(tables.project.archived_at),
+							isNull(tables.task.deleted_at),
+							isNull(tables.task.parent_task_id),
+							isNotNull(tables.task.archived_at),
+						),
+					),
+				db
+					.select({ n: count() })
+					.from(tables.project)
+					.where(and(visible, isNotNull(tables.project.archived_at))),
+			]);
+			return (tasks?.n ?? 0) + (projects?.n ?? 0);
+		},
 		task: async (w: Workspace, args: { id: string }, ctx: GraphQLContext) => {
 			const [task] = await enrichTasks(
 				and(

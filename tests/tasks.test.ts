@@ -196,3 +196,19 @@ test("subtasks, dependencies, mentions and reactions", async () => {
 		"only your own comments",
 	);
 });
+
+test("sidebar counts: my open tasks and everything archived", async () => {
+	const { owner, slug, project, create } = await setup();
+	const me = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug })).data?.workspace.members.find(
+		(m: { isMe: boolean }) => m.isMe,
+	).id;
+	const a = (await create(owner, { title: "Mine", assigneeId: me })).data?.createTask;
+	await create(owner, { title: "Mine too", assigneeId: me, status: "completed" });
+	await gql(owner, `mutation($s: String!, $id: ID!) { archiveTask(slug: $s, id: $id, archived: true) { id } }`, { s: slug, id: a.id });
+	const COUNTS = `query($s: String!) { workspace(slug: $s) { myOpenTasks archivedCount } }`;
+	assert.deepEqual((await gql(owner, COUNTS, { s: slug })).data?.workspace, { myOpenTasks: 0, archivedCount: 1 });
+	await gql(owner, `mutation($s: String!, $id: ID!) { archiveTask(slug: $s, id: $id, archived: false) { id } }`, { s: slug, id: a.id });
+	assert.equal((await gql(owner, COUNTS, { s: slug })).data?.workspace.myOpenTasks, 1, "back in my open tasks");
+	await gql(owner, `mutation($s: String!, $p: ID!) { archiveProject(slug: $s, projectId: $p, archived: true) { id } }`, { s: slug, p: project.id });
+	assert.deepEqual((await gql(owner, COUNTS, { s: slug })).data?.workspace, { myOpenTasks: 0, archivedCount: 1 }, "an archived project counts once, its tasks don't");
+});

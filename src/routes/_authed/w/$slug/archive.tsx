@@ -27,7 +27,7 @@ import { cn } from "#/lib/utils";
 // Ported from the reference app's Archive page: archived tasks and projects, restored or
 // deleted for good.
 
-const REFETCH = { refetchQueries: ["Archive", "Shell"] };
+const REFETCH = { refetchQueries: ["Archive", "Shell", "NotificationCounts"] };
 
 export const Route = createFileRoute("/_authed/w/$slug/archive")({
 	validateSearch: z.object({ tab: z.enum(["tasks", "projects"]).optional() }),
