@@ -102,10 +102,11 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
 			success: string | ((v: T) => string);
 			error: string | ((err: unknown) => string);
 			desc?: string;
+			/** detail under a failure; the error's own message by default */
 			errorDesc?: string;
 			position?: ToastPosition;
 		},
-	) {
+	): Promise<T> {
 		const id = push({
 			title: msg.loading,
 			type: "pending",
@@ -124,10 +125,11 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
 			.catch((err) =>
 				update(id, {
 					title: typeof msg.error === "function" ? msg.error(err) : msg.error,
-					desc: msg.errorDesc ?? msg.desc,
+					desc: msg.errorDesc ?? (err as Error)?.message ?? msg.desc,
 					type: "error",
 				}),
 			);
-		return id;
+		// the caller can still await the action (and catch its failure)
+		return run;
 	},
 });
