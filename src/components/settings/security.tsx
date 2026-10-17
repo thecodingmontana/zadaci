@@ -121,7 +121,7 @@ export function PasskeysSection({ title }: { title: string }) {
 				</div>
 			) : keys.length === 0 ? (
 				<p className="faint" style={{ padding: "12px 0" }}>
-					No passkeys yet. Add one to sign in without your authenticator app.
+					No passkeys yet.
 				</p>
 			) : (
 				keys.map((k) => (
@@ -644,8 +644,8 @@ export function TwoFactorSection({ title }: { title: string }) {
 								className="muted"
 								style={{ margin: "4px 0 12px", fontSize: 13 }}
 							>
-								Protect your account with a code from an authenticator app in
-								addition to your passkey.
+								Optional: ask for a code from an authenticator app each time you
+								sign in.
 							</p>
 							<button
 								type="button"
@@ -668,7 +668,7 @@ export function TwoFactorSection({ title }: { title: string }) {
 				open={confirm}
 				onOpenChange={setConfirm}
 				title="Turn off two-factor authentication?"
-				body="You'll sign in with your passkey only. You need a passkey on your account to turn this off."
+				body="Signing in will no longer ask for a code from your authenticator app."
 				ok="Turn off"
 				danger
 				icon="icon-[solar--shield-cross-linear]"

@@ -8,10 +8,10 @@ after(cleanup);
 
 const code = (res: Awaited<ReturnType<typeof gql>>) => res.errors?.[0]?.extensions?.code;
 
-test("anonymous and unsecured users get no data", async () => {
+test("anonymous users get no data; two-step is optional", async () => {
 	assert.equal(code(await gql(null, "{ workspaces { id } }")), "UNAUTHENTICATED");
-	const unsecured = await makeUser("unsecured", false);
-	assert.equal(code(await gql(unsecured, "{ workspaces { id } }")), "UNAUTHENTICATED");
+	const plain = await makeUser("plain", false);
+	assert.equal((await gql(plain, "{ workspaces { id } }")).errors, undefined);
 });
 
 test("outsiders can't read a workspace", async () => {

@@ -21,7 +21,6 @@ import { Route as AuthedWSlugRouteImport } from './routes/_authed/w/$slug'
 import { Route as AuthedWorkspaceIndexRouteImport } from './routes/_authed/workspace/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor/index'
-import { Route as AuthTwoFactorSetupRouteImport } from './routes/auth/two-factor/setup'
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
 import { Route as AuthedWSlugActivityRouteImport } from './routes/_authed/w/$slug/activity'
@@ -99,11 +98,6 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 const AuthTwoFactorIndexRoute = AuthTwoFactorIndexRouteImport.update({
   id: '/auth/two-factor/',
   path: '/auth/two-factor/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthTwoFactorSetupRoute = AuthTwoFactorSetupRouteImport.update({
-  id: '/auth/two-factor/setup',
-  path: '/auth/two-factor/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedWSlugIndexRoute = AuthedWSlugIndexRouteImport.update({
@@ -214,7 +208,6 @@ export interface FileRoutesByFullPath {
   '/join/$code': typeof AuthedJoinCodeRoute
   '/w/$slug': typeof AuthedWSlugRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
   '/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -246,7 +239,6 @@ export interface FileRoutesByTo {
   '/auth/signin': typeof AuthSigninRoute
   '/join/$code': typeof AuthedJoinCodeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -281,7 +273,6 @@ export interface FileRoutesById {
   '/_authed/join/$code': typeof AuthedJoinCodeRoute
   '/_authed/w/$slug': typeof AuthedWSlugRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/auth/two-factor/setup': typeof AuthTwoFactorSetupRoute
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -316,7 +307,6 @@ export interface FileRouteTypes {
     | '/join/$code'
     | '/w/$slug'
     | '/api/auth/$'
-    | '/auth/two-factor/setup'
     | '/workspace/'
     | '/auth/two-factor/'
     | '/w/$slug/$'
@@ -348,7 +338,6 @@ export interface FileRouteTypes {
     | '/auth/signin'
     | '/join/$code'
     | '/api/auth/$'
-    | '/auth/two-factor/setup'
     | '/workspace'
     | '/auth/two-factor'
     | '/w/$slug/$'
@@ -382,7 +371,6 @@ export interface FileRouteTypes {
     | '/_authed/join/$code'
     | '/_authed/w/$slug'
     | '/api/auth/$'
-    | '/auth/two-factor/setup'
     | '/_authed/workspace/'
     | '/auth/two-factor/'
     | '/_authed/w/$slug/$'
@@ -414,7 +402,6 @@ export interface RootRouteChildren {
   ApiGraphqlRoute: typeof ApiGraphqlRoute
   AuthSigninRoute: typeof AuthSigninRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  AuthTwoFactorSetupRoute: typeof AuthTwoFactorSetupRoute
   AuthTwoFactorIndexRoute: typeof AuthTwoFactorIndexRoute
 }
 
@@ -502,13 +489,6 @@ declare module '@tanstack/react-router' {
       path: '/auth/two-factor'
       fullPath: '/auth/two-factor/'
       preLoaderRoute: typeof AuthTwoFactorIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/two-factor/setup': {
-      id: '/auth/two-factor/setup'
-      path: '/auth/two-factor/setup'
-      fullPath: '/auth/two-factor/setup'
-      preLoaderRoute: typeof AuthTwoFactorSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed/w/$slug/': {
@@ -720,7 +700,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGraphqlRoute: ApiGraphqlRoute,
   AuthSigninRoute: AuthSigninRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  AuthTwoFactorSetupRoute: AuthTwoFactorSetupRoute,
   AuthTwoFactorIndexRoute: AuthTwoFactorIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,5 +1,5 @@
 import { createSchema, createYoga } from "graphql-yoga";
-import { auth, secondFactors } from "#/lib/auth";
+import { auth } from "#/lib/auth";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
 import { membersResolvers, membersTypeDefs } from "./members.server";
 import {
@@ -48,10 +48,6 @@ export const yoga = createYoga<object, GraphQLContext>({
 	fetchAPI: { Response },
 	context: async ({ request }) => {
 		const session = await auth.api.getSession({ headers: request.headers });
-		if (!session) return { user: null };
-		// Same rule as the _authed route guard: no data until a second step is set up.
-		return {
-			user: (await secondFactors(session.user)).length ? session.user : null,
-		};
+		return { user: session?.user ?? null };
 	},
 });

@@ -30,8 +30,6 @@ export const Route = createFileRoute("/_authed")({
 				to: "/auth/signin",
 				search: { redirect: location.href },
 			});
-		// two-step verification is mandatory before entering the app
-		if (!session.secured) throw redirect({ to: "/auth/two-factor/setup" });
 		return { user: session.user };
 	},
 	head: () => ({ meta: [NOINDEX] }),
@@ -43,6 +41,6 @@ function AuthedLayout() {
 	// The server checked the session to render this page, so the first click inside the app
 	// can reuse that check instead of waiting on another round trip.
 	if (typeof window !== "undefined" && !last.checked)
-		last.checked = { at: Date.now(), session: { user, secured: true } };
+		last.checked = { at: Date.now(), session: { user } };
 	return <Outlet />;
 }
