@@ -1,3 +1,9 @@
+import {
+	type ApolloCache,
+	gql,
+	type Reference,
+	type TypedDocumentNode,
+} from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
 import { useRouter } from "@tanstack/react-router";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
@@ -5,6 +11,7 @@ import {
 	CREATE_TASK,
 	type ProjectSummary,
 	type SettingsMember,
+	TASK_FIELDS,
 	type TaskItem,
 	type TaskPatch,
 	UPDATE_TASK,
@@ -45,6 +52,47 @@ type Ctx = {
 
 const TaskContext = createContext<Ctx | null>(null);
 
+// the workspace's cache id, to add a new task to its cached task lists
+const WORKSPACE_ID: TypedDocumentNode<
+	{ workspace: { id: string } | null },
+	{ slug: string }
+> = gql`
+	query WorkspaceId($slug: String!) {
+		workspace(slug: $slug) {
+			id
+		}
+	}
+`;
+
+/** Takes a task out of every cached task list (works inside optimistic updates, unlike evict). */
+export function dropTaskFromLists(
+	cache: ApolloCache,
+	slug: string,
+	taskId: string,
+) {
+	const ws = cache.readQuery({
+		query: WORKSPACE_ID,
+		variables: { slug },
+	})?.workspace;
+	if (!ws) return;
+	cache.modify({
+		id: cache.identify({ __typename: "Workspace", id: ws.id }),
+		fields: {
+			tasks(existing, { readField }) {
+				return ((existing ?? []) as readonly Reference[]).filter(
+					(r) => readField("id", r) !== taskId,
+				);
+			},
+		},
+	});
+}
+
+/** The args a cached `tasks(...)` field was fetched with, from its store name. */
+const fieldArgs = (storeFieldName: string): Record<string, unknown> => {
+	const json = storeFieldName.slice(storeFieldName.indexOf("(") + 1, -1);
+	return json.startsWith("{") ? JSON.parse(json) : {};
+};
+
 export function useTaskView() {
 	const ctx = useContext(TaskContext);
 	if (!ctx) throw new Error("useTaskView must be used inside TaskViewProvider");
@@ -64,11 +112,7 @@ export function TaskViewProvider({
 }) {
 	const router = useRouter();
 	const [updateTask] = useMutation(UPDATE_TASK);
-	// wait for the lists to refresh, so a new task is on screen when create resolves
-	const [createTask] = useMutation(CREATE_TASK, {
-		refetchQueries: TASK_REFETCH,
-		awaitRefetchQueries: true,
-	});
+	const [createTask] = useMutation(CREATE_TASK);
 
 	const value = useMemo<Ctx>(() => {
 		const byProject = new Map(projects.map((p) => [p.id, p]));
@@ -110,7 +154,77 @@ export function TaskViewProvider({
 			create: async (input) => {
 				const id = toast.pending(`Adding “${input.title}”…`);
 				try {
-					const { data } = await createTask({ variables: { slug, input } });
+					const now = new Date().toISOString();
+					const { data } = await createTask({
+						variables: { slug, input },
+						// the card shows at once; the server's task replaces it when it answers
+						optimisticResponse: {
+							createTask: {
+								__typename: "Task",
+								id: `temp-${now}`,
+								key: "",
+								number: 0,
+								name: input.title,
+								status: input.status ?? "todo",
+								priority: input.priority ?? "none",
+								projectId: input.projectId,
+								parentId: input.parentId ?? null,
+								assigneeId: input.assigneeId ?? null,
+								dueDate: input.dueDate ?? null,
+								startDate: input.startDate ?? null,
+								labels: input.labels ?? [],
+								estimate: input.estimate ?? null,
+								recur: input.recur ?? null,
+								sortOrder: input.sortOrder ?? Number.MAX_SAFE_INTEGER,
+								completedAt: null,
+								archivedAt: null,
+								createdAt: now,
+								updatedAt: now,
+								isFavorite: false,
+								subtaskCount: 0,
+								subtaskDone: 0,
+								commentCount: 0,
+								attachmentCount: 0,
+								dependsOn: [],
+							} as TaskItem,
+						},
+						// add it to the cached lists it belongs in instead of refetching them all
+						update: (cache, { data }) => {
+							const task = data?.createTask;
+							if (!task || input.parentId) return;
+							const ws = cache.readQuery({
+								query: WORKSPACE_ID,
+								variables: { slug },
+							})?.workspace;
+							if (!ws) return;
+							const ref = cache.writeFragment({
+								data: task,
+								fragment: TASK_FIELDS,
+								fragmentName: "TaskFields",
+							});
+							cache.modify({
+								id: cache.identify({ __typename: "Workspace", id: ws.id }),
+								fields: {
+									tasks(existing, { storeFieldName, readField }) {
+										const list = (existing ?? []) as readonly Reference[];
+										const a = fieldArgs(storeFieldName);
+										if (!ref) return list;
+										if (a.projectId && a.projectId !== task.projectId)
+											return list;
+										if (a.assigneeId && a.assigneeId !== task.assigneeId)
+											return list;
+										if (list.some((r) => readField("id", r) === task.id))
+											return list;
+										return [...list, ref];
+									},
+								},
+							});
+						},
+						// stats and counts are computed on the server; a subtask changes its parent
+						refetchQueries: input.parentId
+							? TASK_REFETCH
+							: ["ProjectPage", "Projects", "NotificationCounts"],
+					});
 					const task = data?.createTask;
 					toast.update(id, {
 						title: task ? `Created ${task.key}` : `Added “${input.title}”`,

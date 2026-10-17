@@ -24,7 +24,7 @@ import {
 import { PRIORITIES, TASK_STATUSES } from "#/lib/tasks";
 import { toast } from "#/lib/toast";
 import { PrIcon } from "./bits";
-import { TASK_REFETCH, useTaskView } from "./context";
+import { dropTaskFromLists, TASK_REFETCH, useTaskView } from "./context";
 
 // The task "…" menu (reference context menu for tasks).
 
@@ -37,11 +37,26 @@ export function TaskMenu({
 }) {
 	const { slug, update, openTask, canEdit, members, projects } = useTaskView();
 	const [deleting, setDeleting] = useState(false);
-	const refetch = { refetchQueries: TASK_REFETCH };
-	const [favorite] = useMutation(TOGGLE_TASK_FAVORITE, refetch);
-	const [duplicate] = useMutation(DUPLICATE_TASK, refetch);
-	const [archive] = useMutation(ARCHIVE_TASK, refetch);
-	const [remove] = useMutation(DELETE_TASKS, refetch);
+	const taskRef = { __typename: "Task", id: t.id } as const;
+	// favorite flips the cached flag; archive and delete drop the task from the cache, so
+	// every list updates at once and only server-computed stats and counts refetch
+	const [favorite] = useMutation(TOGGLE_TASK_FAVORITE, {
+		update: (cache, { data }) =>
+			cache.modify({
+				id: cache.identify(taskRef),
+				fields: { isFavorite: () => !!data?.toggleTaskFavorite },
+			}),
+	});
+	const [duplicate] = useMutation(DUPLICATE_TASK, {
+		refetchQueries: TASK_REFETCH,
+	});
+	const [archive] = useMutation(ARCHIVE_TASK);
+	const [remove] = useMutation(DELETE_TASKS, {
+		// gone from the lists at once; the server's answer confirms (or rolls it back)
+		optimisticResponse: { deleteTasks: 1 },
+		update: (cache) => dropTaskFromLists(cache, slug, t.id),
+		refetchQueries: ["ProjectPage", "Projects", "NotificationCounts"],
+	});
 	const editable = canEdit(t.projectId);
 	const done = t.status === "completed";
 	return (
@@ -243,7 +258,23 @@ export function TaskMenu({
 								icon="icon-[solar--archive-linear]"
 								onSelect={() => {
 									const id = toast.pending(`Archiving “${t.name}”…`);
-									archive({ variables: { slug, id: t.id, archived: true } })
+									archive({
+										variables: { slug, id: t.id, archived: true },
+										optimisticResponse: {
+											archiveTask: {
+												...t,
+												archivedAt: new Date().toISOString(),
+												__typename: "Task",
+											} as TaskItem,
+										},
+										update: (cache) => dropTaskFromLists(cache, slug, t.id),
+										refetchQueries: [
+											"ProjectPage",
+											"Projects",
+											"NotificationCounts",
+											"Archive",
+										],
+									})
 										.then(() =>
 											toast.update(id, {
 												title: `Archived “${t.name}”`,
@@ -253,6 +284,8 @@ export function TaskMenu({
 													onClick: () =>
 														archive({
 															variables: { slug, id: t.id, archived: false },
+															// the task comes back: refresh the lists it belongs in
+															refetchQueries: [...TASK_REFETCH, "Archive"],
 														}),
 												},
 											}),

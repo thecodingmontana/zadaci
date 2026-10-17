@@ -56,7 +56,14 @@ export function ProjectMenu({
 			"NotificationCounts",
 		],
 	};
-	const [toggleFavorite] = useMutation(TOGGLE_FAVORITE, refetch);
+	// starring only flips the cached flag (sidebar, cards and Favorites share it)
+	const [toggleFavorite] = useMutation(TOGGLE_FAVORITE, {
+		update: (cache, { data }) =>
+			cache.modify({
+				id: cache.identify({ __typename: "Project", id: project.id }),
+				fields: { isFavorite: () => !!data?.toggleFavorite },
+			}),
+	});
 	const [duplicate] = useMutation(DUPLICATE_PROJECT, refetch);
 	const [move] = useMutation(MOVE_PROJECT, refetch);
 	const [archive] = useMutation(ARCHIVE_PROJECT, refetch);
