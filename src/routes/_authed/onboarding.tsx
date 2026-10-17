@@ -8,6 +8,7 @@ import {
 	useId,
 	useState,
 } from "react";
+import { ThemeToggle } from "#/components/theme-toggle";
 import { ArrowChip, Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -494,11 +495,14 @@ function Onboarding() {
 						<ZadaciLogo className="size-6" />
 						Zadaci
 					</Link>
-					{hasWorkspace && (
-						<Button variant="ghost" size="sm" asChild>
-							<Link to="/workspace">Exit setup</Link>
-						</Button>
-					)}
+					<div className="flex items-center gap-2">
+						{hasWorkspace && (
+							<Button variant="ghost" size="sm" asChild>
+								<Link to="/workspace">Exit setup</Link>
+							</Button>
+						)}
+						<ThemeToggle />
+					</div>
 				</header>
 				<main className="flex flex-1 justify-center px-4 pt-[6vh] pb-10">
 					<form

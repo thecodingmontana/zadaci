@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { ThemeToggle } from "#/components/theme-toggle";
 import { ZadaciLogo } from "#/components/zadaci-logo";
 
 export function AuthShell({
@@ -12,7 +13,8 @@ export function AuthShell({
 	children: ReactNode;
 }) {
 	return (
-		<main className="grid min-h-dvh place-items-center px-4 py-10">
+		<main className="relative grid min-h-dvh place-items-center px-4 py-10">
+			<ThemeToggle className="absolute top-4 right-4" />
 			<div className="flex w-full max-w-sm flex-col gap-6">
 				<div className="flex flex-col items-center gap-4 text-center">
 					<Link to="/" className="flex items-center gap-2.5 rounded-md">

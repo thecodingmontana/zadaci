@@ -1,6 +1,7 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { BlueprintFrame } from "#/components/home/blueprint-frame";
 import { MultiplayerText } from "#/components/home/multiplayer-text";
+import { ThemeToggle } from "#/components/theme-toggle";
 import { ArrowChip, Button } from "#/components/ui/button";
 import { SITE_DESCRIPTION, SITE_URL } from "#/lib/seo";
 import { getSession } from "#/lib/session";
@@ -62,6 +63,7 @@ function Home() {
 		<main className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-[#fafafa] px-6 py-20 text-center dark:bg-[#08080a]">
 			<BlueprintFrame className="dark:hidden" color="#0a0a0a" inset={40} />
 			<BlueprintFrame className="hidden dark:block" inset={40} />
+			<ThemeToggle className="absolute top-4 right-4 z-20" />
 
 			<div className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-6 px-4">
 				<h1 className="sr-only">
