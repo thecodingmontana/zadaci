@@ -11,4 +11,4 @@ export * from "./tags";
 export * from "./team";
 export * from "./user";
 export * from "./workspace";
-export * from "./jobs"
+export * from "./jobs";

@@ -1,0 +1,12 @@
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+
+export const cronJobs = pgTable("cron_jobs", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	message: text("message").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+});
+
+export type CronJob = typeof cronJobs.$inferSelect;
+export type NewCronJob = typeof cronJobs.$inferInsert;
