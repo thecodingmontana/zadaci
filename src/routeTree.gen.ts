@@ -28,6 +28,7 @@ import { Route as AuthedWSlugActivityRouteImport } from './routes/_authed/w/$slu
 import { Route as AuthedWSlugArchiveRouteImport } from './routes/_authed/w/$slug/archive'
 import { Route as AuthedWSlugCalendarRouteImport } from './routes/_authed/w/$slug/calendar'
 import { Route as AuthedWSlugFavoritesRouteImport } from './routes/_authed/w/$slug/favorites'
+import { Route as AuthedWSlugInboxRouteImport } from './routes/_authed/w/$slug/inbox'
 import { Route as AuthedWSlugMyTasksRouteImport } from './routes/_authed/w/$slug/my-tasks'
 import { Route as AuthedWSlugNotificationsRouteImport } from './routes/_authed/w/$slug/notifications'
 import { Route as AuthedWSlugOverviewRouteImport } from './routes/_authed/w/$slug/overview'
@@ -135,6 +136,11 @@ const AuthedWSlugFavoritesRoute = AuthedWSlugFavoritesRouteImport.update({
   path: '/favorites',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
+const AuthedWSlugInboxRoute = AuthedWSlugInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
 const AuthedWSlugMyTasksRoute = AuthedWSlugMyTasksRouteImport.update({
   id: '/my-tasks',
   path: '/my-tasks',
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/w/$slug/archive': typeof AuthedWSlugArchiveRoute
   '/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
   '/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
+  '/w/$slug/inbox': typeof AuthedWSlugInboxRoute
   '/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/w/$slug/overview': typeof AuthedWSlugOverviewRoute
@@ -247,6 +254,7 @@ export interface FileRoutesByTo {
   '/w/$slug/archive': typeof AuthedWSlugArchiveRoute
   '/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
   '/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
+  '/w/$slug/inbox': typeof AuthedWSlugInboxRoute
   '/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/w/$slug/overview': typeof AuthedWSlugOverviewRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/_authed/w/$slug/archive': typeof AuthedWSlugArchiveRoute
   '/_authed/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
   '/_authed/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
+  '/_authed/w/$slug/inbox': typeof AuthedWSlugInboxRoute
   '/_authed/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
   '/_authed/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
   '/_authed/w/$slug/overview': typeof AuthedWSlugOverviewRoute
@@ -315,6 +324,7 @@ export interface FileRouteTypes {
     | '/w/$slug/archive'
     | '/w/$slug/calendar'
     | '/w/$slug/favorites'
+    | '/w/$slug/inbox'
     | '/w/$slug/my-tasks'
     | '/w/$slug/notifications'
     | '/w/$slug/overview'
@@ -346,6 +356,7 @@ export interface FileRouteTypes {
     | '/w/$slug/archive'
     | '/w/$slug/calendar'
     | '/w/$slug/favorites'
+    | '/w/$slug/inbox'
     | '/w/$slug/my-tasks'
     | '/w/$slug/notifications'
     | '/w/$slug/overview'
@@ -379,6 +390,7 @@ export interface FileRouteTypes {
     | '/_authed/w/$slug/archive'
     | '/_authed/w/$slug/calendar'
     | '/_authed/w/$slug/favorites'
+    | '/_authed/w/$slug/inbox'
     | '/_authed/w/$slug/my-tasks'
     | '/_authed/w/$slug/notifications'
     | '/_authed/w/$slug/overview'
@@ -541,6 +553,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugFavoritesRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
+    '/_authed/w/$slug/inbox': {
+      id: '/_authed/w/$slug/inbox'
+      path: '/inbox'
+      fullPath: '/w/$slug/inbox'
+      preLoaderRoute: typeof AuthedWSlugInboxRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
     '/_authed/w/$slug/my-tasks': {
       id: '/_authed/w/$slug/my-tasks'
       path: '/my-tasks'
@@ -634,6 +653,7 @@ interface AuthedWSlugRouteChildren {
   AuthedWSlugArchiveRoute: typeof AuthedWSlugArchiveRoute
   AuthedWSlugCalendarRoute: typeof AuthedWSlugCalendarRoute
   AuthedWSlugFavoritesRoute: typeof AuthedWSlugFavoritesRoute
+  AuthedWSlugInboxRoute: typeof AuthedWSlugInboxRoute
   AuthedWSlugMyTasksRoute: typeof AuthedWSlugMyTasksRoute
   AuthedWSlugNotificationsRoute: typeof AuthedWSlugNotificationsRoute
   AuthedWSlugOverviewRoute: typeof AuthedWSlugOverviewRoute
@@ -655,6 +675,7 @@ const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugArchiveRoute: AuthedWSlugArchiveRoute,
   AuthedWSlugCalendarRoute: AuthedWSlugCalendarRoute,
   AuthedWSlugFavoritesRoute: AuthedWSlugFavoritesRoute,
+  AuthedWSlugInboxRoute: AuthedWSlugInboxRoute,
   AuthedWSlugMyTasksRoute: AuthedWSlugMyTasksRoute,
   AuthedWSlugNotificationsRoute: AuthedWSlugNotificationsRoute,
   AuthedWSlugOverviewRoute: AuthedWSlugOverviewRoute,

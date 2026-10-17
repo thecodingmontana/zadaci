@@ -86,7 +86,7 @@ function CommentText({ text }: { text: string }) {
 	);
 }
 
-function Comments({ t }: { t: TaskDetail }) {
+export function Comments({ t }: { t: TaskDetail }) {
 	const { slug, members, meId, project } = useTaskView();
 	const me = members.find((m) => m.id === meId);
 	const canComment =

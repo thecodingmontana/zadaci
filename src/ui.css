@@ -5055,3 +5055,20 @@ table.tbl {
 .pbody > .page {
   width: 100%;
 }
+
+/* Inbox on phones: one column; the preview covers the list once something is picked */
+@media (max-width: 900px) {
+  .inbox-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .inbox-prev {
+    display: none !important;
+  }
+  .inbox-grid.has-sel .inbox-prev {
+    display: flex !important;
+    position: fixed;
+    inset: 0;
+    z-index: 48;
+    background: var(--q-surface);
+  }
+}
