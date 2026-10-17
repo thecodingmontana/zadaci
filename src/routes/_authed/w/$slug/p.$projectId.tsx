@@ -5,7 +5,6 @@ import { z } from "zod";
 import { ActivityItem } from "#/components/activity/activity-item";
 import {
 	PIcon,
-	PStatus,
 	projectColor,
 	StatusMenu,
 } from "#/components/projects/bits";
@@ -136,7 +135,7 @@ function ProjectPage() {
 					<StatusMenu
 						status={project.status}
 						disabled={!canEdit}
-						className="pillbtn bordered"
+						className="pillbtn bordered h-6"
 						onPick={(status) =>
 							update({
 								variables: { slug, projectId: project.id, input: { status } },
@@ -153,7 +152,19 @@ function ProjectPage() {
 								)
 						}
 					>
-						<PStatus status={project.status} />
+						{/* one pill: dot, name, chevron (reference project header) */}
+						<span
+							className="pdot"
+							style={
+								{
+									"--c": pstat(project.status).c,
+									borderRadius: "50%",
+									width: 7,
+									height: 7,
+								} as React.CSSProperties
+							}
+						/>
+						{pstat(project.status).name}
 						{canEdit && (
 							<span
 								className="icon-[solar--alt-arrow-down-linear] size-3"
