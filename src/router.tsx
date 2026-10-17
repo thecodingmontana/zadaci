@@ -6,7 +6,7 @@ import {
 } from "@apollo/client-integration-tanstack-start";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { createIsomorphicFn } from "@tanstack/react-start";
-import { NotFound } from "#/components/not-found";
+import { PageFailed, PageNotFound } from "#/components/states";
 import { routeTree } from "./routeTree.gen";
 
 // During SSR, run GraphQL in-process with the visitor's cookies instead of an HTTP round-trip.
@@ -37,7 +37,9 @@ export function getRouter() {
 		scrollRestoration: true,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
-		defaultNotFoundComponent: NotFound,
+		defaultNotFoundComponent: PageNotFound,
+		// a page that throws shows the "Something went wrong" state in its place
+		defaultErrorComponent: PageFailed,
 		// pages with a loading skeleton show it once loading passes 150ms, for at least 200ms
 		defaultPendingMs: 150,
 		defaultPendingMinMs: 200,
