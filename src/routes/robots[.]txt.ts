@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SITE_URL } from "#/lib/seo";
 
+// Sign-in pages stay crawlable so search engines can read their noindex and drop them.
 const ROBOTS = `User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /auth/
 Disallow: /w/
 Disallow: /workspace
 Disallow: /onboarding

@@ -63,7 +63,9 @@ function Home() {
 			<BlueprintFrame className="hidden dark:block" inset={40} />
 
 			<div className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-6 px-4">
-				<h1 className="sr-only">Zadaci</h1>
+				<h1 className="sr-only">
+					Zadaci: collaborative task management for teams
+				</h1>
 				<MultiplayerText
 					text="Turning teams productivity into a powerful daily habit"
 					className="text-3xl leading-[1.45] font-semibold tracking-tight text-black sm:text-[3.5rem] dark:text-white"

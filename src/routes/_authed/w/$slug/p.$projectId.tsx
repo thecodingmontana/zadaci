@@ -3,11 +3,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { ActivityItem } from "#/components/activity/activity-item";
-import {
-	PIcon,
-	projectColor,
-	StatusMenu,
-} from "#/components/projects/bits";
+import { PIcon, projectColor, StatusMenu } from "#/components/projects/bits";
 import { ProjectOverview } from "#/components/projects/overview";
 import { ProjectModal } from "#/components/projects/project-modal";
 import {
