@@ -27,8 +27,15 @@ import { setAppearance, useAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
 import { can, type Permission } from "#/lib/permissions";
 import { pstat } from "#/lib/projects";
+import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { useCommandMenu, useModKey } from "./command-menu";
+import {
+	CreditsModal,
+	REPO_URL,
+	SUPPORT_EMAIL,
+	supportMailto,
+} from "./credits";
 import {
 	ARCHIVE_NAV,
 	MAIN_NAV,
@@ -220,6 +227,7 @@ export function AppSidebar({
 	const navigate = useNavigate();
 	const allowed = (p: Permission) => can(workspace.role, p, workspace.settings);
 	const [creatingProject, setCreatingProject] = useState(false);
+	const [showCredits, setShowCredits] = useState(false);
 	const isActive = useActive(slug);
 	const { collapsed, toggleSide } = useShell();
 	const { openPalette, openShortcuts } = useCommandMenu();
@@ -553,6 +561,58 @@ export function AppSidebar({
 						>
 							Command menu
 						</MenuItem>
+						<MenuSeparator />
+						<MenuLabel>Support</MenuLabel>
+						<MenuItem
+							icon="icon-[hugeicons--mail-01]"
+							onSelect={() => {
+								window.location.href = supportMailto();
+							}}
+							r={
+								<span className="faint" style={{ fontSize: 11 }}>
+									Email
+								</span>
+							}
+						>
+							Contact support
+						</MenuItem>
+						<MenuItem
+							icon="icon-[solar--copy-linear]"
+							onSelect={() => {
+								navigator.clipboard
+									.writeText(SUPPORT_EMAIL)
+									.then(() =>
+										toast.success("Support email copied", {
+											desc: SUPPORT_EMAIL,
+										}),
+									)
+									.catch(() =>
+										toast.error("Couldn't copy", { desc: SUPPORT_EMAIL }),
+									);
+							}}
+						>
+							Copy support email
+						</MenuItem>
+						<MenuItem
+							icon="icon-[hugeicons--github]"
+							onSelect={() =>
+								window.open(REPO_URL, "_blank", "noopener,noreferrer")
+							}
+							r={
+								<span
+									className="icon-[solar--arrow-right-up-linear] size-3 faint"
+									aria-hidden="true"
+								/>
+							}
+						>
+							Source code on GitHub
+						</MenuItem>
+						<MenuItem
+							icon="icon-[hugeicons--favourite]"
+							onSelect={() => setShowCredits(true)}
+						>
+							Credits
+						</MenuItem>
 					</MenuContent>
 				</Menu>
 				<SItem
@@ -585,6 +645,7 @@ export function AppSidebar({
 					<UserMenuContent user={user} slug={slug} />
 				</Menu>
 			</div>
+			<CreditsModal open={showCredits} onOpenChange={setShowCredits} />
 			<ProjectModalLoader
 				open={creatingProject}
 				onOpenChange={setCreatingProject}

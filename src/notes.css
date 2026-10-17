@@ -518,3 +518,49 @@
 	display: block;
 	height: 13px;
 }
+
+/* ---- credits (Help & resources) ---- */
+.credits {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+.credits-maker {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px;
+	border-radius: var(--q-r-sm);
+	background: var(--q-surface-2);
+	color: var(--q-text);
+}
+.credits-maker img {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+}
+.credits-maker:hover {
+	background: var(--q-surface-3);
+}
+.credits-list {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 6px 16px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: var(--q-fs-sm);
+}
+.credits .credits-list a {
+	color: var(--q-text-2);
+}
+.credits .credits-list a:hover {
+	color: var(--q-text);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.credits-links {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
