@@ -71,6 +71,36 @@ export async function viewerRight(
 	);
 }
 
+/** Who can see one project, as a test on any workspace member (for notifications and assignees). */
+export async function projectAudience(projectId: string) {
+	const [[project], rows] = await Promise.all([
+		db
+			.select({ access: tables.project.access, leadId: tables.project.lead_id })
+			.from(tables.project)
+			.where(eq(tables.project.id, projectId)),
+		db
+			.select({
+				memberId: tables.project_members.member_id,
+				permission: tables.project_members.permission,
+			})
+			.from(tables.project_members)
+			.where(
+				and(
+					eq(tables.project_members.project_id, projectId),
+					isNull(tables.project_members.deleted_at),
+				),
+			),
+	]);
+	const on = new Map(rows.map((r) => [r.memberId, r.permission]));
+	return (m: { memberId: string; role: string }) =>
+		!!project &&
+		projectRight(
+			m.role,
+			{ access: project.access, isLead: project.leadId === m.memberId },
+			on.has(m.memberId) ? on.get(m.memberId) : undefined,
+		) !== null;
+}
+
 /**
  * A project the viewer can see, failing like a missing project when they can't.
  * `need` checks a workspace permission and/or the viewer's right on the project.
@@ -304,9 +334,10 @@ export const projectsResolvers = {
 				ctx,
 				args.slug,
 				args.projectId,
-				{ permission: "createProjects" },
+				{ permission: "createProjects", right: "edit" },
 			);
-			// A duplicate is a new project, so it follows "Members can create projects".
+			// A duplicate is a new project, so it follows "Members can create projects", and
+			// copying everything in it needs edit rights there (the copier leads the copy).
 			const copy = await db.transaction(async (tx) => {
 				const { id: _id, created_at: _c, updated_at: _u, ...rest } = project;
 				const [copy] = await tx

@@ -72,6 +72,8 @@ test("duplicating a project respects 'Members can create projects'", async () =>
 	const p = ws.data?.workspace.projects[0].id;
 	const DUP = `mutation($s: String!, $p: ID!) { duplicateProject(slug: $s, projectId: $p) { id } }`;
 	assert.equal(code(await gql(member, DUP, { s: slug, p })), "FORBIDDEN");
+	await gql(owner, `mutation($s: String!) { updateWorkspace(slug: $s, input: { settings: { permCreate: true } }) { id } }`, { s: slug });
+	assert.equal(code(await gql(member, DUP, { s: slug, p })), "FORBIDDEN", "commenting on a project isn't enough to copy it");
 	assert.ok((await gql(owner, DUP, { s: slug, p })).data?.duplicateProject.id, "owners can still duplicate");
 });
 

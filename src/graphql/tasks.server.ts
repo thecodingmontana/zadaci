@@ -28,7 +28,7 @@ import {
 } from "#/lib/tasks";
 import { fmtDay } from "#/lib/time";
 import { logActivity, notify } from "./activity.server";
-import { requireProject } from "./projects.server";
+import { projectAudience, requireProject } from "./projects.server";
 import {
 	badInput,
 	type findWorkspaces,
@@ -373,11 +373,15 @@ async function setAssignee(
 
 async function checkAssignee(
 	workspaceId: string,
+	projectId: string,
 	memberId: string | null | undefined,
 ) {
 	if (!memberId) return;
 	const [m] = await db
-		.select({ id: tables.workspace_members.id })
+		.select({
+			id: tables.workspace_members.id,
+			role: tables.workspace_members.role,
+		})
 		.from(tables.workspace_members)
 		.where(
 			and(
@@ -387,6 +391,10 @@ async function checkAssignee(
 			),
 		);
 	if (!m) badInput("The assignee must be someone in this workspace");
+	// assigning sends them the task and project names, so they must be able to see it
+	const sees = await projectAudience(projectId);
+	if (!sees({ memberId: m.id, role: m.role }))
+		badInput("The assignee must be someone who can see this project");
 }
 
 type Actor = { workspace: Workspace; userId: string };
@@ -524,7 +532,7 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 			);
 		const next = patch.assigneeId || null;
 		if ((current?.memberId ?? null) !== next) {
-			await checkAssignee(actor.workspace.id, next);
+			await checkAssignee(actor.workspace.id, task.project_id, next);
 			await setAssignee(db, task.id, next);
 			const person = next ? await memberName(next) : null;
 			logs.push(
@@ -760,7 +768,7 @@ export const tasksResolvers = {
 					right: "edit",
 				},
 			);
-			await checkAssignee(workspace.id, input.assigneeId);
+			await checkAssignee(workspace.id, input.projectId, input.assigneeId);
 			if (input.parentId) {
 				const [parent] = await db
 					.select()

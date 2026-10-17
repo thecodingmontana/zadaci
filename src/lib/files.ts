@@ -48,3 +48,20 @@ export function fmtSize(bytes: number) {
 	if (bytes < 1024 ** 2) return `${Math.round(bytes / 1024)} KB`;
 	return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
 }
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** A file we signed an upload slot for: our Cloudinary account, that folder, nothing appended. */
+export function isUploadUrl(url: string, cloud: string, folder: string) {
+	let u: URL;
+	try {
+		u = new URL(url);
+	} catch {
+		return false;
+	}
+	if (u.origin !== "https://res.cloudinary.com" || u.search || u.hash)
+		return false;
+	return new RegExp(
+		`^/${escapeRe(cloud)}/(image|video|raw)/upload/(v\\d+/)?${escapeRe(folder)}/[a-z0-9]+(\\.[A-Za-z0-9]+)?$`,
+	).test(u.pathname);
+}

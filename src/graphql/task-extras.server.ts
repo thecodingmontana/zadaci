@@ -2,10 +2,11 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
 import { db, tables } from "#/db";
+import { isUploadUrl } from "#/lib/files";
 import { hasRight } from "#/lib/permissions";
 import { taskKey } from "#/lib/tasks";
 import { logActivity, notify } from "./activity.server";
-import { requireProject } from "./projects.server";
+import { projectAudience, requireProject } from "./projects.server";
 import {
 	badInput,
 	forbidden,
@@ -211,11 +212,12 @@ async function notifyComment(
 	task: TaskRow,
 	text: string,
 ) {
-	const people = await db
+	const everyone = await db
 		.select({
 			memberId: tables.workspace_members.id,
 			userId: tables.user.id,
 			name: tables.user.name,
+			role: tables.workspace_members.role,
 		})
 		.from(tables.workspace_members)
 		.innerJoin(
@@ -228,6 +230,9 @@ async function notifyComment(
 				isNull(tables.workspace_members.deleted_at),
 			),
 		);
+	// only people who can see the project hear about it: the snippet quotes the comment
+	const sees = await projectAudience(task.project_id);
+	const people = everyone.filter(sees);
 	const mentioned = new Set(
 		people.filter((p) => text.includes(`@${p.name}`)).map((p) => p.userId),
 	);
@@ -503,10 +508,7 @@ export const taskExtrasResolvers = {
 			const target = await fileTarget(ctx, args.slug, args);
 			const { cloud } = cloudinary();
 			// only files we signed a slot for: our Cloudinary account and this task or project folder
-			if (
-				!args.url.startsWith(`https://res.cloudinary.com/${cloud}/`) ||
-				!args.url.includes(`/${target.folder}/`)
-			)
+			if (!isUploadUrl(args.url, cloud, target.folder))
 				badInput("That file didn't come from this upload");
 			const name = z.string().trim().min(1).max(255).safeParse(args.name);
 			if (!name.success) badInput("The file needs a name");

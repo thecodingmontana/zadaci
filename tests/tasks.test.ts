@@ -94,6 +94,15 @@ test("people who can only comment can't change tasks, and guests off the project
 	const seen = await gql(guest, `query($s: String!, $t: ID!) { workspace(slug: $s) { task(id: $t) { id } tasks { id } } }`, { s: slug, t: id });
 	assert.equal(seen.data?.workspace.task, null);
 	assert.deepEqual(seen.data?.workspace.tasks, []);
+
+	// mentions and assigning can't leak the task to someone off the project
+	await gql(owner, `mutation($s: String!, $t: ID!) { addComment(slug: $s, taskId: $t, text: "@guest the price is 42") { id } }`, { s: slug, t: id });
+	const inbox = await gql(guest, `query($s: String!) { workspace(slug: $s) { notifications { type } } }`, { s: slug });
+	assert.deepEqual(inbox.data?.workspace.notifications, []);
+	const guestId = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id name } } }`, { s: slug })).data?.workspace.members.find(
+		(m: { name: string }) => m.name === "guest",
+	).id;
+	assert.equal(code(await gql(owner, UPDATE, { s: slug, id, p: { assigneeId: guestId } })), "BAD_USER_INPUT");
 });
 
 test("subtasks, dependencies, mentions and reactions", async () => {
