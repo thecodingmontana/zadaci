@@ -12,6 +12,7 @@ import {
 	REMOVE_ATTACHMENT,
 	SET_DEPENDENCIES,
 	TASK_DETAIL,
+	type TaskAttachment,
 	type TaskDetail,
 	type TaskItem,
 	TOGGLE_TASK_FAVORITE,
@@ -32,6 +33,7 @@ import {
 } from "./cells";
 import { TASK_REFETCH, TaskViewProvider, useTaskView } from "./context";
 import { DrawerConversation } from "./drawer-conversation";
+import { FilePreviewModal, Preview } from "./files-view";
 import { DatePick, PickList, PickPopover } from "./pick";
 import { TaskMenu } from "./task-menu";
 import { uploadFile } from "./upload";
@@ -844,8 +846,9 @@ type Upload = { id: string; name: string; pct: number };
 
 /** Files on the task, uploaded straight to Cloudinary with a signed request. */
 function Attachments({ t, editable }: { t: TaskDetail; editable: boolean }) {
-	const { slug } = useTaskView();
+	const { slug, member } = useTaskView();
 	const [uploads, setUploads] = useState<Upload[]>([]);
+	const [preview, setPreview] = useState<TaskAttachment | null>(null);
 	const client = useApolloClient();
 	const [remove] = useMutation(REMOVE_ATTACHMENT, {
 		refetchQueries: TASK_REFETCH,
@@ -938,46 +941,14 @@ function Attachments({ t, editable }: { t: TaskDetail; editable: boolean }) {
 						const k = FILE_TYPES[kind];
 						return (
 							<div key={f.id} className="attc">
-								<a
-									href={f.url}
-									target="_blank"
-									rel="noreferrer noopener"
+								<button
+									type="button"
 									className="fprev"
-									aria-label={`Open ${f.name}`}
+									aria-label={`Preview ${f.name}`}
+									onClick={() => setPreview(f)}
 								>
-									{kind === "img" ? (
-										<img
-											src={f.url}
-											alt=""
-											loading="lazy"
-											style={{
-												width: "100%",
-												height: "100%",
-												objectFit: "cover",
-											}}
-										/>
-									) : (
-										<span
-											style={{
-												color: k.c,
-												display: "grid",
-												placeItems: "center",
-												height: "100%",
-											}}
-										>
-											<span
-												className={cn(k.icon, "size-7")}
-												aria-hidden="true"
-											/>
-										</span>
-									)}
-									<span
-										className="ext"
-										style={{ "--c": k.c } as React.CSSProperties}
-									>
-										{(f.name.split(".").pop() ?? "").slice(0, 4)}
-									</span>
-								</a>
+									<Preview f={f} />
+								</button>
 								<div className="fi">
 									<div className="trunc" style={{ fontWeight: 500 }}>
 										{f.name}
@@ -1035,6 +1006,14 @@ function Attachments({ t, editable }: { t: TaskDetail; editable: boolean }) {
 					</div>
 				)
 			)}
+			<FilePreviewModal
+				f={preview}
+				onOpenChange={(o) => !o && setPreview(null)}
+				uploader={preview ? member(preview.uploadedBy)?.name : undefined}
+				attachedTo={t.name}
+				// already on this task: the link just closes the preview
+				onOpenTask={() => setPreview(null)}
+			/>
 		</div>
 	);
 }

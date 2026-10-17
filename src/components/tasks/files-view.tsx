@@ -51,6 +51,7 @@ export function FilesView({
 	const [kind, setKind] = useState<"all" | FileKind>("all");
 	const [sort, setSort] = useState<"date" | "name" | "type">("date");
 	const [layout, setLayout] = useState<"grid" | "list">("grid");
+	const [preview, setPreview] = useState<TaskAttachment | null>(null);
 	const [uploads, setUploads] = useState<Upload[]>([]);
 	const project = data?.workspace?.project;
 	const editable = hasRight(
@@ -279,15 +280,14 @@ export function FilesView({
 					<div className="fgrid">
 						{files.map((f) => (
 							<div key={f.id} className="fcard">
-								<a
-									href={f.url}
-									target="_blank"
-									rel="noreferrer noopener"
+								<button
+									type="button"
 									className="fprev"
-									aria-label={`Open ${f.name}`}
+									aria-label={`Preview ${f.name}`}
+									onClick={() => setPreview(f)}
 								>
 									<Preview f={f} />
-								</a>
+								</button>
 								<div className="fi">
 									<span className="fn trunc">{f.name}</span>
 									<span className="fm" suppressHydrationWarning>
@@ -390,12 +390,33 @@ export function FilesView({
 					</div>
 				)}
 			</div>
+			<FilePreviewModal
+				f={preview}
+				onOpenChange={(o) => !o && setPreview(null)}
+				uploader={preview ? who(preview.uploadedBy) : undefined}
+				attachedTo={preview?.taskKey ?? undefined}
+				onOpenTask={
+					preview?.taskId
+						? () => {
+								openTask(preview.taskId as string);
+								setPreview(null);
+							}
+						: undefined
+				}
+			/>
 		</>
 	);
 }
 
 /** Images show themselves; everything else shows its kind (reference filePrev). */
-function Preview({ f }: { f: TaskAttachment }) {
+export function Preview({
+	f,
+	fit = "cover",
+}: {
+	f: TaskAttachment;
+	/** "contain" shows a whole image, for the preview window */
+	fit?: "cover" | "contain";
+}) {
 	const kind = fileKind(f.name);
 	const k = FILE_TYPES[kind];
 	return (
@@ -405,7 +426,7 @@ function Preview({ f }: { f: TaskAttachment }) {
 					src={f.url}
 					alt=""
 					loading="lazy"
-					style={{ width: "100%", height: "100%", objectFit: "cover" }}
+					style={{ width: "100%", height: "100%", objectFit: fit }}
 				/>
 			) : (
 				<span
@@ -423,6 +444,107 @@ function Preview({ f }: { f: TaskAttachment }) {
 				{(f.name.split(".").pop() ?? "").slice(0, 4)}
 			</span>
 		</>
+	);
+}
+
+/** One file, larger (reference filePreviewModal): who added it, where it's attached, its link. */
+export function FilePreviewModal({
+	f,
+	onOpenChange,
+	uploader,
+	attachedTo,
+	onOpenTask,
+}: {
+	f: TaskAttachment | null;
+	onOpenChange: (open: boolean) => void;
+	uploader?: string;
+	/** the task's name or key, when the file belongs to a task */
+	attachedTo?: string;
+	onOpenTask?: () => void;
+}) {
+	const k = f ? FILE_TYPES[fileKind(f.name)] : null;
+	return (
+		<Modal
+			open={!!f}
+			onOpenChange={onOpenChange}
+			title={f?.name ?? ""}
+			sub={
+				f && (
+					<span suppressHydrationWarning>
+						{k?.name} · {fmtSize(f.size)} · Uploaded by {uploader ?? "someone"}{" "}
+						{ago(f.createdAt)}
+					</span>
+				)
+			}
+			size="lg"
+			footer={
+				<>
+					<button
+						type="button"
+						className="btn btn-secondary"
+						onClick={async () => {
+							if (!f) return;
+							await navigator.clipboard.writeText(f.url);
+							toast.success("Link copied");
+						}}
+					>
+						<span
+							className="icon-[solar--link-linear] size-3.5"
+							aria-hidden="true"
+						/>
+						Copy link
+					</button>
+					<span className="sp" />
+					<button
+						type="button"
+						className="btn btn-primary"
+						onClick={() => onOpenChange(false)}
+					>
+						Close
+					</button>
+				</>
+			}
+		>
+			{f && (
+				<div className="modal-b">
+					<a
+						href={f.url}
+						target="_blank"
+						rel="noreferrer noopener"
+						aria-label={`Open ${f.name} in a new tab`}
+						style={{
+							display: "block",
+							border: "1px solid var(--q-border)",
+							borderRadius: "var(--q-r-lg)",
+							overflow: "hidden",
+						}}
+					>
+						<span
+							className="fprev"
+							style={{ aspectRatio: "16/9", display: "block" }}
+						>
+							<Preview f={f} fit="contain" />
+						</span>
+					</a>
+					{attachedTo && (
+						<div className="row faint" style={{ fontSize: 12.5 }}>
+							<span
+								className="icon-[solar--link-linear] size-[13px]"
+								aria-hidden="true"
+							/>
+							Attached to
+							{onOpenTask ? (
+								<button type="button" className="link" onClick={onOpenTask}>
+									{attachedTo}
+								</button>
+							) : (
+								<span>{attachedTo}</span>
+							)}
+						</div>
+					)}
+				</div>
+			)}
+		</Modal>
 	);
 }
 
