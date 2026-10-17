@@ -88,13 +88,13 @@ function NotificationsPage() {
 						className="btn btn-secondary"
 						disabled={!unread}
 						onClick={() =>
-							markAll({ variables: { slug } })
-								.then(() => toast.success("You're all caught up."))
-								.catch((error: Error) =>
-									toast.error("Couldn't mark them as read", {
-										desc: error.message,
-									}),
-								)
+							toast
+								.promise(markAll({ variables: { slug } }), {
+									loading: "Marking all as read…",
+									success: "You're all caught up.",
+									error: "Couldn't mark them as read",
+								})
+								.catch(() => {})
 						}
 					>
 						<span
@@ -207,10 +207,19 @@ function NotificationIcon({ n }: { n: NotificationItem }) {
 function NotificationRow({ slug, n }: { slug: string; n: NotificationItem }) {
 	const navigate = useNavigate();
 	const [setRead] = useMutation(SET_NOTIFICATION_READ, refetch);
+	// opening a notification marks it read quietly; only failures speak up
 	const mark = (read: boolean) =>
 		setRead({ variables: { slug, id: n.id, read } }).catch((error: Error) =>
 			toast.error("Couldn't update the notification", { desc: error.message }),
 		);
+	const toggleRead = () =>
+		toast
+			.promise(setRead({ variables: { slug, id: n.id, read: !n.read } }), {
+				loading: n.read ? "Marking as unread…" : "Marking as read…",
+				success: n.read ? "Marked as unread" : "Marked as read",
+				error: "Couldn't update the notification",
+			})
+			.catch(() => {});
 	// shortcut: opens the project; open the task drawer once tasks are built
 	const open = () => {
 		if (!n.read) mark(true);
@@ -276,7 +285,7 @@ function NotificationRow({ slug, n }: { slug: string; n: NotificationItem }) {
 				aria-label={n.read ? "Mark as unread" : "Mark as read"}
 				onClick={(e) => {
 					e.stopPropagation();
-					mark(!n.read);
+					toggleRead();
 				}}
 			>
 				<span

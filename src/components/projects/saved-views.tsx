@@ -130,14 +130,19 @@ export function SavedViewTab({
 					onSubmit={async (e) => {
 						e.preventDefault();
 						try {
-							await rename({
-								variables: { slug, id: view.id, name: name.trim() },
-							});
+							await toast.promise(
+								rename({
+									variables: { slug, id: view.id, name: name.trim() },
+								}),
+								{
+									loading: "Renaming view…",
+									success: `Renamed to “${name.trim()}”`,
+									error: "Couldn't rename the view",
+								},
+							);
 							setRenaming(false);
-						} catch (error) {
-							toast.error("Couldn't rename the view", {
-								desc: (error as Error).message,
-							});
+						} catch {
+							// the toast already shows why
 						}
 					}}
 				>
@@ -163,14 +168,11 @@ export function SavedViewTab({
 				ok="Delete view"
 				danger
 				onConfirm={async () => {
-					try {
-						await remove({ variables: { slug, id: view.id } });
-					} catch (error) {
-						toast.error("Couldn't delete the view", {
-							desc: (error as Error).message,
-						});
-						throw error;
-					}
+					await toast.promise(remove({ variables: { slug, id: view.id } }), {
+						loading: `Deleting “${view.name}”…`,
+						success: `Deleted “${view.name}”`,
+						error: "Couldn't delete the view",
+					});
 					if (on)
 						navigate({
 							to: "/w/$slug/p/$projectId",
@@ -203,19 +205,25 @@ export function SaveViewButton({
 		event?.preventDefault();
 		if (!name.trim()) return;
 		try {
-			const { data } = await save({
-				variables: { slug, projectId, name: name.trim(), type, filters },
-			});
+			const { data } = await toast.promise(
+				save({
+					variables: { slug, projectId, name: name.trim(), type, filters },
+				}),
+				{
+					loading: `Saving “${name.trim()}”…`,
+					success: `Saved view “${name.trim()}”`,
+					error: "Couldn't save the view",
+				},
+			);
 			setOpen(false);
-			toast.success(`Saved view “${name.trim()}”`);
 			if (data)
 				navigate({
 					to: "/w/$slug/p/$projectId",
 					params: { slug, projectId },
 					search: { tab: `v:${data.saveView.id}` },
 				});
-		} catch (error) {
-			toast.error("Couldn't save the view", { desc: (error as Error).message });
+		} catch {
+			// the toast already shows why
 		}
 	}
 

@@ -57,16 +57,13 @@ function useChangeRole(slug: string) {
 	const [updateRole] = useMutation(UPDATE_MEMBER_ROLE, MEMBER_REFETCH);
 	return async (m: SettingsMember, role: string) => {
 		if (m.role === role) return;
-		try {
-			await updateRole({ variables: { slug, memberId: m.id, role } });
-			toast.success(
-				`${m.name} is now ${role === "moderator" ? "an admin" : `a ${ROLE_LABEL[role]?.toLowerCase()}`}`,
-			);
-		} catch (error) {
-			toast.error("Couldn't change the role", {
-				desc: (error as Error).message,
-			});
-		}
+		await toast
+			.promise(updateRole({ variables: { slug, memberId: m.id, role } }), {
+				loading: `Changing ${m.name}'s role…`,
+				success: `${m.name} is now ${role === "moderator" ? "an admin" : `a ${ROLE_LABEL[role]?.toLowerCase()}`}`,
+				error: "Couldn't change the role",
+			})
+			.catch(() => {});
 	};
 }
 
@@ -175,9 +172,14 @@ export function MemberActions({
 					</MenuItem>
 					<MenuItem
 						icon="icon-[solar--letter-linear]"
-						onSelect={async () => {
-							await navigator.clipboard.writeText(m.email);
-							toast.success("Email copied");
+						onSelect={() => {
+							toast
+								.promise(navigator.clipboard.writeText(m.email), {
+									loading: "Copying email…",
+									success: "Email copied",
+									error: "Couldn't copy the email",
+								})
+								.catch(() => {});
 						}}
 					>
 						Copy email
@@ -213,15 +215,14 @@ export function MemberActions({
 				danger
 				icon="icon-[solar--user-minus-linear]"
 				onConfirm={async () => {
-					try {
-						await removeMember({ variables: { slug, memberId: m.id } });
-					} catch (error) {
-						toast.error("Couldn't remove member", {
-							desc: (error as Error).message,
-						});
-						throw error;
-					}
-					toast.success(`Removed ${m.name}`);
+					await toast.promise(
+						removeMember({ variables: { slug, memberId: m.id } }),
+						{
+							loading: `Removing ${m.name}…`,
+							success: `Removed ${m.name}`,
+							error: "Couldn't remove member",
+						},
+					);
 				}}
 			/>
 		</>
@@ -239,13 +240,13 @@ export function InviteActions({ slug, id }: { slug: string; id: string }) {
 				className={cn("btn btn-ghost btn-sm", loading && "is-loading")}
 				disabled={loading}
 				onClick={() =>
-					resend({ variables: { slug, id } })
-						.then(() => toast.success("Invite sent again"))
-						.catch((error: Error) =>
-							toast.error("Couldn't resend the invite", {
-								desc: error.message,
-							}),
-						)
+					toast
+						.promise(resend({ variables: { slug, id } }), {
+							loading: "Resending invite…",
+							success: "Invite sent again",
+							error: "Couldn't resend the invite",
+						})
+						.catch(() => {})
 				}
 			>
 				Resend
@@ -254,13 +255,13 @@ export function InviteActions({ slug, id }: { slug: string; id: string }) {
 				type="button"
 				className="btn btn-ghost btn-sm"
 				onClick={() =>
-					revoke({ variables: { slug, id } })
-						.then(() => toast.success("Invite revoked"))
-						.catch((error: Error) =>
-							toast.error("Couldn't revoke the invite", {
-								desc: error.message,
-							}),
-						)
+					toast
+						.promise(revoke({ variables: { slug, id } }), {
+							loading: "Revoking invite…",
+							success: "Invite revoked",
+							error: "Couldn't revoke the invite",
+						})
+						.catch(() => {})
 				}
 			>
 				Revoke
@@ -398,14 +399,19 @@ export function InviteModal({
 		if (bad.length) return setErr(`${bad[0]} isn't a valid email address`);
 		setErr("");
 		try {
-			await invite({
-				variables: { slug, emails: list, role, teamId: teamId || null },
-			});
+			const plural = list.length > 1 ? "s" : "";
+			await toast.promise(
+				invite({
+					variables: { slug, emails: list, role, teamId: teamId || null },
+				}),
+				{
+					loading: `Inviting ${list.length} ${list.length > 1 ? "people" : "person"}…`,
+					success: `${list.length} invitation${plural} sent`,
+					error: "Couldn't send the invitations",
+				},
+			);
 			setRaw("");
 			onOpenChange(false);
-			toast.success(
-				`${list.length} invitation${list.length > 1 ? "s" : ""} sent`,
-			);
 		} catch (error) {
 			setErr((error as Error).message);
 		}
@@ -425,11 +431,19 @@ export function InviteModal({
 						<button
 							type="button"
 							className="btn btn-ghost"
-							onClick={async () => {
-								await navigator.clipboard.writeText(
-									`${location.origin}/join/${workspace.inviteCode}`,
-								);
-								toast.success("Invite link copied");
+							onClick={() => {
+								toast
+									.promise(
+										navigator.clipboard.writeText(
+											`${location.origin}/join/${workspace.inviteCode}`,
+										),
+										{
+											loading: "Copying invite link…",
+											success: "Invite link copied",
+											error: "Couldn't copy the invite link",
+										},
+									)
+									.catch(() => {});
 							}}
 						>
 							<span
@@ -645,14 +659,14 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 	const [update] = useMutation(UPDATE_WORKSPACE, {
 		refetchQueries: ["Settings"],
 	});
-	const save = async (input: Record<string, unknown>) => {
-		try {
-			await update({ variables: { slug, input } });
-			toast.success("Preference saved", { duration: 1500 });
-		} catch (error) {
-			toast.error("Couldn't save that", { desc: (error as Error).message });
-		}
-	};
+	const save = (input: Record<string, unknown>) =>
+		toast
+			.promise(update({ variables: { slug, input } }), {
+				loading: "Saving preference…",
+				success: "Preference saved",
+				error: "Couldn't save that",
+			})
+			.catch(() => {});
 	return (
 		<>
 			<SettingsHeader
@@ -713,17 +727,23 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 									<button
 										type="button"
 										className="btn btn-secondary btn-sm"
-										onClick={async () => {
-											try {
-												await archive({
-													variables: { slug, projectId: p.id, archived: false },
-												});
-												toast.success(`${p.title} restored`);
-											} catch (error) {
-												toast.error("Couldn't restore the project", {
-													desc: (error as Error).message,
-												});
-											}
+										onClick={() => {
+											toast
+												.promise(
+													archive({
+														variables: {
+															slug,
+															projectId: p.id,
+															archived: false,
+														},
+													}),
+													{
+														loading: `Restoring ${p.title}…`,
+														success: `${p.title} restored`,
+														error: "Couldn't restore the project",
+													},
+												)
+												.catch(() => {});
 										}}
 									>
 										Restore
@@ -770,17 +790,16 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 				danger
 				onConfirm={async () => {
 					if (!deleting) return;
-					try {
-						await removeProject({
+					await toast.promise(
+						removeProject({
 							variables: { slug, projectId: deleting.id },
-						});
-					} catch (error) {
-						toast.error("Couldn't delete the project", {
-							desc: (error as Error).message,
-						});
-						throw error;
-					}
-					toast.success(`${deleting.title} was deleted`);
+						}),
+						{
+							loading: `Deleting ${deleting.title}…`,
+							success: `${deleting.title} was deleted`,
+							error: "Couldn't delete the project",
+						},
+					);
 				}}
 			/>
 		</>
@@ -815,17 +834,19 @@ export function PermissionsSection({ slug, workspace, title }: SectionProps) {
 						checked={workspace.settings[key]}
 						label={t}
 						disabled={!canAdmin}
-						onChange={async (value) => {
-							try {
-								await update({
-									variables: { slug, input: { settings: { [key]: value } } },
-								});
-								toast.success("Preference saved", { duration: 1500 });
-							} catch (error) {
-								toast.error("Couldn't save that", {
-									desc: (error as Error).message,
-								});
-							}
+						onChange={(value) => {
+							toast
+								.promise(
+									update({
+										variables: { slug, input: { settings: { [key]: value } } },
+									}),
+									{
+										loading: "Saving preference…",
+										success: "Preference saved",
+										error: "Couldn't save that",
+									},
+								)
+								.catch(() => {});
 						}}
 					/>
 				</SRow>

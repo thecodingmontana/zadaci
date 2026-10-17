@@ -482,10 +482,15 @@ export function FilePreviewModal({
 					<button
 						type="button"
 						className="btn btn-secondary"
-						onClick={async () => {
+						onClick={() => {
 							if (!f) return;
-							await navigator.clipboard.writeText(f.url);
-							toast.success("Link copied");
+							toast
+								.promise(navigator.clipboard.writeText(f.url), {
+									loading: "Copying link…",
+									success: "Link copied",
+									error: "Couldn't copy the link",
+								})
+								.catch(() => {});
 						}}
 					>
 						<span
@@ -592,9 +597,14 @@ function FileMenu({
 					)}
 					<MenuItem
 						icon="icon-[solar--link-linear]"
-						onSelect={async () => {
-							await navigator.clipboard.writeText(f.url);
-							toast.success("Link copied");
+						onSelect={() => {
+							toast
+								.promise(navigator.clipboard.writeText(f.url), {
+									loading: "Copying link…",
+									success: "Link copied",
+									error: "Couldn't copy the link",
+								})
+								.catch(() => {});
 						}}
 					>
 						Copy link
@@ -655,14 +665,19 @@ function FileMenu({
 					onSubmit={async (e) => {
 						e.preventDefault();
 						try {
-							await rename({
-								variables: { slug, id: f.id, name: name.trim() },
-							});
+							await toast.promise(
+								rename({
+									variables: { slug, id: f.id, name: name.trim() },
+								}),
+								{
+									loading: "Renaming file…",
+									success: `Renamed to ${name.trim()}`,
+									error: "Couldn't rename the file",
+								},
+							);
 							setRenaming(false);
-						} catch (error) {
-							toast.error("Couldn't rename the file", {
-								desc: (error as Error).message,
-							});
+						} catch {
+							// the toast already shows why
 						}
 					}}
 				>
@@ -688,15 +703,11 @@ function FileMenu({
 				ok="Delete file"
 				danger
 				onConfirm={async () => {
-					try {
-						await remove({ variables: { slug, id: f.id } });
-					} catch (error) {
-						toast.error("Couldn't delete the file", {
-							desc: (error as Error).message,
-						});
-						throw error;
-					}
-					toast.success(`Deleted ${f.name}`);
+					await toast.promise(remove({ variables: { slug, id: f.id } }), {
+						loading: `Deleting ${f.name}…`,
+						success: `Deleted ${f.name}`,
+						error: "Couldn't delete the file",
+					});
 				}}
 			/>
 		</>

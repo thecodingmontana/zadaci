@@ -45,14 +45,15 @@ export function usePrefs() {
 	const [mutate] = useMutation(UPDATE_PREFERENCES, {
 		refetchQueries: ["Settings"],
 	});
-	return async (patch: Preferences, message = "Preference saved") => {
-		try {
-			await mutate({ variables: { patch } });
-			toast.success(message, { duration: 1500 });
-		} catch (error) {
-			toast.error("Couldn't save that", { desc: (error as Error).message });
-		}
-	};
+	return (patch: Preferences, message = "Preference saved") =>
+		toast
+			.promise(mutate({ variables: { patch } }), {
+				loading: "Saving preference…",
+				success: message,
+				error: "Couldn't save that",
+			})
+			.then(() => {})
+			.catch(() => {});
 }
 
 export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
@@ -85,10 +86,16 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 			.replace(/[^a-z0-9-]+/g, "-");
 		if (!n) return toast.error("Workspace name can't be empty");
 		try {
-			const { data } = await updateWorkspace({
-				variables: { slug, input: { name: n, slug: u || slug } },
-			});
-			toast.success("Workspace settings saved");
+			const { data } = await toast.promise(
+				updateWorkspace({
+					variables: { slug, input: { name: n, slug: u || slug } },
+				}),
+				{
+					loading: "Saving workspace…",
+					success: "Workspace settings saved",
+					error: "Couldn't save workspace",
+				},
+			);
 			if (data && data.updateWorkspace.slug !== slug) {
 				navigate({
 					to: "/w/$slug/settings",
@@ -97,10 +104,8 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 					replace: true,
 				});
 			}
-		} catch (error) {
-			toast.error("Couldn't save workspace", {
-				desc: (error as Error).message,
-			});
+		} catch {
+			// the toast already shows why
 		}
 	}
 
@@ -163,17 +168,20 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 									value={workspace.color}
 									size={22}
 									label="Workspace color"
-									onPick={async (color) => {
+									onPick={(color) => {
 										if (!canAdmin) return;
-										try {
-											await updateWorkspace({
-												variables: { slug, input: { color } },
-											});
-										} catch (error) {
-											toast.error("Couldn't change the color", {
-												desc: (error as Error).message,
-											});
-										}
+										toast
+											.promise(
+												updateWorkspace({
+													variables: { slug, input: { color } },
+												}),
+												{
+													loading: "Changing the color…",
+													success: "Workspace color updated",
+													error: "Couldn't change the color",
+												},
+											)
+											.catch(() => {});
 									}}
 								/>
 								{canAdmin && (
@@ -218,11 +226,19 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 											<button
 												type="button"
 												className="btn btn-ghost btn-sm"
-												onClick={async () => {
-													await setImage({
-														variables: { slug, imageUrl: null },
-													});
-													toast.success("Workspace image removed");
+												onClick={() => {
+													toast
+														.promise(
+															setImage({
+																variables: { slug, imageUrl: null },
+															}),
+															{
+																loading: "Removing workspace image…",
+																success: "Workspace image removed",
+																error: "Couldn't remove the image",
+															},
+														)
+														.catch(() => {});
 												}}
 											>
 												Remove
@@ -319,13 +335,17 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 				onOpenChange={setPicking}
 				onPick={async (url) => {
 					try {
-						await setImage({ variables: { slug, imageUrl: url } });
+						await toast.promise(
+							setImage({ variables: { slug, imageUrl: url } }),
+							{
+								loading: "Updating workspace icon…",
+								success: "Workspace icon updated",
+								error: "Couldn't set that avatar",
+							},
+						);
 						setPicking(false);
-						toast.success("Workspace icon updated");
-					} catch (error) {
-						toast.error("Couldn't set that avatar", {
-							desc: (error as Error).message,
-						});
+					} catch {
+						// the toast already shows why
 					}
 				}}
 			/>
@@ -338,15 +358,11 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 				danger
 				typeName={workspace.name}
 				onConfirm={async () => {
-					try {
-						await deleteWorkspace({ variables: { slug } });
-					} catch (error) {
-						toast.error("Couldn't delete the workspace", {
-							desc: (error as Error).message,
-						});
-						throw error;
-					}
-					toast.success(`${workspace.name} was deleted`);
+					await toast.promise(deleteWorkspace({ variables: { slug } }), {
+						loading: `Deleting ${workspace.name}…`,
+						success: `${workspace.name} was deleted`,
+						error: "Couldn't delete the workspace",
+					});
 					navigate({ to: "/workspace" });
 				}}
 			/>

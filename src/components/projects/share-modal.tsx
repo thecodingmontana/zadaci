@@ -64,18 +64,21 @@ export function ShareModal({
 			)
 		: [];
 
-	const fail = (what: string) => (error: Error) =>
-		toast.error(what, { desc: error.message });
-
 	async function add(memberId: string, name: string) {
 		try {
-			await share({
-				variables: { slug, projectId, memberId, permission: perm },
-			});
+			await toast.promise(
+				share({
+					variables: { slug, projectId, memberId, permission: perm },
+				}),
+				{
+					loading: `Sharing with ${name}…`,
+					success: `Shared with ${name}`,
+					error: "Couldn't share the project",
+				},
+			);
 			setQ("");
-			toast.success(`Shared with ${name}`);
-		} catch (error) {
-			fail("Couldn't share the project")(error as Error);
+		} catch {
+			// the toast already shows why
 		}
 	}
 
@@ -92,13 +95,19 @@ export function ShareModal({
 		if (!EMAIL_RE.test(v))
 			return toast.error("Enter a valid email address, like name@company.com");
 		try {
-			await invite({
-				variables: { slug, projectId, email: v, permission: perm },
-			});
+			await toast.promise(
+				invite({
+					variables: { slug, projectId, email: v, permission: perm },
+				}),
+				{
+					loading: `Inviting ${v}…`,
+					success: `Invitation sent to ${v}`,
+					error: "Couldn't send the invitation",
+				},
+			);
 			setQ("");
-			toast.success(`Invitation sent to ${v}`);
-		} catch (error) {
-			fail("Couldn't send the invitation")(error as Error);
+		} catch {
+			// the toast already shows why
 		}
 	}
 
@@ -113,11 +122,19 @@ export function ShareModal({
 					<button
 						type="button"
 						className="btn btn-secondary"
-						onClick={async () => {
-							await navigator.clipboard.writeText(
-								`${location.origin}/w/${slug}/p/${projectId}`,
-							);
-							toast.success("Link copied");
+						onClick={() => {
+							toast
+								.promise(
+									navigator.clipboard.writeText(
+										`${location.origin}/w/${slug}/p/${projectId}`,
+									),
+									{
+										loading: "Copying link…",
+										success: "Link copied",
+										error: "Couldn't copy the link",
+									},
+								)
+								.catch(() => {});
 						}}
 					>
 						<span
@@ -262,34 +279,26 @@ export function ShareModal({
 											value={m.permission}
 											options={[...RIGHT_OPTIONS, ["remove", "Remove access"]]}
 											className="h-[26px] w-auto min-w-0 border-transparent bg-transparent text-xs"
-											onChange={async (v) => {
-												try {
-													if (v === "remove") {
-														await unshare({
-															variables: {
-																slug,
-																projectId,
-																memberId: m.memberId,
-															},
-														});
-														toast.success(`Removed ${m.name}`);
-													} else {
-														await share({
-															variables: {
-																slug,
-																projectId,
-																memberId: m.memberId,
-																permission: v,
-															},
-														});
-														toast.success(
-															`${m.name}: ${PROJECT_RIGHT_LABEL[v as keyof typeof PROJECT_RIGHT_LABEL]}`,
-															{ duration: 1800 },
-														);
-													}
-												} catch (error) {
-													fail("Couldn't update access")(error as Error);
-												}
+											onChange={(v) => {
+												const vars = { slug, projectId, memberId: m.memberId };
+												const run =
+													v === "remove"
+														? toast.promise(unshare({ variables: vars }), {
+																loading: `Removing ${m.name}…`,
+																success: `Removed ${m.name}`,
+																error: "Couldn't update access",
+															})
+														: toast.promise(
+																share({
+																	variables: { ...vars, permission: v },
+																}),
+																{
+																	loading: `Updating ${m.name}'s access…`,
+																	success: `${m.name}: ${PROJECT_RIGHT_LABEL[v as keyof typeof PROJECT_RIGHT_LABEL]}`,
+																	error: "Couldn't update access",
+																},
+															);
+												run.catch(() => {});
 											}}
 										/>
 									)}
@@ -334,9 +343,21 @@ export function ShareModal({
 										]}
 										className="h-7 w-auto min-w-0 border-transparent pl-1 font-medium"
 										onChange={(access) =>
-											setAccess({
-												variables: { slug, projectId, access },
-											}).catch(fail("Couldn't change access"))
+											toast
+												.promise(
+													setAccess({
+														variables: { slug, projectId, access },
+													}),
+													{
+														loading: "Changing access…",
+														success:
+															access === "private"
+																? "Only invited people can open it"
+																: `Everyone at ${workspace?.name ?? "the workspace"} can open it`,
+														error: "Couldn't change access",
+													},
+												)
+												.catch(() => {})
 										}
 									/>
 									<div

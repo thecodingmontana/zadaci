@@ -15,6 +15,7 @@ import {
 	UPDATE_PROJECT,
 } from "#/graphql/operations";
 import { hasRight } from "#/lib/permissions";
+import { pstat } from "#/lib/projects";
 import { isClosed, TASK_STATUSES } from "#/lib/tasks";
 import { daysUntil, fmtDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
@@ -247,17 +248,22 @@ export function ProjectOverview({
 										disabled={!canEdit}
 										className="pillbtn"
 										onPick={(status) =>
-											update({
-												variables: {
-													slug,
-													projectId: project.id,
-													input: { status },
-												},
-											}).catch((error: Error) =>
-												toast.error("Couldn't change the status", {
-													desc: error.message,
-												}),
-											)
+											toast
+												.promise(
+													update({
+														variables: {
+															slug,
+															projectId: project.id,
+															input: { status },
+														},
+													}),
+													{
+														loading: "Changing the status…",
+														success: `${project.title} marked ${pstat(status).name}`,
+														error: "Couldn't change the status",
+													},
+												)
+												.catch(() => {})
 										}
 									>
 										<PStatus status={project.status} />
@@ -414,16 +420,21 @@ function Milestones({
 		event.preventDefault();
 		if (!name.trim() || !date) return;
 		try {
-			await add({
-				variables: { slug, projectId: project.id, name: name.trim(), date },
-			});
+			await toast.promise(
+				add({
+					variables: { slug, projectId: project.id, name: name.trim(), date },
+				}),
+				{
+					loading: "Adding milestone…",
+					success: `Added “${name.trim()}”`,
+					error: "Couldn't add the milestone",
+				},
+			);
 			setName("");
 			setDate("");
 			setAdding(false);
-		} catch (error) {
-			toast.error("Couldn't add the milestone", {
-				desc: (error as Error).message,
-			});
+		} catch {
+			// the toast already shows why
 		}
 	}
 
@@ -480,13 +491,18 @@ function Milestones({
 									className="ibtn ibtn-xs"
 									aria-label={`Remove ${m.name}`}
 									onClick={() =>
-										remove({
-											variables: { slug, projectId: project.id, id: m.id },
-										}).catch((error: Error) =>
-											toast.error("Couldn't remove the milestone", {
-												desc: error.message,
-											}),
-										)
+										toast
+											.promise(
+												remove({
+													variables: { slug, projectId: project.id, id: m.id },
+												}),
+												{
+													loading: `Removing “${m.name}”…`,
+													success: `Removed “${m.name}”`,
+													error: "Couldn't remove the milestone",
+												},
+											)
+											.catch(() => {})
 									}
 								>
 									<span

@@ -83,10 +83,19 @@ function InboxPage() {
 	const selected = all.find((n) => n.id === sel) ?? null;
 	const setSearch = (patch: { cat?: Cat; unread?: boolean; sel?: string }) =>
 		navigate({ search: (s) => ({ ...s, ...patch }), replace: true });
+	// selecting a notification marks it read quietly; only failures speak up
 	const mark = (n: NotificationItem, read: boolean) =>
 		setRead({ variables: { slug, id: n.id, read } }).catch((error: Error) =>
 			toast.error("Couldn't update the notification", { desc: error.message }),
 		);
+	const toggleRead = (n: NotificationItem) =>
+		toast
+			.promise(setRead({ variables: { slug, id: n.id, read: !n.read } }), {
+				loading: n.read ? "Marking as unread…" : "Marking as read…",
+				success: n.read ? "Marked as unread" : "Marked as read",
+				error: "Couldn't update the notification",
+			})
+			.catch(() => {});
 	const select = (n: NotificationItem) => {
 		if (!n.read) mark(n, true);
 		setSearch({ sel: n.id });
@@ -149,11 +158,13 @@ function InboxPage() {
 							aria-label="Mark all as read"
 							disabled={!count("all")}
 							onClick={() =>
-								markAll({ variables: { slug } }).catch((error: Error) =>
-									toast.error("Couldn't mark them as read", {
-										desc: error.message,
-									}),
-								)
+								toast
+									.promise(markAll({ variables: { slug } }), {
+										loading: "Marking all as read…",
+										success: "You're all caught up.",
+										error: "Couldn't mark them as read",
+									})
+									.catch(() => {})
 							}
 						>
 							<span
@@ -185,7 +196,7 @@ function InboxPage() {
 									n={n}
 									on={selected?.id === n.id}
 									onSelect={() => select(n)}
-									onToggleRead={() => mark(n, !n.read)}
+									onToggleRead={() => toggleRead(n)}
 								/>
 							))
 						) : (

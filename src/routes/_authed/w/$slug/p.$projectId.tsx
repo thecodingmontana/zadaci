@@ -83,7 +83,14 @@ function ProjectPage() {
 	const refetch = {
 		refetchQueries: ["ProjectPage", "Shell", "Projects", "Activity"],
 	};
-	const [toggleFavorite] = useMutation(TOGGLE_FAVORITE, refetch);
+	// starring only flips the cached flag (sidebar, cards and Favorites share it)
+	const [toggleFavorite] = useMutation(TOGGLE_FAVORITE, {
+		update: (cache, { data }) =>
+			cache.modify({
+				id: cache.identify({ __typename: "Project", id: projectId }),
+				fields: { isFavorite: () => !!data?.toggleFavorite },
+			}),
+	});
 	const [update] = useMutation(UPDATE_PROJECT, refetch);
 	const workspace = data.workspace;
 	const project = workspace?.project;
@@ -110,13 +117,22 @@ function ProjectPage() {
 						aria-label="Favorite"
 						style={project.isFavorite ? { color: "var(--q-amber)" } : undefined}
 						onClick={() =>
-							toggleFavorite({
-								variables: { slug, projectId: project.id },
-							}).catch((error: Error) =>
-								toast.error("Couldn't update favorites", {
-									desc: error.message,
-								}),
-							)
+							toast
+								.promise(
+									toggleFavorite({
+										variables: { slug, projectId: project.id },
+									}),
+									{
+										loading: project.isFavorite
+											? "Removing from favorites…"
+											: "Adding to favorites…",
+										success: project.isFavorite
+											? `Removed ${project.title} from favorites`
+											: `Added ${project.title} to favorites`,
+										error: "Couldn't update favorites",
+									},
+								)
+								.catch(() => {})
 						}
 					>
 						<span
@@ -134,19 +150,22 @@ function ProjectPage() {
 						disabled={!canEdit}
 						className="pillbtn bordered h-6"
 						onPick={(status) =>
-							update({
-								variables: { slug, projectId: project.id, input: { status } },
-							})
-								.then(() =>
-									toast.success(
-										`${project.title} marked ${pstat(status).name}`,
-									),
-								)
-								.catch((error: Error) =>
-									toast.error("Couldn't change the status", {
-										desc: error.message,
+							toast
+								.promise(
+									update({
+										variables: {
+											slug,
+											projectId: project.id,
+											input: { status },
+										},
 									}),
+									{
+										loading: "Changing the status…",
+										success: `${project.title} marked ${pstat(status).name}`,
+										error: "Couldn't change the status",
+									},
 								)
+								.catch(() => {})
 						}
 					>
 						{/* one pill: dot, name, chevron (reference project header) */}

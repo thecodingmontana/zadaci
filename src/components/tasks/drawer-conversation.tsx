@@ -131,11 +131,10 @@ function CommentItem({
 	const [react] = useMutation(REACT_TO_COMMENT, {
 		refetchQueries: ["TaskDetail"],
 	});
-	const fail = (what: string) => (error: Error) =>
-		toast.error(what, { desc: error.message });
+	// reactions stay quiet unless they fail: a toast per emoji click would be noise
 	const toggle = (emoji: string) =>
-		react({ variables: { slug, id: c.id, emoji } }).catch(
-			fail("Couldn't react"),
+		react({ variables: { slug, id: c.id, emoji } }).catch((error: Error) =>
+			toast.error("Couldn't react", { desc: error.message }),
 		);
 	return (
 		<div className="cmt">
@@ -155,9 +154,13 @@ function CommentItem({
 								aria-label="Delete comment"
 								data-tip="Delete"
 								onClick={() =>
-									remove({ variables: { slug, id: c.id } }).catch(
-										fail("Couldn't delete the comment"),
-									)
+									toast
+										.promise(remove({ variables: { slug, id: c.id } }), {
+											loading: "Deleting comment…",
+											success: "Comment deleted",
+											error: "Couldn't delete the comment",
+										})
+										.catch(() => {})
 								}
 							>
 								<span
@@ -268,12 +271,17 @@ function Composer({
 		const body = text.trim();
 		if (!body) return;
 		try {
-			await post({ variables: { slug, taskId: t.id, text: body } });
+			await toast.promise(
+				post({ variables: { slug, taskId: t.id, text: body } }),
+				{
+					loading: "Posting comment…",
+					success: "Comment posted",
+					error: "Couldn't post the comment",
+				},
+			);
 			setText("");
-		} catch (error) {
-			toast.error("Couldn't post the comment", {
-				desc: (error as Error).message,
-			});
+		} catch {
+			// the toast already shows why
 		}
 	};
 

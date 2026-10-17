@@ -83,13 +83,25 @@ export function TeamModal({
 		const input = { ...form, name, description: form.description.trim() };
 		try {
 			if (team) {
-				await update({ variables: { slug, id: team.id, input } });
+				await toast.promise(
+					update({ variables: { slug, id: team.id, input } }),
+					{
+						loading: `Saving ${name}…`,
+						success: `Saved ${name}`,
+						error: "Couldn't save the team",
+					},
+				);
 				onOpenChange(false);
-				toast.success(`Saved ${name}`);
 			} else {
-				const { data } = await create({ variables: { slug, input } });
+				const { data } = await toast.promise(
+					create({ variables: { slug, input } }),
+					{
+						loading: `Creating ${name}…`,
+						success: `Created ${name}`,
+						error: "Couldn't create the team",
+					},
+				);
 				onOpenChange(false);
-				toast.success(`Created ${name}`);
 				if (data)
 					navigate({
 						to: "/w/$slug/teams/$teamId",
@@ -313,16 +325,12 @@ export function TeamModal({
 					danger
 					icon="icon-[solar--users-group-rounded-linear]"
 					onConfirm={async () => {
-						try {
-							await remove({ variables: { slug, id: team.id } });
-						} catch (error) {
-							toast.error("Couldn't delete the team", {
-								desc: (error as Error).message,
-							});
-							throw error;
-						}
+						await toast.promise(remove({ variables: { slug, id: team.id } }), {
+							loading: `Deleting ${team.name}…`,
+							success: `Deleted ${team.name}`,
+							error: "Couldn't delete the team",
+						});
 						onOpenChange(false);
-						toast.success(`Deleted ${team.name}`);
 						navigate({ to: "/w/$slug/teams", params: { slug } });
 					}}
 				/>

@@ -9,6 +9,15 @@ import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { SBlock, SettingsHeader, SRow } from "./ui";
 
+/** better-auth resolves with `{ error }` instead of rejecting; this rejects so toast.promise sees the failure. */
+async function unwrap<T>(
+	call: Promise<{ data: T; error: { message?: string } | null }>,
+): Promise<T> {
+	const { data, error } = await call;
+	if (error) throw new Error(error.message ?? "Something went wrong");
+	return data;
+}
+
 function ago(date: string | Date) {
 	const s = Math.max(0, (Date.now() - new Date(date).getTime()) / 1000);
 	if (s < 60) return "Active now";
@@ -69,14 +78,24 @@ export function PasskeysSection({ title }: { title: string }) {
 	async function rename(event: FormEvent) {
 		event.preventDefault();
 		if (!renaming || !name.trim()) return;
-		const { error } = await authClient.passkey.updatePasskey({
-			id: renaming.id,
-			name: name.trim(),
-		});
-		if (error)
-			return toast.error("Couldn't rename passkey", { desc: error.message });
+		try {
+			await toast.promise(
+				unwrap(
+					authClient.passkey.updatePasskey({
+						id: renaming.id,
+						name: name.trim(),
+					}),
+				),
+				{
+					loading: "Renaming passkey…",
+					success: "Passkey renamed",
+					error: "Couldn't rename passkey",
+				},
+			);
+		} catch {
+			return;
+		}
 		setRenaming(null);
-		toast.success("Passkey renamed");
 		load();
 	}
 
@@ -184,14 +203,14 @@ export function PasskeysSection({ title }: { title: string }) {
 				danger
 				onConfirm={async () => {
 					if (!removing) return;
-					const { error } = await authClient.passkey.deletePasskey({
-						id: removing.id,
-					});
-					if (error) {
-						toast.error("Couldn't remove passkey", { desc: error.message });
-						throw new Error(error.message);
-					}
-					toast.success("Passkey removed");
+					await toast.promise(
+						unwrap(authClient.passkey.deletePasskey({ id: removing.id })),
+						{
+							loading: "Removing passkey…",
+							success: "Passkey removed",
+							error: "Couldn't remove passkey",
+						},
+					);
 					load();
 				}}
 			/>
@@ -263,16 +282,18 @@ export function SessionsSection({ title }: { title: string }) {
 								<button
 									type="button"
 									className="btn btn-secondary btn-sm"
-									onClick={async () => {
-										const { error } = await authClient.revokeSession({
-											token: s.token,
-										});
-										if (error)
-											return toast.error("Couldn't sign out that session", {
-												desc: error.message,
-											});
-										toast.success("Session signed out");
-										load();
+									onClick={() => {
+										toast
+											.promise(
+												unwrap(authClient.revokeSession({ token: s.token })),
+												{
+													loading: "Signing out that session…",
+													success: "Session signed out",
+													error: "Couldn't sign out that session",
+												},
+											)
+											.then(load)
+											.catch(() => {});
 									}}
 								>
 									Sign out
@@ -301,14 +322,11 @@ export function SessionsSection({ title }: { title: string }) {
 				danger
 				icon="icon-[solar--logout-2-linear]"
 				onConfirm={async () => {
-					const { error } = await authClient.revokeOtherSessions();
-					if (error) {
-						toast.error("Couldn't sign out other sessions", {
-							desc: error.message,
-						});
-						throw new Error(error.message);
-					}
-					toast.success("Signed out of all other sessions");
+					await toast.promise(unwrap(authClient.revokeOtherSessions()), {
+						loading: "Signing out other sessions…",
+						success: "Signed out of all other sessions",
+						error: "Couldn't sign out other sessions",
+					});
 					load();
 				}}
 			/>
@@ -341,9 +359,14 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
 				<button
 					type="button"
 					className="btn btn-secondary btn-sm"
-					onClick={async () => {
-						await navigator.clipboard.writeText(codes.join("\n"));
-						toast.success("Recovery codes copied");
+					onClick={() => {
+						toast
+							.promise(navigator.clipboard.writeText(codes.join("\n")), {
+								loading: "Copying recovery codes…",
+								success: "Recovery codes copied",
+								error: "Couldn't copy the codes",
+							})
+							.catch(() => {});
 					}}
 				>
 					<span
@@ -383,12 +406,21 @@ export function TwoFactorSection({ title }: { title: string }) {
 
 	async function start() {
 		setBusy(true);
-		const { data, error } = await authClient.twoFactor.enable({
-			method: "totp",
-		});
+		const data = await toast
+			.promise(
+				unwrap(authClient.twoFactor.enable({ method: "totp" })).then((d) => {
+					if (d?.method !== "totp") throw new Error("Unexpected setup method");
+					return d;
+				}),
+				{
+					loading: "Starting setup…",
+					success: "Scan the QR code with your authenticator app",
+					error: "Couldn't start setup",
+				},
+			)
+			.catch(() => null);
 		setBusy(false);
-		if (error || data?.method !== "totp")
-			return toast.error("Couldn't start setup", { desc: error?.message });
+		if (!data) return;
 		setErr("");
 		setCode("");
 		setSetup({ uri: data.totpURI, codes: data.backupCodes });
@@ -399,18 +431,25 @@ export function TwoFactorSection({ title }: { title: string }) {
 		if (!/^\d{6}$/.test(code.trim()))
 			return setErr("Enter the 6-digit code from your app");
 		setBusy(true);
-		const { error } = await authClient.twoFactor.verifyTotp({
-			code: code.trim(),
-		});
-		setBusy(false);
-		if (error)
+		try {
+			await toast.promise(
+				unwrap(authClient.twoFactor.verifyTotp({ code: code.trim() })),
+				{
+					loading: "Verifying code…",
+					success: "Two-factor authentication is on",
+					error: "That code didn't work",
+				},
+			);
+		} catch {
 			return setErr(
 				"That code didn't work. Wait for the next one and try again.",
 			);
+		} finally {
+			setBusy(false);
+		}
 		setCodes(setup?.codes ?? null);
 		setSetup(null);
 		await router.invalidate();
-		toast.success("Two-factor authentication is on");
 	}
 
 	return (
@@ -443,14 +482,18 @@ export function TwoFactorSection({ title }: { title: string }) {
 							<button
 								type="button"
 								className="btn btn-secondary"
-								onClick={async () => {
-									const { data, error } =
-										await authClient.twoFactor.generateBackupCodes({});
-									if (error || !data)
-										return toast.error("Couldn't generate codes", {
-											desc: error?.message,
-										});
-									setCodes(data.backupCodes);
+								onClick={() => {
+									toast
+										.promise(
+											unwrap(authClient.twoFactor.generateBackupCodes({})),
+											{
+												loading: "Generating recovery codes…",
+												success: "New recovery codes generated",
+												error: "Couldn't generate codes",
+											},
+										)
+										.then((data) => data && setCodes(data.backupCodes))
+										.catch(() => {});
 								}}
 							>
 								Generate new recovery codes
@@ -605,14 +648,13 @@ export function TwoFactorSection({ title }: { title: string }) {
 				danger
 				icon="icon-[solar--shield-cross-linear]"
 				onConfirm={async () => {
-					const { error } = await authClient.twoFactor.disable({});
-					if (error) {
-						toast.error("Couldn't turn it off", { desc: error.message });
-						throw new Error(error.message);
-					}
+					await toast.promise(unwrap(authClient.twoFactor.disable({})), {
+						loading: "Turning off two-factor…",
+						success: "Two-factor authentication is off",
+						error: "Couldn't turn it off",
+					});
 					setCodes(null);
 					await router.invalidate();
-					toast.success("Two-factor authentication is off");
 				}}
 			/>
 		</>

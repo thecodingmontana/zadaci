@@ -69,8 +69,6 @@ function ArchivePage() {
 		.sort((a, b) => (b.archivedAt ?? "").localeCompare(a.archivedAt ?? ""));
 	const projects = w.archivedProjects;
 	const when = (at: string | null) => (at ? `Archived ${ago(at)}` : "Archived");
-	const fail = (what: string) => (error: Error) =>
-		toast.error(`Couldn't ${what}`, { desc: error.message });
 
 	const body =
 		tab === "tasks" ? (
@@ -87,10 +85,13 @@ function ArchivePage() {
 								</>
 							}
 							when={when(t.archivedAt)}
-							onRestore={() =>
+							onRestore={() => {
+								const id = toast.pending(`Restoring “${t.name}”…`);
 								archiveTask({ variables: { slug, id: t.id, archived: false } })
 									.then(() =>
-										toast.success(`Restored “${t.name}”`, {
+										toast.update(id, {
+											title: `Restored “${t.name}”`,
+											type: "success",
 											action: {
 												label: "Open",
 												onClick: () =>
@@ -102,16 +103,27 @@ function ArchivePage() {
 											},
 										}),
 									)
-									.catch(fail("restore the task"))
-							}
+									.catch((error: Error) =>
+										toast.update(id, {
+											title: "Couldn't restore the task",
+											desc: error.message,
+											type: "error",
+										}),
+									);
+							}}
 							onDelete={() =>
 								setPending({
 									title: "Delete task permanently?",
 									body: `${t.name}, its subtasks, comments, and attachments will be deleted for everyone. This can't be undone.`,
 									run: () =>
-										deleteTasks({ variables: { slug, ids: [t.id] } })
-											.then(() => toast.success(`Deleted “${t.name}”`))
-											.catch(fail("delete the task")),
+										toast.promise(
+											deleteTasks({ variables: { slug, ids: [t.id] } }),
+											{
+												loading: `Deleting “${t.name}”…`,
+												success: `Deleted “${t.name}”`,
+												error: "Couldn't delete the task",
+											},
+										),
 								})
 							}
 						/>
@@ -138,11 +150,22 @@ function ArchivePage() {
 							onRestore={
 								hasRight(p.myAccess, "edit")
 									? () =>
-											archiveProject({
-												variables: { slug, projectId: p.id, archived: false },
-											})
-												.then(() => toast.success(`Restored ${p.title}`))
-												.catch(fail("restore the project"))
+											toast
+												.promise(
+													archiveProject({
+														variables: {
+															slug,
+															projectId: p.id,
+															archived: false,
+														},
+													}),
+													{
+														loading: `Restoring ${p.title}…`,
+														success: `Restored ${p.title}`,
+														error: "Couldn't restore the project",
+													},
+												)
+												.catch(() => {})
 									: undefined
 							}
 							onDelete={
@@ -152,11 +175,16 @@ function ArchivePage() {
 												title: `Delete ${p.title}?`,
 												body: `${total} task${total === 1 ? "" : "s"}, their comments, and files will be deleted for everyone. This can't be undone.`,
 												run: () =>
-													deleteProject({
-														variables: { slug, projectId: p.id },
-													})
-														.then(() => toast.success(`Deleted ${p.title}`))
-														.catch(fail("delete the project")),
+													toast.promise(
+														deleteProject({
+															variables: { slug, projectId: p.id },
+														}),
+														{
+															loading: `Deleting ${p.title}…`,
+															success: `Deleted ${p.title}`,
+															error: "Couldn't delete the project",
+														},
+													),
 											})
 									: undefined
 							}

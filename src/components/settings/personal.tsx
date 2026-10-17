@@ -109,18 +109,22 @@ export function ProfileSection({ me, title }: SectionProps) {
 		if (!n) return setErr("Enter your name");
 		setErr("");
 		setBusy(true);
-		try {
+		const run = async () => {
 			if (n !== me.name) {
 				const { error } = await authClient.updateUser({ name: n });
 				if (error) throw new Error(error.message);
 			}
 			await savePrefs({ variables: { patch: { title: jobTitle.trim() } } });
 			await router.invalidate();
-			toast.success("Profile updated");
-		} catch (error) {
-			toast.error("Couldn't update your profile", {
-				desc: (error as Error).message,
+		};
+		try {
+			await toast.promise(run(), {
+				loading: "Saving profile…",
+				success: "Profile updated",
+				error: "Couldn't update your profile",
 			});
+		} catch {
+			// the toast already shows why
 		} finally {
 			setBusy(false);
 		}
@@ -154,12 +158,16 @@ export function ProfileSection({ me, title }: SectionProps) {
 							size={22}
 							label="Avatar color"
 							onPick={(avatarColor) =>
-								savePrefs({ variables: { patch: { avatarColor } } }).catch(
-									(error) =>
-										toast.error("Couldn't save that", {
-											desc: (error as Error).message,
-										}),
-								)
+								toast
+									.promise(
+										savePrefs({ variables: { patch: { avatarColor } } }),
+										{
+											loading: "Saving avatar color…",
+											success: "Avatar color updated",
+											error: "Couldn't save that",
+										},
+									)
+									.catch(() => {})
 							}
 						/>
 						{me.image && (

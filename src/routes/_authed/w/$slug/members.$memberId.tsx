@@ -174,9 +174,14 @@ function MemberPage() {
 					<button
 						type="button"
 						className="btn btn-secondary"
-						onClick={async () => {
-							await navigator.clipboard.writeText(m.email);
-							toast.success("Email copied");
+						onClick={() => {
+							toast
+								.promise(navigator.clipboard.writeText(m.email), {
+									loading: "Copying email…",
+									success: "Email copied",
+									error: "Couldn't copy the email",
+								})
+								.catch(() => {});
 						}}
 					>
 						<span

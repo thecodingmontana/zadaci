@@ -265,11 +265,19 @@ function DrawerBody({
 					className="ibtn ibtn-sm"
 					data-tip="Copy link"
 					aria-label="Copy link"
-					onClick={async () => {
-						await navigator.clipboard.writeText(
-							`${location.origin}/w/${slug}/p/${t.projectId}?task=${t.id}`,
-						);
-						toast.success("Link copied");
+					onClick={() => {
+						toast
+							.promise(
+								navigator.clipboard.writeText(
+									`${location.origin}/w/${slug}/p/${t.projectId}?task=${t.id}`,
+								),
+								{
+									loading: "Copying link…",
+									success: "Link copied",
+									error: "Couldn't copy the link",
+								},
+							)
+							.catch(() => {});
 					}}
 				>
 					<span
@@ -602,19 +610,24 @@ function DepsCell({ t, editable }: { t: TaskDetail; editable: boolean }) {
 					on: t.dependsOn.includes(x.id),
 				}))}
 				onPick={(id) =>
-					setDeps({
-						variables: {
-							slug,
-							id: t.id,
-							dependsOn: t.dependsOn.includes(id)
-								? t.dependsOn.filter((d) => d !== id)
-								: [...t.dependsOn, id],
-						},
-					}).catch((error: Error) =>
-						toast.error("Couldn't update dependencies", {
-							desc: error.message,
-						}),
-					)
+					toast
+						.promise(
+							setDeps({
+								variables: {
+									slug,
+									id: t.id,
+									dependsOn: t.dependsOn.includes(id)
+										? t.dependsOn.filter((d) => d !== id)
+										: [...t.dependsOn, id],
+								},
+							}),
+							{
+								loading: "Updating dependencies…",
+								success: "Dependencies updated",
+								error: "Couldn't update dependencies",
+							},
+						)
+						.catch(() => {})
 				}
 			/>
 		</PickPopover>
@@ -963,12 +976,13 @@ function Attachments({ t, editable }: { t: TaskDetail; editable: boolean }) {
 										className="ibtn ibtn-xs x"
 										aria-label={`Remove ${f.name}`}
 										onClick={() =>
-											remove({ variables: { slug, id: f.id } }).catch(
-												(error: Error) =>
-													toast.error("Couldn't remove the file", {
-														desc: error.message,
-													}),
-											)
+											toast
+												.promise(remove({ variables: { slug, id: f.id } }), {
+													loading: `Removing ${f.name}…`,
+													success: `Removed ${f.name}`,
+													error: "Couldn't remove the file",
+												})
+												.catch(() => {})
 										}
 									>
 										<span

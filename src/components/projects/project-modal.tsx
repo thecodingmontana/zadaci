@@ -91,18 +91,30 @@ export function ProjectModal({
 		};
 		try {
 			if (project) {
-				await update({ variables: { slug, projectId: project.id, input } });
+				await toast.promise(
+					update({ variables: { slug, projectId: project.id, input } }),
+					{
+						loading: "Saving changes…",
+						success: "Project updated",
+						error: "Couldn't update the project",
+					},
+				);
 				onOpenChange(false);
-				toast.success("Project updated");
 				return;
 			}
 			const template = PROJECT_TEMPLATES.find((t) => t.id === form.template);
-			const { data } = await create({
-				variables: { slug, input: { ...input, template: form.template } },
-			});
-			onOpenChange(false);
 			const n = template?.tasks.length ?? 0;
-			toast.success(`Created ${title}${n ? ` with ${n} starter tasks` : ""}`);
+			const { data } = await toast.promise(
+				create({
+					variables: { slug, input: { ...input, template: form.template } },
+				}),
+				{
+					loading: `Creating ${title}…`,
+					success: `Created ${title}${n ? ` with ${n} starter tasks` : ""}`,
+					error: "Couldn't create the project",
+				},
+			);
+			onOpenChange(false);
 			if (data)
 				navigate({
 					to: "/w/$slug/p/$projectId",

@@ -715,13 +715,14 @@ function BulkBar({
 	const [remove] = useMutation(DELETE_TASKS, { refetchQueries: TASK_REFETCH });
 	if (!ids.length) return null;
 	const apply = (patch: Record<string, string | null>) =>
-		bulk({ variables: { slug, ids, patch } })
-			.then(({ data }) =>
-				toast.success(`Updated ${data?.bulkUpdateTasks ?? ids.length} tasks`),
-			)
-			.catch((error: Error) =>
-				toast.error("Couldn't update those tasks", { desc: error.message }),
-			);
+		toast
+			.promise(bulk({ variables: { slug, ids, patch } }), {
+				loading: `Updating ${ids.length} task${ids.length > 1 ? "s" : ""}…`,
+				success: ({ data }) =>
+					`Updated ${data?.bulkUpdateTasks ?? ids.length} tasks`,
+				error: "Couldn't update those tasks",
+			})
+			.catch(() => {});
 	return (
 		<div className="bulkbar enter" role="toolbar" aria-label="Bulk actions">
 			<b style={{ fontWeight: 600 }}>{ids.length} selected</b>
@@ -788,18 +789,13 @@ function BulkBar({
 				ok="Delete"
 				danger
 				onConfirm={async () => {
-					try {
-						await remove({ variables: { slug, ids } });
-					} catch (error) {
-						toast.error("Couldn't delete those tasks", {
-							desc: (error as Error).message,
-						});
-						throw error;
-					}
+					const label = `${ids.length} task${ids.length > 1 ? "s" : ""}`;
+					await toast.promise(remove({ variables: { slug, ids } }), {
+						loading: `Deleting ${label}…`,
+						success: `Deleted ${label}`,
+						error: "Couldn't delete those tasks",
+					});
 					onClear();
-					toast.success(
-						`Deleted ${ids.length} task${ids.length > 1 ? "s" : ""}`,
-					);
 				}}
 			/>
 		</div>
