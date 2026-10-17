@@ -64,8 +64,10 @@ export function TaskViewProvider({
 }) {
 	const router = useRouter();
 	const [updateTask] = useMutation(UPDATE_TASK);
+	// wait for the lists to refresh, so a new task is on screen when create resolves
 	const [createTask] = useMutation(CREATE_TASK, {
 		refetchQueries: TASK_REFETCH,
+		awaitRefetchQueries: true,
 	});
 
 	const value = useMemo<Ctx>(() => {
@@ -106,12 +108,33 @@ export function TaskViewProvider({
 				}
 			},
 			create: async (input) => {
+				const id = toast.pending(`Adding “${input.title}”…`);
 				try {
 					const { data } = await createTask({ variables: { slug, input } });
-					return data?.createTask;
+					const task = data?.createTask;
+					toast.update(id, {
+						title: task ? `Created ${task.key}` : `Added “${input.title}”`,
+						type: "success",
+						action: task
+							? {
+									label: "Open",
+									onClick: () =>
+										router.navigate({
+											to: ".",
+											search: ((prev: Record<string, unknown>) => ({
+												...prev,
+												task: task.id,
+											})) as never,
+										}),
+								}
+							: undefined,
+					});
+					return task;
 				} catch (error) {
-					toast.error("Couldn't add the task", {
+					toast.update(id, {
+						title: "Couldn't add the task",
 						desc: (error as Error).message,
+						type: "error",
 					});
 				}
 			},

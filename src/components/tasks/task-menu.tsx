@@ -44,9 +44,6 @@ export function TaskMenu({
 	const [remove] = useMutation(DELETE_TASKS, refetch);
 	const editable = canEdit(t.projectId);
 	const done = t.status === "completed";
-	const fail = (what: string) => (error: Error) =>
-		toast.error(what, { desc: error.message });
-
 	return (
 		<>
 			<Menu>
@@ -178,21 +175,37 @@ export function TaskMenu({
 					<MenuItem
 						icon="icon-[solar--star-linear]"
 						onSelect={() =>
-							favorite({ variables: { slug, id: t.id } }).catch(
-								fail("Couldn't update favorites"),
-							)
+							toast
+								.promise(favorite({ variables: { slug, id: t.id } }), {
+									loading: t.isFavorite
+										? "Removing from favorites…"
+										: "Adding to favorites…",
+									success: t.isFavorite
+										? "Removed from favorites"
+										: "Added to favorites",
+									error: "Couldn't update favorites",
+								})
+								.catch(() => {})
 						}
 					>
 						{t.isFavorite ? "Remove from favorites" : "Add to favorites"}
 					</MenuItem>
 					<MenuItem
 						icon="icon-[solar--link-linear]"
-						onSelect={async () => {
-							await navigator.clipboard.writeText(
-								`${location.origin}/w/${slug}/p/${t.projectId}?task=${t.id}`,
-							);
-							toast.success("Link copied");
-						}}
+						onSelect={() =>
+							toast
+								.promise(
+									navigator.clipboard.writeText(
+										`${location.origin}/w/${slug}/p/${t.projectId}?task=${t.id}`,
+									),
+									{
+										loading: "Copying link…",
+										success: "Link copied",
+										error: "Couldn't copy the link",
+									},
+								)
+								.catch(() => {})
+						}
 					>
 						Copy link
 					</MenuItem>
@@ -200,10 +213,13 @@ export function TaskMenu({
 						<>
 							<MenuItem
 								icon="icon-[solar--copy-linear]"
-								onSelect={() =>
+								onSelect={() => {
+									const id = toast.pending(`Duplicating “${t.name}”…`);
 									duplicate({ variables: { slug, id: t.id } })
 										.then(({ data }) =>
-											toast.success("Task duplicated", {
+											toast.update(id, {
+												title: "Task duplicated",
+												type: "success",
 												action: data
 													? {
 															label: "Open",
@@ -212,17 +228,26 @@ export function TaskMenu({
 													: undefined,
 											}),
 										)
-										.catch(fail("Couldn't duplicate the task"))
-								}
+										.catch((error: Error) =>
+											toast.update(id, {
+												title: "Couldn't duplicate the task",
+												desc: error.message,
+												type: "error",
+											}),
+										);
+								}}
 							>
 								Duplicate
 							</MenuItem>
 							<MenuItem
 								icon="icon-[solar--archive-linear]"
-								onSelect={() =>
+								onSelect={() => {
+									const id = toast.pending(`Archiving “${t.name}”…`);
 									archive({ variables: { slug, id: t.id, archived: true } })
 										.then(() =>
-											toast.success(`Archived “${t.name}”`, {
+											toast.update(id, {
+												title: `Archived “${t.name}”`,
+												type: "success",
 												action: {
 													label: "Undo",
 													onClick: () =>
@@ -232,8 +257,14 @@ export function TaskMenu({
 												},
 											}),
 										)
-										.catch(fail("Couldn't archive the task"))
-								}
+										.catch((error: Error) =>
+											toast.update(id, {
+												title: "Couldn't archive the task",
+												desc: error.message,
+												type: "error",
+											}),
+										);
+								}}
 							>
 								Archive
 							</MenuItem>
@@ -257,13 +288,11 @@ export function TaskMenu({
 				ok="Delete task"
 				danger
 				onConfirm={async () => {
-					try {
-						await remove({ variables: { slug, ids: [t.id] } });
-					} catch (error) {
-						fail("Couldn't delete the task")(error as Error);
-						throw error;
-					}
-					toast.success("Task deleted");
+					await toast.promise(remove({ variables: { slug, ids: [t.id] } }), {
+						loading: `Deleting “${t.name}”…`,
+						success: "Task deleted",
+						error: "Couldn't delete the task",
+					});
 				}}
 			/>
 		</>

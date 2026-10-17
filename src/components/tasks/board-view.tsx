@@ -578,11 +578,15 @@ function Composer({
 }) {
 	const { create } = useTaskView();
 	const [title, setTitle] = useState("");
+	const [busy, setBusy] = useState(false);
+	// keep the text until the task exists, then close; on failure the text stays to retry
 	const add = async () => {
 		const name = title.trim();
-		if (!name) return;
-		setTitle("");
-		await create({ projectId, title: name, status });
+		if (!name || busy) return;
+		setBusy(true);
+		const task = await create({ projectId, title: name, status });
+		setBusy(false);
+		if (task) onClose();
 	};
 	return (
 		<div className="composer">
@@ -614,7 +618,12 @@ function Composer({
 				>
 					Cancel
 				</button>
-				<button type="button" className="btn btn-sm btn-primary" onClick={add}>
+				<button
+					type="button"
+					className={cn("btn btn-sm btn-primary", busy && "is-loading")}
+					disabled={busy}
+					onClick={add}
+				>
 					Add
 				</button>
 			</div>

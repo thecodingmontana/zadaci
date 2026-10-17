@@ -104,7 +104,7 @@ function ShellLayout() {
 
 	return (
 		<TooltipProvider delayDuration={200}>
-			<NewTaskProvider slug={slug} onCreated={(id) => setTask(id)}>
+			<NewTaskProvider slug={slug}>
 				<CommandMenuProvider
 					slug={slug}
 					workspaces={data.workspaces}

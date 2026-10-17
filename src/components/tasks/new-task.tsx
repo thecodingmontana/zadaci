@@ -55,12 +55,10 @@ export function useNewTask() {
 export function NewTaskProvider({
 	slug,
 	children,
-	onCreated,
 }: {
 	slug: string;
 	children: ReactNode;
 	/** opens the new task (the drawer) when the toast's Open is pressed */
-	onCreated: (id: string) => void;
 }) {
 	const [prefill, setPrefill] = useState<Prefill | null>(null);
 	return (
@@ -71,7 +69,6 @@ export function NewTaskProvider({
 					slug={slug}
 					prefill={prefill}
 					onClose={() => setPrefill(null)}
-					onCreated={onCreated}
 				/>
 			)}
 		</NewTaskContext.Provider>
@@ -82,12 +79,10 @@ function NewTaskLoader({
 	slug,
 	prefill,
 	onClose,
-	onCreated,
 }: {
 	slug: string;
 	prefill: Prefill;
 	onClose: () => void;
-	onCreated: (id: string) => void;
 }) {
 	// people and projects; the tasks themselves aren't needed here
 	const { data } = useQuery(TASKS, {
@@ -101,7 +96,7 @@ function NewTaskLoader({
 			members={workspace.members}
 			projects={workspace.projects}
 		>
-			<TaskModal prefill={prefill} onClose={onClose} onCreated={onCreated} />
+			<TaskModal prefill={prefill} onClose={onClose} />
 		</TaskViewProvider>
 	);
 }
@@ -109,11 +104,9 @@ function NewTaskLoader({
 function TaskModal({
 	prefill,
 	onClose,
-	onCreated,
 }: {
 	prefill: Prefill;
 	onClose: () => void;
-	onCreated: (id: string) => void;
 }) {
 	const { slug, members, projects, meId, create, member, project } =
 		useTaskView();
@@ -194,9 +187,6 @@ function TaskModal({
 			}
 			if (form.subtasks.length || form.files.length)
 				await client.refetchQueries({ include: TASK_REFETCH });
-			toast.success(`Created ${task.key}`, {
-				action: { label: "Open", onClick: () => onCreated(task.id) },
-			});
 			if (more)
 				setForm({
 					...initial(),
