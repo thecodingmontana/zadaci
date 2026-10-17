@@ -22,6 +22,7 @@ import {
 import { can } from "#/lib/permissions";
 import { PSTAT } from "#/lib/projects";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { ago, fmtDay } from "#/lib/time";
 
 // Ported from the reference app's Projects page: grid, list and table layouts.
@@ -56,7 +57,7 @@ export const Route = createFileRoute("/_authed/w/$slug/projects")({
 		});
 		if (!data?.workspace) throw notFound();
 	},
-	head: () => ({ meta: [{ title: "Projects - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Projects") }] }),
 	pendingComponent: ProjectsSkeleton,
 	component: ProjectsPage,
 });

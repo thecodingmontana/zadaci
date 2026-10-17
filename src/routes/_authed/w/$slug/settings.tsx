@@ -28,6 +28,7 @@ import {
 import { SettingsSkeleton } from "#/components/shell/page-skeletons";
 import { SETTINGS } from "#/graphql/operations";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { cn } from "#/lib/utils";
 
 // Ported from the reference settings page; Billing is omitted (Zadaci is free) and
@@ -110,7 +111,7 @@ export const Route = createFileRoute("/_authed/w/$slug/settings")({
 		});
 		if (!data?.workspace) throw notFound();
 	},
-	head: () => ({ meta: [{ title: "Settings - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Settings") }] }),
 	pendingComponent: SettingsSkeleton,
 	component: Settings,
 });

@@ -10,6 +10,7 @@ import {
 	SET_NOTIFICATION_READ,
 } from "#/graphql/operations";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { ago, byDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -26,7 +27,9 @@ export const Route = createFileRoute("/_authed/w/$slug/notifications")({
 			variables: { slug: params.slug, unread: deps.filter === "unread" },
 			fetchPolicy: "network-only",
 		}),
-	head: () => ({ meta: [{ title: "Notifications - Zadaci" }] }),
+	head: ({ matches }) => ({
+		meta: [{ title: wsTitle(matches, "Notifications") }],
+	}),
 	pendingComponent: NotificationsSkeleton,
 	component: NotificationsPage,
 });

@@ -15,6 +15,7 @@ import { can, canInvite } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { pstat } from "#/lib/projects";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { cn } from "#/lib/utils";
 
 // Ported from the reference app's team page: projects and members of one team.
@@ -44,8 +45,8 @@ export const Route = createFileRoute("/_authed/w/$slug/teams/$teamId")({
 		if (!team) throw notFound();
 		return { name: team.name };
 	},
-	head: ({ loaderData }) => ({
-		meta: [{ title: `${loaderData?.name ?? "Team"} - Zadaci` }],
+	head: ({ loaderData, matches }) => ({
+		meta: [{ title: wsTitle(matches, loaderData?.name ?? "Team") }],
 	}),
 	pendingComponent: ProfileSkeleton,
 	component: TeamPage,

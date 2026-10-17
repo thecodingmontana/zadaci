@@ -32,9 +32,11 @@ export const Route = createFileRoute("/_authed/w/$slug")({
 			getSidebarOpen(),
 		]);
 		if (!data?.workspace) throw notFound();
-		return { sidebarOpen };
+		return { sidebarOpen, workspaceName: data.workspace.name };
 	},
-	head: ({ params }) => ({ meta: [{ title: `${params.slug} - Zadaci` }] }),
+	head: ({ loaderData }) => ({
+		meta: [{ title: loaderData?.workspaceName ?? "Workspace" }],
+	}),
 	// opening a workspace: draw the sidebar right away while its projects load
 	pendingComponent: ShellSkeleton,
 	pendingMs: 150,

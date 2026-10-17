@@ -8,6 +8,7 @@ import { TeamModal } from "#/components/teams/team-modal";
 import { MEMBER_STATS, SETTINGS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 
 // Ported from the reference app's Teams page.
 
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/_authed/w/$slug/teams/")({
 		]);
 		if (!data?.workspace) throw notFound();
 	},
-	head: () => ({ meta: [{ title: "Teams - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Teams") }] }),
 	pendingComponent: TeamsSkeleton,
 	component: TeamsPage,
 });

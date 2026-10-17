@@ -27,6 +27,7 @@ import {
 import { can, canInvite, ROLES } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { ago } from "#/lib/time";
 
 // Ported from the reference app's member directory (Members, Teams, Roles & permissions).
@@ -57,7 +58,7 @@ export const Route = createFileRoute("/_authed/w/$slug/members/")({
 		]);
 		if (!data?.workspace) throw notFound();
 	},
-	head: () => ({ meta: [{ title: "Members - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Members") }] }),
 	pendingComponent: MembersSkeleton,
 	component: MembersPage,
 });

@@ -28,6 +28,7 @@ import {
 } from "#/graphql/operations";
 import { can, canInvite } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { isClosed } from "#/lib/tasks";
 import { cn } from "#/lib/utils";
 import { isOverdue, sortTasks } from "#/lib/view-engine";
@@ -54,7 +55,7 @@ export const Route = createFileRoute("/_authed/w/$slug/")({
 		]);
 		if (!data?.workspace) throw notFound();
 	},
-	head: () => ({ meta: [{ title: "Home - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Home") }] }),
 	pendingComponent: HomeSkeleton,
 	component: WorkspaceHome,
 });

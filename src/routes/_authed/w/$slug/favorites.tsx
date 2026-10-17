@@ -8,6 +8,7 @@ import { MiniRow } from "#/components/tasks/mini-row";
 import { PROJECTS, TASKS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 
 // Ported from the reference app's Favorites page: starred projects, then starred tasks.
 
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/_authed/w/$slug/favorites")({
 		]);
 		if (!data?.workspace) throw notFound();
 	},
-	head: () => ({ meta: [{ title: "Favorites - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Favorites") }] }),
 	pendingComponent: FavoritesSkeleton,
 	component: FavoritesPage,
 });

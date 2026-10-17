@@ -16,6 +16,7 @@ import {
 import { can } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { isClosed } from "#/lib/tasks";
 import { ago, fmtDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
@@ -55,8 +56,8 @@ export const Route = createFileRoute("/_authed/w/$slug/members/$memberId")({
 		});
 		return { name: member.name, userId: member.userId };
 	},
-	head: ({ loaderData }) => ({
-		meta: [{ title: `${loaderData?.name ?? "Member"} - Zadaci` }],
+	head: ({ loaderData, matches }) => ({
+		meta: [{ title: wsTitle(matches, loaderData?.name ?? "Member") }],
 	}),
 	pendingComponent: ProfileSkeleton,
 	component: MemberPage,

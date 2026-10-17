@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { WorkspaceTasks } from "#/components/tasks/workspace-tasks";
 import { TASKS } from "#/graphql/operations";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 
 export const Route = createFileRoute("/_authed/w/$slug/my-tasks")({
 	shouldReload: reloadOnEnter,
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/_authed/w/$slug/my-tasks")({
 			.query({ query: TASKS, variables: { slug: params.slug } })
 			.catch(() => {});
 	},
-	head: () => ({ meta: [{ title: "My Tasks - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "My Tasks") }] }),
 	component: Page,
 });
 

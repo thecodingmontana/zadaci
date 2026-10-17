@@ -21,6 +21,7 @@ import {
 	TASK_DETAIL,
 } from "#/graphql/operations";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -57,7 +58,7 @@ export const Route = createFileRoute("/_authed/w/$slug/inbox")({
 			variables: { slug: params.slug, unread: false },
 			fetchPolicy: "network-only",
 		}),
-	head: () => ({ meta: [{ title: "Inbox - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Inbox") }] }),
 	pendingComponent: InboxSkeleton,
 	component: InboxPage,
 });

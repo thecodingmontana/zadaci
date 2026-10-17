@@ -21,6 +21,7 @@ import {
 import { can, hasRight } from "#/lib/permissions";
 import { PSTAT } from "#/lib/projects";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -41,7 +42,7 @@ export const Route = createFileRoute("/_authed/w/$slug/archive")({
 		});
 		if (!data?.workspace) throw notFound();
 	},
-	head: () => ({ meta: [{ title: "Archive - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Archive") }] }),
 	pendingComponent: ArchiveSkeleton,
 	component: ArchivePage,
 });

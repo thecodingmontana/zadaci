@@ -26,6 +26,7 @@ import {
 import { can, hasRight } from "#/lib/permissions";
 import { pstat } from "#/lib/projects";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { byDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -60,8 +61,8 @@ export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 		if (!data?.workspace) throw notFound();
 		return { title: data.workspace.project?.title ?? null };
 	},
-	head: ({ loaderData }) => ({
-		meta: [{ title: `${loaderData?.title ?? "Project"} - Zadaci` }],
+	head: ({ loaderData, matches }) => ({
+		meta: [{ title: wsTitle(matches, loaderData?.title ?? "Project") }],
 	}),
 	pendingComponent: ProjectPageSkeleton,
 	component: ProjectPage,

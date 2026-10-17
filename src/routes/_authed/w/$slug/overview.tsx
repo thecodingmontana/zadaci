@@ -15,6 +15,7 @@ import { OverviewSkeleton } from "#/components/shell/page-skeletons";
 import { OVERVIEW, PROJECTS, TASKS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { TASK_STATUSES } from "#/lib/tasks";
 import { daysUntil, fmtDay, relDay } from "#/lib/time";
 import { isOverdue } from "#/lib/view-engine";
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/_authed/w/$slug/overview")({
 		]);
 		if (!data?.workspace) throw notFound();
 	},
-	head: () => ({ meta: [{ title: "Overview - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Overview") }] }),
 	pendingComponent: OverviewSkeleton,
 	component: OverviewPage,
 });

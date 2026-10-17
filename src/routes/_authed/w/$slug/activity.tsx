@@ -6,6 +6,7 @@ import { Select } from "#/components/settings/ui";
 import { ActivitySkeleton } from "#/components/shell/page-skeletons";
 import { ACTIVITY } from "#/graphql/operations";
 import { reloadOnEnter } from "#/lib/routing";
+import { wsTitle } from "#/lib/seo";
 import { byDay } from "#/lib/time";
 
 // Ported from the reference app's Activity page: the workspace feed, grouped by day.
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/_authed/w/$slug/activity")({
 			// the feed changes on every action; always show the latest
 			fetchPolicy: "network-only",
 		}),
-	head: () => ({ meta: [{ title: "Activity - Zadaci" }] }),
+	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Activity") }] }),
 	pendingComponent: ActivitySkeleton,
 	component: ActivityPage,
 });
