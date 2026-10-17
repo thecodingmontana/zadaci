@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ProjectCard } from "#/components/projects/project-card";
+import { FavoritesSkeleton } from "#/components/shell/page-skeletons";
 import { ProjectMenu } from "#/components/shell/project-menu";
 import { TaskViewProvider } from "#/components/tasks/context";
 import { MiniRow } from "#/components/tasks/mini-row";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authed/w/$slug/favorites")({
 		if (!data?.workspace) throw notFound();
 	},
 	head: () => ({ meta: [{ title: "Favorites - Zadaci" }] }),
+	pendingComponent: FavoritesSkeleton,
 	component: FavoritesPage,
 });
 

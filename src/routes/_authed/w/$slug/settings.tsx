@@ -25,6 +25,7 @@ import {
 	ProjectsSection,
 	TeamsSection,
 } from "#/components/settings/workspace-group";
+import { SettingsSkeleton } from "#/components/shell/page-skeletons";
 import { SETTINGS } from "#/graphql/operations";
 import { reloadOnEnter } from "#/lib/routing";
 import { cn } from "#/lib/utils";
@@ -110,6 +111,7 @@ export const Route = createFileRoute("/_authed/w/$slug/settings")({
 		if (!data?.workspace) throw notFound();
 	},
 	head: () => ({ meta: [{ title: "Settings - Zadaci" }] }),
+	pendingComponent: SettingsSkeleton,
 	component: Settings,
 });
 

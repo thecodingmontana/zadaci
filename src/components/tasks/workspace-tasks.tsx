@@ -15,6 +15,7 @@ import { CalendarView } from "./calendar-view";
 import { TaskViewProvider, useTaskView } from "./context";
 import { ListView } from "./list-view";
 import { useNewTask } from "./new-task";
+import { Sk, TaskViewSkeleton, ToolbarSkeleton } from "./skeletons";
 import { ColumnsMenu, TableView } from "./table-view";
 import {
 	TimelineControls,
@@ -41,7 +42,7 @@ export function WorkspaceTasks({
 	});
 	const workspace = data?.workspace;
 	if (!workspace)
-		return loading ? <div className="page faint">Loading tasks…</div> : null;
+		return loading ? <WorkspaceTasksSkeleton kind={kind} /> : null;
 	return (
 		<TaskViewProvider
 			slug={slug}
@@ -58,6 +59,31 @@ export function WorkspaceTasks({
 				<AllTasks tasks={workspace.tasks} />
 			)}
 		</TaskViewProvider>
+	);
+}
+
+const TITLES: Record<WorkspaceTasksKind, string> = {
+	tasks: "Tasks",
+	my: "My Tasks",
+	calendar: "Calendar",
+	timeline: "Timeline",
+};
+
+/** The page while its tasks load: real title and toolbar, placeholders for the rest. */
+function WorkspaceTasksSkeleton({ kind }: { kind: WorkspaceTasksKind }) {
+	const [allMode] = useMode<"list" | "board" | "table">("tasks", "list");
+	const [myMode] = useMode<"list" | "calendar">("my", "list");
+	const type = kind === "tasks" ? allMode : kind === "my" ? myMode : kind;
+	return (
+		<div className="page flush" aria-busy="true">
+			<Header
+				title={TITLES[kind]}
+				sub={<Sk w={240} h={11} />}
+				acts={kind === "timeline" ? undefined : <NewTaskButton />}
+			/>
+			<ToolbarSkeleton />
+			<TaskViewSkeleton type={type} />
+		</div>
 	);
 }
 

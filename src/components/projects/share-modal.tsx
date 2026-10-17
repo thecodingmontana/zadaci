@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";
 import { Select } from "#/components/settings/ui";
+import { Sk } from "#/components/tasks/skeletons";
 import {
 	INVITE_TO_PROJECT,
 	PROJECT_SHARE,
@@ -137,7 +138,24 @@ export function ShareModal({
 		>
 			<div className="modal-b">
 				{!project ? (
-					<p className="faint">Loading…</p>
+					// the people list, shaped like it, while the project's members load
+					<div aria-busy="true">
+						<span className="sr">Loading people with access…</span>
+						<Sk w="100%" h={34} r={8} />
+						<div className="eyebrow" style={{ margin: "16px 0 4px" }}>
+							People with access
+						</div>
+						{[56, 44, 64].map((w) => (
+							<div key={w} className="row" style={{ height: 44 }}>
+								<Sk w={28} h={28} r="50%" />
+								<div className="grow col" style={{ gap: 6 }}>
+									<Sk w={`${w}%`} h={11} />
+									<Sk w={`${w - 14}%`} h={9} />
+								</div>
+								<Sk w={84} h={12} />
+							</div>
+						))}
+					</div>
 				) : (
 					<>
 						{canManage ? (

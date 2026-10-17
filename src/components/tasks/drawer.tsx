@@ -3,7 +3,7 @@ import { gql } from "@apollo/client";
 import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import { Link } from "@tanstack/react-router";
 import DOMPurify from "dompurify";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { ProgBar, projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { StatusIcon } from "#/components/q/status-icon";
@@ -86,6 +86,15 @@ export function TaskDrawer({
 				{!workspace || !task ? (
 					<>
 						<div className="drawer-h">
+							{loading && (
+								<>
+									<span
+										className="sk"
+										style={{ width: 120, height: 22, borderRadius: 6 }}
+									/>
+									<span className="sk" style={{ width: 52, height: 10 }} />
+								</>
+							)}
 							<span className="sp" />
 							<button
 								type="button"
@@ -103,11 +112,13 @@ export function TaskDrawer({
 							<h2 className="sr" id="d-h">
 								Task
 							</h2>
-							<p className="faint">
-								{loading
-									? "Loading…"
-									: "This task doesn't exist or you can't see it."}
-							</p>
+							{loading ? (
+								<DrawerSkeleton />
+							) : (
+								<p className="faint">
+									This task doesn't exist or you can't see it.
+								</p>
+							)}
 						</div>
 					</>
 				) : (
@@ -1050,3 +1061,67 @@ const TASK_DETAIL_SIBLINGS: TypedDocumentNode<
 		}
 	}
 `;
+
+const SKELETON_PROPS = [
+	["icon-[solar--record-circle-linear]", "Status", 70],
+	["icon-[solar--chart-2-linear]", "Priority", 64],
+	["icon-[solar--user-linear]", "Assignee", 110],
+	["icon-[solar--calendar-linear]", "Due date", 56],
+	["icon-[solar--calendar-add-linear]", "Start date", 56],
+	["icon-[solar--folder-linear]", "Project", 100],
+	["icon-[solar--tag-linear]", "Labels", 80],
+	["icon-[solar--repeat-linear]", "Repeat", 96],
+	["icon-[solar--stopwatch-linear]", "Estimate", 40],
+	["icon-[solar--routing-2-linear]", "Blocked by", 48],
+] as const;
+
+/** The panel's own layout while the task loads: real labels, placeholder values. */
+function DrawerSkeleton() {
+	const bar = (width: number | string, height = 10) => (
+		<span className="sk" style={{ width, height }} />
+	);
+	return (
+		<div aria-busy="true">
+			<span className="sr">Loading task…</span>
+			{bar("60%", 22)}
+			<dl className="kv" style={{ marginTop: 12 }}>
+				{SKELETON_PROPS.map(([icon, label, w]) => (
+					<Fragment key={label}>
+						<dt>
+							<span className={cn(icon, "size-3.5")} aria-hidden="true" />
+							{label}
+						</dt>
+						<dd style={{ display: "flex", alignItems: "center" }}>
+							{bar(w, 12)}
+						</dd>
+					</Fragment>
+				))}
+			</dl>
+			<div className="dsec">
+				<div className="dsec-h">
+					<h3>Description</h3>
+				</div>
+				<div className="col" style={{ gap: 8 }}>
+					{bar("92%")}
+					{bar("78%")}
+					{bar("54%")}
+				</div>
+			</div>
+			<div className="dsec">
+				<div className="dsec-h">
+					<h3>Subtasks</h3>
+				</div>
+				<div className="col" style={{ gap: 10 }}>
+					{bar("70%", 12)}
+					{bar("50%", 12)}
+				</div>
+			</div>
+			<div className="dsec">
+				<div className="dsec-h">
+					<h3>Attachments</h3>
+				</div>
+				{bar("100%", 48)}
+			</div>
+		</div>
+	);
+}

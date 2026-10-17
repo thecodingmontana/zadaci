@@ -16,6 +16,7 @@ import {
 	PermissionsTable,
 	TeamsGrid,
 } from "#/components/settings/workspace-group";
+import { MembersSkeleton } from "#/components/shell/page-skeletons";
 import { TeamModal } from "#/components/teams/team-modal";
 import {
 	MEMBER_STATS,
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/_authed/w/$slug/members/")({
 		if (!data?.workspace) throw notFound();
 	},
 	head: () => ({ meta: [{ title: "Members - Zadaci" }] }),
+	pendingComponent: MembersSkeleton,
 	component: MembersPage,
 });
 

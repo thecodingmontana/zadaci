@@ -5,6 +5,7 @@ import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { StatusIcon } from "#/components/q/status-icon";
 import { MemberActions } from "#/components/settings/workspace-group";
+import { ProfileSkeleton } from "#/components/shell/page-skeletons";
 import {
 	ACTIVITY,
 	MEMBER_PROFILE,
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/_authed/w/$slug/members/$memberId")({
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.name ?? "Member"} - Zadaci` }],
 	}),
+	pendingComponent: ProfileSkeleton,
 	component: MemberPage,
 });
 

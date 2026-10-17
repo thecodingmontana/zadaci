@@ -38,6 +38,9 @@ export function getRouter() {
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
 		defaultNotFoundComponent: NotFound,
+		// pages with a loading skeleton show it once loading passes 150ms, for at least 200ms
+		defaultPendingMs: 150,
+		defaultPendingMinMs: 200,
 	});
 
 	return routerWithApolloClient(router, apolloClient);

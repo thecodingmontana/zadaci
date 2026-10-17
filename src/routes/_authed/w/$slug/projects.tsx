@@ -12,6 +12,7 @@ import { ProjectCard, progressOf } from "#/components/projects/project-card";
 import { ProjectModal } from "#/components/projects/project-modal";
 import { Av, AvStack } from "#/components/q/av";
 import { Select } from "#/components/settings/ui";
+import { ProjectsSkeleton } from "#/components/shell/page-skeletons";
 import { ProjectMenu } from "#/components/shell/project-menu";
 import {
 	PROJECTS,
@@ -56,6 +57,7 @@ export const Route = createFileRoute("/_authed/w/$slug/projects")({
 		if (!data?.workspace) throw notFound();
 	},
 	head: () => ({ meta: [{ title: "Projects - Zadaci" }] }),
+	pendingComponent: ProjectsSkeleton,
 	component: ProjectsPage,
 });
 

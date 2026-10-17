@@ -18,6 +18,7 @@ import {
 import { ShareModal } from "#/components/projects/share-modal";
 import { AvStack } from "#/components/q/av";
 import { PROJECT_PAGE_TABS } from "#/components/shell/nav";
+import { ProjectPageSkeleton } from "#/components/shell/page-skeletons";
 import { ProjectMenu } from "#/components/shell/project-menu";
 import { FilesView } from "#/components/tasks/files-view";
 import { ProjectTasks } from "#/components/tasks/project-tasks";
@@ -67,6 +68,7 @@ export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.title ?? "Project"} - Zadaci` }],
 	}),
+	pendingComponent: ProjectPageSkeleton,
 	component: ProjectPage,
 });
 

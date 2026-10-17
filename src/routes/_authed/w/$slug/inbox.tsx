@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
+import { InboxSkeleton } from "#/components/shell/page-skeletons";
 import {
 	CellAssignee,
 	CellDue,
@@ -11,6 +12,7 @@ import {
 } from "#/components/tasks/cells";
 import { TaskViewProvider } from "#/components/tasks/context";
 import { Comments } from "#/components/tasks/drawer-conversation";
+import { Sk } from "#/components/tasks/skeletons";
 import {
 	MARK_ALL_NOTIFICATIONS_READ,
 	NOTIFICATIONS,
@@ -56,6 +58,7 @@ export const Route = createFileRoute("/_authed/w/$slug/inbox")({
 			fetchPolicy: "network-only",
 		}),
 	head: () => ({ meta: [{ title: "Inbox - Zadaci" }] }),
+	pendingComponent: InboxSkeleton,
 	component: InboxPage,
 });
 
@@ -465,9 +468,54 @@ function Preview({
 		);
 
 	if (!workspace || !t)
-		return (
+		return loading ? (
+			// the preview's own layout while the task loads
+			<div aria-busy="true">
+				<span className="sr">Loading task…</span>
+				<div
+					className="row"
+					style={{
+						height: 46,
+						padding: "0 16px",
+						borderBottom: "1px solid var(--q-border)",
+						gap: 8,
+					}}
+				>
+					<Sk w={22} h={22} r={6} />
+					<Sk w={120} h={11} />
+					<span className="sp" />
+					<Sk w={92} h={26} r={6} />
+				</div>
+				<div style={{ padding: "24px 28px", maxWidth: 720 }}>
+					<Sk w="55%" h={22} />
+					<div className="row" style={{ gap: 10, margin: "14px 0 22px" }}>
+						<Sk w={70} h={18} r={5} />
+						<Sk w={96} h={18} r={5} />
+						<Sk w={64} h={18} r={5} />
+						<Sk w={56} h={18} r={5} />
+					</div>
+					<div className="eyebrow" style={{ marginBottom: 10 }}>
+						Conversation
+					</div>
+					{[70, 52].map((w) => (
+						<div
+							key={w}
+							className="row"
+							style={{ alignItems: "flex-start", gap: 10, marginBottom: 16 }}
+						>
+							<Sk w={26} h={26} r="50%" />
+							<div className="grow col" style={{ gap: 6 }}>
+								<Sk w={110} h={10} />
+								<Sk w={`${w}%`} h={11} />
+							</div>
+						</div>
+					))}
+					<Sk w="100%" h={90} r={10} />
+				</div>
+			</div>
+		) : (
 			<div style={{ padding: "24px 28px" }} className="faint">
-				{loading ? "Loading…" : "This task was deleted or you can't see it."}
+				This task was deleted or you can't see it.
 			</div>
 		);
 

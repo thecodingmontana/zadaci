@@ -7,6 +7,7 @@ import { CalendarView } from "./calendar-view";
 import { TaskViewProvider, useTaskView } from "./context";
 import { ListView } from "./list-view";
 import { useNewTask } from "./new-task";
+import { TaskViewSkeleton, ToolbarSkeleton } from "./skeletons";
 import { ColumnsMenu, TableView } from "./table-view";
 import {
 	TimelineControls,
@@ -42,7 +43,12 @@ export function ProjectTasks({
 	});
 	const workspace = data?.workspace;
 	if (!workspace)
-		return loading ? <div className="page faint">Loading tasks…</div> : null;
+		return loading ? (
+			<>
+				<ToolbarSkeleton />
+				<TaskViewSkeleton type={type} />
+			</>
+		) : null;
 	return (
 		<TaskViewProvider
 			slug={slug}

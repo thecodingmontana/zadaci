@@ -4,6 +4,7 @@ import { useState } from "react";
 import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { InviteModal } from "#/components/settings/workspace-group";
+import { ProfileSkeleton } from "#/components/shell/page-skeletons";
 import { TeamModal } from "#/components/teams/team-modal";
 import {
 	MEMBER_STATS,
@@ -46,6 +47,7 @@ export const Route = createFileRoute("/_authed/w/$slug/teams/$teamId")({
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.name ?? "Team"} - Zadaci` }],
 	}),
+	pendingComponent: ProfileSkeleton,
 	component: TeamPage,
 });
 

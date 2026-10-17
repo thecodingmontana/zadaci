@@ -3,6 +3,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { AvStack } from "#/components/q/av";
 import { TeamsGrid } from "#/components/settings/workspace-group";
+import { TeamsSkeleton } from "#/components/shell/page-skeletons";
 import { TeamModal } from "#/components/teams/team-modal";
 import { MEMBER_STATS, SETTINGS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/_authed/w/$slug/teams/")({
 		if (!data?.workspace) throw notFound();
 	},
 	head: () => ({ meta: [{ title: "Teams - Zadaci" }] }),
+	pendingComponent: TeamsSkeleton,
 	component: TeamsPage,
 });
 

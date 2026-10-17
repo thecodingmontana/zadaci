@@ -10,6 +10,7 @@ import { z } from "zod";
 import { PIcon } from "#/components/projects/bits";
 import { ConfirmModal } from "#/components/q/confirm";
 import { StatusIcon } from "#/components/q/status-icon";
+import { ArchiveSkeleton } from "#/components/shell/page-skeletons";
 import {
 	ARCHIVE,
 	ARCHIVE_PROJECT,
@@ -41,6 +42,7 @@ export const Route = createFileRoute("/_authed/w/$slug/archive")({
 		if (!data?.workspace) throw notFound();
 	},
 	head: () => ({ meta: [{ title: "Archive - Zadaci" }] }),
+	pendingComponent: ArchiveSkeleton,
 	component: ArchivePage,
 });
 

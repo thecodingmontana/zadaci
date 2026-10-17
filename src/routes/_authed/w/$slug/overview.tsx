@@ -11,6 +11,7 @@ import { progressOf } from "#/components/projects/project-card";
 import { ProjectModal } from "#/components/projects/project-modal";
 import { Av } from "#/components/q/av";
 import { StatusIcon } from "#/components/q/status-icon";
+import { OverviewSkeleton } from "#/components/shell/page-skeletons";
 import { OVERVIEW, PROJECTS, TASKS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/_authed/w/$slug/overview")({
 		if (!data?.workspace) throw notFound();
 	},
 	head: () => ({ meta: [{ title: "Overview - Zadaci" }] }),
+	pendingComponent: OverviewSkeleton,
 	component: OverviewPage,
 });
 

@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { ActivityItem } from "#/components/activity/activity-item";
 import { Select } from "#/components/settings/ui";
+import { ActivitySkeleton } from "#/components/shell/page-skeletons";
 import { ACTIVITY } from "#/graphql/operations";
 import { reloadOnEnter } from "#/lib/routing";
 import { byDay } from "#/lib/time";
@@ -35,6 +36,7 @@ export const Route = createFileRoute("/_authed/w/$slug/activity")({
 			fetchPolicy: "network-only",
 		}),
 	head: () => ({ meta: [{ title: "Activity - Zadaci" }] }),
+	pendingComponent: ActivitySkeleton,
 	component: ActivityPage,
 });
 

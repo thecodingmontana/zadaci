@@ -2,6 +2,7 @@ import { useMutation, useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { Av } from "#/components/q/av";
+import { NotificationsSkeleton } from "#/components/shell/page-skeletons";
 import {
 	MARK_ALL_NOTIFICATIONS_READ,
 	NOTIFICATIONS,
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/_authed/w/$slug/notifications")({
 			fetchPolicy: "network-only",
 		}),
 	head: () => ({ meta: [{ title: "Notifications - Zadaci" }] }),
+	pendingComponent: NotificationsSkeleton,
 	component: NotificationsPage,
 });
 

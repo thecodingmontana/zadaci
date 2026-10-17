@@ -14,6 +14,7 @@ import { ProjectModal } from "#/components/projects/project-modal";
 import { Av, AvStack } from "#/components/q/av";
 import { StatusIcon } from "#/components/q/status-icon";
 import { InviteModal } from "#/components/settings/workspace-group";
+import { HomeSkeleton } from "#/components/shell/page-skeletons";
 import { PrIcon } from "#/components/tasks/bits";
 import { TaskViewProvider, useTaskView } from "#/components/tasks/context";
 import { MiniRow } from "#/components/tasks/mini-row";
@@ -54,6 +55,7 @@ export const Route = createFileRoute("/_authed/w/$slug/")({
 		if (!data?.workspace) throw notFound();
 	},
 	head: () => ({ meta: [{ title: "Home - Zadaci" }] }),
+	pendingComponent: HomeSkeleton,
 	component: WorkspaceHome,
 });
 
