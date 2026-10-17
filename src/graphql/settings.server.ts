@@ -560,6 +560,7 @@ export const settingsResolvers = {
 					),
 				)
 				.returning({
+					id: tables.workspace_invite_request.id,
 					email: tables.workspace_invite_request.email,
 					role: tables.workspace_invite_request.role,
 				});

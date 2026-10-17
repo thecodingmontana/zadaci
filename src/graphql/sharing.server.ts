@@ -304,19 +304,28 @@ export const sharingResolvers = {
 				.update(tables.workspace_invite_request)
 				.set(target)
 				.where(pending)
-				.returning({ role: tables.workspace_invite_request.role });
-			if (!updated)
-				await db.insert(tables.workspace_invite_request).values({
-					...target,
-					email,
-					role: USER_ROLE.GUEST,
-					workspace_id: workspace.id,
-					invited_by: user.id,
-					team_id: project.team_id,
+				.returning({
+					id: tables.workspace_invite_request.id,
+					role: tables.workspace_invite_request.role,
 				});
-			await sendInviteEmails(workspace, user.name, [
-				{ email, role: updated?.role ?? USER_ROLE.GUEST },
-			]);
+			const [inserted] = updated
+				? [updated]
+				: await db
+						.insert(tables.workspace_invite_request)
+						.values({
+							...target,
+							email,
+							role: USER_ROLE.GUEST,
+							workspace_id: workspace.id,
+							invited_by: user.id,
+							team_id: project.team_id,
+						})
+						.returning({
+							id: tables.workspace_invite_request.id,
+							role: tables.workspace_invite_request.role,
+						});
+			if (!inserted) throw new Error("Invite insert returned nothing");
+			await sendInviteEmails(workspace, user.name, [{ email, ...inserted }]);
 			return true;
 		},
 

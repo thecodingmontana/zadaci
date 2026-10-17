@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
+import { eq } from "drizzle-orm";
+import { db, tables } from "#/db";
 import { cleanup, gql, join, makeUser, makeWorkspace } from "./helpers";
 
 after(cleanup);
@@ -91,6 +93,32 @@ test("inviting the same email twice keeps one pending invite", async () => {
 	await gql(owner, INVITE, { s: slug });
 	const ws = await gql(owner, `query($s: String!) { workspace(slug: $s) { invites { email } } }`, { s: slug });
 	assert.deepEqual(ws.data?.workspace.invites, [{ email: "pat@acme.dev" }]);
+});
+
+test("only admins see the workspace link; an emailed invite works only for its address, until it expires", async () => {
+	const owner = await makeUser("owner");
+	const member = await makeUser("member");
+	const guest = await makeUser("guest");
+	const stranger = await makeUser("stranger");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(member, inviteCode);
+	const CODE = `query($s: String!) { workspace(slug: $s) { inviteCode } }`;
+	assert.equal((await gql(member, CODE, { s: slug })).data?.workspace.inviteCode, "", "members can't pass the member link on");
+
+	const INVITE = `mutation($s: String!, $e: [String!]!) { inviteMembers(slug: $s, emails: $e, role: "guest") { id } }`;
+	const [invite] = (await gql(owner, INVITE, { s: slug, e: [guest.email] })).data?.inviteMembers;
+	assert.equal(code(await join(stranger, invite.id)), "BAD_USER_INPUT", "a forwarded invite doesn't let someone else in");
+	assert.ok((await join(guest, invite.id)).data?.joinWorkspace);
+	const ROLE = `query($s: String!) { workspace(slug: $s) { role } }`;
+	assert.equal((await gql(guest, ROLE, { s: slug })).data?.workspace.role, "guest");
+
+	// an expired admin invite no longer decides the role, and its link stops working
+	const late = await makeUser("late");
+	const [old] = (await gql(owner, `mutation($s: String!, $e: [String!]!) { inviteMembers(slug: $s, emails: $e, role: "moderator") { id } }`, { s: slug, e: [late.email] })).data?.inviteMembers;
+	await db.update(tables.workspace_invite_request).set({ expires_at: new Date(Date.now() - 1000) }).where(eq(tables.workspace_invite_request.id, old.id));
+	assert.equal(code(await join(late, old.id)), "BAD_USER_INPUT");
+	await join(late, inviteCode);
+	assert.equal((await gql(late, ROLE, { s: slug })).data?.workspace.role, "member");
 });
 
 test("favorites are per user", async () => {

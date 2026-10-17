@@ -419,22 +419,25 @@ export function InviteModal({
 			sub="We'll email each person a link to join."
 			footer={
 				<>
-					<button
-						type="button"
-						className="btn btn-ghost"
-						onClick={async () => {
-							await navigator.clipboard.writeText(
-								`${location.origin}/join/${workspace.inviteCode}`,
-							);
-							toast.success("Invite link copied");
-						}}
-					>
-						<span
-							className="icon-[solar--link-linear] size-3.5"
-							aria-hidden="true"
-						/>
-						Copy invite link
-					</button>
+					{/* the server only sends the link to people who may invite members */}
+					{workspace.inviteCode && (
+						<button
+							type="button"
+							className="btn btn-ghost"
+							onClick={async () => {
+								await navigator.clipboard.writeText(
+									`${location.origin}/join/${workspace.inviteCode}`,
+								);
+								toast.success("Invite link copied");
+							}}
+						>
+							<span
+								className="icon-[solar--link-linear] size-3.5"
+								aria-hidden="true"
+							/>
+							Copy invite link
+						</button>
+					)}
 					<span className="sp" />
 					<button
 						type="button"

@@ -47,11 +47,12 @@ export async function sendEmail(
 }
 
 export function sendInviteEmails(
-	workspace: { name: string; invite_code: string },
+	workspace: { name: string },
 	sender: string,
-	invites: { email: string; role: string }[],
+	invites: { id: string; email: string; role: string }[],
 ) {
-	// Invites join through the workspace link; the app URL is where this server runs.
+	// Each email links to its own invite, which only works for that address, never the
+	// shared workspace code (anyone holding that joins as a member).
 	const appUrl = (process.env.BETTER_AUTH_URL ?? SITE_URL).replace(/\/$/, "");
 	return Promise.all(
 		invites.map((invite) =>
@@ -62,7 +63,7 @@ export function sendInviteEmails(
 					sender,
 					workspace: workspace.name,
 					role: invite.role,
-					link: `${appUrl}/join/${workspace.invite_code}`,
+					link: `${appUrl}/join/${invite.id}`,
 					baseUrl: SITE_URL,
 				}),
 			),

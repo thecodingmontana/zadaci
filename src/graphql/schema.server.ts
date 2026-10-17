@@ -4,6 +4,7 @@ import {
 	desc,
 	eq,
 	getTableColumns,
+	gt,
 	ilike,
 	inArray,
 	isNull,
@@ -28,6 +29,14 @@ import {
 import { can, projectRight } from "#/lib/permissions";
 import { makeKey } from "#/lib/projects";
 import { adminUserIds, logActivity, notify } from "./activity.server";
+
+/** A sent invite that can still be accepted (pending, not revoked, not expired). */
+const openInvite = () =>
+	and(
+		eq(tables.workspace_invite_request.status, "PENDING"),
+		isNull(tables.workspace_invite_request.deleted_at),
+		gt(tables.workspace_invite_request.expires_at, new Date()),
+	);
 
 export type GraphQLContext = {
 	user: { id: string; email: string; name: string } | null;
@@ -351,18 +360,48 @@ const resolvers = {
 			ctx: GraphQLContext,
 		) => {
 			const user = requireUser(ctx);
-			const [workspace] = await db
+			const code = args.code.trim();
+			// The workspace link (only admins see it) or one emailed invite, by its id
+			const [byCode] = await db
 				.select()
 				.from(tables.workspace)
 				.where(
 					and(
-						eq(tables.workspace.invite_code, args.code.trim().toUpperCase()),
+						eq(tables.workspace.invite_code, code.toUpperCase()),
 						isNull(tables.workspace.deleted_at),
 					),
 				)
 				.limit(1);
+			const [byInvite] = byCode
+				? []
+				: await db
+						.select({
+							workspace: tables.workspace,
+							email: tables.workspace_invite_request.email,
+						})
+						.from(tables.workspace_invite_request)
+						.innerJoin(
+							tables.workspace,
+							eq(
+								tables.workspace.id,
+								tables.workspace_invite_request.workspace_id,
+							),
+						)
+						.where(
+							and(
+								eq(tables.workspace_invite_request.id, code),
+								openInvite(),
+								isNull(tables.workspace.deleted_at),
+							),
+						)
+						.limit(1);
+			const workspace = byCode ?? byInvite?.workspace;
 			if (!workspace)
 				badInput("This invite link isn't valid anymore. Ask for a new one.");
+			if (byInvite && byInvite.email !== user.email.toLowerCase())
+				badInput(
+					`This invite was sent to ${byInvite.email}. Sign in with that address to accept it.`,
+				);
 
 			const [existing] = await findWorkspaces(user.id, workspace.slug);
 			if (existing) return existing;
@@ -392,8 +431,7 @@ const resolvers = {
 								tables.workspace_invite_request.email,
 								user.email.toLowerCase(),
 							),
-							eq(tables.workspace_invite_request.status, "PENDING"),
-							isNull(tables.workspace_invite_request.deleted_at),
+							openInvite(),
 						),
 					)
 					.orderBy(desc(tables.workspace_invite_request.created_at))
@@ -489,7 +527,7 @@ const resolvers = {
 				(email) => email !== user.email.toLowerCase(),
 			);
 			try {
-				const workspace = await db.transaction(async (tx) => {
+				const { sent, ...workspace } = await db.transaction(async (tx) => {
 					const [workspace] = await tx
 						.insert(tables.workspace)
 						.values({
@@ -570,26 +608,28 @@ const resolvers = {
 						.set({ task_seq: template.tasks.length })
 						.where(eq(tables.project.id, project.id));
 
-					if (invites.length) {
-						const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-						await tx.insert(tables.workspace_invite_request).values(
-							invites.map((email) => ({
-								email,
-								role: USER_ROLE.MEMBER,
-								workspace_id: workspace.id,
-								expires_at: expiresAt,
-								invited_by: user.id,
-							})),
-						);
-					}
+					const sent = invites.length
+						? await tx
+								.insert(tables.workspace_invite_request)
+								.values(
+									invites.map((email) => ({
+										email,
+										role: USER_ROLE.MEMBER,
+										workspace_id: workspace.id,
+										expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+										invited_by: user.id,
+									})),
+								)
+								.returning({
+									id: tables.workspace_invite_request.id,
+									email: tables.workspace_invite_request.email,
+									role: tables.workspace_invite_request.role,
+								})
+						: [];
 
-					return { ...workspace, role: member.role };
+					return { ...workspace, role: member.role, sent };
 				});
-				await sendInviteEmails(
-					workspace,
-					user.name,
-					invites.map((email) => ({ email, role: USER_ROLE.MEMBER })),
-				);
+				await sendInviteEmails(workspace, user.name, sent);
 				return workspace;
 			} catch (error) {
 				// Postgres unique violation on the slug: someone claimed the URL between the check and submit
@@ -602,7 +642,9 @@ const resolvers = {
 	},
 	Workspace: {
 		imageUrl: (w: Workspace) => w.image_url,
-		inviteCode: (w: Workspace) => w.invite_code,
+		// the link makes whoever holds it a member, so only people who may invite members see it
+		inviteCode: (w: Workspace & { role?: string }) =>
+			can(w.role, "inviteMembers") ? w.invite_code : "",
 		useCase: (w: Workspace) => w.use_case,
 		teamSize: (w: Workspace) => w.team_size,
 		defaultView: (w: Workspace) => w.default_view,
