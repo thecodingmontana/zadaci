@@ -1369,6 +1369,63 @@ export const DELETE_TASKS: TypedDocumentNode<
 	}
 `;
 
+export const ARCHIVE: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			role: string;
+			tasks: Pick<
+				TaskItem,
+				"id" | "key" | "name" | "status" | "projectId" | "archivedAt"
+			>[];
+			projects: { id: string; title: string }[];
+			archivedProjects: {
+				id: string;
+				title: string;
+				icon: string | null;
+				color: string | null;
+				status: string;
+				myAccess: import("#/lib/permissions").ProjectRight | null;
+				archivedAt: string | null;
+			}[];
+			projectStats: { projectId: string; total: number }[];
+		} | null;
+	},
+	{ slug: string }
+> = gql`
+	query Archive($slug: String!) {
+		workspace(slug: $slug) {
+			id
+			role
+			tasks(includeArchived: true) {
+				id
+				key
+				name
+				status
+				projectId
+				archivedAt
+			}
+			projects {
+				id
+				title
+			}
+			archivedProjects {
+				id
+				title
+				icon
+				color
+				status
+				myAccess
+				archivedAt
+			}
+			projectStats {
+				projectId
+				total
+			}
+		}
+	}
+`;
+
 export const ARCHIVE_TASK: TypedDocumentNode<
 	{ archiveTask: TaskItem },
 	{ slug: string; id: string; archived: boolean }

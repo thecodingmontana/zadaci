@@ -711,6 +711,8 @@ export const tasksResolvers = {
 					projectScope(w),
 					isNull(tables.task.parent_task_id),
 					args.includeArchived ? undefined : isNull(tables.task.archived_at),
+					// an archived project's tasks only show on that project's own page
+					args.projectId ? undefined : isNull(tables.project.archived_at),
 					args.projectId
 						? eq(tables.task.project_id, args.projectId)
 						: undefined,

@@ -25,6 +25,7 @@ import { Route as AuthTwoFactorSetupRouteImport } from './routes/auth/two-factor
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
 import { Route as AuthedWSlugActivityRouteImport } from './routes/_authed/w/$slug/activity'
+import { Route as AuthedWSlugArchiveRouteImport } from './routes/_authed/w/$slug/archive'
 import { Route as AuthedWSlugCalendarRouteImport } from './routes/_authed/w/$slug/calendar'
 import { Route as AuthedWSlugFavoritesRouteImport } from './routes/_authed/w/$slug/favorites'
 import { Route as AuthedWSlugMyTasksRouteImport } from './routes/_authed/w/$slug/my-tasks'
@@ -118,6 +119,11 @@ const AuthedWSlugActivityRoute = AuthedWSlugActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
+const AuthedWSlugArchiveRoute = AuthedWSlugArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
 const AuthedWSlugCalendarRoute = AuthedWSlugCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
+  '/w/$slug/archive': typeof AuthedWSlugArchiveRoute
   '/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
   '/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
   '/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
+  '/w/$slug/archive': typeof AuthedWSlugArchiveRoute
   '/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
   '/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
   '/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/_authed/w/$slug/activity': typeof AuthedWSlugActivityRoute
+  '/_authed/w/$slug/archive': typeof AuthedWSlugArchiveRoute
   '/_authed/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
   '/_authed/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
   '/_authed/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/auth/two-factor/'
     | '/w/$slug/$'
     | '/w/$slug/activity'
+    | '/w/$slug/archive'
     | '/w/$slug/calendar'
     | '/w/$slug/favorites'
     | '/w/$slug/my-tasks'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/auth/two-factor'
     | '/w/$slug/$'
     | '/w/$slug/activity'
+    | '/w/$slug/archive'
     | '/w/$slug/calendar'
     | '/w/$slug/favorites'
     | '/w/$slug/my-tasks'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/auth/two-factor/'
     | '/_authed/w/$slug/$'
     | '/_authed/w/$slug/activity'
+    | '/_authed/w/$slug/archive'
     | '/_authed/w/$slug/calendar'
     | '/_authed/w/$slug/favorites'
     | '/_authed/w/$slug/my-tasks'
@@ -496,6 +508,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugActivityRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
+    '/_authed/w/$slug/archive': {
+      id: '/_authed/w/$slug/archive'
+      path: '/archive'
+      fullPath: '/w/$slug/archive'
+      preLoaderRoute: typeof AuthedWSlugArchiveRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
     '/_authed/w/$slug/calendar': {
       id: '/_authed/w/$slug/calendar'
       path: '/calendar'
@@ -593,6 +612,7 @@ declare module '@tanstack/react-router' {
 interface AuthedWSlugRouteChildren {
   AuthedWSlugSplatRoute: typeof AuthedWSlugSplatRoute
   AuthedWSlugActivityRoute: typeof AuthedWSlugActivityRoute
+  AuthedWSlugArchiveRoute: typeof AuthedWSlugArchiveRoute
   AuthedWSlugCalendarRoute: typeof AuthedWSlugCalendarRoute
   AuthedWSlugFavoritesRoute: typeof AuthedWSlugFavoritesRoute
   AuthedWSlugMyTasksRoute: typeof AuthedWSlugMyTasksRoute
@@ -612,6 +632,7 @@ interface AuthedWSlugRouteChildren {
 const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugSplatRoute: AuthedWSlugSplatRoute,
   AuthedWSlugActivityRoute: AuthedWSlugActivityRoute,
+  AuthedWSlugArchiveRoute: AuthedWSlugArchiveRoute,
   AuthedWSlugCalendarRoute: AuthedWSlugCalendarRoute,
   AuthedWSlugFavoritesRoute: AuthedWSlugFavoritesRoute,
   AuthedWSlugMyTasksRoute: AuthedWSlugMyTasksRoute,
