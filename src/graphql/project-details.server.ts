@@ -1,14 +1,4 @@
-import {
-	and,
-	asc,
-	count,
-	eq,
-	isNull,
-	lt,
-	max,
-	min,
-	notInArray,
-} from "drizzle-orm";
+import { and, asc, count, eq, isNull, max, min } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { PRIORITY, PROJECT_STATUS, STATUS } from "#/db/enums";
@@ -53,7 +43,6 @@ export const projectDetailsTypeDefs = /* GraphQL */ `
 		projectId: ID!
 		total: Int!
 		done: Int!
-		overdue: Int!
 		statusCounts: [StatusCount!]!
 		memberIds: [ID!]!
 		lastActivityAt: String
@@ -141,7 +130,6 @@ const projectPatch = z
 	})
 	.partial();
 
-const DONE = [STATUS.COMPLETED, STATUS.ABANDONED];
 const addDays = (days: number) => {
 	const d = new Date();
 	d.setUTCHours(0, 0, 0, 0);
@@ -216,88 +204,76 @@ export const projectDetailsResolvers = {
 				isNull(tables.project.deleted_at),
 				projectScope(w),
 			);
+			// the same tasks the lists show: top level, not deleted or archived
 			const topTasks = and(
 				visible,
 				isNull(tables.task.deleted_at),
+				isNull(tables.task.archived_at),
 				isNull(tables.task.parent_task_id),
 			);
-			const [projects, statuses, overdue, members, activity] =
-				await Promise.all([
-					db
-						.select({
-							id: tables.project.id,
-							updated: tables.project.updated_at,
-						})
-						.from(tables.project)
-						.where(visible),
-					db
-						.select({
-							projectId: tables.task.project_id,
-							status: tables.task.status,
-							n: count(),
-						})
-						.from(tables.task)
-						.innerJoin(
-							tables.project,
-							eq(tables.project.id, tables.task.project_id),
-						)
-						.where(topTasks)
-						.groupBy(tables.task.project_id, tables.task.status),
-					db
-						.select({ projectId: tables.task.project_id, n: count() })
-						.from(tables.task)
-						.innerJoin(
-							tables.project,
-							eq(tables.project.id, tables.task.project_id),
-						)
-						.where(
-							and(
-								topTasks,
-								lt(tables.task.due_date, addDays(0)),
-								notInArray(tables.task.status, DONE),
-							),
-						)
-						.groupBy(tables.task.project_id),
-					db
-						.select({
-							projectId: tables.project_members.project_id,
-							memberId: tables.project_members.member_id,
-						})
-						.from(tables.project_members)
-						.innerJoin(
-							tables.project,
-							eq(tables.project.id, tables.project_members.project_id),
-						)
-						.innerJoin(
-							tables.workspace_members,
-							eq(tables.workspace_members.id, tables.project_members.member_id),
-						)
-						.where(
-							and(
-								visible,
-								isNull(tables.project_members.deleted_at),
-								isNull(tables.workspace_members.deleted_at),
-							),
-						)
-						.orderBy(asc(tables.project_members.created_at)),
-					db
-						.select({
-							projectId: tables.activity.project_id,
-							at: max(tables.activity.created_at),
-						})
-						.from(tables.activity)
-						.where(eq(tables.activity.workspace_id, w.id))
-						.groupBy(tables.activity.project_id),
-				]);
+			const [projects, statuses, members, activity] = await Promise.all([
+				db
+					.select({
+						id: tables.project.id,
+						updated: tables.project.updated_at,
+					})
+					.from(tables.project)
+					.where(visible),
+				db
+					.select({
+						projectId: tables.task.project_id,
+						status: tables.task.status,
+						n: count(),
+					})
+					.from(tables.task)
+					.innerJoin(
+						tables.project,
+						eq(tables.project.id, tables.task.project_id),
+					)
+					.where(topTasks)
+					.groupBy(tables.task.project_id, tables.task.status),
+				db
+					.select({
+						projectId: tables.project_members.project_id,
+						memberId: tables.project_members.member_id,
+					})
+					.from(tables.project_members)
+					.innerJoin(
+						tables.project,
+						eq(tables.project.id, tables.project_members.project_id),
+					)
+					.innerJoin(
+						tables.workspace_members,
+						eq(tables.workspace_members.id, tables.project_members.member_id),
+					)
+					.where(
+						and(
+							visible,
+							isNull(tables.project_members.deleted_at),
+							isNull(tables.workspace_members.deleted_at),
+						),
+					)
+					.orderBy(asc(tables.project_members.created_at)),
+				db
+					.select({
+						projectId: tables.activity.project_id,
+						at: max(tables.activity.created_at),
+					})
+					.from(tables.activity)
+					.where(eq(tables.activity.workspace_id, w.id))
+					.groupBy(tables.activity.project_id),
+			]);
 			return projects.map((p) => {
 				const counts = statuses.filter((s) => s.projectId === p.id);
 				const last =
 					activity.find((a) => a.projectId === p.id)?.at ?? p.updated;
 				return {
 					projectId: p.id,
-					total: counts.reduce((sum, s) => sum + s.n, 0),
+					// abandoned tasks aren't work left to do, so they don't count toward progress
+					total: counts
+						.filter((s) => s.status !== STATUS.ABANDONED)
+						.reduce((sum, s) => sum + s.n, 0),
 					done: counts.find((s) => s.status === STATUS.COMPLETED)?.n ?? 0,
-					overdue: overdue.find((o) => o.projectId === p.id)?.n ?? 0,
 					statusCounts: counts.map((s) => ({ status: s.status, count: s.n })),
 					memberIds: members
 						.filter((m) => m.projectId === p.id)

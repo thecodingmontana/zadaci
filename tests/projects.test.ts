@@ -7,7 +7,7 @@ after(cleanup);
 const code = (res: Awaited<ReturnType<typeof gql>>) => res.errors?.[0]?.extensions?.code;
 const CREATE = `mutation($s: String!, $i: ProjectInput!) { createProject(slug: $s, input: $i) { id key status leadId myAccess startDate dueDate } }`;
 const UPDATE = `mutation($s: String!, $p: ID!, $i: ProjectPatch!) { updateProject(slug: $s, projectId: $p, input: $i) { id status } }`;
-const LIST = `query($s: String!) { workspace(slug: $s) { members { id isMe } projects { id title } projectStats { projectId total done overdue memberIds } } }`;
+const LIST = `query($s: String!) { workspace(slug: $s) { members { id isMe } projects { id title } projectStats { projectId total done memberIds } } }`;
 const input = (title: string, template = "blank") => ({ title, icon: "icon-[solar--global-linear]", color: "teal", template });
 
 test("creating from a template adds starter tasks, a key and a lead, at the top of the list", async () => {
@@ -64,4 +64,15 @@ test("milestones are added and removed by editors", async () => {
 	assert.deepEqual((await gql(owner, MS, { s: slug, p: projectId })).data?.workspace.project.milestones, [{ name: "Launch", date: "2026-12-01" }]);
 	await gql(owner, `mutation($s: String!, $p: ID!, $id: ID!) { deleteMilestone(slug: $s, projectId: $p, id: $id) }`, { s: slug, p: projectId, id: added.data?.addMilestone.id });
 	assert.deepEqual((await gql(owner, MS, { s: slug, p: projectId })).data?.workspace.project.milestones, []);
+});
+
+test("project stats count what the task lists show: archived and abandoned tasks don't count", async () => {
+	const owner = await makeUser("owner");
+	const { slug } = await makeWorkspace(owner);
+	const projectId = (await gql(owner, LIST, { s: slug })).data?.workspace.projects[0].id;
+	const tasks = (await gql(owner, `query($s: String!, $p: ID) { workspace(slug: $s) { tasks(projectId: $p) { id } } }`, { s: slug, p: projectId })).data?.workspace.tasks;
+	await gql(owner, `mutation($s: String!, $id: ID!) { archiveTask(slug: $s, id: $id, archived: true) { id } }`, { s: slug, id: tasks[0].id });
+	await gql(owner, `mutation($s: String!, $id: ID!, $p: TaskPatch!) { updateTask(slug: $s, id: $id, patch: $p) { id } }`, { s: slug, id: tasks[1].id, p: { status: "abandoned" } });
+	const stats = (await gql(owner, LIST, { s: slug })).data?.workspace.projectStats.find((x: { projectId: string }) => x.projectId === projectId);
+	assert.equal(stats.total, tasks.length - 2);
 });

@@ -19,6 +19,7 @@ import { isClosed, TASK_STATUSES } from "#/lib/tasks";
 import { daysUntil, fmtDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { isOverdue } from "#/lib/view-engine";
 import { PStatus, projectColor, StatusMenu } from "./bits";
 
 // Ported from the reference app's project overview (views/project-overview.js).
@@ -62,6 +63,8 @@ export function ProjectOverview({
 	const lead = members.find((m) => m.id === project.leadId);
 	const team = teams.find((t) => t.id === project.teamId);
 	const left = project.dueDate ? daysUntil(project.dueDate) : null;
+	// counted here so "today" is the viewer's day, like the task lists
+	const overdue = project.tasks.filter((t) => isOverdue(t)).length;
 
 	return (
 		<div className="page" style={{ maxWidth: 1160, paddingTop: 22 }}>
@@ -131,13 +134,13 @@ export function ProjectOverview({
 											: `Ended ${fmtDay(project.dueDate)}`}
 									</span>
 								)}
-								{!!stats?.overdue && (
+								{!!overdue && (
 									<span className="badge red">
 										<span
 											className="icon-[solar--alarm-linear] size-[11px]"
 											aria-hidden="true"
 										/>
-										{stats.overdue} overdue
+										{overdue} overdue
 									</span>
 								)}
 							</div>

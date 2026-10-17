@@ -919,7 +919,6 @@ export type ProjectStats = {
 	projectId: string;
 	total: number;
 	done: number;
-	overdue: number;
 	statusCounts: { status: string; count: number }[];
 	memberIds: string[];
 	lastActivityAt: string | null;
@@ -966,7 +965,6 @@ const STATS_FIELDS = gql`
 		projectId
 		total
 		done
-		overdue
 		statusCounts {
 			status
 			count

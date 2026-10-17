@@ -1,6 +1,5 @@
 import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { format, isBefore, startOfToday } from "date-fns";
 import { z } from "zod";
 import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
@@ -16,13 +15,13 @@ import {
 import { can } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { reloadOnEnter } from "#/lib/routing";
-import { ago } from "#/lib/time";
+import { isClosed } from "#/lib/tasks";
+import { ago, fmtDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { isOverdue } from "#/lib/view-engine";
 
 // Ported from the reference app's member profile page.
-
-const DONE = ["completed", "abandoned"];
 
 export const Route = createFileRoute("/_authed/w/$slug/members/$memberId")({
 	validateSearch: z.object({
@@ -85,9 +84,9 @@ function MemberPage() {
 	const team = workspace.teams.find((t) => t.id === stat?.teamIds[0]);
 	const profile = profileData.workspace?.memberProfile;
 	const tasks = profile?.tasks ?? [];
-	const open = tasks.filter((t) => !DONE.includes(t.status));
-	const done = tasks.filter((t) => DONE.includes(t.status));
-	const overdue = open.filter(isOverdue).length;
+	const open = tasks.filter((t) => !isClosed(t.status));
+	const done = tasks.filter((t) => isClosed(t.status));
+	const overdue = open.filter((t) => isOverdue(t)).length;
 	const projects = profile?.projects ?? [];
 	const acts = (activityData.workspace?.activity ?? []).slice(0, 8);
 	const last = stat?.lastActiveAt;
@@ -335,12 +334,9 @@ function MemberPage() {
 	);
 }
 
-const isOverdue = (t: ProfileTask) =>
-	!!t.dueDate && isBefore(new Date(t.dueDate), startOfToday());
-
 /** A task line like the reference miniRow; opens its project until the task drawer exists. */
 function TaskRow({ slug, t }: { slug: string; t: ProfileTask }) {
-	const done = DONE.includes(t.status);
+	const done = isClosed(t.status);
 	return (
 		<Link
 			to="/w/$slug/p/$projectId"
@@ -366,10 +362,10 @@ function TaskRow({ slug, t }: { slug: string; t: ProfileTask }) {
 					width: 74,
 					textAlign: "right",
 					fontSize: 12,
-					color: !done && isOverdue(t) ? "var(--q-red)" : "var(--q-text-3)",
+					color: isOverdue(t) ? "var(--q-red)" : "var(--q-text-3)",
 				}}
 			>
-				{t.dueDate ? format(new Date(t.dueDate), "MMM d") : ""}
+				{t.dueDate ? fmtDay(t.dueDate) : ""}
 			</span>
 		</Link>
 	);

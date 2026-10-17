@@ -16,6 +16,7 @@ import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
 import { TASK_STATUSES } from "#/lib/tasks";
 import { daysUntil, fmtDay, relDay } from "#/lib/time";
+import { isOverdue } from "#/lib/view-engine";
 
 // Ported from the reference app's Workspace overview: portfolio, status mix, workload
 // and upcoming milestones.
@@ -150,7 +151,10 @@ function OverviewPage() {
 								{pj.projects.map((p) => {
 									const s = statsOf(p.id);
 									const pr = progressOf(s);
-									const overdue = s?.overdue ?? 0;
+									// counted here so "today" is the viewer's day, like the task lists
+									const overdue = all.filter(
+										(t) => t.projectId === p.id && isOverdue(t),
+									).length;
 									const lead = pj.members.find((m) => m.id === p.leadId);
 									return (
 										<tr key={p.id}>
