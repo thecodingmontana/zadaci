@@ -4,6 +4,7 @@ import {
 	index,
 	jsonb,
 	text,
+	timestamp,
 	varchar,
 } from "drizzle-orm/pg-core";
 import { generateNanoId, pgTable, syncable } from "./utils";
@@ -29,6 +30,13 @@ export const comment = pgTable(
 		),
 		// emoji -> member ids who reacted
 		reactions: jsonb("reactions").notNull().default(sql`'{}'::jsonb`),
+		// a note comment can point at a passage: { quote } (the editor marks the text by comment id)
+		anchor: jsonb("anchor"),
+		resolved_at: timestamp("resolved_at", {
+			mode: "date",
+			precision: 3,
+			withTimezone: true,
+		}),
 		...syncable,
 	},
 	(table) => [

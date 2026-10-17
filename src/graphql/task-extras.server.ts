@@ -6,6 +6,7 @@ import { isUploadUrl } from "#/lib/files";
 import { hasRight } from "#/lib/permissions";
 import { taskKey } from "#/lib/tasks";
 import { logActivity, notify } from "./activity.server";
+import { requireNote } from "./notes.server";
 import { projectAudience, requireProject } from "./projects.server";
 import {
 	badInput,
@@ -37,6 +38,10 @@ export const taskExtrasTypeDefs = /* GraphQL */ `
 		authorMemberId: ID
 		isMine: Boolean!
 		reactions: [Reaction!]!
+		"note comments: the passage it's about, the comment it replies to, and whether it's resolved"
+		quote: String
+		parentId: ID
+		resolved: Boolean!
 	}
 
 	type Attachment {
@@ -100,10 +105,10 @@ export const taskExtrasTypeDefs = /* GraphQL */ `
 	}
 `;
 
-const EMOJI = ["👍", "❤️", "🎉", "👀", "🚀", "😄", "🙏", "✅"];
+export const EMOJI = ["👍", "❤️", "🎉", "👀", "🚀", "😄", "🙏", "✅"];
 const fileId = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 16);
 
-const commentRows = (where: ReturnType<typeof and>) =>
+export const commentRows = (where: ReturnType<typeof and>) =>
 	db
 		.select({
 			comment: tables.comment,
@@ -134,7 +139,7 @@ const taskComments = (taskId: string) =>
 	);
 
 /** Comment rows shaped for GraphQL, with reactions resolved to people's names. */
-async function shape(
+export async function shape(
 	rows: Awaited<ReturnType<typeof commentRows>>,
 	viewerUserId: string,
 ) {
@@ -171,6 +176,9 @@ async function shape(
 			author: { id: r.userId, name: r.name, email: r.email, image: r.image },
 			authorMemberId: r.comment.author_id,
 			isMine: r.userId === viewerUserId,
+			quote: (r.comment.anchor as { quote?: string } | null)?.quote ?? null,
+			parentId: r.comment.parent_id,
+			resolved: !!r.comment.resolved_at,
 			reactions: Object.entries(reactions)
 				.filter(([, ids]) => ids.length)
 				.map(([emoji, ids]) => ({
@@ -183,7 +191,7 @@ async function shape(
 	});
 }
 
-async function oneComment(id: string, viewerUserId: string) {
+export async function oneComment(id: string, viewerUserId: string) {
 	const [comment] = await shape(
 		await commentRows(eq(tables.comment.id, id)),
 		viewerUserId,
@@ -192,12 +200,17 @@ async function oneComment(id: string, viewerUserId: string) {
 	return comment;
 }
 
-/** The comment and its task, checked against the viewer's rights on the project. */
+/** The comment and its task or note, checked against the viewer's rights on it. */
 async function requireComment(ctx: GraphQLContext, slug: string, id: string) {
 	const [comment] = await db
 		.select()
 		.from(tables.comment)
 		.where(and(eq(tables.comment.id, id), isNull(tables.comment.deleted_at)));
+	if (comment?.entity_type === "note")
+		return {
+			comment,
+			...(await requireNote(ctx, slug, comment.entity_id, "comment")),
+		};
 	if (!comment || comment.entity_type !== "task") badInput("Comment not found");
 	return {
 		comment,

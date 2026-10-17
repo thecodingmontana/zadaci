@@ -2,6 +2,7 @@ import { createSchema, createYoga } from "graphql-yoga";
 import { auth } from "#/lib/auth";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
 import { membersResolvers, membersTypeDefs } from "./members.server";
+import { notesResolvers, notesTypeDefs } from "./notes.server";
 import {
 	projectDetailsResolvers,
 	projectDetailsTypeDefs,
@@ -26,6 +27,7 @@ const schema = createSchema<GraphQLContext>({
 		projectDetailsTypeDefs,
 		tasksTypeDefs,
 		taskExtrasTypeDefs,
+		notesTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -38,6 +40,7 @@ const schema = createSchema<GraphQLContext>({
 		projectDetailsResolvers,
 		tasksResolvers,
 		taskExtrasResolvers,
+		notesResolvers,
 	],
 });
 
