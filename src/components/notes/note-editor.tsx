@@ -12,11 +12,13 @@ import {
 } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Menu, MenuContent, MenuTrigger } from "#/components/q/menu";
 import { type NoteDetail, UPDATE_NOTE } from "#/graphql/note-operations";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { SlashCommands } from "./slash-menu";
 
 // A note's page: emoji, title and a Tiptap body. Changes save on their own a moment after
 // you stop typing; a newer save by someone else is never overwritten.
@@ -72,7 +74,23 @@ function useAutosave(slug: string, note: NoteDetail) {
 	return { queue, status };
 }
 
-export function NoteEditor({ slug, note }: { slug: string; note: NoteDetail }) {
+/** Puts page actions in the top bar, right of the breadcrumb (the slot is client-only). */
+function TopbarSlot({ children }: { children: ReactNode }) {
+	const [slot, setSlot] = useState<HTMLElement | null>(null);
+	useEffect(() => setSlot(document.getElementById("topbar-page")), []);
+	return slot ? createPortal(children, slot) : null;
+}
+
+export function NoteEditor({
+	slug,
+	note,
+	menu,
+}: {
+	slug: string;
+	note: NoteDetail;
+	/** the page's "…" menu, shown beside the save status */
+	menu?: ReactNode;
+}) {
 	const client = useApolloClient();
 	const { queue, status } = useAutosave(slug, note);
 	const [title, setTitle] = useState(note.title);
@@ -102,9 +120,9 @@ export function NoteEditor({ slug, note }: { slug: string; note: NoteDetail }) {
 			TaskList,
 			TaskItem.configure({ nested: true }),
 			Placeholder.configure({
-				placeholder:
-					"Write something… use # for a heading, - for a list, [] for a to-do",
+				placeholder: "Write something, or press / for blocks",
 			}),
+			SlashCommands,
 		],
 		onUpdate: ({ editor }) => queue({ doc: editor.getJSON() }),
 	});
@@ -177,7 +195,15 @@ export function NoteEditor({ slug, note }: { slug: string; note: NoteDetail }) {
 						)}
 					</MenuContent>
 				</Menu>
-				<span className="note-status faint">
+			</div>
+			<TopbarSlot>
+				<span className="note-status faint" aria-live="polite">
+					{status === "saving" && (
+						<span
+							className="icon-[hugeicons--loading-03] size-3.5 animate-spin"
+							aria-hidden="true"
+						/>
+					)}
 					{status === "saving"
 						? "Saving…"
 						: status === "saved"
@@ -186,7 +212,8 @@ export function NoteEditor({ slug, note }: { slug: string; note: NoteDetail }) {
 								? "Not saved"
 								: ""}
 				</span>
-			</div>
+				{menu}
+			</TopbarSlot>
 			<textarea
 				className="note-title"
 				value={title}

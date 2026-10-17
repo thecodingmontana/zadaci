@@ -48,8 +48,6 @@ function useActive(slug: string) {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	return (path: string) => {
 		const href = path ? `/w/${slug}/${path}` : `/w/${slug}`;
-		// inside a note, its row in the Notes tree is the active item, not the nav entry
-		if (path === "notes") return pathname === href || pathname === `${href}/`;
 		return path
 			? pathname === href || pathname.startsWith(`${href}/`)
 			: pathname === href || pathname === `${href}/`;

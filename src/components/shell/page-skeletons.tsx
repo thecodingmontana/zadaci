@@ -342,17 +342,6 @@ export function SettingsSkeleton() {
 	);
 }
 
-export function NotesSkeleton() {
-	return (
-		<div className="page wide" {...busy}>
-			<Head title="Notes" sub={260} />
-			<div className="panel" style={{ overflow: "hidden" }}>
-				<Rows n={5} />
-			</div>
-		</div>
-	);
-}
-
 export function NotePageSkeleton() {
 	return (
 		<div className="note-page" {...busy}>

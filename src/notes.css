@@ -41,44 +41,10 @@
 		color-mix(in srgb, var(--q-accent) 45%, transparent);
 }
 
-/* ---- notes list ---- */
-.note-list {
-	overflow: hidden;
-}
-.note-row {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 10px 14px;
-	border-top: 1px solid var(--q-border);
-	color: var(--q-text);
-}
-.note-row:first-child {
-	border-top: 0;
-}
-.note-row:hover {
-	background: var(--q-surface-2);
-}
-.note-row .nicon {
-	width: 20px;
-	font-size: 17px;
-}
-
 /* ---- page ---- */
 .note-wrap {
 	max-width: none;
 	padding-top: 14px;
-}
-.note-crumbs {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	font-size: var(--q-fs-sm);
-	min-width: 0;
-	margin-bottom: 8px;
-}
-.note-crumbs a:hover {
-	color: var(--q-text);
 }
 .note-page {
 	max-width: 740px;
@@ -111,8 +77,11 @@
 	background: var(--q-surface-2);
 }
 .note-status {
-	margin-left: auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 	font-size: var(--q-fs-sm);
+	margin-right: 4px;
 }
 .note-title {
 	display: block;
@@ -296,4 +265,32 @@
 	.note-title {
 		font-size: 28px;
 	}
+}
+
+/* ---- "/" block menu ---- */
+.slash-menu {
+	position: static;
+	width: 290px;
+	max-height: none;
+	overflow: hidden;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+.slash-list {
+	max-height: 300px;
+	overflow-y: auto;
+	padding: 4px;
+}
+.slash-foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-top: 1px solid var(--q-border);
+	font-size: var(--q-fs-sm);
+}
+.slash-keys {
+	font-family: var(--font-ibm-plex-mono);
+	font-size: 11px;
 }

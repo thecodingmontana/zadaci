@@ -1,5 +1,7 @@
+import { useQuery } from "@apollo/client/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Fragment, useState } from "react";
+import { noteTitle } from "#/components/notes/notes-tree";
 import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { Av } from "#/components/q/av";
 import {
@@ -11,7 +13,9 @@ import {
 	MenuTrigger,
 } from "#/components/q/menu";
 import { useNewTask } from "#/components/tasks/new-task";
+import { NOTES } from "#/graphql/note-operations";
 import type { ShellProject, ShellTeam } from "#/graphql/operations";
+import { ancestors } from "#/lib/note-tree";
 import { cn } from "#/lib/utils";
 import { type ShellUser, UserMenuContent } from "./app-sidebar";
 import { useCommandMenu, useModKey } from "./command-menu";
@@ -32,7 +36,24 @@ function useCrumbs(
 		.replace(`/w/${slug}`, "")
 		.split("/")
 		.filter(Boolean);
+	// a note's trail: Notes / the pages above it / the page (the page loader filled the cache)
+	const notes =
+		useQuery(NOTES, {
+			variables: { slug },
+			skip: section !== "notes" || !id,
+		}).data?.notes ?? [];
 	if (!section) return [{ label: "Home" }];
+	if (section === "notes" && id) {
+		const note = notes.find((n) => n.id === id);
+		return [
+			{ label: "Notes" },
+			...ancestors(notes, id).map((n) => ({
+				label: noteTitle(n),
+				path: `notes/${n.id}`,
+			})),
+			{ label: note ? noteTitle(note) : "Note" },
+		];
+	}
 	if (section === "p") {
 		return [
 			{ label: "Projects", path: "projects" },
@@ -86,7 +107,7 @@ export function Topbar({
 			</button>
 			<nav className="crumbs trunc" aria-label="Breadcrumb">
 				{crumbs.map((c, i) => (
-					<Fragment key={c.label}>
+					<Fragment key={c.path ?? `${i}-${c.label}`}>
 						{i > 0 && <span className="sep">/</span>}
 						{c.path ? (
 							<Link to="/w/$slug/$" params={{ slug, _splat: c.path }}>
@@ -101,6 +122,8 @@ export function Topbar({
 				))}
 			</nav>
 			<span className="sp" />
+			{/* pages put their own actions here (a note's save status and menu) */}
+			<div id="topbar-page" className="row" style={{ gap: 6 }} />
 			<button
 				type="button"
 				className="topsearch"

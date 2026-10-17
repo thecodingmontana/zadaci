@@ -412,7 +412,7 @@ export function NoteMenu({
 						},
 					);
 					if (pathname.includes(`/notes/${note.id}`))
-						navigate({ to: "/w/$slug/notes", params: { slug } });
+						navigate({ to: "/w/$slug", params: { slug } });
 				}}
 			/>
 		</>
