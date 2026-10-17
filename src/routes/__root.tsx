@@ -40,6 +40,9 @@ export const Route =
 					content: "Zadaci - collaborative task management",
 				},
 				{ name: "twitter:card", content: "summary_large_image" },
+				{ name: "twitter:title", content: "Zadaci" },
+				{ name: "twitter:description", content: SITE_DESCRIPTION },
+				{ name: "twitter:image", content: `${SITE_URL}/og.png` },
 			],
 			links: [
 				{
