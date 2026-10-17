@@ -1,10 +1,10 @@
-import { CombinedGraphQLErrors } from "@apollo/client";
 import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { sendToCloudinary } from "#/components/tasks/upload";
 import {
 	NOTE_COVER_UPLOAD,
 	UNSPLASH,
+	UNSPLASH_ENABLED,
 	UNSPLASH_PICKED,
 	type UnsplashPhoto,
 } from "#/graphql/note-operations";
@@ -32,9 +32,14 @@ export function ImagePicker({
 	gallery?: ReactNode;
 	onRemove?: () => void;
 }) {
-	const tabs: Tab[] = gallery
-		? ["gallery", "upload", "link", "unsplash"]
-		: ["upload", "link", "unsplash"];
+	// the Unsplash tab only shows when the server has a key for it
+	const unsplash = !!useQuery(UNSPLASH_ENABLED).data?.unsplashEnabled;
+	const tabs: Tab[] = [
+		...(gallery ? (["gallery"] as const) : []),
+		"upload",
+		"link",
+		...(unsplash ? (["unsplash"] as const) : []),
+	];
 	const [tab, setTab] = useState<Tab>(tabs[0] ?? "upload");
 
 	return (
@@ -187,9 +192,6 @@ function UnsplashPane({
 		variables: { query, page },
 	});
 	const [picked] = useMutation(UNSPLASH_PICKED);
-	const off =
-		CombinedGraphQLErrors.is(error) &&
-		error.errors.some((e) => e.extensions?.code === "UNSPLASH_OFF");
 
 	const pick = (p: UnsplashPhoto) => {
 		// Unsplash counts a download whenever a photo is used
@@ -198,21 +200,6 @@ function UnsplashPane({
 		);
 		onPick(p.url, p.alt ?? `Photo by ${p.author} on Unsplash`);
 	};
-
-	if (off)
-		return (
-			<div className="cover-pane">
-				<span
-					className="icon-[hugeicons--unsplash] size-5"
-					aria-hidden="true"
-				/>
-				<b>Unsplash isn't set up yet</b>
-				<p className="faint" style={{ margin: 0 }}>
-					Add an UNSPLASH_ACCESS_KEY to the server's environment to search
-					photos.
-				</p>
-			</div>
-		);
 
 	const photos = data?.unsplash.photos ?? [];
 	return (
@@ -225,7 +212,7 @@ function UnsplashPane({
 				autoFocus
 				onChange={(e) => setText(e.target.value)}
 			/>
-			{error && !off && <p className="faint">{error.message}</p>}
+			{error && <p className="faint">{error.message}</p>}
 			<div className="unsplash-grid">
 				{photos.map((p) => (
 					<div key={p.id} className="unsplash-item">

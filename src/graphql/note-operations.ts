@@ -258,3 +258,12 @@ export const UNSPLASH_PICKED: TypedDocumentNode<
 		unsplashPicked(downloadLocation: $downloadLocation)
 	}
 `;
+
+export const UNSPLASH_ENABLED: TypedDocumentNode<
+	{ unsplashEnabled: boolean },
+	Record<string, never>
+> = gql`
+	query UnsplashEnabled {
+		unsplashEnabled
+	}
+`;

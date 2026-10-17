@@ -26,6 +26,8 @@ export const unsplashTypeDefs = /* GraphQL */ `
 	extend type Query {
 		"photos for a search, or popular ones when the search is empty"
 		unsplash(query: String, page: Int): UnsplashResults!
+		"whether the server has an Unsplash key (the picker hides the tab otherwise)"
+		unsplashEnabled: Boolean!
 	}
 
 	extend type Mutation {
@@ -82,6 +84,10 @@ const shape = (p: Photo) => ({
 
 export const unsplashResolvers = {
 	Query: {
+		unsplashEnabled: (_: unknown, __: unknown, ctx: GraphQLContext) => {
+			requireUser(ctx);
+			return !!process.env.UNSPLASH_ACCESS_KEY;
+		},
 		unsplash: async (
 			_: unknown,
 			args: { query?: string | null; page?: number | null },
