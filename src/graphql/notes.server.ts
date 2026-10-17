@@ -42,6 +42,12 @@ export const notesTypeDefs = /* GraphQL */ `
 		canEdit: Boolean!
 		"the author and admins (or full access on the linked project) may delete"
 		canDelete: Boolean!
+		"only the author sees it"
+		isPrivate: Boolean!
+		"starred by the viewer"
+		isFavorite: Boolean!
+		"the viewer wrote it (only they can make it private)"
+		isAuthor: Boolean!
 		comments: [TaskComment!]!
 	}
 
@@ -57,6 +63,8 @@ export const notesTypeDefs = /* GraphQL */ `
 		icon: String
 		doc: JSON
 		projectId: ID
+		"only the author can make a page private or shared again"
+		isPrivate: Boolean
 	}
 
 	extend type Query {
@@ -87,6 +95,8 @@ export const notesTypeDefs = /* GraphQL */ `
 			parentId: ID
 		): TaskComment!
 		resolveNoteComment(slug: String!, id: ID!, resolved: Boolean!): TaskComment!
+		"stars or unstars a page; returns whether it's now starred"
+		toggleNoteFavorite(slug: String!, id: ID!): Boolean!
 	}
 `;
 
@@ -105,8 +115,12 @@ const unlinkedRight = (
 			? "full"
 			: "edit";
 
+const hiddenFrom = (workspace: Workspace, note: NoteRow) =>
+	note.private && note.created_by !== workspace.memberId;
+
 /** What the viewer may do on a page, or null when they can't see it. */
 async function noteRight(workspace: Workspace, note: NoteRow) {
+	if (hiddenFrom(workspace, note)) return null;
 	if (note.project_id) {
 		const [project] = await db
 			.select()
@@ -163,6 +177,10 @@ function visible(workspace: Workspace) {
 	return and(
 		eq(tables.note.workspace_id, workspace.id),
 		isNull(tables.note.deleted_at),
+		or(
+			eq(tables.note.private, false),
+			eq(tables.note.created_by, workspace.memberId ?? ""),
+		),
 		scope &&
 			or(
 				workspace.role === "guest" ? undefined : isNull(tables.note.project_id),
@@ -171,7 +189,12 @@ function visible(workspace: Workspace) {
 	);
 }
 
-const noteShape = (n: NoteRow, right: ProjectRight | null) => ({
+const noteShape = (
+	n: NoteRow,
+	right: ProjectRight | null,
+	viewer: { memberId?: string },
+	isFavorite = false,
+) => ({
 	id: n.id,
 	parentId: n.parent_id,
 	sortOrder: n.sort_order,
@@ -185,7 +208,25 @@ const noteShape = (n: NoteRow, right: ProjectRight | null) => ({
 	updatedAt: n.updated_at.toISOString(),
 	canEdit: hasRight(right, "edit"),
 	canDelete: hasRight(right, "full"),
+	isPrivate: n.private,
+	isFavorite,
+	isAuthor: n.created_by === viewer.memberId,
 });
+
+/** Ids of the pages the user starred in this workspace. */
+async function starred(userId: string, workspaceId: string) {
+	const rows = await db
+		.select({ id: tables.favorite.entity_id })
+		.from(tables.favorite)
+		.where(
+			and(
+				eq(tables.favorite.user_id, userId),
+				eq(tables.favorite.workspace_id, workspaceId),
+				eq(tables.favorite.entity_type, "note"),
+			),
+		);
+	return new Set(rows.map((r) => r.id));
+}
 
 /** A project the viewer may edit in, for linking a page to it. */
 async function checkProject(workspace: Workspace, projectId: string) {
@@ -233,13 +274,19 @@ async function subtree(id: string) {
 	return [...result].map((r) => r.id);
 }
 
-async function oneNote(id: string, workspace: Workspace) {
+async function oneNote(id: string, workspace: Workspace, userId: string) {
 	const [note] = await db
 		.select()
 		.from(tables.note)
 		.where(eq(tables.note.id, id));
 	if (!note) badInput("Note not found");
-	return noteShape(note, await noteRight(workspace, note));
+	const stars = await starred(userId, workspace.id);
+	return noteShape(
+		note,
+		await noteRight(workspace, note),
+		workspace,
+		stars.has(id),
+	);
 }
 
 /** Guests may only add top-level pages inside a project they can edit. */
@@ -271,7 +318,8 @@ export const notesResolvers = {
 	},
 	Query: {
 		notes: async (_: unknown, args: { slug: string }, ctx: GraphQLContext) => {
-			const { workspace } = await workspaceOf(ctx, args.slug);
+			const { user, workspace } = await workspaceOf(ctx, args.slug);
+			const stars = await starred(user.id, workspace.id);
 			const rows = await db
 				.select()
 				.from(tables.note)
@@ -300,6 +348,8 @@ export const notesResolvers = {
 					n.project_id && rights.has(n.project_id)
 						? (rights.get(n.project_id) ?? null)
 						: unlinkedRight(workspace, n),
+					workspace,
+					stars.has(n.id),
 				),
 			);
 		},
@@ -308,8 +358,16 @@ export const notesResolvers = {
 			args: { slug: string; id: string },
 			ctx: GraphQLContext,
 		) => {
-			const { note, right } = await requireNote(ctx, args.slug, args.id);
-			return { ...noteShape(note, right), doc: note.doc };
+			const { user, workspace, note, right } = await requireNote(
+				ctx,
+				args.slug,
+				args.id,
+			);
+			const stars = await starred(user.id, workspace.id);
+			return {
+				...noteShape(note, right, workspace, stars.has(note.id)),
+				doc: note.doc,
+			};
 		},
 	},
 	Mutation: {
@@ -331,12 +389,15 @@ export const notesResolvers = {
 			const icon = parse(ICON, input.icon ?? null);
 			const parentId = input.parentId ?? null;
 			let projectId = input.projectId ?? null;
+			let isPrivate = false;
+			const { user } = await workspaceOf(ctx, args.slug);
 			let workspace: Workspace;
 			if (parentId) {
 				// a sub-page lives under its parent's sharing
 				const parent = await requireNote(ctx, args.slug, parentId, "edit");
 				workspace = parent.workspace;
 				projectId = parent.note.project_id;
+				isPrivate = parent.note.private;
 			} else {
 				workspace = (await workspaceOf(ctx, args.slug)).workspace;
 				if (projectId) await checkProject(workspace, projectId);
@@ -348,6 +409,7 @@ export const notesResolvers = {
 					workspace_id: workspace.id,
 					parent_id: parentId,
 					project_id: projectId,
+					private: isPrivate,
 					title,
 					icon,
 					sort_order: (await lastSibling(workspace.id, parentId)) + 1,
@@ -356,7 +418,7 @@ export const notesResolvers = {
 				})
 				.returning({ id: tables.note.id });
 			if (!row) throw new Error("Note insert returned nothing");
-			return oneNote(row.id, workspace);
+			return oneNote(row.id, workspace, user.id);
 		},
 
 		updateNote: async (
@@ -369,12 +431,13 @@ export const notesResolvers = {
 					icon?: string | null;
 					doc?: unknown;
 					projectId?: string | null;
+					isPrivate?: boolean | null;
 				};
 				baseUpdatedAt?: string | null;
 			},
 			ctx: GraphQLContext,
 		) => {
-			const { workspace, note } = await requireNote(
+			const { user, workspace, note } = await requireNote(
 				ctx,
 				args.slug,
 				args.id,
@@ -405,28 +468,32 @@ export const notesResolvers = {
 				set.doc = checked.doc;
 				set.content = checked.text;
 			}
+			// sharing (project, privacy) applies to the page and every page inside it
+			const share: Partial<typeof tables.note.$inferInsert> = {};
 			if (patch.projectId !== undefined) {
 				if (note.parent_id)
 					badInput("Sub-pages follow their parent page's project");
 				if (patch.projectId) await checkProject(workspace, patch.projectId);
 				canOwnTopLevel(workspace, patch.projectId);
-				set.project_id = patch.projectId;
+				share.project_id = patch.projectId;
 			}
-			const below =
-				set.project_id !== undefined ? await subtree(note.id) : [note.id];
+			if (patch.isPrivate != null) {
+				if (note.created_by !== workspace.memberId) forbidden();
+				share.private = patch.isPrivate;
+			}
+			const below = Object.keys(share).length ? await subtree(note.id) : [];
 			await db.transaction(async (tx) => {
 				await tx
 					.update(tables.note)
 					.set(set)
 					.where(eq(tables.note.id, note.id));
-				// sub-pages follow their parent's sharing
-				if (below.length > 1)
+				if (below.length)
 					await tx
 						.update(tables.note)
-						.set({ project_id: set.project_id })
+						.set(share)
 						.where(inArray(tables.note.id, below));
 			});
-			return oneNote(note.id, workspace);
+			return oneNote(note.id, workspace, user.id);
 		},
 
 		moveNote: async (
@@ -439,7 +506,7 @@ export const notesResolvers = {
 			},
 			ctx: GraphQLContext,
 		) => {
-			const { workspace, note } = await requireNote(
+			const { user, workspace, note } = await requireNote(
 				ctx,
 				args.slug,
 				args.id,
@@ -449,10 +516,12 @@ export const notesResolvers = {
 			const parentId = args.parentId ?? null;
 			const ids = await subtree(note.id);
 			let projectId = note.project_id;
+			let isPrivate = note.private;
 			if (parentId) {
 				if (ids.includes(parentId)) badInput("A page can't go inside itself");
 				const parent = await requireNote(ctx, args.slug, parentId, "edit");
 				projectId = parent.note.project_id;
+				isPrivate = parent.note.private;
 			} else canOwnTopLevel(workspace, projectId);
 			await db.transaction(async (tx) => {
 				await tx
@@ -463,13 +532,14 @@ export const notesResolvers = {
 						updated_by: workspace.memberId ?? null,
 					})
 					.where(eq(tables.note.id, note.id));
-				if (projectId !== note.project_id)
+				// moved pages take their new parent's sharing
+				if (projectId !== note.project_id || isPrivate !== note.private)
 					await tx
 						.update(tables.note)
-						.set({ project_id: projectId })
+						.set({ project_id: projectId, private: isPrivate })
 						.where(inArray(tables.note.id, ids));
 			});
-			return oneNote(note.id, workspace);
+			return oneNote(note.id, workspace, user.id);
 		},
 
 		duplicateNote: async (
@@ -477,7 +547,11 @@ export const notesResolvers = {
 			args: { slug: string; id: string },
 			ctx: GraphQLContext,
 		) => {
-			const { workspace, note } = await requireNote(ctx, args.slug, args.id);
+			const { user, workspace, note } = await requireNote(
+				ctx,
+				args.slug,
+				args.id,
+			);
 			if (note.parent_id)
 				await requireNote(ctx, args.slug, note.parent_id, "edit");
 			else canOwnTopLevel(workspace, note.project_id);
@@ -487,6 +561,7 @@ export const notesResolvers = {
 					workspace_id: workspace.id,
 					parent_id: note.parent_id,
 					project_id: note.project_id,
+					private: note.private,
 					title: `${note.title || "Untitled"} (copy)`.slice(0, 200),
 					icon: note.icon,
 					doc: note.doc,
@@ -498,7 +573,7 @@ export const notesResolvers = {
 				})
 				.returning({ id: tables.note.id });
 			if (!row) throw new Error("Note insert returned nothing");
-			return oneNote(row.id, workspace);
+			return oneNote(row.id, workspace, user.id);
 		},
 
 		deleteNote: async (
@@ -562,6 +637,42 @@ export const notesResolvers = {
 				.returning({ id: tables.comment.id });
 			if (!row) throw new Error("Comment insert returned nothing");
 			return oneComment(row.id, user.id);
+		},
+
+		toggleNoteFavorite: async (
+			_: unknown,
+			args: { slug: string; id: string },
+			ctx: GraphQLContext,
+		) => {
+			const { user, workspace, note } = await requireNote(
+				ctx,
+				args.slug,
+				args.id,
+			);
+			const where = and(
+				eq(tables.favorite.user_id, user.id),
+				eq(tables.favorite.entity_type, "note"),
+				eq(tables.favorite.entity_id, note.id),
+			);
+			const [existing] = await db
+				.select({ id: tables.favorite.id })
+				.from(tables.favorite)
+				.where(where);
+			if (existing) {
+				await db.delete(tables.favorite).where(where);
+				return false;
+			}
+			await db
+				.insert(tables.favorite)
+				.values({
+					user_id: user.id,
+					workspace_id: workspace.id,
+					entity_type: "note",
+					entity_id: note.id,
+				})
+				// a double click: the first insert won, which is the same result
+				.onConflictDoNothing();
+			return true;
 		},
 
 		resolveNoteComment: async (

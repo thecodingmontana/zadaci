@@ -17,6 +17,9 @@ export type NoteItem = {
 	updatedAt: string;
 	canEdit: boolean;
 	canDelete: boolean;
+	isPrivate: boolean;
+	isFavorite: boolean;
+	isAuthor: boolean;
 };
 
 export type NoteComment = TaskComment & {
@@ -42,6 +45,9 @@ export const NOTE_FIELDS = gql`
 		updatedAt
 		canEdit
 		canDelete
+		isPrivate
+		isFavorite
+		isAuthor
 	}
 `;
 
@@ -109,7 +115,12 @@ export const UPDATE_NOTE: TypedDocumentNode<
 	{
 		slug: string;
 		id: string;
-		patch: { title?: string; icon?: string | null; doc?: unknown };
+		patch: {
+			title?: string;
+			icon?: string | null;
+			doc?: unknown;
+			isPrivate?: boolean;
+		};
 		baseUpdatedAt?: string | null;
 	}
 > = gql`
@@ -166,5 +177,14 @@ export const DELETE_NOTE: TypedDocumentNode<
 > = gql`
 	mutation DeleteNote($slug: String!, $id: ID!) {
 		deleteNote(slug: $slug, id: $id)
+	}
+`;
+
+export const TOGGLE_NOTE_FAVORITE: TypedDocumentNode<
+	{ toggleNoteFavorite: boolean },
+	{ slug: string; id: string }
+> = gql`
+	mutation ToggleNoteFavorite($slug: String!, $id: ID!) {
+		toggleNoteFavorite(slug: $slug, id: $id)
 	}
 `;

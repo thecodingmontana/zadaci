@@ -76,6 +76,9 @@
 .note-icon:not(:disabled):hover {
 	background: var(--q-surface-2);
 }
+.ibtn.starred {
+	color: var(--q-amber);
+}
 .note-status {
 	display: inline-flex;
 	align-items: center;
@@ -293,4 +296,31 @@
 .slash-keys {
 	font-family: var(--font-ibm-plex-mono);
 	font-size: 11px;
+}
+
+/* ---- block handle (+ and drag) ---- */
+.block-handle {
+	display: flex;
+	align-items: center;
+	gap: 1px;
+	padding-right: 6px;
+	color: var(--q-text-4);
+	transition: opacity var(--q-dur);
+}
+.block-handle .ibtn {
+	color: var(--q-text-4);
+}
+.block-handle .ibtn:hover {
+	color: var(--q-text-2);
+}
+.block-handle .grip {
+	cursor: grab;
+}
+.block-handle .grip:active {
+	cursor: grabbing;
+}
+/* the block being dragged */
+.note-body .tiptap .ProseMirror-selectednode {
+	background: color-mix(in srgb, var(--q-accent) 10%, transparent);
+	border-radius: var(--q-r-sm);
 }

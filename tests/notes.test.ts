@@ -86,3 +86,22 @@ test("comments quote a passage, take replies and can be resolved", async () => {
 	const all = await gql(member, `query($s: String!, $id: ID!) { note(slug: $s, id: $id) { comments { id } } }`, { s: slug, id: page.id });
 	assert.equal(all.data?.note.comments.length, 2);
 });
+
+test("private pages and the pages inside them are only the author's; stars are per person", async () => {
+	const { owner, member, slug } = await setup();
+	const page = (await create(owner, slug, { title: "Diary" })).data?.createNote;
+	const inside = (await create(owner, slug, { title: "Monday", parentId: page.id })).data?.createNote;
+	const UPDATE = `mutation($s: String!, $id: ID!, $p: NotePatch!) { updateNote(slug: $s, id: $id, patch: $p) { isPrivate } }`;
+	assert.equal(code(await gql(member, UPDATE, { s: slug, id: page.id, p: { isPrivate: true } })), "FORBIDDEN", "only the author");
+	await gql(owner, UPDATE, { s: slug, id: page.id, p: { isPrivate: true } });
+	assert.deepEqual(await list(member, slug), []);
+	assert.equal(code(await gql(member, `query($s: String!, $id: ID!) { note(slug: $s, id: $id) { id } }`, { s: slug, id: inside.id })), "BAD_USER_INPUT");
+	const later = (await create(owner, slug, { title: "Tuesday", parentId: page.id })).data?.createNote;
+	assert.equal((await list(owner, slug)).length, 3);
+	assert.equal(later.id && (await list(member, slug)).length, 0, "new sub-pages stay private too");
+
+	const STAR = `mutation($s: String!, $id: ID!) { toggleNoteFavorite(slug: $s, id: $id) }`;
+	assert.equal((await gql(owner, STAR, { s: slug, id: page.id })).data?.toggleNoteFavorite, true);
+	const mine = (await gql(owner, `query($s: String!) { notes(slug: $s) { id isFavorite } }`, { s: slug })).data?.notes;
+	assert.equal(mine.find((n: { id: string }) => n.id === page.id).isFavorite, true);
+});

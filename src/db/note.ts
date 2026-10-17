@@ -1,5 +1,6 @@
 import {
 	type AnyPgColumn,
+	boolean,
 	doublePrecision,
 	index,
 	jsonb,
@@ -29,6 +30,8 @@ export const note = pgTable(
 		),
 		/** order among siblings; a fraction so a page can drop between two others */
 		sort_order: doublePrecision("sort_order").notNull().default(0),
+		/** only its author sees a private page (and the pages inside it) */
+		private: boolean("private").notNull().default(false),
 		/** an emoji shown before the title */
 		icon: varchar("icon", { length: 16 }),
 		// a linked note follows the project's sharing; unlinked notes are for members

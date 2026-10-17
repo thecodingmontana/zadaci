@@ -1,5 +1,6 @@
 import { CombinedGraphQLErrors } from "@apollo/client";
 import { useApolloClient, useMutation } from "@apollo/client/react";
+import { DragHandle } from "@tiptap/extension-drag-handle-react";
 import Highlight from "@tiptap/extension-highlight";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import TextAlign from "@tiptap/extension-text-align";
@@ -15,9 +16,14 @@ import StarterKit from "@tiptap/starter-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Menu, MenuContent, MenuTrigger } from "#/components/q/menu";
-import { type NoteDetail, UPDATE_NOTE } from "#/graphql/note-operations";
+import {
+	type NoteDetail,
+	type NoteItem,
+	UPDATE_NOTE,
+} from "#/graphql/note-operations";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { NoteActions } from "./note-actions";
 import { SlashCommands } from "./slash-menu";
 
 // A note's page: emoji, title and a Tiptap body. Changes save on their own a moment after
@@ -84,10 +90,13 @@ function TopbarSlot({ children }: { children: ReactNode }) {
 export function NoteEditor({
 	slug,
 	note,
+	live,
 	menu,
 }: {
 	slug: string;
 	note: NoteDetail;
+	/** the sidebar's copy of the page, which follows saves (edited time, privacy, star) */
+	live: NoteItem;
 	/** the page's "…" menu, shown beside the save status */
 	menu?: ReactNode;
 }) {
@@ -197,22 +206,14 @@ export function NoteEditor({
 				</Menu>
 			</div>
 			<TopbarSlot>
-				<span className="note-status faint" aria-live="polite">
-					{status === "saving" && (
-						<span
-							className="icon-[hugeicons--loading-03] size-3.5 animate-spin"
-							aria-hidden="true"
-						/>
-					)}
-					{status === "saving"
-						? "Saving…"
-						: status === "saved"
-							? "Saved"
-							: status === "error"
-								? "Not saved"
-								: ""}
-				</span>
-				{menu}
+				<NoteActions
+					slug={slug}
+					note={live}
+					saving={status === "saving"}
+					failed={status === "error"}
+					isAuthor={note.isAuthor}
+					menu={menu}
+				/>
 			</TopbarSlot>
 			<textarea
 				className="note-title"
@@ -241,8 +242,51 @@ export function NoteEditor({
 				}}
 			/>
 			{editor && editable && <SelectionMenu editor={editor} />}
+			{editor && editable && <BlockHandle editor={editor} />}
 			<EditorContent editor={editor} className="note-body" />
 		</div>
+	);
+}
+
+/** Notion's block handle: + adds a block below (and opens the / menu), ⋮⋮ drags the block. */
+function BlockHandle({ editor }: { editor: Editor }) {
+	const block = useRef<{ end: number } | null>(null);
+	return (
+		<DragHandle
+			editor={editor}
+			className="block-handle"
+			onNodeChange={({ node, pos }) => {
+				block.current = node ? { end: pos + node.nodeSize } : null;
+			}}
+		>
+			<button
+				type="button"
+				className="ibtn ibtn-xs"
+				aria-label="Add a block below"
+				data-tip="Add a block below"
+				onClick={() => {
+					const at = block.current?.end;
+					if (at == null) return;
+					editor
+						.chain()
+						.insertContentAt(at, { type: "paragraph" })
+						.focus(at + 1)
+						.insertContent("/")
+						.run();
+				}}
+			>
+				<span
+					className="icon-[hugeicons--plus-sign] size-4"
+					aria-hidden="true"
+				/>
+			</button>
+			<span className="ibtn ibtn-xs grip" data-tip="Drag to move">
+				<span
+					className="icon-[hugeicons--drag-drop-vertical] size-4"
+					aria-hidden="true"
+				/>
+			</span>
+		</DragHandle>
 	);
 }
 

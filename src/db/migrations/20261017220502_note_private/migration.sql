@@ -1,0 +1,1 @@
+ALTER TABLE "app_note" ADD COLUMN "private" boolean DEFAULT false NOT NULL;

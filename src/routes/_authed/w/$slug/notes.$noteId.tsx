@@ -53,6 +53,7 @@ function NotePage() {
 				key={note.id}
 				slug={slug}
 				note={note}
+				live={live}
 				menu={
 					<NoteMenu
 						slug={slug}
