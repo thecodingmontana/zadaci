@@ -349,17 +349,22 @@ export function TimelineView({
 								<div
 									key={iso(d)}
 									className="tl-we"
-									style={{ left: i * dw, width: dw }}
+									style={{ left: i * dw, width: dw, bottom: "auto", height: H }}
 								/>
 							) : null;
 						})}
 					{Array.from({ length: nDays / 7 }, (_, i) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: week gridlines by position
-						<div key={i} className="tl-gl" style={{ left: i * 7 * dw }} />
+						<div
+							// biome-ignore lint/suspicious/noArrayIndexKey: week gridlines by position
+							key={i}
+							className="tl-gl"
+							style={{ left: i * 7 * dw, bottom: "auto", height: H }}
+						/>
 					))}
 					<div
 						className="tl-today"
-						style={{ left: todayX + dw / 2 }}
+						// the shading and lines stop at the last row, not in the scroll padding below
+						style={{ left: todayX + dw / 2, bottom: "auto", height: H }}
 						title="Today"
 					/>
 					{rows.map((r, i) => {
