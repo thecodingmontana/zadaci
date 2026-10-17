@@ -18,6 +18,7 @@ import {
 	SLUG_AVAILABLE,
 	WORKSPACES,
 } from "#/graphql/operations";
+import { authClient } from "#/lib/auth-client";
 import {
 	EMAIL_RE,
 	MAX_INVITES,
@@ -496,9 +497,21 @@ function Onboarding() {
 						Zadaci
 					</Link>
 					<div className="flex items-center gap-2">
-						{hasWorkspace && (
+						{hasWorkspace ? (
 							<Button variant="ghost" size="sm" asChild>
 								<Link to="/workspace">Exit setup</Link>
+							</Button>
+						) : (
+							// no workspace to go back to yet, so leaving setup signs out
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={async () => {
+									await authClient.signOut();
+									window.location.href = "/";
+								}}
+							>
+								Exit setup
 							</Button>
 						)}
 						<ThemeToggle />
