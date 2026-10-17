@@ -26,32 +26,42 @@ function ago(date: string | Date) {
 	return `${Math.floor(s / 86400)}d ago`;
 }
 
-/** "Chrome on macOS" from a user agent string. */
+// first match wins: Edge, Opera and the rest also say "Chrome", and Chrome also says "Safari"
+const BROWSERS: [RegExp, string, string][] = [
+	[/Edg(e|A|iOS)?\//, "Edge", "icon-[logos--microsoft-edge]"],
+	[/OPR\/|Opera/, "Opera", "icon-[logos--opera]"],
+	[/Vivaldi\//, "Vivaldi", "icon-[logos--vivaldi-icon]"],
+	[/SamsungBrowser\//, "Samsung Internet", "icon-[solar--global-linear]"],
+	[/YaBrowser\//, "Yandex", "icon-[logos--yandex-ru]"],
+	[/DuckDuckGo\//, "DuckDuckGo", "icon-[logos--duckduckgo]"],
+	[/Firefox\/|FxiOS\//, "Firefox", "icon-[logos--firefox]"],
+	[/Chrome\/|CriOS\//, "Chrome", "icon-[logos--chrome]"],
+	[/Safari\//, "Safari", "icon-[logos--safari]"],
+];
+
+/** "Chrome on macOS" and the browser's logo, from a user agent string. */
 export function describeDevice(ua: string | null | undefined) {
-	if (!ua) return "Unknown device";
-	const browser = /Edg\//.test(ua)
-		? "Edge"
-		: /OPR\//.test(ua)
-			? "Opera"
-			: /Firefox\//.test(ua)
-				? "Firefox"
-				: /Chrome\//.test(ua)
-					? "Chrome"
-					: /Safari\//.test(ua)
-						? "Safari"
-						: "Browser";
-	const os = /iPhone|iPad/.test(ua)
-		? "iOS"
-		: /Android/.test(ua)
-			? "Android"
-			: /Mac OS X/.test(ua)
-				? "macOS"
-				: /Windows/.test(ua)
-					? "Windows"
-					: /Linux/.test(ua)
-						? "Linux"
-						: "";
-	return os ? `${browser} on ${os}` : browser;
+	const [, browser, icon] = BROWSERS.find(([re]) => re.test(ua ?? "")) ?? [
+		null,
+		ua ? "Browser" : "Unknown device",
+		/iPhone|iPad|Android|Mobile/.test(ua ?? "")
+			? "icon-[solar--smartphone-linear]"
+			: "icon-[solar--monitor-linear]",
+	];
+	const os = !ua
+		? ""
+		: /iPhone|iPad/.test(ua)
+			? "iOS"
+			: /Android/.test(ua)
+				? "Android"
+				: /Mac OS X/.test(ua)
+					? "macOS"
+					: /Windows/.test(ua)
+						? "Windows"
+						: /Linux/.test(ua)
+							? "Linux"
+							: "";
+	return { label: os ? `${browser} on ${os}` : browser, icon };
 }
 
 type Passkey = {
@@ -228,11 +238,15 @@ type SessionRow = {
 
 export function SessionsSection({ title }: { title: string }) {
 	const { data: current } = authClient.useSession();
-	const [sessions, setSessions] = useState<SessionRow[] | null>(null);
+	// "stale": better-auth only lists sessions for a sign-in from the last day
+	const [sessions, setSessions] = useState<SessionRow[] | "stale" | null>(null);
 	const [confirm, setConfirm] = useState(false);
 
 	const load = useCallback(async () => {
-		const { data } = await authClient.listSessions();
+		const { data, error } = await authClient.listSessions();
+		if (error?.code === "SESSION_NOT_FRESH") return setSessions("stale");
+		if (error)
+			toast.error("Couldn't load your sessions", { desc: error.message });
 		setSessions((data as SessionRow[] | null) ?? []);
 	}, []);
 	useEffect(() => {
@@ -240,7 +254,7 @@ export function SessionsSection({ title }: { title: string }) {
 	}, [load]);
 
 	const currentId = current?.session.id;
-	const sorted = [...(sessions ?? [])].sort(
+	const sorted = [...(Array.isArray(sessions) ? sessions : [])].sort(
 		(a, b) => Number(b.id === currentId) - Number(a.id === currentId),
 	);
 
@@ -254,25 +268,36 @@ export function SessionsSection({ title }: { title: string }) {
 				<div className="srow">
 					<span className="sk" style={{ height: 14, width: 200 }} />
 				</div>
+			) : sessions === "stale" ? (
+				<div className="srow">
+					<p className="muted grow" style={{ fontSize: 13 }}>
+						For your security, sign in again to see and manage your sessions.
+					</p>
+					<button
+						type="button"
+						className="btn btn-secondary btn-sm"
+						onClick={async () => {
+							await authClient.signOut();
+							window.location.href = `/auth/signin?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+						}}
+					>
+						Sign in again
+					</button>
+				</div>
 			) : (
 				sorted.map((s) => {
 					const mine = s.id === currentId;
-					const mobile = /iPhone|iPad|Android|Mobile/.test(s.userAgent ?? "");
+					const device = describeDevice(s.userAgent);
 					return (
 						<SRow
 							key={s.id}
 							t={
 								<span className="row" style={{ gap: 8 }}>
 									<span
-										className={cn(
-											mobile
-												? "icon-[solar--smartphone-linear]"
-												: "icon-[solar--monitor-linear]",
-											"size-[15px]",
-										)}
+										className={cn(device.icon, "size-4 shrink-0")}
 										aria-hidden="true"
 									/>
-									{describeDevice(s.userAgent)}
+									{device.label}
 									{mine && <span className="badge green">This device</span>}
 								</span>
 							}
@@ -307,7 +332,7 @@ export function SessionsSection({ title }: { title: string }) {
 				<button
 					type="button"
 					className="btn btn-danger-ghost"
-					disabled={(sessions?.length ?? 0) <= 1}
+					disabled={sorted.length <= 1}
 					onClick={() => setConfirm(true)}
 				>
 					Sign out of all other sessions

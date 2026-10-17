@@ -64,6 +64,7 @@
     "@biomejs/biome": "2.4.5",
     "@iconify-json/devicon": "^1.2.71",
     "@iconify-json/hugeicons": "^1.2.35",
+    "@iconify-json/logos": "^1.2.16",
     "@iconify-json/solar": "^1.2.13",
     "@iconify/tailwind4": "^1.2.3",
     "@tanstack/devtools-vite": "0.8.5",

@@ -123,6 +123,9 @@ importers:
       '@iconify-json/hugeicons':
         specifier: ^1.2.35
         version: 1.2.35
+      '@iconify-json/logos':
+        specifier: ^1.2.16
+        version: 1.2.16
       '@iconify-json/solar':
         specifier: ^1.2.13
         version: 1.2.13
@@ -861,6 +864,9 @@ packages:
 
   '@iconify-json/hugeicons@1.2.35':
     resolution: {integrity: sha512-c06tY90JZnKhOLBAKoQ1z2pqXMRdATuYXslTKwaaIAjLzKsTIsE+GGknY6+qo/SP0U/NG9xQjr4N+zfDqOeQiQ==}
+
+  '@iconify-json/logos@1.2.16':
+    resolution: {integrity: sha512-J7uewTzmJchaWkc8f/SW3aS14Y6H1bnLihMZaVccDao3TRsWFJvGfAhbkTzErKjSSbRJG8uzjY4yzMbGMELPIw==}
 
   '@iconify-json/solar@1.2.13':
     resolution: {integrity: sha512-/ZWb6xRib6pzxD/qTkKWYhuzSU2yu0bY+EN0spgtz1NM3d5f4eYueQZpL3PfCdsg5uVfm4Ldtt3cAyQL+YI8/Q==}
@@ -4790,6 +4796,10 @@ snapshots:
       '@iconify/types': 2.0.0
 
   '@iconify-json/hugeicons@1.2.35':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/logos@1.2.16':
     dependencies:
       '@iconify/types': 2.0.0
 
