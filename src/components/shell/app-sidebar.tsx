@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactElement, useState } from "react";
+import { NotesTree } from "#/components/notes/notes-tree";
 import { projectColor } from "#/components/projects/bits";
 import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { Av } from "#/components/q/av";
@@ -501,6 +502,8 @@ export function AppSidebar({
 						ct={unread.archive}
 					/>
 				</div>
+
+				{!collapsed && <NotesTree slug={slug} />}
 
 				{teams.length > 0 && (
 					<div className="sgroup">

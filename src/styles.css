@@ -3,6 +3,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./ui.css" layer(components);
+@import "./notes.css" layer(components);
 @plugin "@iconify/tailwind4";
 
 @custom-variant dark (&:is(.dark *));

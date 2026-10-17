@@ -1,0 +1,170 @@
+import { gql, type TypedDocumentNode } from "@apollo/client";
+import type { TaskComment } from "./operations";
+
+// Notes (Notion-style pages). Kept apart from operations.ts, which is already long.
+
+export type NoteItem = {
+	id: string;
+	parentId: string | null;
+	sortOrder: number;
+	icon: string | null;
+	title: string;
+	projectId: string | null;
+	excerpt: string;
+	createdBy: string;
+	updatedBy: string | null;
+	createdAt: string;
+	updatedAt: string;
+	canEdit: boolean;
+	canDelete: boolean;
+};
+
+export type NoteComment = TaskComment & {
+	quote: string | null;
+	parentId: string | null;
+	resolved: boolean;
+};
+
+export type NoteDetail = NoteItem & { doc: unknown; comments: NoteComment[] };
+
+export const NOTE_FIELDS = gql`
+	fragment NoteFields on Note {
+		id
+		parentId
+		sortOrder
+		icon
+		title
+		projectId
+		excerpt
+		createdBy
+		updatedBy
+		createdAt
+		updatedAt
+		canEdit
+		canDelete
+	}
+`;
+
+export const NOTES: TypedDocumentNode<{ notes: NoteItem[] }, { slug: string }> =
+	gql`
+		${NOTE_FIELDS}
+		query Notes($slug: String!) {
+			notes(slug: $slug) {
+				...NoteFields
+			}
+		}
+	`;
+
+export const NOTE: TypedDocumentNode<
+	{ note: NoteDetail | null },
+	{ slug: string; id: string }
+> = gql`
+	${NOTE_FIELDS}
+	query Note($slug: String!, $id: ID!) {
+		note(slug: $slug, id: $id) {
+			...NoteFields
+			doc
+			comments {
+				id
+				text
+				createdAt
+				author {
+					id
+					name
+					image
+				}
+				authorMemberId
+				isMine
+				reactions {
+					emoji
+					count
+					mine
+					names
+				}
+				quote
+				parentId
+				resolved
+			}
+		}
+	}
+`;
+
+export const CREATE_NOTE: TypedDocumentNode<
+	{ createNote: NoteItem },
+	{
+		slug: string;
+		input: { parentId?: string | null; title?: string; icon?: string | null };
+	}
+> = gql`
+	${NOTE_FIELDS}
+	mutation CreateNote($slug: String!, $input: NewNote!) {
+		createNote(slug: $slug, input: $input) {
+			...NoteFields
+		}
+	}
+`;
+
+export const UPDATE_NOTE: TypedDocumentNode<
+	{ updateNote: NoteItem },
+	{
+		slug: string;
+		id: string;
+		patch: { title?: string; icon?: string | null; doc?: unknown };
+		baseUpdatedAt?: string | null;
+	}
+> = gql`
+	${NOTE_FIELDS}
+	mutation UpdateNote(
+		$slug: String!
+		$id: ID!
+		$patch: NotePatch!
+		$baseUpdatedAt: String
+	) {
+		updateNote(
+			slug: $slug
+			id: $id
+			patch: $patch
+			baseUpdatedAt: $baseUpdatedAt
+		) {
+			...NoteFields
+		}
+	}
+`;
+
+export const MOVE_NOTE: TypedDocumentNode<
+	{ moveNote: NoteItem },
+	{ slug: string; id: string; parentId: string | null; sortOrder: number }
+> = gql`
+	${NOTE_FIELDS}
+	mutation MoveNote(
+		$slug: String!
+		$id: ID!
+		$parentId: ID
+		$sortOrder: Float!
+	) {
+		moveNote(slug: $slug, id: $id, parentId: $parentId, sortOrder: $sortOrder) {
+			...NoteFields
+		}
+	}
+`;
+
+export const DUPLICATE_NOTE: TypedDocumentNode<
+	{ duplicateNote: NoteItem },
+	{ slug: string; id: string }
+> = gql`
+	${NOTE_FIELDS}
+	mutation DuplicateNote($slug: String!, $id: ID!) {
+		duplicateNote(slug: $slug, id: $id) {
+			...NoteFields
+		}
+	}
+`;
+
+export const DELETE_NOTE: TypedDocumentNode<
+	{ deleteNote: boolean },
+	{ slug: string; id: string }
+> = gql`
+	mutation DeleteNote($slug: String!, $id: ID!) {
+		deleteNote(slug: $slug, id: $id)
+	}
+`;

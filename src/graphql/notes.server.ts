@@ -40,6 +40,8 @@ export const notesTypeDefs = /* GraphQL */ `
 		createdAt: String!
 		updatedAt: String!
 		canEdit: Boolean!
+		"the author and admins (or full access on the linked project) may delete"
+		canDelete: Boolean!
 		comments: [TaskComment!]!
 	}
 
@@ -182,6 +184,7 @@ const noteShape = (n: NoteRow, right: ProjectRight | null) => ({
 	createdAt: n.created_at.toISOString(),
 	updatedAt: n.updated_at.toISOString(),
 	canEdit: hasRight(right, "edit"),
+	canDelete: hasRight(right, "full"),
 });
 
 /** A project the viewer may edit in, for linking a page to it. */

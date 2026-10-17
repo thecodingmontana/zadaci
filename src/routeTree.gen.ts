@@ -37,6 +37,8 @@ import { Route as AuthedWSlugTasksRouteImport } from './routes/_authed/w/$slug/t
 import { Route as AuthedWSlugTimelineRouteImport } from './routes/_authed/w/$slug/timeline'
 import { Route as AuthedWSlugMembersIndexRouteImport } from './routes/_authed/w/$slug/members.index'
 import { Route as AuthedWSlugMembersMemberIdRouteImport } from './routes/_authed/w/$slug/members.$memberId'
+import { Route as AuthedWSlugNotesIndexRouteImport } from './routes/_authed/w/$slug/notes.index'
+import { Route as AuthedWSlugNotesNoteIdRouteImport } from './routes/_authed/w/$slug/notes.$noteId'
 import { Route as AuthedWSlugPProjectIdRouteImport } from './routes/_authed/w/$slug/p.$projectId'
 import { Route as AuthedWSlugTeamsIndexRouteImport } from './routes/_authed/w/$slug/teams.index'
 import { Route as AuthedWSlugTeamsTeamIdRouteImport } from './routes/_authed/w/$slug/teams.$teamId'
@@ -182,6 +184,16 @@ const AuthedWSlugMembersMemberIdRoute =
     path: '/members/$memberId',
     getParentRoute: () => AuthedWSlugRoute,
   } as any)
+const AuthedWSlugNotesIndexRoute = AuthedWSlugNotesIndexRouteImport.update({
+  id: '/notes/',
+  path: '/notes/',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugNotesNoteIdRoute = AuthedWSlugNotesNoteIdRouteImport.update({
+  id: '/notes/$noteId',
+  path: '/notes/$noteId',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
 const AuthedWSlugPProjectIdRoute = AuthedWSlugPProjectIdRouteImport.update({
   id: '/p/$projectId',
   path: '/p/$projectId',
@@ -225,9 +237,11 @@ export interface FileRoutesByFullPath {
   '/w/$slug/timeline': typeof AuthedWSlugTimelineRoute
   '/w/$slug/': typeof AuthedWSlugIndexRoute
   '/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
+  '/w/$slug/notes/$noteId': typeof AuthedWSlugNotesNoteIdRoute
   '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
   '/w/$slug/teams/$teamId': typeof AuthedWSlugTeamsTeamIdRoute
   '/w/$slug/members/': typeof AuthedWSlugMembersIndexRoute
+  '/w/$slug/notes/': typeof AuthedWSlugNotesIndexRoute
   '/w/$slug/teams/': typeof AuthedWSlugTeamsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -256,9 +270,11 @@ export interface FileRoutesByTo {
   '/w/$slug/timeline': typeof AuthedWSlugTimelineRoute
   '/w/$slug': typeof AuthedWSlugIndexRoute
   '/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
+  '/w/$slug/notes/$noteId': typeof AuthedWSlugNotesNoteIdRoute
   '/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
   '/w/$slug/teams/$teamId': typeof AuthedWSlugTeamsTeamIdRoute
   '/w/$slug/members': typeof AuthedWSlugMembersIndexRoute
+  '/w/$slug/notes': typeof AuthedWSlugNotesIndexRoute
   '/w/$slug/teams': typeof AuthedWSlugTeamsIndexRoute
 }
 export interface FileRoutesById {
@@ -290,9 +306,11 @@ export interface FileRoutesById {
   '/_authed/w/$slug/timeline': typeof AuthedWSlugTimelineRoute
   '/_authed/w/$slug/': typeof AuthedWSlugIndexRoute
   '/_authed/w/$slug/members/$memberId': typeof AuthedWSlugMembersMemberIdRoute
+  '/_authed/w/$slug/notes/$noteId': typeof AuthedWSlugNotesNoteIdRoute
   '/_authed/w/$slug/p/$projectId': typeof AuthedWSlugPProjectIdRoute
   '/_authed/w/$slug/teams/$teamId': typeof AuthedWSlugTeamsTeamIdRoute
   '/_authed/w/$slug/members/': typeof AuthedWSlugMembersIndexRoute
+  '/_authed/w/$slug/notes/': typeof AuthedWSlugNotesIndexRoute
   '/_authed/w/$slug/teams/': typeof AuthedWSlugTeamsIndexRoute
 }
 export interface FileRouteTypes {
@@ -324,9 +342,11 @@ export interface FileRouteTypes {
     | '/w/$slug/timeline'
     | '/w/$slug/'
     | '/w/$slug/members/$memberId'
+    | '/w/$slug/notes/$noteId'
     | '/w/$slug/p/$projectId'
     | '/w/$slug/teams/$teamId'
     | '/w/$slug/members/'
+    | '/w/$slug/notes/'
     | '/w/$slug/teams/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -355,9 +375,11 @@ export interface FileRouteTypes {
     | '/w/$slug/timeline'
     | '/w/$slug'
     | '/w/$slug/members/$memberId'
+    | '/w/$slug/notes/$noteId'
     | '/w/$slug/p/$projectId'
     | '/w/$slug/teams/$teamId'
     | '/w/$slug/members'
+    | '/w/$slug/notes'
     | '/w/$slug/teams'
   id:
     | '__root__'
@@ -388,9 +410,11 @@ export interface FileRouteTypes {
     | '/_authed/w/$slug/timeline'
     | '/_authed/w/$slug/'
     | '/_authed/w/$slug/members/$memberId'
+    | '/_authed/w/$slug/notes/$noteId'
     | '/_authed/w/$slug/p/$projectId'
     | '/_authed/w/$slug/teams/$teamId'
     | '/_authed/w/$slug/members/'
+    | '/_authed/w/$slug/notes/'
     | '/_authed/w/$slug/teams/'
   fileRoutesById: FileRoutesById
 }
@@ -603,6 +627,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugMembersMemberIdRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
+    '/_authed/w/$slug/notes/': {
+      id: '/_authed/w/$slug/notes/'
+      path: '/notes'
+      fullPath: '/w/$slug/notes/'
+      preLoaderRoute: typeof AuthedWSlugNotesIndexRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/notes/$noteId': {
+      id: '/_authed/w/$slug/notes/$noteId'
+      path: '/notes/$noteId'
+      fullPath: '/w/$slug/notes/$noteId'
+      preLoaderRoute: typeof AuthedWSlugNotesNoteIdRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
     '/_authed/w/$slug/p/$projectId': {
       id: '/_authed/w/$slug/p/$projectId'
       path: '/p/$projectId'
@@ -643,9 +681,11 @@ interface AuthedWSlugRouteChildren {
   AuthedWSlugTimelineRoute: typeof AuthedWSlugTimelineRoute
   AuthedWSlugIndexRoute: typeof AuthedWSlugIndexRoute
   AuthedWSlugMembersMemberIdRoute: typeof AuthedWSlugMembersMemberIdRoute
+  AuthedWSlugNotesNoteIdRoute: typeof AuthedWSlugNotesNoteIdRoute
   AuthedWSlugPProjectIdRoute: typeof AuthedWSlugPProjectIdRoute
   AuthedWSlugTeamsTeamIdRoute: typeof AuthedWSlugTeamsTeamIdRoute
   AuthedWSlugMembersIndexRoute: typeof AuthedWSlugMembersIndexRoute
+  AuthedWSlugNotesIndexRoute: typeof AuthedWSlugNotesIndexRoute
   AuthedWSlugTeamsIndexRoute: typeof AuthedWSlugTeamsIndexRoute
 }
 
@@ -665,9 +705,11 @@ const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugTimelineRoute: AuthedWSlugTimelineRoute,
   AuthedWSlugIndexRoute: AuthedWSlugIndexRoute,
   AuthedWSlugMembersMemberIdRoute: AuthedWSlugMembersMemberIdRoute,
+  AuthedWSlugNotesNoteIdRoute: AuthedWSlugNotesNoteIdRoute,
   AuthedWSlugPProjectIdRoute: AuthedWSlugPProjectIdRoute,
   AuthedWSlugTeamsTeamIdRoute: AuthedWSlugTeamsTeamIdRoute,
   AuthedWSlugMembersIndexRoute: AuthedWSlugMembersIndexRoute,
+  AuthedWSlugNotesIndexRoute: AuthedWSlugNotesIndexRoute,
   AuthedWSlugTeamsIndexRoute: AuthedWSlugTeamsIndexRoute,
 }
 

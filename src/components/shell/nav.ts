@@ -35,6 +35,11 @@ export const WORKSPACE_NAV: NavItem[] = [
 		icon: "icon-[solar--checklist-minimalistic-linear]",
 	},
 	{
+		path: "notes",
+		label: "Notes",
+		icon: "icon-[solar--notebook-linear]",
+	},
+	{
 		path: "calendar",
 		label: "Calendar",
 		icon: "icon-[solar--calendar-linear]",

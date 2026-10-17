@@ -341,3 +341,47 @@ export function SettingsSkeleton() {
 		</div>
 	);
 }
+
+export function NotesSkeleton() {
+	return (
+		<div className="page wide" {...busy}>
+			<Head title="Notes" sub={260} />
+			<div className="panel" style={{ overflow: "hidden" }}>
+				<Rows n={5} />
+			</div>
+		</div>
+	);
+}
+
+export function NotePageSkeleton() {
+	return (
+		<div className="note-page" {...busy}>
+			<span
+				className="sk"
+				style={{ width: 44, height: 44, borderRadius: 10 }}
+			/>
+			<span
+				className="sk"
+				style={{
+					display: "block",
+					height: 30,
+					width: "55%",
+					margin: "18px 0 26px",
+				}}
+			/>
+			{[92, 100, 84, 0, 70, 96, 60].map((w, i) => (
+				<span
+					// biome-ignore lint/suspicious/noArrayIndexKey: fixed placeholder lines
+					key={i}
+					className="sk"
+					style={{
+						display: "block",
+						height: 13,
+						width: `${w}%`,
+						margin: "0 0 12px",
+					}}
+				/>
+			))}
+		</div>
+	);
+}
