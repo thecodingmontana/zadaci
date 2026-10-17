@@ -20,6 +20,35 @@ export async function uploadFile(
 	});
 	const params = data?.attachmentUpload;
 	if (!params) throw new Error("No upload slot");
+	const result = await sendToCloudinary(params, file, onProgress);
+	await client.mutate({
+		mutation: ADD_ATTACHMENT,
+		variables: {
+			slug,
+			...target,
+			name: file.name,
+			url: result.secure_url,
+			mime: file.type || null,
+			size: result.bytes,
+		},
+	});
+}
+
+export type UploadSlot = {
+	url: string;
+	apiKey: string;
+	timestamp: number;
+	signature: string;
+	publicId: string;
+	folder: string;
+};
+
+/** Sends a file to Cloudinary using a slot the server signed. */
+export function sendToCloudinary(
+	params: UploadSlot,
+	file: File,
+	onProgress?: (pct: number) => void,
+) {
 	const body = new FormData();
 	body.append("file", file);
 	body.append("api_key", params.apiKey);
@@ -27,7 +56,7 @@ export async function uploadFile(
 	body.append("signature", params.signature);
 	body.append("public_id", params.publicId);
 	body.append("folder", params.folder);
-	const result = await new Promise<{ secure_url: string; bytes: number }>(
+	return new Promise<{ secure_url: string; bytes: number }>(
 		(resolve, reject) => {
 			const xhr = new XMLHttpRequest();
 			xhr.open("POST", params.url);
@@ -42,15 +71,4 @@ export async function uploadFile(
 			xhr.send(body);
 		},
 	);
-	await client.mutate({
-		mutation: ADD_ATTACHMENT,
-		variables: {
-			slug,
-			...target,
-			name: file.name,
-			url: result.secure_url,
-			mime: file.type || null,
-			size: result.bytes,
-		},
-	});
 }

@@ -3,6 +3,7 @@ import {
 	boolean,
 	doublePrecision,
 	index,
+	integer,
 	jsonb,
 	text,
 	varchar,
@@ -32,6 +33,10 @@ export const note = pgTable(
 		sort_order: doublePrecision("sort_order").notNull().default(0),
 		/** only its author sees a private page (and the pages inside it) */
 		private: boolean("private").notNull().default(false),
+		/** "gallery:<key>" or an image URL (see lib/note-covers) */
+		cover: text("cover"),
+		/** the cover image's vertical position, 0 (top) to 100 (bottom) */
+		cover_y: integer("cover_y").notNull().default(50),
 		/** an emoji shown before the title */
 		icon: varchar("icon", { length: 16 }),
 		// a linked note follows the project's sharing; unlinked notes are for members

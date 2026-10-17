@@ -8,6 +8,8 @@ export type NoteItem = {
 	parentId: string | null;
 	sortOrder: number;
 	icon: string | null;
+	cover: string | null;
+	coverY: number;
 	title: string;
 	projectId: string | null;
 	excerpt: string;
@@ -36,6 +38,8 @@ export const NOTE_FIELDS = gql`
 		parentId
 		sortOrder
 		icon
+		cover
+		coverY
 		title
 		projectId
 		excerpt
@@ -120,6 +124,8 @@ export const UPDATE_NOTE: TypedDocumentNode<
 			icon?: string | null;
 			doc?: unknown;
 			isPrivate?: boolean;
+			cover?: string | null;
+			coverY?: number;
 		};
 		baseUpdatedAt?: string | null;
 	}
@@ -186,5 +192,30 @@ export const TOGGLE_NOTE_FAVORITE: TypedDocumentNode<
 > = gql`
 	mutation ToggleNoteFavorite($slug: String!, $id: ID!) {
 		toggleNoteFavorite(slug: $slug, id: $id)
+	}
+`;
+
+export const NOTE_COVER_UPLOAD: TypedDocumentNode<
+	{
+		noteCoverUpload: {
+			url: string;
+			apiKey: string;
+			timestamp: number;
+			signature: string;
+			publicId: string;
+			folder: string;
+		};
+	},
+	{ slug: string; id: string }
+> = gql`
+	mutation NoteCoverUpload($slug: String!, $id: ID!) {
+		noteCoverUpload(slug: $slug, id: $id) {
+			url
+			apiKey
+			timestamp
+			signature
+			publicId
+			folder
+		}
 	}
 `;

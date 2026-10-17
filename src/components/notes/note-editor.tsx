@@ -21,9 +21,11 @@ import {
 	type NoteItem,
 	UPDATE_NOTE,
 } from "#/graphql/note-operations";
+import { randomGalleryCover } from "#/lib/note-covers";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { NoteActions } from "./note-actions";
+import { NoteCover } from "./note-cover";
 import { SlashCommands } from "./slash-menu";
 
 // A note's page: emoji, title and a Tiptap body. Changes save on their own a moment after
@@ -35,7 +37,13 @@ const EMOJI =
 		" ",
 	);
 
-type Patch = { title?: string; icon?: string | null; doc?: unknown };
+type Patch = {
+	title?: string;
+	icon?: string | null;
+	doc?: unknown;
+	cover?: string | null;
+	coverY?: number;
+};
 type Status = "saved" | "saving" | "conflict" | "error";
 
 function useAutosave(slug: string, note: NoteDetail) {
@@ -104,6 +112,7 @@ export function NoteEditor({
 	const { queue, status } = useAutosave(slug, note);
 	const [title, setTitle] = useState(note.title);
 	const [icon, setIcon] = useState(note.icon);
+	const [cover, setCover] = useState({ value: note.cover, y: note.coverY });
 	const editable = note.canEdit && status !== "conflict";
 
 	// the sidebar shows the new title and icon while you type, before the save lands
@@ -123,6 +132,8 @@ export function NoteEditor({
 			StarterKit.configure({
 				heading: { levels: [1, 2, 3] },
 				link: { openOnClick: false, autolink: true },
+				// no forced empty line at the end of the page (Notion doesn't keep one)
+				trailingNode: false,
 			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
 			Highlight,
@@ -139,112 +150,170 @@ export function NoteEditor({
 		editor?.setEditable(editable);
 	}, [editor, editable]);
 
+	const setIconTo = (value: string | null) => {
+		setIcon(value);
+		showInSidebar({ icon: value });
+		queue({ icon: value });
+	};
+	const changeCover = (patch: { cover?: string | null; coverY?: number }) => {
+		setCover((c) => ({
+			value: patch.cover !== undefined ? patch.cover : c.value,
+			y: patch.coverY ?? c.y,
+		}));
+		queue(patch);
+	};
+
 	return (
-		<div className="note-page">
-			{status === "conflict" && (
-				<div className="note-banner" role="alert">
-					<span
-						className="icon-[solar--danger-triangle-linear] size-4"
-						aria-hidden="true"
-					/>
-					Someone else changed this page. Reload to see their version; your last
-					changes weren't saved.
-					<button
-						type="button"
-						className="btn btn-secondary btn-sm"
-						onClick={() => window.location.reload()}
-					>
-						Reload
-					</button>
-				</div>
+		<>
+			{cover.value && (
+				<NoteCover
+					slug={slug}
+					noteId={note.id}
+					cover={cover.value}
+					coverY={cover.y}
+					editable={editable}
+					onChange={changeCover}
+				/>
 			)}
-			<div className="note-head">
-				<Menu>
-					<MenuTrigger
-						className={cn("note-icon", !icon && "empty")}
-						disabled={!note.canEdit}
-						aria-label="Change icon"
-					>
-						{icon ?? (
-							<span
-								className="icon-[solar--emoji-funny-circle-linear] size-5"
-								aria-hidden="true"
-							/>
-						)}
-					</MenuTrigger>
-					<MenuContent width={236} align="start">
-						<div className="emoji-grid">
-							{EMOJI.map((e) => (
-								<button
-									key={e}
-									type="button"
-									onClick={() => {
-										setIcon(e);
-										showInSidebar({ icon: e });
-										queue({ icon: e });
-									}}
-								>
-									{e}
+			<div className={cn("note-page", cover.value && "has-cover")}>
+				{status === "conflict" && (
+					<div className="note-banner" role="alert">
+						<span
+							className="icon-[solar--danger-triangle-linear] size-4"
+							aria-hidden="true"
+						/>
+						Someone else changed this page. Reload to see their version; your
+						last changes weren't saved.
+						<button
+							type="button"
+							className="btn btn-secondary btn-sm"
+							onClick={() => window.location.reload()}
+						>
+							Reload
+						</button>
+					</div>
+				)}
+				{icon && (
+					<IconMenu icon={icon} onPick={setIconTo} disabled={!editable}>
+						<button
+							type="button"
+							className="note-icon"
+							aria-label="Change icon"
+						>
+							{icon}
+						</button>
+					</IconMenu>
+				)}
+				{editable && (!icon || !cover.value) && (
+					<div className="note-adds">
+						{!icon && (
+							<IconMenu icon={icon} onPick={setIconTo}>
+								<button type="button">
+									<span
+										className="icon-[solar--emoji-funny-circle-linear] size-4"
+										aria-hidden="true"
+									/>
+									Add icon
 								</button>
-							))}
-						</div>
-						{icon && (
+							</IconMenu>
+						)}
+						{!cover.value && (
 							<button
 								type="button"
-								className="mi"
-								style={{ width: "100%" }}
-								onClick={() => {
-									setIcon(null);
-									showInSidebar({ icon: null });
-									queue({ icon: null });
-								}}
+								onClick={() =>
+									changeCover({ cover: randomGalleryCover(), coverY: 50 })
+								}
 							>
-								Remove icon
+								<span
+									className="icon-[solar--gallery-wide-linear] size-4"
+									aria-hidden="true"
+								/>
+								Add cover
 							</button>
 						)}
-					</MenuContent>
-				</Menu>
-			</div>
-			<TopbarSlot>
-				<NoteActions
-					slug={slug}
-					note={live}
-					saving={status === "saving"}
-					failed={status === "error"}
-					isAuthor={note.isAuthor}
-					menu={menu}
+					</div>
+				)}
+				<TopbarSlot>
+					<NoteActions
+						slug={slug}
+						note={live}
+						saving={status === "saving"}
+						failed={status === "error"}
+						isAuthor={note.isAuthor}
+						menu={menu}
+					/>
+				</TopbarSlot>
+				<textarea
+					className="note-title"
+					value={title}
+					placeholder="Untitled"
+					readOnly={!editable}
+					rows={1}
+					aria-label="Page title"
+					onChange={(e) => {
+						const value = e.target.value.replace(/\n/g, "");
+						setTitle(value);
+						showInSidebar({ title: value });
+						queue({ title: value });
+					}}
+					onKeyDown={(e) => {
+						// Enter moves into the body, like Notion
+						if (e.key === "Enter") {
+							e.preventDefault();
+							editor?.commands.focus("start");
+						}
+					}}
+					ref={(el) => {
+						if (!el) return;
+						el.style.height = "auto";
+						el.style.height = `${el.scrollHeight}px`;
+					}}
 				/>
-			</TopbarSlot>
-			<textarea
-				className="note-title"
-				value={title}
-				placeholder="Untitled"
-				readOnly={!editable}
-				rows={1}
-				aria-label="Page title"
-				onChange={(e) => {
-					const value = e.target.value.replace(/\n/g, "");
-					setTitle(value);
-					showInSidebar({ title: value });
-					queue({ title: value });
-				}}
-				onKeyDown={(e) => {
-					// Enter moves into the body, like Notion
-					if (e.key === "Enter") {
-						e.preventDefault();
-						editor?.commands.focus("start");
-					}
-				}}
-				ref={(el) => {
-					if (!el) return;
-					el.style.height = "auto";
-					el.style.height = `${el.scrollHeight}px`;
-				}}
-			/>
-			{editor && editable && <SelectionMenu editor={editor} />}
-			{editor && editable && <BlockHandle editor={editor} />}
-			<EditorContent editor={editor} className="note-body" />
-		</div>
+				{editor && editable && <SelectionMenu editor={editor} />}
+				{editor && editable && <BlockHandle editor={editor} />}
+				<EditorContent editor={editor} className="note-body" />
+			</div>
+		</>
+	);
+}
+
+/** The emoji picker for a page's icon, opened from its trigger. */
+function IconMenu({
+	icon,
+	onPick,
+	disabled,
+	children,
+}: {
+	icon: string | null;
+	onPick: (icon: string | null) => void;
+	disabled?: boolean;
+	children: ReactNode;
+}) {
+	return (
+		<Menu>
+			<MenuTrigger asChild disabled={disabled}>
+				{children}
+			</MenuTrigger>
+			<MenuContent width={236} align="start">
+				<div className="emoji-grid">
+					{EMOJI.map((e) => (
+						<button key={e} type="button" onClick={() => onPick(e)}>
+							{e}
+						</button>
+					))}
+				</div>
+				{icon && (
+					<button
+						type="button"
+						className="mi"
+						style={{ width: "100%" }}
+						onClick={() => onPick(null)}
+					>
+						Remove icon
+					</button>
+				)}
+			</MenuContent>
+		</Menu>
 	);
 }
 

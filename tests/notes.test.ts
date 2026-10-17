@@ -105,3 +105,14 @@ test("private pages and the pages inside them are only the author's; stars are p
 	const mine = (await gql(owner, `query($s: String!) { notes(slug: $s) { id isFavorite } }`, { s: slug })).data?.notes;
 	assert.equal(mine.find((n: { id: string }) => n.id === page.id).isFavorite, true);
 });
+
+test("covers take gallery colours and https images, and keep their position", async () => {
+	const { owner, slug } = await setup();
+	const page = (await create(owner, slug, { title: "Cover" })).data?.createNote;
+	const UPDATE = `mutation($s: String!, $id: ID!, $p: NotePatch!) { updateNote(slug: $s, id: $id, patch: $p) { cover coverY } }`;
+	const set = (p: Record<string, unknown>) => gql(owner, UPDATE, { s: slug, id: page.id, p });
+	assert.deepEqual((await set({ cover: "gallery:dusk" })).data?.updateNote, { cover: "gallery:dusk", coverY: 50 });
+	assert.equal(code(await set({ cover: "javascript:alert(1)" })), "BAD_USER_INPUT");
+	assert.deepEqual((await set({ cover: "https://images.example.com/a.jpg", coverY: 130 })).data?.updateNote, { cover: "https://images.example.com/a.jpg", coverY: 100 });
+	assert.equal((await set({ cover: null })).data?.updateNote.cover, null);
+});

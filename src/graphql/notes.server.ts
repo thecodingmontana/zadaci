@@ -2,6 +2,8 @@ import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { GraphQLError } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
+import { generateNanoId } from "#/db/utils";
+import { isCover } from "#/lib/note-covers";
 import { checkDoc } from "#/lib/note-doc";
 import { can, hasRight, type ProjectRight } from "#/lib/permissions";
 import { viewerRight } from "./projects.server";
@@ -13,7 +15,7 @@ import {
 	projectScope,
 	requireUser,
 } from "./schema.server";
-import { parse } from "./settings.server";
+import { cloudinary, parse, signCloudinary } from "./settings.server";
 import { commentRows, oneComment, shape } from "./task-extras.server";
 
 // Notes are pages, Notion style: any page can hold sub-pages (parent_id), so the sidebar
@@ -29,6 +31,9 @@ export const notesTypeDefs = /* GraphQL */ `
 		parentId: ID
 		sortOrder: Float!
 		icon: String
+		"a gallery colour or gradient (gallery:<key>) or an image URL"
+		cover: String
+		coverY: Int!
 		title: String!
 		projectId: ID
 		"Tiptap JSON; only loaded when asked for"
@@ -65,6 +70,9 @@ export const notesTypeDefs = /* GraphQL */ `
 		projectId: ID
 		"only the author can make a page private or shared again"
 		isPrivate: Boolean
+		"null removes the cover"
+		cover: String
+		coverY: Int
 	}
 
 	extend type Query {
@@ -95,10 +103,14 @@ export const notesTypeDefs = /* GraphQL */ `
 			parentId: ID
 		): TaskComment!
 		resolveNoteComment(slug: String!, id: ID!, resolved: Boolean!): TaskComment!
+		"a signed slot for uploading this page's cover image"
+		noteCoverUpload(slug: String!, id: ID!): CloudinaryUpload!
 		"stars or unstars a page; returns whether it's now starred"
 		toggleNoteFavorite(slug: String!, id: ID!): Boolean!
 	}
 `;
+
+const coverFolder = (noteId: string) => `zadaci/notes/${noteId}`;
 
 const TITLE = z.string().trim().max(200, "Keep titles under 200 characters");
 const ICON = z.string().trim().max(16).nullable();
@@ -199,6 +211,8 @@ const noteShape = (
 	parentId: n.parent_id,
 	sortOrder: n.sort_order,
 	icon: n.icon,
+	cover: n.cover,
+	coverY: n.cover_y,
 	title: n.title,
 	projectId: n.project_id,
 	excerpt: (n.content ?? "").replace(/\s+/g, " ").slice(0, 160),
@@ -432,6 +446,8 @@ export const notesResolvers = {
 					doc?: unknown;
 					projectId?: string | null;
 					isPrivate?: boolean | null;
+					cover?: string | null;
+					coverY?: number | null;
 				};
 				baseUpdatedAt?: string | null;
 			},
@@ -458,6 +474,14 @@ export const notesResolvers = {
 			};
 			if (patch.title != null) set.title = parse(TITLE, patch.title);
 			if (patch.icon !== undefined) set.icon = parse(ICON, patch.icon);
+			if (patch.cover !== undefined) {
+				// a gallery colour or gradient, or an https image (an upload or a link)
+				if (patch.cover !== null && !isCover(patch.cover))
+					badInput("That cover can't be used");
+				set.cover = patch.cover;
+			}
+			if (patch.coverY != null)
+				set.cover_y = Math.round(Math.min(100, Math.max(0, patch.coverY)));
 			if (patch.doc !== undefined) {
 				let checked: ReturnType<typeof checkDoc>;
 				try {
@@ -637,6 +661,28 @@ export const notesResolvers = {
 				.returning({ id: tables.comment.id });
 			if (!row) throw new Error("Comment insert returned nothing");
 			return oneComment(row.id, user.id);
+		},
+
+		noteCoverUpload: async (
+			_: unknown,
+			args: { slug: string; id: string },
+			ctx: GraphQLContext,
+		) => {
+			const { note } = await requireNote(ctx, args.slug, args.id, "edit");
+			const { cloud, key, secret } = cloudinary();
+			const params = {
+				folder: coverFolder(note.id),
+				public_id: generateNanoId().toLowerCase(),
+				timestamp: Math.floor(Date.now() / 1000),
+			};
+			return {
+				url: `https://api.cloudinary.com/v1_1/${cloud}/image/upload`,
+				apiKey: key,
+				timestamp: params.timestamp,
+				signature: signCloudinary(params, secret),
+				publicId: params.public_id,
+				folder: params.folder,
+			};
 		},
 
 		toggleNoteFavorite: async (
