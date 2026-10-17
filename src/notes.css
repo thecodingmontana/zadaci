@@ -4,6 +4,15 @@
 .sitem.snote {
 	gap: 4px;
 }
+/* the row shows focus, not the link inside it */
+.sitem.snote > a:focus,
+.sitem.snote > a:focus-visible {
+	outline: none;
+}
+.sitem.snote:has(> a:focus-visible) {
+	background: var(--q-surface-3);
+	color: var(--q-text);
+}
 .sitem.snote .ntog {
 	width: 20px;
 	height: 20px;
