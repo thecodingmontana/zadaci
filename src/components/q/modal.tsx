@@ -11,6 +11,7 @@ export function Modal({
 	size,
 	children,
 	footer,
+	busy,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -19,9 +20,17 @@ export function Modal({
 	size?: "sm" | "lg";
 	children: ReactNode;
 	footer?: ReactNode;
+	/** an action is running: Esc, the scrim and × don't close it until it finishes */
+	busy?: boolean;
 }) {
 	return (
-		<Dialog.Root open={open} onOpenChange={onOpenChange}>
+		<Dialog.Root
+			open={open}
+			onOpenChange={(o) => {
+				if (busy && !o) return;
+				onOpenChange(o);
+			}}
+		>
 			<Dialog.Portal>
 				<Dialog.Overlay className="scrim enter" />
 				<div className="modal-wrap">
@@ -45,7 +54,11 @@ export function Modal({
 									</Dialog.Description>
 								)}
 							</div>
-							<Dialog.Close className="ibtn ibtn-sm" aria-label="Close">
+							<Dialog.Close
+								className="ibtn ibtn-sm"
+								aria-label="Close"
+								disabled={busy}
+							>
 								<span
 									className="icon-[solar--close-linear] size-4"
 									aria-hidden="true"

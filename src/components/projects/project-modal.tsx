@@ -117,6 +117,7 @@ export function ProjectModal({
 	const busy = creating || saving;
 	return (
 		<Modal
+			busy={busy}
 			open={open}
 			onOpenChange={onOpenChange}
 			title={project ? "Project settings" : "New project"}

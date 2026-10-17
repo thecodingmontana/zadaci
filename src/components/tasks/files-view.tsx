@@ -623,6 +623,7 @@ function FileMenu({
 				</MenuContent>
 			</Menu>
 			<Modal
+				busy={loading}
 				open={renaming}
 				onOpenChange={setRenaming}
 				title="Rename file"

@@ -221,6 +221,7 @@ function TaskModal({
 
 	return (
 		<Modal
+			busy={busy}
 			open
 			onOpenChange={(o) => !o && onClose()}
 			title="New task"

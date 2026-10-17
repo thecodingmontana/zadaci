@@ -105,6 +105,7 @@ export function TeamModal({
 	return (
 		<>
 			<Modal
+				busy={busy}
 				open={open}
 				onOpenChange={onOpenChange}
 				title={team ? "Edit team" : "New team"}

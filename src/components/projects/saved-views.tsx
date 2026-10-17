@@ -98,6 +98,7 @@ export function SavedViewTab({
 				</ContextMenu.Portal>
 			</ContextMenu.Root>
 			<Modal
+				busy={loading}
 				open={renaming}
 				onOpenChange={setRenaming}
 				title="Rename view"
@@ -238,6 +239,7 @@ export function SaveViewButton({
 				/>
 			</button>
 			<Modal
+				busy={loading}
 				open={open}
 				onOpenChange={setOpen}
 				title="Save view"

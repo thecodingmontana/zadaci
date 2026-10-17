@@ -104,6 +104,7 @@ export function ShareModal({
 
 	return (
 		<Modal
+			busy={inviting}
 			open={open}
 			onOpenChange={onOpenChange}
 			title={project ? `Share “${project.title}”` : "Share"}

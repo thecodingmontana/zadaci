@@ -691,6 +691,7 @@ function AvatarPicker({
 
 	return (
 		<Modal
+			busy={!!saving}
 			open={open}
 			onOpenChange={onOpenChange}
 			title="Choose an avatar"

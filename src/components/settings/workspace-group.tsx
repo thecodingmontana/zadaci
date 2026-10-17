@@ -413,6 +413,7 @@ export function InviteModal({
 
 	return (
 		<Modal
+			busy={loading}
 			open={open}
 			onOpenChange={onOpenChange}
 			title={`Invite to ${workspace.name}`}
