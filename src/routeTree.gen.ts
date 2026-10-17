@@ -30,6 +30,7 @@ import { Route as AuthedWSlugCalendarRouteImport } from './routes/_authed/w/$slu
 import { Route as AuthedWSlugFavoritesRouteImport } from './routes/_authed/w/$slug/favorites'
 import { Route as AuthedWSlugMyTasksRouteImport } from './routes/_authed/w/$slug/my-tasks'
 import { Route as AuthedWSlugNotificationsRouteImport } from './routes/_authed/w/$slug/notifications'
+import { Route as AuthedWSlugOverviewRouteImport } from './routes/_authed/w/$slug/overview'
 import { Route as AuthedWSlugProjectsRouteImport } from './routes/_authed/w/$slug/projects'
 import { Route as AuthedWSlugSettingsRouteImport } from './routes/_authed/w/$slug/settings'
 import { Route as AuthedWSlugTasksRouteImport } from './routes/_authed/w/$slug/tasks'
@@ -145,6 +146,11 @@ const AuthedWSlugNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthedWSlugRoute,
   } as any)
+const AuthedWSlugOverviewRoute = AuthedWSlugOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
 const AuthedWSlugProjectsRoute = AuthedWSlugProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
@@ -212,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
   '/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
+  '/w/$slug/overview': typeof AuthedWSlugOverviewRoute
   '/w/$slug/projects': typeof AuthedWSlugProjectsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug/tasks': typeof AuthedWSlugTasksRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
   '/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
   '/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
+  '/w/$slug/overview': typeof AuthedWSlugOverviewRoute
   '/w/$slug/projects': typeof AuthedWSlugProjectsRoute
   '/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/w/$slug/tasks': typeof AuthedWSlugTasksRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/_authed/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
   '/_authed/w/$slug/my-tasks': typeof AuthedWSlugMyTasksRoute
   '/_authed/w/$slug/notifications': typeof AuthedWSlugNotificationsRoute
+  '/_authed/w/$slug/overview': typeof AuthedWSlugOverviewRoute
   '/_authed/w/$slug/projects': typeof AuthedWSlugProjectsRoute
   '/_authed/w/$slug/settings': typeof AuthedWSlugSettingsRoute
   '/_authed/w/$slug/tasks': typeof AuthedWSlugTasksRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/w/$slug/favorites'
     | '/w/$slug/my-tasks'
     | '/w/$slug/notifications'
+    | '/w/$slug/overview'
     | '/w/$slug/projects'
     | '/w/$slug/settings'
     | '/w/$slug/tasks'
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/w/$slug/favorites'
     | '/w/$slug/my-tasks'
     | '/w/$slug/notifications'
+    | '/w/$slug/overview'
     | '/w/$slug/projects'
     | '/w/$slug/settings'
     | '/w/$slug/tasks'
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/_authed/w/$slug/favorites'
     | '/_authed/w/$slug/my-tasks'
     | '/_authed/w/$slug/notifications'
+    | '/_authed/w/$slug/overview'
     | '/_authed/w/$slug/projects'
     | '/_authed/w/$slug/settings'
     | '/_authed/w/$slug/tasks'
@@ -543,6 +555,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedWSlugNotificationsRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
+    '/_authed/w/$slug/overview': {
+      id: '/_authed/w/$slug/overview'
+      path: '/overview'
+      fullPath: '/w/$slug/overview'
+      preLoaderRoute: typeof AuthedWSlugOverviewRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
     '/_authed/w/$slug/projects': {
       id: '/_authed/w/$slug/projects'
       path: '/projects'
@@ -617,6 +636,7 @@ interface AuthedWSlugRouteChildren {
   AuthedWSlugFavoritesRoute: typeof AuthedWSlugFavoritesRoute
   AuthedWSlugMyTasksRoute: typeof AuthedWSlugMyTasksRoute
   AuthedWSlugNotificationsRoute: typeof AuthedWSlugNotificationsRoute
+  AuthedWSlugOverviewRoute: typeof AuthedWSlugOverviewRoute
   AuthedWSlugProjectsRoute: typeof AuthedWSlugProjectsRoute
   AuthedWSlugSettingsRoute: typeof AuthedWSlugSettingsRoute
   AuthedWSlugTasksRoute: typeof AuthedWSlugTasksRoute
@@ -637,6 +657,7 @@ const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugFavoritesRoute: AuthedWSlugFavoritesRoute,
   AuthedWSlugMyTasksRoute: AuthedWSlugMyTasksRoute,
   AuthedWSlugNotificationsRoute: AuthedWSlugNotificationsRoute,
+  AuthedWSlugOverviewRoute: AuthedWSlugOverviewRoute,
   AuthedWSlugProjectsRoute: AuthedWSlugProjectsRoute,
   AuthedWSlugSettingsRoute: AuthedWSlugSettingsRoute,
   AuthedWSlugTasksRoute: AuthedWSlugTasksRoute,

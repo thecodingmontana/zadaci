@@ -1369,6 +1369,39 @@ export const DELETE_TASKS: TypedDocumentNode<
 	}
 `;
 
+export const OVERVIEW: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			name: string;
+			invites: { id: string }[];
+			projects: {
+				id: string;
+				milestones: { id: string; name: string; date: string }[];
+			}[];
+		} | null;
+	},
+	{ slug: string }
+> = gql`
+	query Overview($slug: String!) {
+		workspace(slug: $slug) {
+			id
+			name
+			invites {
+				id
+			}
+			projects {
+				id
+				milestones {
+					id
+					name
+					date
+				}
+			}
+		}
+	}
+`;
+
 export const ARCHIVE: TypedDocumentNode<
 	{
 		workspace: {
