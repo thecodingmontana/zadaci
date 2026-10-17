@@ -177,6 +177,22 @@ export function NotesTree({ slug }: { slug: string }) {
 					/>
 				</button>
 			</div>
+			{/* pages load after the sidebar; hold their place */}
+			{!data &&
+				[70, 55, 62].map((w) => (
+					<div
+						key={w}
+						className="sitem"
+						style={{ cursor: "default" }}
+						aria-hidden="true"
+					>
+						<span
+							className="sk"
+							style={{ width: 14, height: 14, borderRadius: 4 }}
+						/>
+						<span className="sk" style={{ width: `${w}%`, height: 11 }} />
+					</div>
+				))}
 			{rows(null, 0)}
 			{data && !notes.length && (
 				<button

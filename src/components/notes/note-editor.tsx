@@ -1,6 +1,5 @@
 import { CombinedGraphQLErrors } from "@apollo/client";
 import { useApolloClient, useMutation } from "@apollo/client/react";
-import { DragHandle } from "@tiptap/extension-drag-handle-react";
 import Highlight from "@tiptap/extension-highlight";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import TextAlign from "@tiptap/extension-text-align";
@@ -15,6 +14,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 import {
 	Menu,
 	MenuContent,
@@ -38,6 +38,7 @@ import { SLASH_COMMANDS, SlashCommands } from "./slash-menu";
 // you stop typing; a newer save by someone else is never overwritten.
 
 const SAVE_MS = 800;
+const HANDLE_ID = "note-block-handle";
 const EMOJI =
 	"📄 📝 📌 📎 📚 📘 📗 📕 🗂️ 🗒️ 💡 🎯 🚀 ✅ ⭐ 🔥 🧭 🧪 🛠️ 🎨 📣 📈 💬 🗓️ 🔒 🌱 🏁 🧩 ❤️ 👋".split(
 		" ",
@@ -150,6 +151,11 @@ export function NoteEditor({
 				placeholder: "Write something, or press / for blocks",
 			}),
 			SlashCommands,
+			GlobalDragHandle.configure({
+				dragHandleSelector: `#${HANDLE_ID}`,
+				// the handle holds + and ⋮⋮, so it sits this far left of the block
+				dragHandleWidth: 46,
+			}),
 		],
 		onUpdate: ({ editor }) => queue({ doc: editor.getJSON() }),
 	});
@@ -277,7 +283,23 @@ export function NoteEditor({
 					}}
 				/>
 				{editor && editable && <SelectionMenu editor={editor} />}
-				{editor && editable && <BlockHandle editor={editor} />}
+				{/* rendered before the editor starts: the drag-handle extension looks it up by id */}
+				{editable && <BlockHandle editor={editor} />}
+				{/* the editor starts just after the page renders; hold its place meanwhile */}
+				{!editor && (
+					<div className="note-body-sk" aria-busy="true">
+						<span className="sr">Loading page</span>
+						{[94, 100, 82, 0, 68, 90, 56].map((w, i) =>
+							w ? (
+								// biome-ignore lint/suspicious/noArrayIndexKey: fixed placeholder lines
+								<span key={i} className="sk" style={{ width: `${w}%` }} />
+							) : (
+								// biome-ignore lint/suspicious/noArrayIndexKey: fixed placeholder lines
+								<span key={i} style={{ height: 8 }} />
+							),
+						)}
+					</div>
+				)}
 				<EditorContent editor={editor} className="note-body" />
 			</div>
 		</>
@@ -324,30 +346,54 @@ function IconMenu({
 	);
 }
 
-/** Notion's block handle: + adds a block below (and opens the / menu), ⋮⋮ drags the block. */
-function BlockHandle({ editor }: { editor: Editor }) {
+/**
+ * Notion's block handle: + adds a block below (and opens the / menu), ⋮⋮ drags the block
+ * or, on click, opens the block menu. The drag-handle extension finds this element by id,
+ * moves it beside the hovered block and starts the drag; every part carries "drag-handle"
+ * so moving onto + or ⋮⋮ doesn't count as leaving the editor.
+ */
+function BlockHandle({ editor }: { editor: Editor | null }) {
+	const handle = useRef<HTMLDivElement>(null);
 	const block = useRef<{ pos: number; size: number } | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
-	const openMenu = setMenuOpen;
+
+	/** The top-level block beside the handle right now. */
+	const blockBeside = () => {
+		const box = handle.current?.getBoundingClientRect();
+		if (!editor || !box) return null;
+		const hit = editor.view.posAtCoords({
+			left: box.right + 60,
+			top: box.top + 12,
+		});
+		if (!hit) return null;
+		const at = hit.inside >= 0 ? hit.inside : hit.pos;
+		const $at = editor.state.doc.resolve(at);
+		const pos = $at.depth ? $at.before(1) : at;
+		const node = editor.state.doc.nodeAt(pos);
+		return node ? { pos, size: node.nodeSize } : null;
+	};
+	const openMenu = () => {
+		block.current = blockBeside();
+		if (block.current) setMenuOpen(true);
+	};
 	const at = () => block.current;
 
 	return (
-		<DragHandle
-			editor={editor}
-			className="block-handle"
-			onNodeChange={({ node, pos }) => {
-				if (!menuOpen)
-					block.current = node ? { pos, size: node.nodeSize } : null;
-			}}
+		<div
+			ref={handle}
+			id={HANDLE_ID}
+			className="block-handle drag-handle"
+			hidden={!editor}
 		>
 			<button
 				type="button"
-				className="ibtn ibtn-xs"
+				className="ibtn ibtn-xs drag-handle"
 				aria-label="Add a block below"
 				data-tip="Add a block below"
+				draggable={false}
 				onClick={() => {
-					const b = at();
-					if (!b) return;
+					const b = blockBeside();
+					if (!editor || !b) return;
 					const end = b.pos + b.size;
 					editor
 						.chain()
@@ -358,32 +404,31 @@ function BlockHandle({ editor }: { editor: Editor }) {
 				}}
 			>
 				<span
-					className="icon-[hugeicons--plus-sign] size-4"
+					className="icon-[hugeicons--plus-sign] size-4 drag-handle"
 					aria-hidden="true"
 				/>
 			</button>
-			{/* drag to move; click (or tap, where dragging isn't possible) for the block menu */}
 			{/* biome-ignore lint/a11y/useSemanticElements: some browsers won't start a drag from a <button>; role, tabIndex and keys give it button behaviour */}
 			<span
 				role="button"
 				tabIndex={0}
-				className="ibtn ibtn-xs grip"
+				className="ibtn ibtn-xs grip drag-handle"
 				aria-label="Drag to move, or click for block options"
 				data-tip="Drag to move · Click for options"
-				onClick={() => openMenu(true)}
+				onClick={openMenu}
 				onKeyDown={(e) => {
 					if (e.key === "Enter" || e.key === " ") {
 						e.preventDefault();
-						openMenu(true);
+						openMenu();
 					}
 				}}
 			>
 				<span
-					className="icon-[hugeicons--drag-drop-vertical] size-4"
+					className="icon-[hugeicons--drag-drop-vertical] size-4 drag-handle"
 					aria-hidden="true"
 				/>
 			</span>
-			<Menu open={menuOpen} onOpenChange={openMenu}>
+			<Menu open={menuOpen} onOpenChange={setMenuOpen}>
 				<MenuTrigger asChild>
 					<span className="block-anchor" aria-hidden="true" />
 				</MenuTrigger>
@@ -395,7 +440,7 @@ function BlockHandle({ editor }: { editor: Editor }) {
 							icon={c.icon}
 							onSelect={() => {
 								const b = at();
-								if (b)
+								if (b && editor)
 									c.run(
 										editor
 											.chain()
@@ -412,7 +457,7 @@ function BlockHandle({ editor }: { editor: Editor }) {
 						icon="icon-[solar--arrow-up-linear]"
 						onSelect={() => {
 							const b = at();
-							if (b) moveBlock(editor, b.pos, -1);
+							if (b && editor) moveBlock(editor, b.pos, -1);
 						}}
 					>
 						Move up
@@ -421,7 +466,7 @@ function BlockHandle({ editor }: { editor: Editor }) {
 						icon="icon-[solar--arrow-down-linear]"
 						onSelect={() => {
 							const b = at();
-							if (b) moveBlock(editor, b.pos, 1);
+							if (b && editor) moveBlock(editor, b.pos, 1);
 						}}
 					>
 						Move down
@@ -430,8 +475,8 @@ function BlockHandle({ editor }: { editor: Editor }) {
 						icon="icon-[solar--copy-linear]"
 						onSelect={() => {
 							const b = at();
-							const node = b && editor.state.doc.nodeAt(b.pos);
-							if (b && node)
+							const node = b && editor?.state.doc.nodeAt(b.pos);
+							if (b && node && editor)
 								editor.view.dispatch(
 									editor.state.tr.insert(b.pos + b.size, node),
 								);
@@ -444,7 +489,7 @@ function BlockHandle({ editor }: { editor: Editor }) {
 						danger
 						onSelect={() => {
 							const b = at();
-							if (b)
+							if (b && editor)
 								editor.view.dispatch(
 									editor.state.tr.delete(b.pos, b.pos + b.size),
 								);
@@ -454,7 +499,7 @@ function BlockHandle({ editor }: { editor: Editor }) {
 					</MenuItem>
 				</MenuContent>
 			</Menu>
-		</DragHandle>
+		</div>
 	);
 }
 

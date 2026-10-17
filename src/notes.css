@@ -289,13 +289,19 @@
 }
 
 /* ---- block handle (+ and drag) ---- */
+/* the drag-handle extension places it in screen coordinates and toggles .hide */
 .block-handle {
+	position: fixed;
+	z-index: 30;
 	display: flex;
 	align-items: center;
 	gap: 1px;
-	padding-right: 6px;
 	color: var(--q-text-4);
 	transition: opacity var(--q-dur);
+}
+.block-handle.hide {
+	opacity: 0;
+	pointer-events: none;
 }
 .block-handle .ibtn {
 	color: var(--q-text-4);
@@ -313,6 +319,10 @@
 .note-body .tiptap .ProseMirror-selectednode {
 	background: color-mix(in srgb, var(--q-accent) 10%, transparent);
 	border-radius: var(--q-r-sm);
+}
+/* while a block is dragged, the editor shows where it will land */
+.note-body .tiptap.dragging .ProseMirror-selectednode {
+	opacity: 0.5;
 }
 
 /* ---- cover ---- */
@@ -495,4 +505,16 @@
 	width: 0;
 	height: 22px;
 	align-self: center;
+}
+
+/* while the editor starts */
+.note-body-sk {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding-top: 6px;
+}
+.note-body-sk .sk {
+	display: block;
+	height: 13px;
 }
