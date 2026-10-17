@@ -88,7 +88,7 @@ function SignIn() {
 					className="icon-[solar--shield-keyhole-bold] size-4 shrink-0"
 					aria-hidden="true"
 				/>
-				Every account is protected with two-step verification.
+				Add an authenticator app or passkey in Settings for extra security.
 			</p>
 		</AuthShell>
 	);
