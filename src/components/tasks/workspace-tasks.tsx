@@ -1,10 +1,8 @@
-import type { TypedDocumentNode } from "@apollo/client";
-import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { type ReactNode, useEffect, useState } from "react";
 import { projectColor } from "#/components/projects/bits";
-import { TASKS, type TaskItem } from "#/graphql/operations";
+import { OVERVIEW, TASKS, type TaskItem } from "#/graphql/operations";
 import { isClosed } from "#/lib/tasks";
 import {
 	applyView,
@@ -29,37 +27,6 @@ import { ALL_FIELDS, useViewState, ViewToolbar } from "./toolbar";
 // Calendar and Timeline): the same views as a project, across every project you can see.
 
 export type WorkspaceTasksKind = "tasks" | "my" | "calendar" | "timeline";
-
-const MILESTONES: TypedDocumentNode<
-	{
-		workspace: {
-			id: string;
-			projects: {
-				id: string;
-				title: string;
-				color: string | null;
-				milestones: { id: string; name: string; date: string }[];
-			}[];
-		} | null;
-	},
-	{ slug: string }
-> = gql`
-	query WorkspaceMilestones($slug: String!) {
-		workspace(slug: $slug) {
-			id
-			projects {
-				id
-				title
-				color
-				milestones {
-					id
-					name
-					date
-				}
-			}
-		}
-	}
-`;
 
 export function WorkspaceTasks({
 	slug,
@@ -391,7 +358,7 @@ function WsTimeline({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 	const [view, setView] = useViewState("tl");
 	const [tl, setTl] = useTimelineState("ws", "project");
 	const [todayTick, setTodayTick] = useState(0);
-	const { data } = useQuery(MILESTONES, { variables: { slug } });
+	const { data } = useQuery(OVERVIEW, { variables: { slug } });
 	const milestones = (data?.workspace?.projects ?? []).flatMap((p) =>
 		p.milestones.map((m) => ({
 			...m,

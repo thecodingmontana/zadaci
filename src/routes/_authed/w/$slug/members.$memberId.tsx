@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { format, isBefore, startOfToday } from "date-fns";
 import { z } from "zod";
+import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { StatusIcon } from "#/components/q/status-icon";
 import { MemberActions } from "#/components/settings/workspace-group";
@@ -12,7 +13,6 @@ import {
 	type ProfileTask,
 	SETTINGS,
 } from "#/graphql/operations";
-import { PCOLORS } from "#/lib/onboarding";
 import { can } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { reloadOnEnter } from "#/lib/routing";
@@ -272,7 +272,7 @@ function MemberPage() {
 										className="pico"
 										style={
 											{
-												"--c": PCOLORS[p.color ?? ""] ?? PCOLORS.indigo,
+												"--c": projectColor(p.color),
 											} as React.CSSProperties
 										}
 									>
@@ -354,7 +354,7 @@ function TaskRow({ slug, t }: { slug: string; t: ProfileTask }) {
 					className="pdot"
 					style={
 						{
-							"--c": PCOLORS[t.projectColor ?? ""] ?? PCOLORS.indigo,
+							"--c": projectColor(t.projectColor),
 						} as React.CSSProperties
 					}
 				/>

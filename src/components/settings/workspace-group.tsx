@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client/react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
+import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { ConfirmModal } from "#/components/q/confirm";
 import {
@@ -26,8 +27,14 @@ import {
 	UPDATE_MEMBER_ROLE,
 	UPDATE_WORKSPACE,
 } from "#/graphql/operations";
-import { EMAIL_RE, PCOLORS } from "#/lib/onboarding";
-import { can, PERMISSIONS, type Permission, ROLES } from "#/lib/permissions";
+import { EMAIL_RE } from "#/lib/onboarding";
+import {
+	can,
+	canInvite,
+	PERMISSIONS,
+	type Permission,
+	ROLES,
+} from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -264,9 +271,7 @@ export function InviteActions({ slug, id }: { slug: string; id: string }) {
 
 export function MembersSection({ slug, workspace, title }: SectionProps) {
 	const canAdmin = can(workspace.role, "manageRoles");
-	const canInvite =
-		can(workspace.role, "inviteMembers") ||
-		can(workspace.role, "inviteGuests", workspace.settings);
+	const mayInvite = canInvite(workspace.role, workspace.settings);
 	const [inviting, setInviting] = useState(false);
 	const people = workspace.members.length + workspace.invites.length;
 
@@ -277,7 +282,7 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 				lead={`${people} ${people === 1 ? "person has" : "people have"} access to ${workspace.name}.`}
 			/>
 			<div className="row" style={{ marginBottom: 12 }}>
-				{canInvite && (
+				{mayInvite && (
 					<button
 						type="button"
 						className="btn btn-primary"
@@ -553,7 +558,7 @@ export function TeamsGrid({
 									className="picon"
 									style={
 										{
-											"--c": PCOLORS[t.color ?? ""] ?? t.color ?? PCOLORS.teal,
+											"--c": projectColor(t.color, "teal"),
 										} as React.CSSProperties
 									}
 								>
@@ -685,7 +690,7 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 									className="picon"
 									style={
 										{
-											"--c": PCOLORS[p.color ?? ""] ?? PCOLORS.indigo,
+											"--c": projectColor(p.color),
 										} as React.CSSProperties
 									}
 								>

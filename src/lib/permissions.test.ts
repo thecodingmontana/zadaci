@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { can, hasRight, projectRight } from "./permissions";
+import { can, canInvite, hasRight, projectRight } from "./permissions";
 
 // The rules the server enforces; a change here should be deliberate.
 assert.equal(can("owner", "deleteWorkspace"), true);
@@ -10,6 +10,10 @@ assert.equal(can("member", "createProjects"), true);
 assert.equal(can("member", "createProjects", { permCreate: false }), false);
 assert.equal(can("moderator", "createProjects", { permCreate: false }), true);
 assert.equal(can("member", "inviteGuests", { permGuests: false }), false);
+assert.equal(canInvite("moderator", { permGuests: false }), true);
+assert.equal(canInvite("member"), true);
+assert.equal(canInvite("member", { permGuests: false }), false);
+assert.equal(canInvite("guest"), false);
 assert.equal(can("member", "inviteMembers"), false);
 assert.equal(can("guest", "editProjects"), false);
 assert.equal(can("guest", "createProjects"), false);

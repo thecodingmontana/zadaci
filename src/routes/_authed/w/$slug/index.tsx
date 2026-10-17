@@ -9,6 +9,7 @@ import {
 	PStatus,
 	projectColor,
 } from "#/components/projects/bits";
+import { progressOf } from "#/components/projects/project-card";
 import { ProjectModal } from "#/components/projects/project-modal";
 import { Av, AvStack } from "#/components/q/av";
 import { StatusIcon } from "#/components/q/status-icon";
@@ -24,7 +25,7 @@ import {
 	type TaskItem,
 	WORKSPACE,
 } from "#/graphql/operations";
-import { can } from "#/lib/permissions";
+import { can, canInvite } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
 import { isClosed } from "#/lib/tasks";
 import { cn } from "#/lib/utils";
@@ -130,8 +131,7 @@ function Home({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 	] as const;
 	const statsOf = (id: string) =>
 		pj.projectStats.find((s) => s.projectId === id);
-	const canInvite =
-		can(pj.role, "inviteMembers") || can(pj.role, "inviteGuests", pj.settings);
+	const mayInvite = canInvite(pj.role, pj.settings);
 	const canCreate = can(pj.role, "createProjects", pj.settings);
 
 	return (
@@ -149,7 +149,7 @@ function Home({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 					</p>
 				</div>
 				<div className="acts">
-					{canInvite && (
+					{mayInvite && (
 						<button
 							type="button"
 							className="btn btn-secondary hide-m"
@@ -360,9 +360,7 @@ function Home({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 								<tbody>
 									{active.map((p) => {
 										const s = statsOf(p.id);
-										const pct = s?.total
-											? Math.round((s.done / s.total) * 100)
-											: 0;
+										const pct = progressOf(s);
 										return (
 											<tr key={p.id}>
 												<td style={{ paddingLeft: 14 }}>
@@ -505,7 +503,7 @@ function Home({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 				</div>
 			</div>
 
-			{canInvite && (
+			{mayInvite && (
 				<InviteModal
 					open={inviting}
 					onOpenChange={setInviting}

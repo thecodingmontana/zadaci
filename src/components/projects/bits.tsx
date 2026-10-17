@@ -6,8 +6,10 @@ import { cn } from "#/lib/utils";
 
 // Small project pieces from the reference helpers (pIcon, pStatus, progBar).
 
-export const projectColor = (color: string | null | undefined) =>
-	PCOLORS[color ?? ""] ?? color ?? PCOLORS.indigo;
+export const projectColor = (
+	color: string | null | undefined,
+	fallback: keyof typeof PCOLORS = "indigo",
+) => PCOLORS[color ?? ""] ?? color ?? PCOLORS[fallback];
 
 export function PIcon({
 	icon,

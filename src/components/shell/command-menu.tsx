@@ -11,6 +11,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";
 import { StatusIcon } from "#/components/q/status-icon";
@@ -23,7 +24,6 @@ import {
 } from "#/graphql/operations";
 import { isDark, setAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
-import { PCOLORS } from "#/lib/onboarding";
 import { cn } from "#/lib/utils";
 import { useShell } from "./shell-state";
 
@@ -568,7 +568,7 @@ function PaletteDialog({
 							className="pdot"
 							style={
 								{
-									"--c": PCOLORS[p.color ?? ""] ?? PCOLORS.indigo,
+									"--c": projectColor(p.color),
 								} as React.CSSProperties
 							}
 						/>

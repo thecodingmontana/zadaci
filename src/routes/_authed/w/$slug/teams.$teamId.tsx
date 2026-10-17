@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
+import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { InviteModal } from "#/components/settings/workspace-group";
 import { TeamModal } from "#/components/teams/team-modal";
@@ -9,8 +10,7 @@ import {
 	SETTINGS,
 	WORKSPACE_PROJECTS,
 } from "#/graphql/operations";
-import { PCOLORS } from "#/lib/onboarding";
-import { can } from "#/lib/permissions";
+import { can, canInvite } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { pstat } from "#/lib/projects";
 import { reloadOnEnter } from "#/lib/routing";
@@ -63,9 +63,7 @@ function TeamPage() {
 	const team = workspace?.teams.find((t) => t.id === teamId);
 	if (!workspace || !team) return null;
 	const canAdmin = can(workspace.role, "manageTeams");
-	const canInvite =
-		can(workspace.role, "inviteMembers") ||
-		can(workspace.role, "inviteGuests", workspace.settings);
+	const mayInvite = canInvite(workspace.role, workspace.settings);
 	const stats = statsData.workspace?.memberStats ?? [];
 	const members = workspace.members.filter((m) =>
 		stats.find((s) => s.memberId === m.id)?.teamIds.includes(team.id),
@@ -73,7 +71,7 @@ function TeamPage() {
 	const projects = (projectsData.workspace?.projects ?? []).filter(
 		(p) => p.teamId === team.id,
 	);
-	const color = PCOLORS[team.color ?? ""] ?? team.color ?? PCOLORS.teal;
+	const color = projectColor(team.color, "teal");
 
 	return (
 		<div className="page">
@@ -112,7 +110,7 @@ function TeamPage() {
 							Edit team
 						</button>
 					)}
-					{canInvite && (
+					{mayInvite && (
 						<button
 							type="button"
 							className="btn btn-secondary"
@@ -145,7 +143,7 @@ function TeamPage() {
 									className="pico"
 									style={
 										{
-											"--c": PCOLORS[p.color ?? ""] ?? PCOLORS.indigo,
+											"--c": projectColor(p.color),
 										} as React.CSSProperties
 									}
 								>
@@ -209,7 +207,7 @@ function TeamPage() {
 					stats={stats}
 				/>
 			)}
-			{canInvite && (
+			{mayInvite && (
 				<InviteModal
 					open={inviting}
 					onOpenChange={setInviting}

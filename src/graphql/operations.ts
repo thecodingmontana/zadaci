@@ -1366,6 +1366,8 @@ export const OVERVIEW: TypedDocumentNode<
 			invites: { id: string }[];
 			projects: {
 				id: string;
+				title: string;
+				color: string | null;
 				milestones: { id: string; name: string; date: string }[];
 			}[];
 		} | null;
@@ -1381,6 +1383,8 @@ export const OVERVIEW: TypedDocumentNode<
 			}
 			projects {
 				id
+				title
+				color
 				milestones {
 					id
 					name

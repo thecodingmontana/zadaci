@@ -60,6 +60,12 @@ export function can(
 	});
 }
 
+/** Admins invite anyone; members may invite guests when the workspace allows it. */
+export const canInvite = (
+	role: string | null | undefined,
+	settings?: Partial<Settings> | null,
+) => can(role, "inviteMembers") || can(role, "inviteGuests", settings);
+
 // ---- project rights (the Share modal) ----
 
 export const PROJECT_RIGHTS = ["view", "comment", "edit", "full"] as const;

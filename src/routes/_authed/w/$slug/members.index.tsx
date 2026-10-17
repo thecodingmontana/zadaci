@@ -23,7 +23,7 @@ import {
 	SETTINGS,
 	type SettingsData,
 } from "#/graphql/operations";
-import { can, ROLES } from "#/lib/permissions";
+import { can, canInvite, ROLES } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { reloadOnEnter } from "#/lib/routing";
 import { ago } from "#/lib/time";
@@ -73,9 +73,7 @@ function MembersPage() {
 	const workspace = data.workspace;
 	if (!workspace) return null;
 	const canAdmin = can(workspace.role, "manageRoles");
-	const canInvite =
-		can(workspace.role, "inviteMembers") ||
-		can(workspace.role, "inviteGuests", workspace.settings);
+	const mayInvite = canInvite(workspace.role, workspace.settings);
 	const canTeams = can(workspace.role, "manageTeams");
 	const stats = statsData.workspace?.memberStats ?? [];
 	const teamMembers = (teamId: string) =>
@@ -93,7 +91,7 @@ function MembersPage() {
 						{workspace.invites.length} pending
 					</p>
 				</div>
-				{canInvite && (
+				{mayInvite && (
 					<div className="acts">
 						<button
 							type="button"
@@ -175,7 +173,7 @@ function MembersPage() {
 					stats={stats}
 				/>
 			)}
-			{canInvite && (
+			{mayInvite && (
 				<InviteModal
 					open={inviting}
 					onOpenChange={setInviting}

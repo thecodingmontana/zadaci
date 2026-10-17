@@ -61,10 +61,7 @@ function OverviewPage() {
 		.sort((a, b) => b.ts.length - a.ts.length);
 	const maxL = Math.max(...load.map((l) => l.ts.length), 1);
 	const milestones = ov.projects
-		.flatMap((p) => {
-			const project = pj.projects.find((x) => x.id === p.id);
-			return project ? p.milestones.map((m) => ({ ...m, p: project })) : [];
-		})
+		.flatMap((p) => p.milestones.map((m) => ({ ...m, p })))
 		.filter((m) => daysUntil(m.date) >= 0)
 		.sort((a, b) => a.date.localeCompare(b.date))
 		.slice(0, 6);

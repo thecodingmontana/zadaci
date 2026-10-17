@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactElement, useState } from "react";
+import { projectColor } from "#/components/projects/bits";
 import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { Av } from "#/components/q/av";
 import {
@@ -23,7 +24,6 @@ import type {
 } from "#/graphql/operations";
 import { setAppearance, useAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
-import { PCOLORS } from "#/lib/onboarding";
 import { can, type Permission } from "#/lib/permissions";
 import { pstat } from "#/lib/projects";
 import { cn } from "#/lib/utils";
@@ -388,7 +388,7 @@ export function AppSidebar({
 						const base = `/w/${slug}/p/${p.id}`;
 						const on = pathname === base || pathname.startsWith(`${base}/`);
 						const open = expanded[p.id] ?? false;
-						const color = PCOLORS[p.color ?? ""] ?? PCOLORS.indigo;
+						const color = projectColor(p.color);
 						return (
 							<div key={p.id} className="sproj">
 								<div className={cn("sitem", on && "on")}>
