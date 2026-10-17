@@ -4276,8 +4276,10 @@ table.tbl {
 }
 .drawer.full {
   width: min(980px, calc(100vw - 48px));
-  right: 50%;
-  transform: translateX(50%);
+  /* centred with margins, not a transform: the modalIn animation's transform would undo it */
+  left: 0;
+  right: 0;
+  margin-inline: auto;
   top: 24px;
   bottom: 24px;
   border-radius: 12px;
@@ -5070,5 +5072,18 @@ table.tbl {
     inset: 0;
     z-index: 48;
     background: var(--q-surface);
+  }
+}
+
+/* Touch screens have no hover: keep the card actions visible and clear of the title */
+@media (hover: none) {
+  .kcard .hacts {
+    display: flex;
+  }
+  .kcard .title {
+    padding-right: 76px;
+  }
+  .bcol-h .acts {
+    opacity: 1;
   }
 }

@@ -183,13 +183,16 @@ function Column({
 	showProject?: boolean;
 	onCollapse: () => void;
 }) {
-	const { update, canEdit } = useTaskView();
+	const { update, canEdit, projects } = useTaskView();
 	const { setNodeRef, isOver } = useDroppable({
 		id: `col:${col.key}`,
 		data: { group: col.key },
 	});
 	const [composing, setComposing] = useState(false);
-	const editable = projectId ? canEdit(projectId) : false;
+	// across projects (the Tasks page) new cards go to the first project you can edit,
+	// like the reference falls back to a default project
+	const target = projectId ?? projects.find((p) => canEdit(p.id))?.id;
+	const editable = !!target && canEdit(target);
 	const done = col.key === "completed";
 	return (
 		<section className={cn("bcol", isOver && "over")} aria-label={col.name}>
@@ -280,10 +283,10 @@ function Column({
 							showProject={showProject}
 						/>
 					))}
-					{composing && projectId ? (
+					{composing && target ? (
 						<Composer
 							status={col.key}
-							projectId={projectId}
+							projectId={target}
 							onClose={() => setComposing(false)}
 						/>
 					) : (
