@@ -17,8 +17,6 @@ export const Route = createFileRoute("/auth/two-factor/")({
 	beforeLoad: async () => {
 		if (await getSession()) throw redirect({ to: "/workspace" });
 	},
-	// signed-in visitors are redirected; no-store stops Back showing a stale copy that skips it
-	headers: () => ({ "Cache-Control": "no-store" }),
 	head: () => ({
 		meta: [{ title: "Two-step verification - Zadaci" }, NOINDEX],
 	}),

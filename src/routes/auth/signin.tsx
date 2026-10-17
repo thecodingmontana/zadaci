@@ -19,8 +19,6 @@ export const Route = createFileRoute("/auth/signin")({
 		const session = await getSession();
 		if (session) throw redirect({ to: "/workspace" });
 	},
-	// signed-in visitors are redirected; no-store stops Back showing a stale copy that skips it
-	headers: () => ({ "Cache-Control": "no-store" }),
 	head: () => ({ meta: [{ title: "Sign in - Zadaci" }, NOINDEX] }),
 	component: SignIn,
 });
