@@ -13,8 +13,9 @@ import { ProjectModal } from "#/components/projects/project-modal";
 import { Av, AvStack } from "#/components/q/av";
 import { StatusIcon } from "#/components/q/status-icon";
 import { InviteModal } from "#/components/settings/workspace-group";
-import { Due, PrIcon } from "#/components/tasks/bits";
+import { PrIcon } from "#/components/tasks/bits";
 import { TaskViewProvider, useTaskView } from "#/components/tasks/context";
+import { MiniRow } from "#/components/tasks/mini-row";
 import { useNewTask } from "#/components/tasks/new-task";
 import {
 	ACTIVITY,
@@ -284,7 +285,7 @@ function Home({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 							</div>
 						</div>
 						{cur.length ? (
-							cur.map((t) => <MiniRow key={t.id} t={t} />)
+							cur.map((t) => <MiniRow key={t.id} t={t} av={false} />)
 						) : (
 							<div className="empty-state sm">
 								<div className="glyph">
@@ -521,48 +522,6 @@ function Home({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 					teams={pj.teams}
 				/>
 			)}
-		</div>
-	);
-}
-
-/** One task line (reference miniRow): complete, status, title, project, priority, due. */
-function MiniRow({ t }: { t: TaskItem }) {
-	const { openTask, project, update, canEdit } = useTaskView();
-	const p = project(t.projectId);
-	const done = t.status === "completed";
-	return (
-		// biome-ignore lint/a11y/useSemanticElements: the row holds a checkbox, so it can't be a <button>
-		<div
-			className={cn("mini", done && "done")}
-			role="button"
-			tabIndex={0}
-			onClick={() => openTask(t.id)}
-			onKeyDown={(e) => {
-				if (e.key === "Enter") openTask(t.id);
-			}}
-		>
-			<input
-				type="checkbox"
-				className="check round"
-				checked={done}
-				disabled={!canEdit(t.projectId)}
-				aria-label={`Complete ${t.name}`}
-				onClick={(e) => e.stopPropagation()}
-				onChange={() => update(t, { status: done ? "todo" : "completed" })}
-			/>
-			<StatusIcon status={t.status} />
-			<span className="tt">{t.name}</span>
-			<span className="pj hide-m">
-				<span
-					className="pdot"
-					style={{ "--c": projectColor(p?.color) } as React.CSSProperties}
-				/>
-				<span className="trunc">{p?.title}</span>
-			</span>
-			<PrIcon p={t.priority} />
-			<span style={{ width: 74, textAlign: "right" }} className="hide-m">
-				<Due day={t.dueDate} status={t.status} icon={false} />
-			</span>
 		</div>
 	);
 }

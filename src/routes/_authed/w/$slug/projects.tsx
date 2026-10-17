@@ -8,13 +8,13 @@ import {
 import { useState } from "react";
 import { z } from "zod";
 import { PIcon, ProgBar, PStatus } from "#/components/projects/bits";
+import { ProjectCard, progressOf } from "#/components/projects/project-card";
 import { ProjectModal } from "#/components/projects/project-modal";
 import { Av, AvStack } from "#/components/q/av";
 import { Select } from "#/components/settings/ui";
 import { ProjectMenu } from "#/components/shell/project-menu";
 import {
 	PROJECTS,
-	type ProjectStats,
 	type ProjectSummary,
 	type SettingsMember,
 } from "#/graphql/operations";
@@ -58,9 +58,6 @@ export const Route = createFileRoute("/_authed/w/$slug/projects")({
 	head: () => ({ meta: [{ title: "Projects - Zadaci" }] }),
 	component: ProjectsPage,
 });
-
-const progressOf = (s: ProjectStats | undefined) =>
-	s?.total ? Math.round((s.done / s.total) * 100) : 0;
 
 function ProjectsPage() {
 	const { slug } = Route.useParams();
@@ -180,106 +177,15 @@ function ProjectsPage() {
 			<div className="pgrid">
 				{projects.map((p) => {
 					const s = statsOf(p.id);
-					const pct = progressOf(s);
 					return (
-						// biome-ignore lint/a11y/noStaticElementInteractions: the title link is the keyboard target; the card is a bigger click area
-						// biome-ignore lint/a11y/useKeyWithClickEvents: same as above
-						<div key={p.id} className="pcard" onClick={() => open(p)}>
-							<div className="row">
-								<PIcon icon={p.icon} color={p.color} />
-								<div className="grow" style={{ minWidth: 0 }}>
-									<div className="row" style={{ gap: 6 }}>
-										<Link
-											to="/w/$slug/p/$projectId"
-											params={{ slug, projectId: p.id }}
-											className="trunc"
-											style={{ fontWeight: 600, fontSize: 14 }}
-											onClick={(e) => e.stopPropagation()}
-										>
-											{p.title}
-										</Link>
-										{p.isFavorite && (
-											<span
-												style={{
-													color: "var(--q-amber)",
-													display: "inline-flex",
-												}}
-												role="img"
-												aria-label="Favorite"
-											>
-												<span
-													className="icon-[solar--star-bold] size-3"
-													aria-hidden="true"
-												/>
-											</span>
-										)}
-										{p.access === "private" && (
-											<span
-												className="faint"
-												style={{ display: "inline-flex" }}
-												data-tip="Private project"
-												role="img"
-												aria-label="Private project"
-											>
-												<span
-													className="icon-[solar--lock-keyhole-linear] size-3"
-													aria-hidden="true"
-												/>
-											</span>
-										)}
-									</div>
-								</div>
-								<PStatus status={p.status} />
-							</div>
-							<div className="desc">
-								{p.description || "No description yet."}
-							</div>
-							<div className="row" style={{ gap: 10 }}>
-								<ProgBar
-									value={pct}
-									tone={
-										p.status === "complete"
-											? "green"
-											: p.status === "risk"
-												? "red"
-												: undefined
-									}
-								/>
-								<span className="num" style={{ fontSize: 12, fontWeight: 500 }}>
-									{pct}%
-								</span>
-							</div>
-							<div className="foot">
-								<span className="row" style={{ gap: 4 }}>
-									<span
-										className="icon-[solar--check-circle-linear] size-3"
-										aria-hidden="true"
-									/>
-									{s?.done ?? 0}/{s?.total ?? 0}
-								</span>
-								<span className="row" style={{ gap: 4 }}>
-									<span
-										className="icon-[solar--calendar-linear] size-3"
-										aria-hidden="true"
-									/>
-									{fmtDay(p.dueDate)}
-								</span>
-								<span
-									className="row hide-m"
-									style={{ gap: 4 }}
-									suppressHydrationWarning
-								>
-									<span
-										className="icon-[solar--clock-circle-linear] size-3"
-										aria-hidden="true"
-									/>
-									{s?.lastActivityAt ? ago(s.lastActivityAt) : "—"}
-								</span>
-								<span className="sp" />
-								<AvStack people={people(s?.memberIds ?? [])} max={3} />
-							</div>
-							{menu(p, "ibtn ibtn-sm more")}
-						</div>
+						<ProjectCard
+							key={p.id}
+							slug={slug}
+							p={p}
+							s={s}
+							people={people(s?.memberIds ?? [])}
+							menu={menu(p, "ibtn ibtn-sm more")}
+						/>
 					);
 				})}
 			</div>
