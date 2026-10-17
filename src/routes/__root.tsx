@@ -12,9 +12,12 @@ import { APPEARANCE_SCRIPT } from "#/lib/appearance";
 import { SITE_DESCRIPTION, SITE_URL } from "#/lib/seo";
 import appCss from "../styles.css?url";
 
+const pageUrl = (matches: { pathname: string }[]) =>
+	`${SITE_URL}${matches[matches.length - 1]?.pathname ?? "/"}`;
+
 export const Route =
 	createRootRouteWithContext<ApolloClientIntegration.RouterContext>()({
-		head: () => ({
+		head: ({ matches }) => ({
 			meta: [
 				{
 					charSet: "utf-8",
@@ -43,6 +46,9 @@ export const Route =
 				{ name: "twitter:title", content: "Zadaci" },
 				{ name: "twitter:description", content: SITE_DESCRIPTION },
 				{ name: "twitter:image", content: `${SITE_URL}/og.png` },
+				// every page's own address, for link previews (pages can still override it)
+				{ property: "og:url", content: pageUrl(matches) },
+				{ name: "twitter:url", content: pageUrl(matches) },
 			],
 			links: [
 				{
