@@ -1,6 +1,8 @@
 // A note's body is Tiptap JSON. The server only stores documents built from the blocks and
 // marks the editor offers, so a hand-made request can't smuggle in scripts or odd links.
 
+import { isEmbedSrc, isImageSrc, isYoutubeSrc } from "./note-embeds";
+
 export const MAX_DOC_BYTES = 500_000;
 
 const NODES = new Set([
@@ -17,7 +19,24 @@ const NODES = new Set([
 	"codeBlock",
 	"horizontalRule",
 	"hardBreak",
+	"image",
+	"youtube",
+	"embed",
+	"callout",
+	"table",
+	"tableRow",
+	"tableHeader",
+	"tableCell",
+	"details",
+	"detailsSummary",
+	"detailsContent",
 ]);
+/** blocks that load something from elsewhere, and which addresses they may use */
+const SOURCES: Record<string, (src: unknown) => boolean> = {
+	image: isImageSrc,
+	youtube: isYoutubeSrc,
+	embed: isEmbedSrc,
+};
 const MARKS = new Set([
 	"bold",
 	"italic",
@@ -40,13 +59,19 @@ export type DocNode = {
 	content?: DocNode[];
 };
 
-/** Plain attribute values only (strings, numbers, booleans, null). */
+const scalar = (v: unknown) =>
+	v === null || ["string", "number", "boolean"].includes(typeof v);
+
+/** Plain attribute values only: scalars, or lists of numbers (table column widths). */
 function plain(attrs: unknown): Record<string, unknown> | undefined {
 	if (attrs == null) return undefined;
 	if (typeof attrs !== "object" || Array.isArray(attrs))
 		throw new Error("Bad note content");
 	for (const v of Object.values(attrs))
-		if (v !== null && !["string", "number", "boolean"].includes(typeof v))
+		if (
+			!scalar(v) &&
+			!(Array.isArray(v) && v.every((x) => typeof x === "number"))
+		)
 			throw new Error("Bad note content");
 	return attrs as Record<string, unknown>;
 }
@@ -72,6 +97,9 @@ function walk(node: unknown, out: string[], depth: number): DocNode {
 	const content = n.content?.map((c) => walk(c, out, depth + 1));
 	if (LINES.has(n.type)) out.push("\n");
 	const attrs = plain(n.attrs);
+	const allowed = SOURCES[n.type];
+	if (allowed && !allowed(attrs?.src))
+		throw new Error(`That ${n.type} can't be shown in a note`);
 	return {
 		type: n.type,
 		...(n.text !== undefined && { text: n.text }),

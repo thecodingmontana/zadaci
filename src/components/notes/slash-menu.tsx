@@ -1,4 +1,4 @@
-import { computePosition, flip, offset, shift } from "@floating-ui/dom";
+import { computePosition, flip, offset, shift, size } from "@floating-ui/dom";
 import { type ChainedCommands, Extension, ReactRenderer } from "@tiptap/react";
 import Suggestion, { type SuggestionProps } from "@tiptap/suggestion";
 import {
@@ -9,11 +9,14 @@ import {
 	useState,
 } from "react";
 import { cn } from "#/lib/utils";
+import { requestInsert } from "./blocks";
 
 // Notion-style "/" menu: type / in the body to pick a block, filter by typing, then
 // Enter or click. The typed "/query" is removed before the block is applied.
 
 type Command = {
+	/** section in the menu; Basic blocks when left out */
+	group?: "Media" | "Advanced";
 	title: string;
 	hint: string;
 	icon: string;
@@ -104,6 +107,63 @@ export const SLASH_COMMANDS: Command[] = [
 		keys: "---",
 		run: (c) => c.setHorizontalRule(),
 	},
+	{
+		group: "Media",
+		title: "Image",
+		alias: "picture photo upload",
+		hint: "Upload or link an image",
+		icon: "icon-[hugeicons--image-01]",
+		run: (c) => {
+			requestInsert("image");
+			return c;
+		},
+	},
+	{
+		group: "Media",
+		title: "YouTube",
+		alias: "video",
+		hint: "Embed a YouTube video",
+		icon: "icon-[hugeicons--youtube]",
+		run: (c) => {
+			requestInsert("youtube");
+			return c;
+		},
+	},
+	{
+		group: "Media",
+		title: "Embed",
+		alias: "vimeo loom figma codepen spotify map iframe",
+		hint: "Vimeo, Loom, Figma, CodePen, Spotify, Maps",
+		icon: "icon-[hugeicons--link-square-02]",
+		run: (c) => {
+			requestInsert("embed");
+			return c;
+		},
+	},
+	{
+		group: "Advanced",
+		title: "Table",
+		alias: "grid rows columns",
+		hint: "A simple table",
+		icon: "icon-[hugeicons--table-01]",
+		run: (c) => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true }),
+	},
+	{
+		group: "Advanced",
+		title: "Callout",
+		alias: "note tip info warning",
+		hint: "Make writing stand out",
+		icon: "icon-[hugeicons--bulb]",
+		run: (c) => c.setNode("callout"),
+	},
+	{
+		group: "Advanced",
+		title: "Toggle list",
+		alias: "toggle details collapse accordion",
+		hint: "Hide content inside",
+		icon: "icon-[hugeicons--arrow-right-01]",
+		run: (c) => c.setDetails(),
+	},
 ];
 
 /** Commands whose name starts with the typed text first, then ones that contain it. */
@@ -162,32 +222,34 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
 		<div className="pop slash-menu" role="listbox" aria-label="Blocks">
 			<div className="slash-list" ref={list}>
 				{items.length ? (
-					<>
-						<div className="mh">Basic blocks</div>
-						{items.map((item, i) => (
-							<button
-								key={item.title}
-								type="button"
-								role="option"
-								aria-selected={i === index}
-								data-i={i}
-								title={item.hint}
-								className={cn("mi", i === index && "hl")}
-								onMouseEnter={() => setIndex(i)}
-								onMouseDown={(e) => e.preventDefault()}
-								onClick={() => command(item)}
-							>
-								<span
-									className={cn(item.icon, "i size-4 shrink-0")}
-									aria-hidden="true"
-								/>
-								<span className="grow trunc">{item.title}</span>
-								{item.keys && (
-									<span className="faint slash-keys">{item.keys}</span>
-								)}
-							</button>
-						))}
-					</>
+					items.map((item, i) => [
+						(i === 0 || items[i - 1]?.group !== item.group) && (
+							<div key={`h-${item.group ?? "basic"}`} className="mh">
+								{item.group ?? "Basic blocks"}
+							</div>
+						),
+						<button
+							key={item.title}
+							type="button"
+							role="option"
+							aria-selected={i === index}
+							data-i={i}
+							title={item.hint}
+							className={cn("mi", i === index && "hl")}
+							onMouseEnter={() => setIndex(i)}
+							onMouseDown={(e) => e.preventDefault()}
+							onClick={() => command(item)}
+						>
+							<span
+								className={cn(item.icon, "i size-4 shrink-0")}
+								aria-hidden="true"
+							/>
+							<span className="grow trunc">{item.title}</span>
+							{item.keys && (
+								<span className="faint slash-keys">{item.keys}</span>
+							)}
+						</button>,
+					])
 				) : (
 					<div className="faint" style={{ padding: "8px 10px" }}>
 						No matching blocks
@@ -202,20 +264,38 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
 	);
 });
 
-/** Sits the menu under the cursor, flipping above it near the bottom of the screen. */
+/**
+ * Sits the menu under the cursor, or above it when there's more room there, and caps its
+ * height to the space available. Runs after the menu has drawn, so it knows its own size.
+ */
 function place(
 	el: HTMLElement,
 	rect: (() => DOMRect | null) | null | undefined,
 ) {
-	const box = rect?.();
-	if (!box) return;
-	void computePosition({ getBoundingClientRect: () => box }, el, {
-		placement: "bottom-start",
-		strategy: "fixed",
-		middleware: [offset(6), flip(), shift({ padding: 8 })],
-	}).then(({ x, y }) =>
-		Object.assign(el.style, { left: `${x}px`, top: `${y}px` }),
-	);
+	requestAnimationFrame(() => {
+		const box = rect?.();
+		if (!box) return;
+		void computePosition({ getBoundingClientRect: () => box }, el, {
+			placement: "bottom-start",
+			strategy: "fixed",
+			middleware: [
+				offset(6),
+				flip({ padding: 8 }),
+				shift({ padding: 8 }),
+				size({
+					padding: 8,
+					apply: ({ availableHeight }) => {
+						el.style.setProperty(
+							"--slash-max",
+							`${Math.max(160, Math.min(380, availableHeight))}px`,
+						);
+					},
+				}),
+			],
+		}).then(({ x, y }) =>
+			Object.assign(el.style, { left: `${x}px`, top: `${y}px` }),
+		);
+	});
 }
 
 export const SlashCommands = Extension.create({

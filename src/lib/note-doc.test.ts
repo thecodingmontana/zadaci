@@ -39,3 +39,45 @@ test("drops fields the editor doesn't use", () => {
 	const { doc: clean } = checkDoc({ type: "doc", content: [], onload: "x" });
 	assert.deepEqual(clean, { type: "doc", content: [] });
 });
+
+test("images and embeds only keep addresses we allow", () => {
+	const img = (src: string) => doc({ type: "image", attrs: { src, alt: "" } });
+	assert.doesNotThrow(() =>
+		checkDoc(img("https://res.cloudinary.com/x/image/upload/a.png")),
+	);
+	assert.throws(() => checkDoc(img("javascript:alert(1)")), /can't be shown/);
+	assert.throws(
+		() =>
+			checkDoc(
+				doc({ type: "embed", attrs: { src: "https://evil.example.com" } }),
+			),
+		/can't be shown/,
+	);
+	assert.doesNotThrow(() =>
+		checkDoc(
+			doc({
+				type: "youtube",
+				attrs: { src: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" },
+			}),
+		),
+	);
+	assert.doesNotThrow(() =>
+		checkDoc(
+			doc({
+				type: "table",
+				content: [
+					{
+						type: "tableRow",
+						content: [
+							{
+								type: "tableCell",
+								attrs: { colspan: 1, rowspan: 1, colwidth: [120] },
+								content: [p(t("a"))],
+							},
+						],
+					},
+				],
+			}),
+		),
+	);
+});

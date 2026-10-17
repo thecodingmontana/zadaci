@@ -1,8 +1,16 @@
 import { CombinedGraphQLErrors } from "@apollo/client";
 import { useApolloClient, useMutation } from "@apollo/client/react";
+import {
+	Details,
+	DetailsContent,
+	DetailsSummary,
+} from "@tiptap/extension-details";
 import Highlight from "@tiptap/extension-highlight";
+import Image from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { TableKit } from "@tiptap/extension-table";
 import TextAlign from "@tiptap/extension-text-align";
+import Youtube from "@tiptap/extension-youtube";
 import { Placeholder } from "@tiptap/extensions";
 import {
 	type Editor,
@@ -30,6 +38,8 @@ import {
 import { randomGalleryCover } from "#/lib/note-covers";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { Callout, Embed } from "./blocks";
+import { InsertDialog } from "./insert-dialog";
 import { NoteActions } from "./note-actions";
 import { NoteCover } from "./note-cover";
 import { SLASH_COMMANDS, SlashCommands } from "./slash-menu";
@@ -151,6 +161,14 @@ export function NoteEditor({
 				placeholder: "Write something, or press / for blocks",
 			}),
 			SlashCommands,
+			Image.configure({ allowBase64: false }),
+			Youtube.configure({ nocookie: true, modestBranding: true }),
+			TableKit.configure({ table: { resizable: true } }),
+			Details.configure({ persist: true }),
+			DetailsSummary,
+			DetailsContent,
+			Callout,
+			Embed,
 			GlobalDragHandle.configure({
 				dragHandleSelector: `#${HANDLE_ID}`,
 				// the handle holds + and ⋮⋮, so it sits this far left of the block
@@ -285,6 +303,9 @@ export function NoteEditor({
 				{editor && editable && <SelectionMenu editor={editor} />}
 				{/* rendered before the editor starts: the drag-handle extension looks it up by id */}
 				{editable && <BlockHandle editor={editor} />}
+				{editor && editable && (
+					<InsertDialog slug={slug} noteId={note.id} editor={editor} />
+				)}
 				{/* the editor starts just after the page renders; hold its place meanwhile */}
 				{!editor && (
 					<div className="note-body-sk" aria-busy="true">
