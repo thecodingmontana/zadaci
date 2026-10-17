@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/notes.css"
+        ],
+        "createdAt": "2026-10-17T21:49:58.772Z",
+        "reason": "Claude: L223 is the blockquote left rule in the note editor; a left bar is the standard quote style (Notion uses it), not a card accent"
+      }
+    ]
+  }
+}
