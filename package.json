@@ -1,9 +1,41 @@
 {
   "name": "zadaci",
+  "version": "2.0.0",
   "private": true,
+  "description": "Zadaci is a collaborative project and task manager for teams: projects with board, list, table, calendar and timeline views, Notion-style notes, comments, files and role-based sharing.",
+  "keywords": [
+    "project-management",
+    "task-management",
+    "notes",
+    "kanban",
+    "collaboration",
+    "tanstack-start",
+    "react",
+    "graphql",
+    "apollo-client",
+    "drizzle",
+    "postgres",
+    "tiptap"
+  ],
+  "homepage": "https://github.com/thecodingmontana/zadaci#readme",
+  "bugs": {
+    "url": "https://github.com/thecodingmontana/zadaci/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thecodingmontana/zadaci.git"
+  },
+  "license": "MIT",
+  "author": "thecodingmontana",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "imports": {
     "#/*": "./src/*"
+  },
+  "directories": {
+    "test": "tests"
   },
   "scripts": {
     "dev": "vite dev --port 3000",
