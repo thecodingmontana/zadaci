@@ -225,3 +225,11 @@ test("bulk edits check the assignee first, so a bad one changes no task", async 
 	const ok = await gql(owner, BULK, { s: slug, ids, p: { priority: "high" } });
 	assert.equal(ok.data?.bulkUpdateTasks, 4);
 });
+
+test("completing a repeating task again after reopening it makes no second copy", async () => {
+	const { owner, slug, create } = await setup();
+	const id = (await create(owner, { title: "Weekly review", recur: "Weekly", dueDate: "2026-11-02" })).data?.createTask.id;
+	for (const status of ["completed", "todo", "completed"]) await gql(owner, UPDATE, { s: slug, id, p: { status } });
+	const copies = (await gql(owner, TASKS, { s: slug })).data?.workspace.tasks.filter((t: { title: string }) => t.title === "Weekly review");
+	assert.equal(copies.length, 2, "the original and one next copy");
+});

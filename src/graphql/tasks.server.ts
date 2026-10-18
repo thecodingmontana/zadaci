@@ -636,13 +636,20 @@ async function applyPatch(
 	for (const [verb, extra] of logs)
 		await taskActivity(actor, updated, verb, extra);
 
-	// A repeating task comes back: the next copy is due one interval later.
-	if (
+	// A repeating task comes back: the next copy is due one interval later. The repeat
+	// moves to the copy, so completing this one again (or twice at once) makes no extra copy.
+	const handedOn =
 		statusApplied &&
 		set.status === STATUS.COMPLETED &&
 		updated.recur &&
 		updated.due_date
-	) {
+			? await db
+					.update(tables.task)
+					.set({ recur: null })
+					.where(and(eq(tables.task.id, task.id), isNotNull(tables.task.recur)))
+					.returning({ id: tables.task.id })
+			: [];
+	if (handedOn.length && updated.recur && updated.due_date) {
 		const due = addDays(updated.due_date, RECUR_DAYS[updated.recur] ?? 7);
 		const [assignee] = await db
 			.select({ memberId: tables.task_assignees.member_id })
@@ -666,6 +673,7 @@ async function applyPatch(
 			estimate: updated.estimate,
 			recur: updated.recur,
 		});
+		return { ...updated, recur: null };
 	}
 	return updated;
 }
