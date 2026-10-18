@@ -18,6 +18,10 @@ assert.equal(can("member", "inviteMembers"), false);
 assert.equal(can("guest", "editProjects"), false);
 assert.equal(can("guest", "createProjects"), false);
 assert.equal(can(undefined, "createProjects"), false);
+assert.equal(can("member", "workspaceContent"), true);
+assert.equal(can("guest", "workspaceContent"), false);
+assert.equal(can("moderator", "manageAllContent"), true);
+assert.equal(can("member", "manageAllContent"), false);
 
 // project rights
 const open = { access: "workspace", isLead: false };

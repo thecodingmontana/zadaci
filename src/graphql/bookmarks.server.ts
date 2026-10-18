@@ -401,7 +401,8 @@ function planMove(
 		removed.length &&
 		!wanted.length &&
 		!hidden.length &&
-		(workspace.role === "guest" || bookmark.created_by !== workspace.memberId)
+		(!can(workspace.role, "workspaceContent") ||
+			bookmark.created_by !== workspace.memberId)
 	)
 		badInput(
 			"Only the person who saved it can take it out of every collection. Delete it, or file it somewhere else.",
@@ -598,7 +599,8 @@ export const bookmarksResolvers = {
 			const { rights } = await collectionsOf(workspace);
 			const collectionIds = editable(input.collectionIds ?? [], rights);
 			// guests only work inside projects, so their bookmarks need a collection
-			if (!collectionIds.length && workspace.role === "guest") forbidden();
+			if (!collectionIds.length && !can(workspace.role, "workspaceContent"))
+				forbidden();
 			// a quick add with just a link: read the rest from the page
 			const page = input.title ? null : await preview(user.id, url);
 			const [row] = await db.transaction(async (tx) => {
@@ -798,7 +800,7 @@ export const bookmarksResolvers = {
 			const { workspace } = await workspaceOf(ctx, args.slug);
 			const projectId = input.projectId ?? null;
 			if (projectId) await checkProject(workspace, projectId);
-			else if (workspace.role === "guest") forbidden();
+			else if (!can(workspace.role, "workspaceContent")) forbidden();
 			const [last] = await db
 				.select({
 					max: sql<number>`coalesce(max(${tables.bookmark_collection.sort_order}), 0)`,
@@ -852,7 +854,7 @@ export const bookmarksResolvers = {
 				// moving it between projects changes who can see its bookmarks
 				if (right !== "full") forbidden();
 				if (patch.projectId) await checkProject(workspace, patch.projectId);
-				else if (workspace.role === "guest") forbidden();
+				else if (!can(workspace.role, "workspaceContent")) forbidden();
 				set.project_id = patch.projectId;
 			}
 			if (patch.isPrivate != null && patch.isPrivate !== collection.private) {

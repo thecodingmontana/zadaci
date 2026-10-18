@@ -136,9 +136,9 @@ export const openRight = (
 	workspace: Workspace,
 	createdBy: string,
 ): ProjectRight | null =>
-	workspace.role === "guest"
+	!can(workspace.role, "workspaceContent")
 		? null
-		: can(workspace.role, "manageAllProjects") ||
+		: can(workspace.role, "manageAllContent") ||
 				createdBy === workspace.memberId
 			? "full"
 			: "edit";
@@ -213,7 +213,9 @@ function visible(workspace: Workspace) {
 		),
 		scope &&
 			or(
-				workspace.role === "guest" ? undefined : isNull(tables.note.project_id),
+				can(workspace.role, "workspaceContent")
+					? isNull(tables.note.project_id)
+					: undefined,
 				scope,
 			),
 	);
@@ -360,7 +362,7 @@ async function oneNote(id: string, workspace: Workspace, userId: string) {
 
 /** Guests may only add top-level pages inside a project they can edit. */
 function canOwnTopLevel(workspace: Workspace, projectId: string | null) {
-	if (!projectId && workspace.role === "guest") forbidden();
+	if (!projectId && !can(workspace.role, "workspaceContent")) forbidden();
 }
 
 export const notesResolvers = {

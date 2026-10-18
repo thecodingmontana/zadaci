@@ -23,12 +23,14 @@ import {
 	NOTES,
 	type NoteItem,
 } from "#/graphql/note-operations";
+import { SHELL } from "#/graphql/operations";
 import {
 	ancestors,
 	childrenOf,
 	type DropSpot,
 	dropTarget,
 } from "#/lib/note-tree";
+import { can } from "#/lib/permissions";
 import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 
@@ -86,6 +88,9 @@ type DragState = { id: string; over?: string; spot?: DropSpot } | undefined;
 
 export function NotesTree({ slug }: { slug: string }) {
 	const { data } = useQuery(NOTES, { variables: { slug } });
+	const { data: shell } = useQuery(SHELL, { variables: { slug } });
+	// guests only add pages inside project pages they can edit
+	const canAddTop = can(shell?.workspace?.role, "workspaceContent");
 	const notes = useMemo(() => data?.notes ?? [], [data]);
 	const tree = useMemo(() => childrenOf(notes), [notes]);
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -164,18 +169,20 @@ export function NotesTree({ slug }: { slug: string }) {
 			<div className="sgroup-h">
 				<span>Notes</span>
 				<span className="sp" />
-				<button
-					type="button"
-					className="ibtn ibtn-xs"
-					aria-label="New page"
-					data-tip="New page"
-					onClick={() => void create(null)}
-				>
-					<span
-						className="icon-[hugeicons--plus-sign] size-3.5"
-						aria-hidden="true"
-					/>
-				</button>
+				{canAddTop && (
+					<button
+						type="button"
+						className="ibtn ibtn-xs"
+						aria-label="New page"
+						data-tip="New page"
+						onClick={() => void create(null)}
+					>
+						<span
+							className="icon-[hugeicons--plus-sign] size-3.5"
+							aria-hidden="true"
+						/>
+					</button>
+				)}
 			</div>
 			{/* pages load after the sidebar; hold their place */}
 			{!data &&
@@ -194,7 +201,7 @@ export function NotesTree({ slug }: { slug: string }) {
 					</div>
 				))}
 			{rows(null, 0)}
-			{data && !notes.length && (
+			{data && !notes.length && canAddTop && (
 				<button
 					type="button"
 					className="sitem"

@@ -19,7 +19,7 @@ import {
 	UPDATE_BOOKMARK_COLLECTION,
 } from "#/graphql/bookmark-operations";
 import { SHELL } from "#/graphql/operations";
-import { hasRight } from "#/lib/permissions";
+import { can, hasRight } from "#/lib/permissions";
 import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { REFETCH } from "./bookmark-card";
@@ -62,7 +62,8 @@ export function CollectionModal({
 }) {
 	const id = useId();
 	const { data: shell } = useQuery(SHELL, { variables: { slug } });
-	const role = shell?.workspace?.role;
+	// guests only work inside projects
+	const openToAll = can(shell?.workspace?.role, "workspaceContent");
 	const projects = (shell?.workspace?.projects ?? []).filter((p) =>
 		hasRight(p.myAccess, "edit"),
 	);
@@ -70,7 +71,7 @@ export function CollectionModal({
 	const [icon, setIcon] = useState(collection?.icon ?? null);
 	const [share, setShare] = useState(
 		collection?.projectId ??
-			(collection?.isPrivate ? PRIVATE : role === "guest" ? "" : WORKSPACE),
+			(collection?.isPrivate ? PRIVATE : openToAll ? WORKSPACE : ""),
 	);
 	const [err, setErr] = useState("");
 	const [busy, setBusy] = useState(false);
@@ -80,12 +81,10 @@ export function CollectionModal({
 	const [update] = useMutation(UPDATE_BOOKMARK_COLLECTION, {
 		refetchQueries: REFETCH,
 	});
-	// only the author can make a collection private; a guest only works inside projects
+	// only the author can make a collection private
 	const canPrivate = !collection || collection.isAuthor;
 	const options = [
-		...(role === "guest"
-			? []
-			: [[WORKSPACE, "Everyone in the workspace"] as const]),
+		...(openToAll ? [[WORKSPACE, "Everyone in the workspace"] as const] : []),
 		...(canPrivate ? [[PRIVATE, "Only me"] as const] : []),
 		...projects.map((p) => [p.id, `People in ${p.title}`] as const),
 	];

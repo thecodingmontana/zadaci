@@ -31,8 +31,12 @@ import { EMAIL_RE } from "#/lib/onboarding";
 import {
 	can,
 	canInvite,
+	hasRight,
 	PERMISSIONS,
 	type Permission,
+	PROJECT_ABILITIES,
+	PROJECT_RIGHT_LABEL,
+	PROJECT_RIGHTS,
 	ROLES,
 } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
@@ -841,8 +845,71 @@ export function PermissionsSection({ slug, workspace, title }: SectionProps) {
 				<div style={{ marginTop: 12 }}>
 					<PermissionsTable settings={workspace.settings} />
 				</div>
+				<p className="faint" style={{ fontSize: 12.5, marginTop: 8 }}>
+					Private notes, bookmarks and collections are only visible to the
+					person who made them, whatever their role. Everyone can delete what
+					they made.
+				</p>
+			</SBlock>
+			<SBlock title="Project access">
+				<p className="faint" style={{ fontSize: 12.5, marginTop: 4 }}>
+					Inside a project, people have one of these rights. Admins and the
+					project lead have full access. People added to a project can edit
+					(guests can comment) unless given another right in Share. Members who
+					aren't added can comment on projects shared with the workspace. Notes
+					and bookmark collections linked to a project follow it.
+				</p>
+				<div style={{ marginTop: 12 }}>
+					<ProjectAccessTable />
+				</div>
 			</SBlock>
 		</>
+	);
+}
+
+const Mark = ({ ok }: { ok: boolean }) =>
+	ok ? (
+		<span
+			className="icon-[hugeicons--tick-02] size-[15px]"
+			style={{ color: "var(--q-green)" }}
+			role="img"
+			aria-label="Allowed"
+		/>
+	) : (
+		<span
+			className="faint icon-[hugeicons--minus-sign] size-[15px]"
+			role="img"
+			aria-label="Not allowed"
+		/>
+	);
+
+/** What each project right allows, generated from the same list the server's checks follow. */
+function ProjectAccessTable() {
+	return (
+		<div className="panel" style={{ overflowX: "auto" }}>
+			<table className="perm-t" style={{ minWidth: 560 }}>
+				<thead>
+					<tr>
+						<th style={{ paddingLeft: 14 }}>In the project</th>
+						{PROJECT_RIGHTS.map((r) => (
+							<th key={r}>{PROJECT_RIGHT_LABEL[r]}</th>
+						))}
+					</tr>
+				</thead>
+				<tbody>
+					{PROJECT_ABILITIES.map((a) => (
+						<tr key={a.label}>
+							<td style={{ paddingLeft: 14 }}>{a.label}</td>
+							{PROJECT_RIGHTS.map((r) => (
+								<td key={r}>
+									<Mark ok={hasRight(r, a.needs)} />
+								</td>
+							))}
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
 	);
 }
 
@@ -867,26 +934,11 @@ export function PermissionsTable({
 					{(Object.keys(PERMISSIONS) as Permission[]).map((key) => (
 						<tr key={key}>
 							<td style={{ paddingLeft: 14 }}>{PERMISSIONS[key].label}</td>
-							{ROLES.map((r) =>
-								can(r, key, settings) ? (
-									<td key={r}>
-										<span
-											className="icon-[hugeicons--tick-02] size-[15px]"
-											style={{ color: "var(--q-green)" }}
-											role="img"
-											aria-label="Allowed"
-										/>
-									</td>
-								) : (
-									<td key={r}>
-										<span
-											className="faint icon-[hugeicons--minus-sign] size-[15px]"
-											role="img"
-											aria-label="Not allowed"
-										/>
-									</td>
-								),
-							)}
+							{ROLES.map((r) => (
+								<td key={r}>
+									<Mark ok={can(r, key, settings)} />
+								</td>
+							))}
 						</tr>
 					))}
 				</tbody>

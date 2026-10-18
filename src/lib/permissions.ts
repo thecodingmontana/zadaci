@@ -18,7 +18,7 @@ const notGuest: Rule = (role) => role !== "guest";
 
 export const PERMISSIONS = {
 	viewAllProjects: {
-		label: "See projects shared with the workspace",
+		label: "See and comment on projects shared with the workspace",
 		allow: notGuest,
 	},
 	manageAllProjects: {
@@ -31,6 +31,14 @@ export const PERMISSIONS = {
 		allow: (role, s) => admin(role, s) || (role === "member" && s.permCreate),
 	},
 	deleteProjects: { label: "Delete projects", allow: admin },
+	workspaceContent: {
+		label: "Add and edit notes, bookmarks and collections outside projects",
+		allow: notGuest,
+	},
+	manageAllContent: {
+		label: "Delete or reshare anyone's notes, bookmarks and collections",
+		allow: admin,
+	},
 	inviteGuests: {
 		label: "Invite guests",
 		allow: (role, s) => admin(role, s) || (role === "member" && s.permGuests),
@@ -101,3 +109,22 @@ export function projectRight(
 
 export const hasRight = (right: ProjectRight | null, needed: ProjectRight) =>
 	!!right && PROJECT_RIGHTS.indexOf(right) >= PROJECT_RIGHTS.indexOf(needed);
+
+/** What each project right allows inside a project, for the "Project access" table. */
+export const PROJECT_ABILITIES: { label: string; needs: ProjectRight }[] = [
+	{
+		label: "See its tasks, files, notes and bookmark collections",
+		needs: "view",
+	},
+	{ label: "Comment and react on its tasks and notes", needs: "comment" },
+	{
+		label: "Add and edit its tasks, files, saved views, notes and bookmarks",
+		needs: "edit",
+	},
+	{ label: "Rename, archive and edit the project's details", needs: "edit" },
+	{
+		label:
+			"Share it, change people's access and the lead, move notes and collections in or out, delete anyone's comments",
+		needs: "full",
+	},
+];

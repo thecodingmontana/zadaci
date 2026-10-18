@@ -30,6 +30,7 @@ import {
 	type BookmarkKind,
 } from "#/graphql/bookmark-operations";
 import { SHELL } from "#/graphql/operations";
+import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 
@@ -109,7 +110,8 @@ function BookmarksPage() {
 	const [creatingCollection, setCreatingCollection] = useState(false);
 	const collections = cols.bookmarkCollections;
 	const collection = collections.find((x) => x.id === c);
-	const isGuest = shell.workspace?.role === "guest";
+	// guests only work inside projects: no unsorted links or open collections
+	const isGuest = !can(shell.workspace?.role, "workspaceContent");
 	const setSearch = (patch: Partial<typeof search>) =>
 		navigate({ search: (s) => ({ ...s, ...patch }), replace: true });
 
