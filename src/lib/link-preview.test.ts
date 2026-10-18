@@ -107,3 +107,21 @@ test("links are sorted into articles, documents and videos", () => {
 	assert.equal(kindOf("https://example.com/x", "application/pdf"), "document");
 	assert.equal(kindOf("https://example.com/blog/post"), "article");
 });
+
+test("a redirect into the server's own network is refused", async (t) => {
+	const calls: string[] = [];
+	t.mock.method(globalThis, "fetch", async (input: URL | string) => {
+		calls.push(String(input));
+		return new Response(null, {
+			status: 302,
+			headers: { location: "http://169.254.169.254/latest/meta-data" },
+		});
+	});
+	// a public address literal, so no DNS lookup is needed
+	await assert.rejects(fetchPreview("https://93.184.215.14/start"));
+	assert.deepEqual(
+		calls,
+		["https://93.184.215.14/start"],
+		"the redirect target is never fetched",
+	);
+});
