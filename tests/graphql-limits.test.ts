@@ -4,6 +4,7 @@ import { costLimitRule } from "@escape.tech/graphql-armor-cost-limit";
 import { maxAliasesRule } from "@escape.tech/graphql-armor-max-aliases";
 import { maxDepthRule } from "@escape.tech/graphql-armor-max-depth";
 import { type DocumentNode, validate } from "graphql";
+import * as bookmarkOps from "#/graphql/bookmark-operations";
 import * as noteOps from "#/graphql/note-operations";
 import * as ops from "#/graphql/operations";
 import { LIMITS, schema } from "#/graphql/yoga.server";
@@ -12,7 +13,7 @@ import { cleanup, gql, makeUser, makeWorkspace } from "./helpers";
 after(cleanup);
 
 test("every operation the app sends fits the request limits", () => {
-	const docs = Object.entries({ ...ops, ...noteOps }).filter(
+	const docs = Object.entries({ ...ops, ...noteOps, ...bookmarkOps }).filter(
 		([, v]) => (v as DocumentNode)?.kind === "Document",
 	);
 	assert.ok(docs.length > 50);

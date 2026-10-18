@@ -4,6 +4,7 @@ import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth";
 import { createSchema, createYoga } from "graphql-yoga";
 import { auth } from "#/lib/auth";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
+import { bookmarksResolvers, bookmarksTypeDefs } from "./bookmarks.server";
 import { membersResolvers, membersTypeDefs } from "./members.server";
 import { notesResolvers, notesTypeDefs } from "./notes.server";
 import {
@@ -40,6 +41,7 @@ export const schema = createSchema<GraphQLContext>({
 		taskExtrasTypeDefs,
 		notesTypeDefs,
 		unsplashTypeDefs,
+		bookmarksTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -54,6 +56,7 @@ export const schema = createSchema<GraphQLContext>({
 		taskExtrasResolvers,
 		notesResolvers,
 		unsplashResolvers,
+		bookmarksResolvers,
 	],
 });
 

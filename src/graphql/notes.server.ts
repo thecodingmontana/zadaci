@@ -163,7 +163,7 @@ async function noteRight(workspace: Workspace, note: NoteRow) {
 	return unlinkedRight(workspace, note);
 }
 
-async function workspaceOf(ctx: GraphQLContext, slug: string) {
+export async function workspaceOf(ctx: GraphQLContext, slug: string) {
 	const user = requireUser(ctx);
 	const [workspace] = await findWorkspaces(user.id, slug);
 	if (!workspace)
@@ -287,8 +287,8 @@ async function starred(userId: string, workspaceId: string) {
 	return new Set(rows.map((r) => r.id));
 }
 
-/** A project the viewer may edit in, for linking a page to it. */
-async function checkProject(workspace: Workspace, projectId: string) {
+/** A project the viewer may edit in, for linking a page (or a bookmark collection) to it. */
+export async function checkProject(workspace: Workspace, projectId: string) {
 	const [project] = await db
 		.select()
 		.from(tables.project)
