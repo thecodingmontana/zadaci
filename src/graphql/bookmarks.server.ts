@@ -624,14 +624,27 @@ export const bookmarksResolvers = {
 		) => {
 			const { user, workspace, bookmark, rights, inCollections } =
 				await requireBookmark(ctx, args.slug, args.id, "edit");
-			const wanted = editable(args.collectionIds, rights);
+			const wanted = [...new Set(args.collectionIds)];
+			if (wanted.some((id) => !rights.has(id)))
+				badInput("Collection not found");
+			// only the collections that change need edit rights; ones it stays in just need to be seen
+			const added = wanted.filter((id) => !inCollections.includes(id));
 			const removed = inCollections.filter(
 				(id) => rights.has(id) && !wanted.includes(id),
 			);
-			editable(removed, rights);
+			editable([...added, ...removed], rights);
 			const hidden = inCollections.filter((id) => !rights.has(id));
-			if (!wanted.length && !hidden.length && workspace.role === "guest")
-				forbidden();
+			// in no collection it's Unsorted and open to every member: only its author decides that
+			if (
+				removed.length &&
+				!wanted.length &&
+				!hidden.length &&
+				(workspace.role === "guest" ||
+					bookmark.created_by !== workspace.memberId)
+			)
+				badInput(
+					"Only the person who saved it can take it out of every collection. Delete it, or file it somewhere else.",
+				);
 			await db.transaction(async (tx) => {
 				if (removed.length)
 					await tx

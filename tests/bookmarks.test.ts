@@ -142,3 +142,22 @@ test("a private bookmark is only its author's, even in a shared collection", asy
 	assert.deepEqual((await list(owner, slug)).map((b) => b.title), ["Loose"]);
 	assert.equal(code(await gql(owner, UPDATE, { s: slug, id: loose.id, p: { isPrivate: true } })), "FORBIDDEN", "only the author hides it");
 });
+
+test("audit: moving only needs edit rights on the collections that change, and only the author unfiles a bookmark", async () => {
+	const { owner, member, slug } = await setup();
+	const alpha = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0].id;
+	const linked = await collection(owner, slug, { name: "Alpha refs", projectId: alpha });
+	const design = await collection(owner, slug, { name: "Design" });
+	const more = await collection(owner, slug, { name: "More" });
+	const saved = (await add(owner, slug, { url: "https://example.com/x", title: "X", collectionIds: [linked.id, design.id] })).data?.createBookmark;
+
+	// members only comment on Alpha's collection, but it isn't changing
+	const moved = await gql(member, MOVE, { s: slug, id: saved.id, c: [linked.id, design.id, more.id] });
+	assert.equal(code(moved), undefined);
+	assert.equal(moved.data?.moveBookmark.collectionIds.length, 3);
+	assert.equal(code(await gql(member, MOVE, { s: slug, id: saved.id, c: [design.id, more.id] })), "FORBIDDEN", "taking it out of Alpha's still needs edit there");
+
+	const loose = (await add(owner, slug, { url: "https://example.com/y", title: "Y", collectionIds: [design.id] })).data?.createBookmark;
+	assert.equal(code(await gql(member, MOVE, { s: slug, id: loose.id, c: [] })), "BAD_USER_INPUT", "unfiling would show it to everyone");
+	assert.deepEqual((await gql(owner, MOVE, { s: slug, id: loose.id, c: [] })).data?.moveBookmark.collectionIds, [], "its author may");
+});
