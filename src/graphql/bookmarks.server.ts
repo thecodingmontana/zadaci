@@ -830,7 +830,7 @@ export const bookmarksResolvers = {
 			args: { slug: string; id: string },
 			ctx: GraphQLContext,
 		) => {
-			const { collection } = await requireCollection(
+			const { workspace, collection } = await requireCollection(
 				ctx,
 				args.slug,
 				args.id,
@@ -855,6 +855,12 @@ export const bookmarksResolvers = {
 						and(
 							inArray(tables.bookmark.id, inside),
 							sql`${tables.bookmark.id} not in ${elsewhere}`,
+							// someone else's private bookmark (unseen by whoever deletes) stays,
+							// unsorted but still private to its author
+							or(
+								eq(tables.bookmark.private, false),
+								eq(tables.bookmark.created_by, workspace.memberId ?? ""),
+							),
 						),
 					);
 				await tx.delete(bc).where(eq(bc.collection_id, collection.id));

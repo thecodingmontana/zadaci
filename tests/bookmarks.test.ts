@@ -161,3 +161,13 @@ test("audit: moving only needs edit rights on the collections that change, and o
 	assert.equal(code(await gql(member, MOVE, { s: slug, id: loose.id, c: [] })), "BAD_USER_INPUT", "unfiling would show it to everyone");
 	assert.deepEqual((await gql(owner, MOVE, { s: slug, id: loose.id, c: [] })).data?.moveBookmark.collectionIds, [], "its author may");
 });
+
+test("audit: deleting a collection keeps other people's private bookmarks", async () => {
+	const { owner, member, slug } = await setup();
+	const team = await collection(owner, slug, { name: "Team" });
+	const mine = (await add(member, slug, { url: "https://example.com/p", title: "Private", isPrivate: true, collectionIds: [team.id] })).data?.createBookmark;
+	await gql(owner, `mutation($s: String!, $id: ID!) { deleteBookmarkCollection(slug: $s, id: $id) }`, { s: slug, id: team.id });
+	const left = (await list(member, slug)).find((b) => b.id === mine.id);
+	assert.deepEqual(left?.collectionIds, [], "now unsorted");
+	assert.deepEqual(await list(owner, slug), [], "and still hidden from everyone else");
+});
