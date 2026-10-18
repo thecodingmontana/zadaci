@@ -171,3 +171,18 @@ test("audit: deleting a collection keeps other people's private bookmarks", asyn
 	assert.deepEqual(left?.collectionIds, [], "now unsorted");
 	assert.deepEqual(await list(owner, slug), [], "and still hidden from everyone else");
 });
+
+test("audit: an edit saves its fields and collections together, or neither", async () => {
+	const { owner, member, slug } = await setup();
+	const design = await collection(owner, slug, { name: "Design" });
+	const more = await collection(owner, slug, { name: "More" });
+	const saved = (await add(owner, slug, { url: "https://example.com/z", title: "Old", collectionIds: [design.id] })).data?.createBookmark;
+	const UPDATE = `mutation($s: String!, $id: ID!, $p: BookmarkPatch!) { updateBookmark(slug: $s, id: $id, patch: $p) { title collectionIds } }`;
+
+	// unfiling isn't the member's call, so the new title isn't saved either
+	assert.equal(code(await gql(member, UPDATE, { s: slug, id: saved.id, p: { title: "New", collectionIds: [] } })), "BAD_USER_INPUT");
+	assert.equal((await list(owner, slug))[0]?.title, "Old");
+
+	const ok = (await gql(member, UPDATE, { s: slug, id: saved.id, p: { title: "New", collectionIds: [more.id] } })).data?.updateBookmark;
+	assert.deepEqual(ok, { title: "New", collectionIds: [more.id] });
+});

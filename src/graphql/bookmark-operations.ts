@@ -147,7 +147,11 @@ export const CREATE_BOOKMARK: TypedDocumentNode<
 
 export const UPDATE_BOOKMARK: TypedDocumentNode<
 	{ updateBookmark: BookmarkItem },
-	{ slug: string; id: string; patch: Partial<BookmarkInput> }
+	{
+		slug: string;
+		id: string;
+		patch: Partial<BookmarkInput> & { collectionIds?: string[] };
+	}
 > = gql`
 	${BOOKMARK_FIELDS}
 	mutation UpdateBookmark($slug: String!, $id: ID!, $patch: BookmarkPatch!) {

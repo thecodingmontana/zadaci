@@ -99,6 +99,8 @@ export const bookmarksTypeDefs = /* GraphQL */ `
 		tags: [String!]
 		"only the author can make a bookmark private or shared again"
 		isPrivate: Boolean
+		"files it in exactly these collections, like moveBookmark"
+		collectionIds: [ID!]
 	}
 
 	input NewBookmarkCollection {
@@ -375,13 +377,77 @@ function editable(ids: string[], rights: Rights) {
 	return unique;
 }
 
-async function oneBookmark(id: string, workspace: Workspace, userId: string) {
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Checks putting a bookmark in exactly these collections; ones the viewer can't see stay. */
+function planMove(
+	workspace: Workspace,
+	bookmark: Bookmark,
+	inCollections: string[],
+	rights: Rights,
+	collectionIds: string[],
+) {
+	const wanted = [...new Set(collectionIds)];
+	if (wanted.some((id) => !rights.has(id))) badInput("Collection not found");
+	// only the collections that change need edit rights; ones it stays in just need to be seen
+	const added = wanted.filter((id) => !inCollections.includes(id));
+	const removed = inCollections.filter(
+		(id) => rights.has(id) && !wanted.includes(id),
+	);
+	editable([...added, ...removed], rights);
+	const hidden = inCollections.filter((id) => !rights.has(id));
+	// in no collection it's Unsorted and open to every member: only its author decides that
+	if (
+		removed.length &&
+		!wanted.length &&
+		!hidden.length &&
+		(workspace.role === "guest" || bookmark.created_by !== workspace.memberId)
+	)
+		badInput(
+			"Only the person who saved it can take it out of every collection. Delete it, or file it somewhere else.",
+		);
+	return { wanted, removed };
+}
+
+async function applyMove(
+	tx: Tx,
+	bookmarkId: string,
+	{ wanted, removed }: ReturnType<typeof planMove>,
+) {
+	if (removed.length)
+		await tx
+			.delete(tables.bookmark_collections)
+			.where(
+				and(
+					eq(tables.bookmark_collections.bookmark_id, bookmarkId),
+					inArray(tables.bookmark_collections.collection_id, removed),
+				),
+			);
+	if (wanted.length)
+		await tx
+			.insert(tables.bookmark_collections)
+			.values(
+				wanted.map((collection_id) => ({
+					bookmark_id: bookmarkId,
+					collection_id,
+				})),
+			)
+			.onConflictDoNothing();
+}
+
+/** A bookmark as the viewer sees it; pass `rights` when they're already worked out. */
+async function oneBookmark(
+	id: string,
+	workspace: Workspace,
+	userId: string,
+	known?: Rights,
+) {
 	const [b] = await db
 		.select()
 		.from(tables.bookmark)
 		.where(eq(tables.bookmark.id, id));
 	if (!b) badInput("Bookmark not found");
-	const { rights } = await collectionsOf(workspace);
+	const rights = known ?? (await collectionsOf(workspace)).rights;
 	const inCollections = (await memberships(workspace.id, [id])).get(id) ?? [];
 	const stars = await starred(userId, workspace.id, "bookmark");
 	return bookmarkShape(
@@ -566,7 +632,7 @@ export const bookmarksResolvers = {
 				return rows;
 			});
 			if (!row) throw new Error("Bookmark insert returned nothing");
-			return oneBookmark(row.id, workspace, user.id);
+			return oneBookmark(row.id, workspace, user.id, rights);
 		},
 
 		updateBookmark: async (
@@ -582,16 +648,13 @@ export const bookmarksResolvers = {
 					kind?: string | null;
 					tags?: string[] | null;
 					isPrivate?: boolean | null;
+					collectionIds?: string[] | null;
 				};
 			},
 			ctx: GraphQLContext,
 		) => {
-			const { user, workspace, bookmark } = await requireBookmark(
-				ctx,
-				args.slug,
-				args.id,
-				"edit",
-			);
+			const { user, workspace, bookmark, rights, inCollections } =
+				await requireBookmark(ctx, args.slug, args.id, "edit");
 			const { patch } = args;
 			const set: Partial<typeof tables.bookmark.$inferInsert> = {};
 			if (patch.url != null) {
@@ -609,12 +672,25 @@ export const bookmarksResolvers = {
 				if (bookmark.created_by !== workspace.memberId) forbidden();
 				set.private = patch.isPrivate;
 			}
-			if (Object.keys(set).length)
-				await db
-					.update(tables.bookmark)
-					.set(set)
-					.where(eq(tables.bookmark.id, bookmark.id));
-			return oneBookmark(bookmark.id, workspace, user.id);
+			const move =
+				patch.collectionIds &&
+				planMove(
+					workspace,
+					bookmark,
+					inCollections,
+					rights,
+					patch.collectionIds,
+				);
+			// the fields and the filing save together, or not at all
+			await db.transaction(async (tx) => {
+				if (Object.keys(set).length)
+					await tx
+						.update(tables.bookmark)
+						.set(set)
+						.where(eq(tables.bookmark.id, bookmark.id));
+				if (move) await applyMove(tx, bookmark.id, move);
+			});
+			return oneBookmark(bookmark.id, workspace, user.id, rights);
 		},
 
 		moveBookmark: async (
@@ -624,49 +700,15 @@ export const bookmarksResolvers = {
 		) => {
 			const { user, workspace, bookmark, rights, inCollections } =
 				await requireBookmark(ctx, args.slug, args.id, "edit");
-			const wanted = [...new Set(args.collectionIds)];
-			if (wanted.some((id) => !rights.has(id)))
-				badInput("Collection not found");
-			// only the collections that change need edit rights; ones it stays in just need to be seen
-			const added = wanted.filter((id) => !inCollections.includes(id));
-			const removed = inCollections.filter(
-				(id) => rights.has(id) && !wanted.includes(id),
+			const move = planMove(
+				workspace,
+				bookmark,
+				inCollections,
+				rights,
+				args.collectionIds,
 			);
-			editable([...added, ...removed], rights);
-			const hidden = inCollections.filter((id) => !rights.has(id));
-			// in no collection it's Unsorted and open to every member: only its author decides that
-			if (
-				removed.length &&
-				!wanted.length &&
-				!hidden.length &&
-				(workspace.role === "guest" ||
-					bookmark.created_by !== workspace.memberId)
-			)
-				badInput(
-					"Only the person who saved it can take it out of every collection. Delete it, or file it somewhere else.",
-				);
-			await db.transaction(async (tx) => {
-				if (removed.length)
-					await tx
-						.delete(tables.bookmark_collections)
-						.where(
-							and(
-								eq(tables.bookmark_collections.bookmark_id, bookmark.id),
-								inArray(tables.bookmark_collections.collection_id, removed),
-							),
-						);
-				if (wanted.length)
-					await tx
-						.insert(tables.bookmark_collections)
-						.values(
-							wanted.map((collection_id) => ({
-								bookmark_id: bookmark.id,
-								collection_id,
-							})),
-						)
-						.onConflictDoNothing();
-			});
-			return oneBookmark(bookmark.id, workspace, user.id);
+			await db.transaction((tx) => applyMove(tx, bookmark.id, move));
+			return oneBookmark(bookmark.id, workspace, user.id, rights);
 		},
 
 		archiveBookmark: async (
@@ -674,7 +716,7 @@ export const bookmarksResolvers = {
 			args: { slug: string; id: string; archived: boolean },
 			ctx: GraphQLContext,
 		) => {
-			const { user, workspace, bookmark } = await requireBookmark(
+			const { user, workspace, bookmark, rights } = await requireBookmark(
 				ctx,
 				args.slug,
 				args.id,
@@ -684,7 +726,7 @@ export const bookmarksResolvers = {
 				.update(tables.bookmark)
 				.set({ archived_at: args.archived ? new Date() : null })
 				.where(eq(tables.bookmark.id, bookmark.id));
-			return oneBookmark(bookmark.id, workspace, user.id);
+			return oneBookmark(bookmark.id, workspace, user.id, rights);
 		},
 
 		deleteBookmark: async (

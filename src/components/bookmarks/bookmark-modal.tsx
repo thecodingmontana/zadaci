@@ -7,7 +7,6 @@ import {
 	type BookmarkKind,
 	CREATE_BOOKMARK,
 	LINK_PREVIEW,
-	MOVE_BOOKMARK,
 	UPDATE_BOOKMARK,
 } from "#/graphql/bookmark-operations";
 import { toast } from "#/lib/toast";
@@ -82,8 +81,7 @@ export function BookmarkModal({
 		{ title: "", description: "", image: null, kind: null },
 	);
 	const [create] = useMutation(CREATE_BOOKMARK, { refetchQueries: REFETCH });
-	const [update] = useMutation(UPDATE_BOOKMARK);
-	const [move] = useMutation(MOVE_BOOKMARK);
+	const [update] = useMutation(UPDATE_BOOKMARK, { refetchQueries: REFETCH });
 	const set = <K extends keyof Form>(key: K, value: Form[K]) =>
 		setForm((f) => ({ ...f, [key]: value }));
 	const id = useId();
@@ -150,16 +148,19 @@ export function BookmarkModal({
 		};
 		try {
 			if (bookmark) {
-				await update({ variables: { slug, id: bookmark.id, patch: fields } });
-				if (form.collectionIds.join() !== bookmark.collectionIds.join())
-					await move({
-						variables: {
-							slug,
-							id: bookmark.id,
-							collectionIds: form.collectionIds,
+				const refiled =
+					[...form.collectionIds].sort().join() !==
+					[...bookmark.collectionIds].sort().join();
+				await update({
+					variables: {
+						slug,
+						id: bookmark.id,
+						patch: {
+							...fields,
+							...(refiled && { collectionIds: form.collectionIds }),
 						},
-					});
-				await client.refetchQueries({ include: REFETCH });
+					},
+				});
 				toast.success("Bookmark saved");
 			} else {
 				await create({
