@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, count, eq, isNull, ne } from "drizzle-orm";
+import { and, count, eq, gt, isNull, lt, ne } from "drizzle-orm";
 import { GraphQLError, GraphQLScalarType } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
@@ -137,6 +137,28 @@ export async function requireWorkspace(
 	)
 		forbidden();
 	return { user, workspace };
+}
+
+/** New invites a workspace may send in a day; they email outside people from our domain. */
+const DAILY_INVITES = 100;
+
+export async function checkInviteBudget(workspaceId: string, adding: number) {
+	const [row] = await db
+		.select({ n: count() })
+		.from(tables.workspace_invite_request)
+		.where(
+			and(
+				eq(tables.workspace_invite_request.workspace_id, workspaceId),
+				gt(
+					tables.workspace_invite_request.created_at,
+					new Date(Date.now() - 24 * 60 * 60 * 1000),
+				),
+			),
+		);
+	if ((row?.n ?? 0) + adding > DAILY_INVITES)
+		badInput(
+			`A workspace can send up to ${DAILY_INVITES} invites a day. Try again tomorrow.`,
+		);
 }
 
 export function parse<T>(schema: z.ZodType<T>, value: unknown): T {
@@ -508,6 +530,7 @@ export const settingsResolvers = {
 			for (const p of pending) taken.add(p.email.toLowerCase());
 			const fresh = emails.filter((e) => !taken.has(e));
 			if (!fresh.length) return [];
+			await checkInviteBudget(workspace.id, fresh.length);
 			await logActivity(db, {
 				workspace_id: workspace.id,
 				actor_id: user.id,
@@ -557,6 +580,11 @@ export const settingsResolvers = {
 						eq(tables.workspace_invite_request.workspace_id, workspace.id),
 						eq(tables.workspace_invite_request.status, "PENDING"),
 						isNull(tables.workspace_invite_request.deleted_at),
+						// one email a minute per invite, so resend can't be used to spam
+						lt(
+							tables.workspace_invite_request.updated_at,
+							new Date(Date.now() - 60 * 1000),
+						),
 					),
 				)
 				.returning({
@@ -564,7 +592,10 @@ export const settingsResolvers = {
 					email: tables.workspace_invite_request.email,
 					role: tables.workspace_invite_request.role,
 				});
-			if (!invite) badInput("Invite not found");
+			if (!invite)
+				badInput(
+					"Invite not found, or it was just sent. Try again in a minute.",
+				);
 			const [sent] = await sendInviteEmails(workspace, user.name, [invite]);
 			if (!sent) badInput("Couldn't send the email. Try again in a moment.");
 			return true;

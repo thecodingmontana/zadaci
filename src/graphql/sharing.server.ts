@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { USER_ROLE } from "#/db/enums";
@@ -14,6 +14,7 @@ import {
 	projectScope,
 	requireUser,
 } from "./schema.server";
+import { checkInviteBudget } from "./settings.server";
 
 // Project sharing (the reference app's Share modal): who is on a project, what each person
 // may do there, and whether the whole workspace can see it. Managing it needs full access.
@@ -294,6 +295,13 @@ export const sharingResolvers = {
 				eq(tables.workspace_invite_request.email, email),
 				eq(tables.workspace_invite_request.status, "PENDING"),
 				isNull(tables.workspace_invite_request.deleted_at),
+				// someone who can only invite guests must not revive an expired member/admin invite
+				can(workspace.role, "inviteMembers")
+					? undefined
+					: and(
+							eq(tables.workspace_invite_request.role, USER_ROLE.GUEST),
+							gt(tables.workspace_invite_request.expires_at, new Date()),
+						),
 			);
 			const target = {
 				project_id: project.id,
@@ -308,6 +316,7 @@ export const sharingResolvers = {
 					id: tables.workspace_invite_request.id,
 					role: tables.workspace_invite_request.role,
 				});
+			if (!updated) await checkInviteBudget(workspace.id, 1);
 			const [inserted] = updated
 				? [updated]
 				: await db

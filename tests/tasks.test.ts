@@ -215,7 +215,7 @@ test("sidebar counts: my open tasks and everything archived", async () => {
 
 test("bulk edits check the assignee first, so a bad one changes no task", async () => {
 	const { owner, slug, create } = await setup();
-	const ids = [];
+	const ids: string[] = [];
 	for (const title of ["One", "Two", "Three", "Four"]) ids.push((await create(owner, { title })).data?.createTask.id);
 	const BULK = `mutation($s: String!, $ids: [ID!]!, $p: TaskPatch!) { bulkUpdateTasks(slug: $s, ids: $ids, patch: $p) }`;
 	const bad = await gql(owner, BULK, { s: slug, ids, p: { status: "completed", assigneeId: "not-a-member" } });

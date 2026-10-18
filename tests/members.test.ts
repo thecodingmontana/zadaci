@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
+import { eq } from "drizzle-orm";
+import { db, tables } from "#/db";
 import { cleanup, gql, join, makeUser, makeWorkspace } from "./helpers";
 
 after(cleanup);
@@ -94,4 +96,31 @@ test("removing someone takes them off projects and teams", async () => {
 		const live = await db.select().from(t).where(and(eq(t.member_id, memberId), isNull(t.deleted_at)));
 		assert.equal(live.length, 0);
 	}
+});
+
+test("invites can't be resent every second, and a member can't revive an admin invite", async () => {
+	const owner = await makeUser("owner");
+	const member = await makeUser("member");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(member, inviteCode);
+	const email = `alice-${Date.now()}@example.com`;
+	const invited = await gql(owner, `mutation($s: String!, $e: [String!]!) { inviteMembers(slug: $s, emails: $e, role: "moderator") { id } }`, { s: slug, e: [email] });
+	const id = invited.data?.inviteMembers[0].id;
+	const resend = await gql(owner, `mutation($s: String!, $id: ID!) { resendInvite(slug: $s, id: $id) }`, { s: slug, id });
+	assert.match(resend.errors?.[0]?.message ?? "", /just sent/);
+
+	// the admin invite expires; a member then shares a project of theirs with the same email
+	await db.update(tables.workspace_invite_request).set({ expires_at: new Date(Date.now() - 1000) }).where(eq(tables.workspace_invite_request.id, id));
+	const project = (
+		await gql(member, `mutation($s: String!, $i: ProjectInput!) { createProject(slug: $s, input: $i) { id } }`, {
+			s: slug,
+			i: { title: "Side project", icon: "icon-[solar--global-linear]", color: "teal", template: "blank" },
+		})
+	).data?.createProject;
+	const shared = await gql(member, `mutation($s: String!, $p: ID!, $e: String!) { inviteToProject(slug: $s, projectId: $p, email: $e, permission: "view") }`, { s: slug, p: project.id, e: email });
+	assert.ok(shared.data?.inviteToProject, JSON.stringify(shared.errors));
+	const [old] = await db.select().from(tables.workspace_invite_request).where(eq(tables.workspace_invite_request.id, id));
+	assert.ok(old && old.expires_at && old.expires_at.getTime() < Date.now(), "the admin invite stays expired");
+	const fresh = await db.select({ role: tables.workspace_invite_request.role }).from(tables.workspace_invite_request).where(eq(tables.workspace_invite_request.email, email));
+	assert.ok(fresh.some((r) => r.role === "guest"), "a separate guest invite was made");
 });
