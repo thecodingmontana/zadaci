@@ -128,10 +128,15 @@ export function OverviewSkeleton() {
 	);
 }
 
-export function ProjectsSkeleton({ title = "Projects" }: { title?: string }) {
+/** `title` null shows a placeholder bar (a name that isn't known yet). */
+export function ProjectsSkeleton({
+	title = "Projects",
+}: {
+	title?: string | null;
+}) {
 	return (
 		<div className="page wide" {...busy}>
-			<Head title={title} sub={140} />
+			<Head title={title ?? undefined} sub={140} />
 			<div className="row" style={{ marginBottom: 16, gap: 8 }}>
 				<Sk w={200} h={28} r={7} />
 				<Sk w={110} h={26} r={7} />
@@ -147,7 +152,7 @@ export function BookmarksSkeleton() {
 	const inCollection = useRouterState({
 		select: (s) => !!(s.location.search as { c?: string }).c,
 	});
-	return <ProjectsSkeleton title={inCollection ? undefined : "Bookmarks"} />;
+	return <ProjectsSkeleton title={inCollection ? null : "Bookmarks"} />;
 }
 
 export function ProjectPageSkeleton() {

@@ -3051,14 +3051,21 @@ fieldset.field {
     padding: 5px 0;
   }
   /* project rows wrap their label in a link (the expand button can't live inside it) */
-  .collapsed .side .sitem > a > span:not(.pico):not(.i) {
+  .collapsed .side .sitem > a > span:not(.pico):not(.i):not(.nicon) {
     display: none !important;
+  }
+  /* notes and collections: the page's expand arrow goes, and rows line up with the rest */
+  .collapsed .side .sitem .ntog {
+    display: none !important;
+  }
+  .collapsed .side .sitem.snote {
+    padding-left: 10px !important;
   }
   .collapsed .side .sitem > a {
     justify-content: center;
   }
-  .collapsed .side .sitem > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
-  .collapsed .side .sitem > a > span:not(.pico, .i, .hov, .sdot, .ct, .fav),
+  .collapsed .side .sitem > span:not(.pico, .i, .nicon, .hov, .sdot, .ct, .fav),
+  .collapsed .side .sitem > a > span:not(.pico, .i, .nicon, .hov, .sdot, .ct, .fav),
   .collapsed .side .ws-name,
   .collapsed .side .ws .chev-d {
     display: revert !important;

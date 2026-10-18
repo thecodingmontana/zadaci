@@ -15,6 +15,8 @@ import {
 	MenuSeparator,
 	MenuTrigger,
 } from "#/components/q/menu";
+import { useShell } from "#/components/shell/shell-state";
+import { SideTip } from "#/components/shell/side-tip";
 import {
 	CREATE_NOTE,
 	DELETE_NOTE,
@@ -102,6 +104,7 @@ export function NotesTree({ slug }: { slug: string }) {
 	const create = useCreateNote(slug);
 	const [open, setOpen] = useState<Record<string, boolean>>({});
 	const [drag, setDrag] = useState<DragState>();
+	const { collapsed } = useShell();
 
 	useEffect(() => {
 		try {
@@ -154,7 +157,8 @@ export function NotesTree({ slug }: { slug: string }) {
 				depth={depth}
 				on={note.id === activeId}
 				hasKids={!!tree.get(note.id)?.length}
-				open={!!open[note.id]}
+				// collapsed to icons, only top-level pages show
+				open={!collapsed && !!open[note.id]}
 				onToggle={() => setOpenFor([note.id], !open[note.id])}
 				onAdd={() => {
 					setOpenFor([note.id], true);
@@ -301,17 +305,19 @@ function Row({
 						aria-hidden="true"
 					/>
 				</button>
-				<Link
-					to="/w/$slug/notes/$noteId"
-					params={{ slug, noteId: note.id }}
-					className="row grow"
-					style={{ gap: 8, height: "100%", minWidth: 0 }}
-					aria-current={on ? "page" : undefined}
-					draggable={false}
-				>
-					<NoteIcon note={note} />
-					<span className="trunc">{title}</span>
-				</Link>
+				<SideTip label={title}>
+					<Link
+						to="/w/$slug/notes/$noteId"
+						params={{ slug, noteId: note.id }}
+						className="row grow"
+						style={{ gap: 8, height: "100%", minWidth: 0 }}
+						aria-current={on ? "page" : undefined}
+						draggable={false}
+					>
+						<NoteIcon note={note} />
+						<span className="trunc">{title}</span>
+					</Link>
+				</SideTip>
 				<span className="hov">
 					<NoteMenu slug={slug} note={note} onAdd={onAdd} />
 					{note.canEdit && (

@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
+import { SideTip } from "#/components/shell/side-tip";
 import { BOOKMARK_COLLECTIONS } from "#/graphql/bookmark-operations";
 import { cn } from "#/lib/utils";
 import {
@@ -59,24 +60,26 @@ export function CollectionsNav({ slug }: { slug: string }) {
 				))}
 			{collections.map((c) => (
 				<div key={c.id} className={cn("sitem snote", active === c.id && "on")}>
-					<Link
-						to="/w/$slug/bookmarks"
-						params={{ slug }}
-						search={{ c: c.id }}
-						className="row grow"
-						style={{ gap: 8, height: "100%", minWidth: 0 }}
-						aria-current={active === c.id ? "page" : undefined}
-					>
-						<CollectionIcon c={c} />
-						<span className="trunc">{c.name}</span>
-						{c.isPrivate && (
-							<span
-								className="icon-[solar--lock-keyhole-linear] size-3 faint shrink-0"
-								role="img"
-								aria-label="Private"
-							/>
-						)}
-					</Link>
+					<SideTip label={c.name}>
+						<Link
+							to="/w/$slug/bookmarks"
+							params={{ slug }}
+							search={{ c: c.id }}
+							className="row grow"
+							style={{ gap: 8, height: "100%", minWidth: 0 }}
+							aria-current={active === c.id ? "page" : undefined}
+						>
+							<CollectionIcon c={c} />
+							<span className="trunc">{c.name}</span>
+							{c.isPrivate && (
+								<span
+									className="icon-[solar--lock-keyhole-linear] size-3 faint shrink-0"
+									role="img"
+									aria-label="Private"
+								/>
+							)}
+						</Link>
+					</SideTip>
 					{c.count > 0 && <span className="ct">{c.count}</span>}
 					<span className="hov">
 						<CollectionMenu slug={slug} collection={c} />

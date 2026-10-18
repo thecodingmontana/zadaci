@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { type ReactElement, useState } from "react";
+import { useState } from "react";
 import { CollectionsNav } from "#/components/bookmarks/collections-nav";
 import { NotesTree } from "#/components/notes/notes-tree";
 import { projectColor } from "#/components/projects/bits";
@@ -14,11 +14,6 @@ import {
 	MenuTrigger,
 } from "#/components/q/menu";
 import { WsLogo } from "#/components/q/ws-logo";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "#/components/ui/tooltip";
 import type {
 	ShellProject,
 	ShellTeam,
@@ -47,6 +42,7 @@ import {
 } from "./nav";
 import { ProjectMenu } from "./project-menu";
 import { useShell } from "./shell-state";
+import { SideTip } from "./side-tip";
 
 // Sidebar ported from the reference app's renderSidebar (shell.js) and shell.css.
 
@@ -65,32 +61,6 @@ function useActive(slug: string) {
 			? pathname === href || pathname.startsWith(`${href}/`)
 			: pathname === href || pathname === `${href}/`;
 	};
-}
-
-/** shadcn tooltip to the right of a sidebar item, only while the sidebar is collapsed to icons. */
-function SideTip({
-	label,
-	children,
-	always,
-}: {
-	label: string;
-	children: ReactElement;
-	always?: boolean;
-}) {
-	const { collapsed } = useShell();
-	if (!collapsed && !always) return children;
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent
-				side={collapsed ? "right" : "bottom"}
-				sideOffset={6}
-				className="max-[900px]:hidden"
-			>
-				{label}
-			</TooltipContent>
-		</Tooltip>
-	);
 }
 
 function SItem({
@@ -517,8 +487,8 @@ export function AppSidebar({
 					/>
 				</div>
 
-				{!collapsed && <NotesTree slug={slug} />}
-				{!collapsed && <CollectionsNav slug={slug} />}
+				<NotesTree slug={slug} />
+				<CollectionsNav slug={slug} />
 
 				{teams.length > 0 && (
 					<div className="sgroup">
