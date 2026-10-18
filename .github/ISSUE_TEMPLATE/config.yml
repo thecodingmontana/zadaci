@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/thecodingmontana/zadaci/blob/main/SECURITY.md
+    about: Please report vulnerabilities privately, not in a public issue.
+  - name: Ask a question
+    url: mailto:thecodingmontana@gmail.com
+    about: Email for help with using or running Zadaci.

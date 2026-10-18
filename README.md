@@ -106,6 +106,10 @@ The app deploys to Vercel. Push to `main` and Vercel builds it. Set the environm
 - Questions or problems: [thecodingmontana@gmail.com](mailto:thecodingmontana@gmail.com)
 - Designed and built by [@codewithmontana](https://x.com/codewithmontana)
 
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get set up, and follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems privately as described in [SECURITY.md](SECURITY.md).
+
 ## License
 
-MIT
+[MIT](LICENSE)
