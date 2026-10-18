@@ -6,6 +6,7 @@ import {
 	CollectionIcon,
 	CollectionMenu,
 	CollectionModal,
+	useCanCreateCollection,
 } from "#/components/bookmarks/collection-modal";
 import { NoteIcon, NoteMenu, noteTitle } from "#/components/notes/notes-tree";
 import { ConfirmModal } from "#/components/q/confirm";
@@ -226,6 +227,7 @@ export function CollectionsSection({ slug, workspace, title }: SectionProps) {
 	const { data } = useQuery(BOOKMARK_COLLECTIONS, { variables: { slug } });
 	const { data: shell } = useQuery(SHELL, { variables: { slug } });
 	const [creating, setCreating] = useState(false);
+	const canCreate = useCanCreateCollection(slug);
 	const collections = data?.bookmarkCollections ?? [];
 	const projectName = (id: string) =>
 		shell?.workspace?.projects.find((p) => p.id === id)?.title ?? "a project";
@@ -269,19 +271,21 @@ export function CollectionsSection({ slug, workspace, title }: SectionProps) {
 						</div>
 					</div>
 				))}
-				<div style={{ marginTop: 10 }}>
-					<button
-						type="button"
-						className="btn btn-secondary btn-sm"
-						onClick={() => setCreating(true)}
-					>
-						<span
-							className="icon-[hugeicons--plus-sign] size-3.5"
-							aria-hidden="true"
-						/>
-						New collection
-					</button>
-				</div>
+				{canCreate && (
+					<div style={{ marginTop: 10 }}>
+						<button
+							type="button"
+							className="btn btn-secondary btn-sm"
+							onClick={() => setCreating(true)}
+						>
+							<span
+								className="icon-[hugeicons--plus-sign] size-3.5"
+								aria-hidden="true"
+							/>
+							New collection
+						</button>
+					</div>
+				)}
 			</SBlock>
 			{creating && (
 				<CollectionModal

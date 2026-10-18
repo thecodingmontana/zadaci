@@ -27,7 +27,7 @@ import type { TaskItem } from "#/graphql/operations";
 import { cn } from "#/lib/utils";
 import { PrIcon } from "./bits";
 import { useTaskView } from "./context";
-import { useNewTask } from "./new-task";
+import { useCanCreateTask, useNewTask } from "./new-task";
 import { PickPopover } from "./pick";
 
 // The Calendar view (reference views/calendar.js): tasks on their due dates by month or
@@ -49,6 +49,8 @@ export function CalendarView({
 }) {
 	const { update, canEdit, project } = useTaskView();
 	const newTask = useNewTask();
+	const canCreate = useCanCreateTask();
+	const canAdd = projectId ? canEdit(projectId) : canCreate;
 	const [cursor, setCursor] = useState(() => new Date());
 	const [mode, setMode] = useState<"month" | "week">("month");
 	useEffect(() => {
@@ -115,7 +117,7 @@ export function CalendarView({
 								out={!isSameMonth(d, cursor)}
 								today={isSameDay(d, today)}
 							>
-								{(projectId ? canEdit(projectId) : true) && (
+								{canAdd && (
 									<button
 										type="button"
 										className="ibtn ibtn-xs add"
@@ -154,7 +156,7 @@ export function CalendarView({
 									{format(d, "EEE")}
 								</span>
 								<span className="sp" />
-								{(projectId ? canEdit(projectId) : true) && (
+								{canAdd && (
 									<button
 										type="button"
 										className="ibtn ibtn-xs"

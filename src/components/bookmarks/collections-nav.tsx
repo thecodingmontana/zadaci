@@ -8,6 +8,7 @@ import {
 	CollectionIcon,
 	CollectionMenu,
 	CollectionModal,
+	useCanCreateCollection,
 } from "./collection-modal";
 
 // The Collections section of the sidebar: each bookmark collection with its count.
@@ -23,24 +24,27 @@ export function CollectionsNav({ slug }: { slug: string }) {
 				: undefined,
 	});
 	const [creating, setCreating] = useState(false);
+	const canCreate = useCanCreateCollection(slug);
 
 	return (
 		<div className="sgroup" id="side-collections">
 			<div className="sgroup-h">
 				<span>Collections</span>
 				<span className="sp" />
-				<button
-					type="button"
-					className="ibtn ibtn-xs"
-					aria-label="New collection"
-					data-tip="New collection"
-					onClick={() => setCreating(true)}
-				>
-					<span
-						className="icon-[hugeicons--plus-sign] size-3.5"
-						aria-hidden="true"
-					/>
-				</button>
+				{canCreate && (
+					<button
+						type="button"
+						className="ibtn ibtn-xs"
+						aria-label="New collection"
+						data-tip="New collection"
+						onClick={() => setCreating(true)}
+					>
+						<span
+							className="icon-[hugeicons--plus-sign] size-3.5"
+							aria-hidden="true"
+						/>
+					</button>
+				)}
 			</div>
 			{/* collections load after the sidebar; hold their place */}
 			{!data &&
@@ -86,7 +90,7 @@ export function CollectionsNav({ slug }: { slug: string }) {
 					</span>
 				</div>
 			))}
-			{data && !collections.length && (
+			{data && !collections.length && canCreate && (
 				<button
 					type="button"
 					className="sitem"

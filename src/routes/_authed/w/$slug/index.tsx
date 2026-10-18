@@ -18,7 +18,7 @@ import { HomeSkeleton } from "#/components/shell/page-skeletons";
 import { PrIcon } from "#/components/tasks/bits";
 import { TaskViewProvider, useTaskView } from "#/components/tasks/context";
 import { MiniRow } from "#/components/tasks/mini-row";
-import { useNewTask } from "#/components/tasks/new-task";
+import { useCanCreateTask, useNewTask } from "#/components/tasks/new-task";
 import {
 	ACTIVITY,
 	PROJECTS,
@@ -81,6 +81,7 @@ function Home({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 	const { user } = Route.useRouteContext();
 	const { meId } = useTaskView();
 	const newTask = useNewTask();
+	const canCreateTask = useCanCreateTask();
 	const ws = useSuspenseQuery(WORKSPACE, { variables: { slug } }).data
 		.workspace;
 	const pj = useSuspenseQuery(PROJECTS, { variables: { slug } }).data.workspace;
@@ -178,17 +179,19 @@ function Home({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 							New project
 						</button>
 					)}
-					<button
-						type="button"
-						className="btn btn-primary"
-						onClick={() => newTask()}
-					>
-						<span
-							className="icon-[hugeicons--plus-sign] size-3.5"
-							aria-hidden="true"
-						/>
-						New task
-					</button>
+					{canCreateTask && (
+						<button
+							type="button"
+							className="btn btn-primary"
+							onClick={() => newTask()}
+						>
+							<span
+								className="icon-[hugeicons--plus-sign] size-3.5"
+								aria-hidden="true"
+							/>
+							New task
+						</button>
+					)}
 				</div>
 			</div>
 

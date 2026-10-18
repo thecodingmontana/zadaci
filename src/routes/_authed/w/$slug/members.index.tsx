@@ -153,6 +153,7 @@ function MembersPage() {
 					<TeamsGrid
 						slug={slug}
 						teams={workspace.teams}
+						canCreate={canTeams}
 						avatars={(teamId) => <AvStack people={teamMembers(teamId)} />}
 					/>
 				</>

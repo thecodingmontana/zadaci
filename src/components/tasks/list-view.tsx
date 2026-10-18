@@ -132,9 +132,11 @@ export function ListView({
 		}),
 	);
 	const tpl = `18px 30px minmax(220px,1fr) ${cols.map((c) => COLS[c][1]).join(" ")} 40px`;
-	const all = groups.flatMap((g) => g.tasks);
+	const listed = groups.flatMap((g) => g.tasks);
+	// only tasks the viewer can edit can be picked for bulk changes
+	const all = listed.filter((t) => canEdit(t.projectId));
 	const nSel = all.filter((t) => selected.has(t.id)).length;
-	if (!all.length && empty) return <>{empty}</>;
+	if (!listed.length && empty) return <>{empty}</>;
 	const showHeaders = groups.length > 1 || groups[0]?.key !== "all";
 	const fallbackProject =
 		projectId ??
@@ -176,7 +178,7 @@ export function ListView({
 					>
 						<div />
 						<div>
-							{!complete && (
+							{!complete && all.length > 0 && (
 								<input
 									type="checkbox"
 									className="check"
@@ -506,6 +508,7 @@ function Row({
 							type="checkbox"
 							className="check"
 							checked={selected}
+							disabled={!editable}
 							aria-label={`Select ${t.name}`}
 							onChange={onSelect}
 						/>

@@ -47,6 +47,16 @@ export function CollectionIcon({
 	);
 }
 
+/** Can the viewer make a collection: open ones, or one linked to a project they edit. */
+export function useCanCreateCollection(slug: string) {
+	const { data } = useQuery(SHELL, { variables: { slug } });
+	const w = data?.workspace;
+	return (
+		can(w?.role, "workspaceContent", w?.settings) ||
+		!!w?.projects.some((p) => hasRight(p.myAccess, "edit"))
+	);
+}
+
 export function CollectionModal({
 	slug,
 	open,

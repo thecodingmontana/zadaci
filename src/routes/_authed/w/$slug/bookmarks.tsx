@@ -12,6 +12,7 @@ import {
 	CollectionIcon,
 	CollectionMenu,
 	CollectionModal,
+	useCanCreateCollection,
 } from "#/components/bookmarks/collection-modal";
 import {
 	Menu,
@@ -108,6 +109,7 @@ function BookmarksPage() {
 	const { data: shell } = useSuspenseQuery(SHELL, { variables: { slug } });
 	const [form, setForm] = useState<{ key: number; bookmark?: BookmarkItem }>();
 	const [creatingCollection, setCreatingCollection] = useState(false);
+	const canCreateCollection = useCanCreateCollection(slug);
 	const collections = cols.bookmarkCollections;
 	const collection = collections.find((x) => x.id === c);
 	// guests only work inside projects: no unsorted links or open collections
@@ -341,7 +343,7 @@ function BookmarksPage() {
 					type="button"
 					className="btn btn-ghost btn-sm hide-m"
 					onClick={() => setCreatingCollection(true)}
-					disabled={isGuest && !shell.workspace?.projects.length}
+					disabled={!canCreateCollection}
 				>
 					<span
 						className="icon-[hugeicons--folder-add] size-3.5"

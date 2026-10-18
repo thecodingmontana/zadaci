@@ -10,7 +10,7 @@ import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";
 import { useModKey } from "#/components/shell/command-menu";
-import { TASKS, type TaskItem } from "#/graphql/operations";
+import { SHELL, TASKS, type TaskItem } from "#/graphql/operations";
 import { FILE_TYPES, fileKind, fmtSize } from "#/lib/files";
 import { hasRight } from "#/lib/permissions";
 import { LABELS, RECURS } from "#/lib/tasks";
@@ -46,6 +46,11 @@ const NewTaskContext = createContext<((prefill?: Prefill) => void) | null>(
 	null,
 );
 
+const CanCreateContext = createContext(false);
+
+/** Whether the viewer can add a task anywhere: some open project they can edit. */
+export const useCanCreateTask = () => useContext(CanCreateContext);
+
 export function useNewTask() {
 	const open = useContext(NewTaskContext);
 	if (!open) throw new Error("useNewTask must be used inside NewTaskProvider");
@@ -61,9 +66,15 @@ export function NewTaskProvider({
 	/** opens the new task (the drawer) when the toast's Open is pressed */
 }) {
 	const [prefill, setPrefill] = useState<Prefill | null>(null);
+	const { data: shell } = useQuery(SHELL, { variables: { slug } });
+	const canCreate = !!shell?.workspace?.projects.some(
+		(p) => p.status !== "complete" && hasRight(p.myAccess, "edit"),
+	);
 	return (
 		<NewTaskContext.Provider value={(p = {}) => setPrefill(p)}>
-			{children}
+			<CanCreateContext.Provider value={canCreate}>
+				{children}
+			</CanCreateContext.Provider>
 			{prefill && (
 				<NewTaskLoader
 					slug={slug}

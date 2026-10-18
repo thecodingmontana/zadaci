@@ -14,7 +14,7 @@ import { BoardView } from "./board-view";
 import { CalendarView } from "./calendar-view";
 import { TaskViewProvider, useTaskView } from "./context";
 import { ListView } from "./list-view";
-import { useNewTask } from "./new-task";
+import { useCanCreateTask, useNewTask } from "./new-task";
 import { Sk, TaskViewSkeleton, ToolbarSkeleton } from "./skeletons";
 import { ColumnsMenu, TableView } from "./table-view";
 import {
@@ -122,6 +122,8 @@ function NewTaskButton({
 	prefill?: Parameters<ReturnType<typeof useNewTask>>[0];
 }) {
 	const newTask = useNewTask();
+	const canCreate = useCanCreateTask();
+	if (!canCreate) return null;
 	return (
 		<button
 			type="button"
@@ -164,6 +166,7 @@ function AllTasks({ tasks }: { tasks: TaskItem[] }) {
 	const [view, setView] = useViewState("tasks");
 	const [mode, setMode] = useMode<"list" | "board" | "table">("tasks", "list");
 	const newTask = useNewTask();
+	const canCreate = useCanCreateTask();
 	const shown = applyView(tasks, view, names);
 	const groups = groupTasks(shown, view.group, { members, projects });
 	const right = (
@@ -213,7 +216,7 @@ function AllTasks({ tasks }: { tasks: TaskItem[] }) {
 					groups={groups}
 					view={view}
 					setView={setView}
-					onNew={() => newTask()}
+					onNew={canCreate ? () => newTask() : undefined}
 				/>
 			) : (
 				<div className="list-wrap">

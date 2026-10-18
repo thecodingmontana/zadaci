@@ -72,6 +72,7 @@ function TeamsPage() {
 				<TeamsGrid
 					slug={slug}
 					teams={workspace.teams}
+					canCreate={canAdmin}
 					avatars={(teamId) => (
 						<AvStack
 							people={workspace.members.filter((m) =>

@@ -12,7 +12,7 @@ import {
 	MenuSeparator,
 	MenuTrigger,
 } from "#/components/q/menu";
-import { useNewTask } from "#/components/tasks/new-task";
+import { useCanCreateTask, useNewTask } from "#/components/tasks/new-task";
 import { NOTES } from "#/graphql/note-operations";
 import type { ShellProject, ShellTeam } from "#/graphql/operations";
 import { ancestors } from "#/lib/note-tree";
@@ -87,6 +87,7 @@ export function Topbar({
 	const crumbs = useCrumbs(slug, projects, teams);
 	const [creatingProject, setCreatingProject] = useState(false);
 	const newTask = useNewTask();
+	const canCreateTask = useCanCreateTask();
 	const navigate = useNavigate();
 	const { setMnav } = useShell();
 	const { openPalette } = useCommandMenu();
@@ -180,6 +181,7 @@ export function Topbar({
 					<MenuItem
 						icon="icon-[solar--check-circle-linear]"
 						onSelect={() => newTask()}
+						disabled={!canCreateTask}
 					>
 						Task
 					</MenuItem>

@@ -231,18 +231,21 @@ function ProjectPage() {
 								size="md"
 							/>
 						</button>
-						<button
-							type="button"
-							className="ibtn ibtn-sm"
-							data-tip="Add member"
-							aria-label="Add member"
-							onClick={() => setSharing(true)}
-						>
-							<span
-								className="icon-[solar--user-plus-linear] size-[15px]"
-								aria-hidden="true"
-							/>
-						</button>
+						{/* only full access adds people; anyone can still see who's on it */}
+						{project.myAccess === "full" && (
+							<button
+								type="button"
+								className="ibtn ibtn-sm"
+								data-tip="Add member"
+								aria-label="Add member"
+								onClick={() => setSharing(true)}
+							>
+								<span
+									className="icon-[solar--user-plus-linear] size-[15px]"
+									aria-hidden="true"
+								/>
+							</button>
+						)}
 						<button
 							type="button"
 							className="btn btn-secondary btn-sm hide-m"

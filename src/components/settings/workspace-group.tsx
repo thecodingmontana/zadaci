@@ -543,7 +543,11 @@ export function TeamsSection({ slug, workspace, title }: SectionProps) {
 	return (
 		<>
 			<SettingsHeader title={title} lead="Teams group people and projects." />
-			<TeamsGrid slug={slug} teams={workspace.teams} />
+			<TeamsGrid
+				slug={slug}
+				teams={workspace.teams}
+				canCreate={can(workspace.role, "manageTeams", workspace.settings)}
+			/>
 		</>
 	);
 }
@@ -553,10 +557,13 @@ export function TeamsGrid({
 	slug,
 	teams,
 	avatars,
+	canCreate,
 }: {
 	slug: string;
 	teams: SectionProps["workspace"]["teams"];
 	avatars?: (teamId: string) => ReactNode;
+	/** may this person make teams (the empty state offers it) */
+	canCreate: boolean;
 }) {
 	return (
 		<>
@@ -624,18 +631,24 @@ export function TeamsGrid({
 							/>
 						</div>
 						<h2 className="es-h">No teams yet</h2>
-						<p>Create a team to group people and give projects an owner.</p>
-						<Link
-							to="/w/$slug/$"
-							params={{ slug, _splat: "teams" }}
-							className="btn btn-primary btn-sm"
-						>
-							<span
-								className="icon-[hugeicons--plus-sign] size-3.5"
-								aria-hidden="true"
-							/>
-							New team
-						</Link>
+						<p>
+							{canCreate
+								? "Create a team to group people and give projects an owner."
+								: "An admin can create teams to group people and projects."}
+						</p>
+						{canCreate && (
+							<Link
+								to="/w/$slug/$"
+								params={{ slug, _splat: "teams" }}
+								className="btn btn-primary btn-sm"
+							>
+								<span
+									className="icon-[hugeicons--plus-sign] size-3.5"
+									aria-hidden="true"
+								/>
+								New team
+							</Link>
+						)}
 					</div>
 				</div>
 			)}
