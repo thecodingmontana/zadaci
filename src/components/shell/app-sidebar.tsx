@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactElement, useState } from "react";
+import { CollectionsNav } from "#/components/bookmarks/collections-nav";
 import { NotesTree } from "#/components/notes/notes-tree";
 import { projectColor } from "#/components/projects/bits";
 import { ProjectModalLoader } from "#/components/projects/project-modal";
@@ -512,6 +513,7 @@ export function AppSidebar({
 				</div>
 
 				{!collapsed && <NotesTree slug={slug} />}
+				{!collapsed && <CollectionsNav slug={slug} />}
 
 				{teams.length > 0 && (
 					<div className="sgroup">

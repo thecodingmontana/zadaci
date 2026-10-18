@@ -38,6 +38,7 @@ export function MenuItem({
 	checked,
 	disabled,
 	r,
+	keepOpen,
 }: {
 	icon?: string;
 	children: ReactNode;
@@ -46,11 +47,16 @@ export function MenuItem({
 	checked?: boolean;
 	disabled?: boolean;
 	r?: React.ReactNode;
+	/** for toggles: picking it leaves the menu open */
+	keepOpen?: boolean;
 }) {
 	return (
 		<DropdownMenu.Item
 			className={cn("mi", danger && "danger")}
-			onSelect={onSelect}
+			onSelect={(e) => {
+				if (keepOpen) e.preventDefault();
+				onSelect();
+			}}
 			disabled={disabled}
 		>
 			{icon && (

@@ -2570,6 +2570,141 @@ h3.sub {
 .fcard:hover .more {
   opacity: 1;
 }
+/* bookmarks: link cards (grid), rows (list) and the add form's preview */
+.bgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.bthumb {
+  display: grid;
+  place-items: center;
+  background: var(--q-sunken);
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+.bthumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.bthumb.sm {
+  width: 72px;
+  height: 46px;
+  border-radius: var(--q-r-sm);
+  border: 1px solid var(--q-border);
+}
+.bcard .fi {
+  gap: 3px;
+  padding: 10px 12px 12px;
+}
+.btags {
+  display: flex;
+  gap: 6px;
+  font-size: var(--q-fs-2xs);
+  color: var(--q-accent);
+  font-weight: 500;
+}
+.btitle {
+  font-size: var(--q-fs-sm);
+  font-weight: 600;
+  color: var(--q-text);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.btitle:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.bdesc {
+  font-size: var(--q-fs-xs);
+  color: var(--q-text-2);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.bdesc.one {
+  -webkit-line-clamp: 1;
+}
+.bmeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 4px;
+  font-size: var(--q-fs-2xs);
+  color: var(--q-text-3);
+}
+.brow {
+  min-height: 62px;
+  gap: 12px;
+  cursor: pointer;
+}
+.brow .btitle {
+  -webkit-line-clamp: 1;
+}
+.bpreview {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.bpreview .bthumb {
+  width: 112px;
+  aspect-ratio: 16/10;
+  border-radius: var(--q-r);
+  border: 1px solid var(--q-border);
+}
+.bpreview .bthumb .ibtn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--q-surface);
+  box-shadow: 0 0 0 1px var(--q-border);
+}
+fieldset.field {
+  min-width: 0;
+}
+.bpick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 4px 12px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.bpick label {
+  gap: 8px;
+  height: 30px;
+  font-size: var(--q-fs-sm);
+  cursor: pointer;
+  min-width: 0;
+}
+.btn .ct {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--q-r-full);
+  background: var(--q-accent);
+  color: #fff;
+  font-size: 10.5px;
+  display: inline-grid;
+  place-items: center;
+}
+@media (max-width: 640px) {
+  .bgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .bpreview .bthumb {
+    width: 84px;
+  }
+}
+
 .ftype {
   width: 28px;
   height: 28px;
