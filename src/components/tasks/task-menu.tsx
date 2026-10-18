@@ -22,7 +22,7 @@ import {
 	TOGGLE_TASK_FAVORITE,
 } from "#/graphql/operations";
 import { PRIORITIES, TASK_STATUSES } from "#/lib/tasks";
-import { toast } from "#/lib/toast";
+import { copy, toast } from "#/lib/toast";
 import { PrIcon } from "./bits";
 import { dropTaskFromLists, TASK_REFETCH, useTaskView } from "./context";
 
@@ -208,18 +208,7 @@ export function TaskMenu({
 					<MenuItem
 						icon="icon-[solar--link-linear]"
 						onSelect={() =>
-							toast
-								.promise(
-									navigator.clipboard.writeText(
-										`${location.origin}/w/${slug}/p/${t.projectId}?task=${t.id}`,
-									),
-									{
-										loading: "Copying link…",
-										success: "Link copied",
-										error: "Couldn't copy the link",
-									},
-								)
-								.catch(() => {})
+							copy(`${location.origin}/w/${slug}/p/${t.projectId}?task=${t.id}`)
 						}
 					>
 						Copy link

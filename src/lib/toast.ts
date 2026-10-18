@@ -133,3 +133,14 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
 		return run;
 	},
 });
+
+/** Copies text and says so: "Link copied", or "Couldn't copy the link". */
+export function copy(text: string, what = "link") {
+	return toast
+		.promise(navigator.clipboard.writeText(text), {
+			loading: `Copying ${what}…`,
+			success: `${what[0]?.toUpperCase()}${what.slice(1)} copied`,
+			error: `Couldn't copy the ${what}`,
+		})
+		.catch(() => {});
+}

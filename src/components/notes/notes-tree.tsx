@@ -29,7 +29,7 @@ import {
 	type DropSpot,
 	dropTarget,
 } from "#/lib/note-tree";
-import { toast } from "#/lib/toast";
+import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 
 // The Notes section of the sidebar: pages nest like Notion's, open and close with the
@@ -389,14 +389,9 @@ export function NoteMenu({
 					</MenuItem>
 					<MenuItem
 						icon="icon-[solar--link-linear]"
-						onSelect={() => {
-							navigator.clipboard
-								.writeText(
-									`${window.location.origin}/w/${slug}/notes/${note.id}`,
-								)
-								.then(() => toast.success("Link copied"))
-								.catch(() => toast.error("Couldn't copy the link"));
-						}}
+						onSelect={() =>
+							copy(`${window.location.origin}/w/${slug}/notes/${note.id}`)
+						}
 					>
 						Copy link
 					</MenuItem>

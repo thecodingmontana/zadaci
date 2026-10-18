@@ -13,7 +13,7 @@ import {
 } from "#/graphql/operations";
 import { EMAIL_RE } from "#/lib/onboarding";
 import { PROJECT_RIGHT_LABEL, PROJECT_RIGHTS } from "#/lib/permissions";
-import { toast } from "#/lib/toast";
+import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 
 // Ported from the reference app's Share modal: invite people, set what each person can do
@@ -123,18 +123,7 @@ export function ShareModal({
 						type="button"
 						className="btn btn-secondary"
 						onClick={() => {
-							toast
-								.promise(
-									navigator.clipboard.writeText(
-										`${location.origin}/w/${slug}/p/${projectId}`,
-									),
-									{
-										loading: "Copying link…",
-										success: "Link copied",
-										error: "Couldn't copy the link",
-									},
-								)
-								.catch(() => {});
+							copy(`${location.origin}/w/${slug}/p/${projectId}`);
 						}}
 					>
 						<span

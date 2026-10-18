@@ -27,7 +27,7 @@ import { setAppearance, useAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
 import { can, type Permission } from "#/lib/permissions";
 import { pstat } from "#/lib/projects";
-import { toast } from "#/lib/toast";
+import { copy } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { useCommandMenu, useModKey } from "./command-menu";
 import {
@@ -578,18 +578,7 @@ export function AppSidebar({
 						</MenuItem>
 						<MenuItem
 							icon="icon-[solar--copy-linear]"
-							onSelect={() => {
-								navigator.clipboard
-									.writeText(SUPPORT_EMAIL)
-									.then(() =>
-										toast.success("Support email copied", {
-											desc: SUPPORT_EMAIL,
-										}),
-									)
-									.catch(() =>
-										toast.error("Couldn't copy", { desc: SUPPORT_EMAIL }),
-									);
-							}}
+							onSelect={() => copy(SUPPORT_EMAIL, "support email")}
 						>
 							Copy support email
 						</MenuItem>

@@ -21,7 +21,7 @@ import {
 import { FILE_TYPES, type FileKind, fileKind, fmtSize } from "#/lib/files";
 import { hasRight, type ProjectRight } from "#/lib/permissions";
 import { ago } from "#/lib/time";
-import { toast } from "#/lib/toast";
+import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { TASK_REFETCH } from "./context";
 import { uploadFile } from "./upload";
@@ -484,13 +484,7 @@ export function FilePreviewModal({
 						className="btn btn-secondary"
 						onClick={() => {
 							if (!f) return;
-							toast
-								.promise(navigator.clipboard.writeText(f.url), {
-									loading: "Copying link…",
-									success: "Link copied",
-									error: "Couldn't copy the link",
-								})
-								.catch(() => {});
+							copy(f.url);
 						}}
 					>
 						<span
@@ -598,13 +592,7 @@ function FileMenu({
 					<MenuItem
 						icon="icon-[solar--link-linear]"
 						onSelect={() => {
-							toast
-								.promise(navigator.clipboard.writeText(f.url), {
-									loading: "Copying link…",
-									success: "Link copied",
-									error: "Couldn't copy the link",
-								})
-								.catch(() => {});
+							copy(f.url);
 						}}
 					>
 						Copy link

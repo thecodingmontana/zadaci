@@ -5,7 +5,8 @@ import { AddPasskeyButton } from "#/components/auth/passkey-buttons";
 import { ConfirmModal } from "#/components/q/confirm";
 import { Modal } from "#/components/q/modal";
 import { authClient } from "#/lib/auth-client";
-import { toast } from "#/lib/toast";
+import { ago } from "#/lib/time";
+import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { SBlock, SettingsHeader, SRow } from "./ui";
 
@@ -16,14 +17,6 @@ async function unwrap<T>(
 	const { data, error } = await call;
 	if (error) throw new Error(error.message ?? "Something went wrong");
 	return data;
-}
-
-function ago(date: string | Date) {
-	const s = Math.max(0, (Date.now() - new Date(date).getTime()) / 1000);
-	if (s < 60) return "Active now";
-	if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-	if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-	return `${Math.floor(s / 86400)}d ago`;
 }
 
 // first match wins: Edge, Opera and the rest also say "Chrome", and Chrome also says "Safari"
@@ -385,13 +378,7 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
 					type="button"
 					className="btn btn-secondary btn-sm"
 					onClick={() => {
-						toast
-							.promise(navigator.clipboard.writeText(codes.join("\n")), {
-								loading: "Copying recovery codes…",
-								success: "Recovery codes copied",
-								error: "Couldn't copy the codes",
-							})
-							.catch(() => {});
+						copy(codes.join("\n"), "recovery codes");
 					}}
 				>
 					<span

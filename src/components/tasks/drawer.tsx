@@ -20,7 +20,7 @@ import {
 import { FILE_TYPES, fileKind, fmtSize } from "#/lib/files";
 import { ESTIMATES, RECURS } from "#/lib/tasks";
 import { ago, daysUntil, relDay } from "#/lib/time";
-import { toast } from "#/lib/toast";
+import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { isOverdue } from "#/lib/view-engine";
 import {
@@ -266,18 +266,7 @@ function DrawerBody({
 					data-tip="Copy link"
 					aria-label="Copy link"
 					onClick={() => {
-						toast
-							.promise(
-								navigator.clipboard.writeText(
-									`${location.origin}/w/${slug}/p/${t.projectId}?task=${t.id}`,
-								),
-								{
-									loading: "Copying link…",
-									success: "Link copied",
-									error: "Couldn't copy the link",
-								},
-							)
-							.catch(() => {});
+						copy(`${location.origin}/w/${slug}/p/${t.projectId}?task=${t.id}`);
 					}}
 				>
 					<span

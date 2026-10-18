@@ -36,7 +36,7 @@ import {
 	ROLES,
 } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
-import { toast } from "#/lib/toast";
+import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import type { SectionProps } from "./general";
 import { SBlock, Select, SettingsHeader, SRow, Toggle } from "./ui";
@@ -173,13 +173,7 @@ export function MemberActions({
 					<MenuItem
 						icon="icon-[solar--letter-linear]"
 						onSelect={() => {
-							toast
-								.promise(navigator.clipboard.writeText(m.email), {
-									loading: "Copying email…",
-									success: "Email copied",
-									error: "Couldn't copy the email",
-								})
-								.catch(() => {});
+							copy(m.email, "email");
 						}}
 					>
 						Copy email
@@ -432,18 +426,10 @@ export function InviteModal({
 							type="button"
 							className="btn btn-ghost"
 							onClick={() => {
-								toast
-									.promise(
-										navigator.clipboard.writeText(
-											`${location.origin}/join/${workspace.inviteCode}`,
-										),
-										{
-											loading: "Copying invite link…",
-											success: "Invite link copied",
-											error: "Couldn't copy the invite link",
-										},
-									)
-									.catch(() => {});
+								copy(
+									`${location.origin}/join/${workspace.inviteCode}`,
+									"invite link",
+								);
 							}}
 						>
 							<span

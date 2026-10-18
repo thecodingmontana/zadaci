@@ -6,7 +6,7 @@ import {
 } from "@tiptap/react";
 import CodeBlockShiki from "tiptap-extension-code-block-shiki";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "#/components/q/menu";
-import { toast } from "#/lib/toast";
+import { copy } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 
 // Code blocks highlighted by Shiki (each language loads the first time it's used), with a
@@ -82,12 +82,7 @@ function CodeBlockView({ node, updateAttributes, editor }: NodeViewProps) {
 					className="ibtn ibtn-xs"
 					aria-label="Copy code"
 					data-tip="Copy"
-					onClick={() =>
-						navigator.clipboard
-							.writeText(node.textContent)
-							.then(() => toast.success("Code copied"))
-							.catch(() => toast.error("Couldn't copy the code"))
-					}
+					onClick={() => copy(node.textContent, "code")}
 				>
 					<span
 						className="icon-[solar--copy-linear] size-4"

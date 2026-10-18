@@ -28,7 +28,7 @@ import {
 	USE_CASES,
 	VIEWS,
 } from "#/lib/onboarding";
-import { toast } from "#/lib/toast";
+import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/_authed/onboarding")({
@@ -457,12 +457,9 @@ function Onboarding() {
 					variant="ghost"
 					size="sm"
 					className="self-start"
-					onClick={async () => {
-						await navigator.clipboard.writeText(
-							`${location.origin}/join/${created.inviteCode}`,
-						);
-						toast.success("Invite link copied");
-					}}
+					onClick={() =>
+						copy(`${location.origin}/join/${created.inviteCode}`, "invite link")
+					}
 				>
 					<span
 						className="icon-[solar--link-bold] size-3.5"

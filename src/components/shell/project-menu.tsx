@@ -20,7 +20,7 @@ import {
 	TOGGLE_FAVORITE,
 } from "#/graphql/operations";
 import { hasRight, type Permission } from "#/lib/permissions";
-import { toast } from "#/lib/toast";
+import { copy, toast } from "#/lib/toast";
 
 // The project "…" menu, ported from the reference app's project context menu.
 
@@ -141,17 +141,9 @@ export function ProjectMenu({
 					</MenuItem>
 					<MenuItem
 						icon="icon-[solar--link-linear]"
-						onSelect={run(
-							() =>
-								navigator.clipboard.writeText(
-									`${location.origin}/w/${slug}/p/${project.id}`,
-								),
-							{
-								loading: "Copying link…",
-								success: "Link copied",
-								error: "Couldn't copy the link",
-							},
-						)}
+						onSelect={() =>
+							copy(`${location.origin}/w/${slug}/p/${project.id}`)
+						}
 					>
 						Copy link
 					</MenuItem>

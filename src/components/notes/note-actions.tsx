@@ -12,6 +12,7 @@ import {
 	TOGGLE_NOTE_FAVORITE,
 	UPDATE_NOTE,
 } from "#/graphql/note-operations";
+import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { NoteMenu } from "./notes-tree";
@@ -19,13 +20,8 @@ import { NoteMenu } from "./notes-tree";
 // The note's controls in the top bar, like Notion's: when it was edited (a spinner while
 // saving), who can see it, a star, and the page menu.
 
-function edited(iso: string, now: number) {
-	const s = Math.max(0, (now - new Date(iso).getTime()) / 1000);
-	if (s < 60) return "Edited just now";
-	if (s < 3600) return `Edited ${Math.floor(s / 60)}m ago`;
-	if (s < 86400) return `Edited ${Math.floor(s / 3600)}h ago`;
-	return `Edited ${new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
-}
+const edited = (iso: string, now: number) =>
+	`Edited ${ago(iso, new Date(now))}`;
 
 export function NoteActions({
 	slug,

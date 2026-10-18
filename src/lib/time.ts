@@ -9,9 +9,8 @@ import {
 } from "date-fns";
 
 /** "just now", "5m ago", "3h ago", "2d ago", then "Mar 4", like the reference feed. */
-export function ago(iso: string) {
+export function ago(iso: string | Date, now = new Date()) {
 	const date = new Date(iso);
-	const now = new Date();
 	const m = differenceInMinutes(now, date);
 	if (m < 1) return "just now";
 	if (m < 60) return `${m}m ago`;

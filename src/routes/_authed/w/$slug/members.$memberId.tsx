@@ -19,7 +19,7 @@ import { reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { isClosed } from "#/lib/tasks";
 import { ago, fmtDay } from "#/lib/time";
-import { toast } from "#/lib/toast";
+import { copy } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { isOverdue } from "#/lib/view-engine";
 
@@ -175,13 +175,7 @@ function MemberPage() {
 						type="button"
 						className="btn btn-secondary"
 						onClick={() => {
-							toast
-								.promise(navigator.clipboard.writeText(m.email), {
-									loading: "Copying email…",
-									success: "Email copied",
-									error: "Couldn't copy the email",
-								})
-								.catch(() => {});
+							copy(m.email, "email");
 						}}
 					>
 						<span
