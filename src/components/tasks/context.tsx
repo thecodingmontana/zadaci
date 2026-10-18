@@ -105,11 +105,14 @@ export function TaskViewProvider({
 	slug,
 	members,
 	projects,
+	assignToMe,
 	children,
 }: {
 	slug: string;
 	members: SettingsMember[];
 	projects: ProjectSummary[];
+	/** new tasks go to you unless they name someone (My Tasks, so they don't vanish) */
+	assignToMe?: boolean;
 	children: ReactNode;
 }) {
 	const router = useRouter();
@@ -153,7 +156,12 @@ export function TaskViewProvider({
 					});
 				}
 			},
-			create: async (input, opts) => {
+			create: async (patch, opts) => {
+				const meId = members.find((m) => m.isMe)?.id;
+				const input =
+					assignToMe && patch.assigneeId === undefined && meId
+						? { ...patch, assigneeId: meId }
+						: patch;
 				const id = opts?.quiet
 					? null
 					: toast.pending(`Adding “${input.title}”…`);
@@ -268,7 +276,7 @@ export function TaskViewProvider({
 					})) as never,
 				}),
 		};
-	}, [slug, members, projects, router, updateTask, createTask]);
+	}, [slug, members, projects, assignToMe, router, updateTask, createTask]);
 
 	return <TaskContext.Provider value={value}>{children}</TaskContext.Provider>;
 }

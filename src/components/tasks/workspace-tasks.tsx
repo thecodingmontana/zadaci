@@ -48,6 +48,7 @@ export function WorkspaceTasks({
 			slug={slug}
 			members={workspace.members}
 			projects={workspace.projects}
+			assignToMe={kind === "my"}
 		>
 			{kind === "my" ? (
 				<MyTasks tasks={workspace.tasks} />
