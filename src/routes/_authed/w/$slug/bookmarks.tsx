@@ -47,6 +47,10 @@ const LAYOUTS = [
 	["list", "List", "icon-[solar--list-linear]"],
 ] as const;
 const UNSORTED = "unsorted";
+// "Design" and "design" are one tag
+const sameTag = (t: string) => t.toLowerCase();
+const hasTag = (tags: string[], t: string) =>
+	tags.some((x) => sameTag(x) === sameTag(t));
 
 export const Route = createFileRoute("/_authed/w/$slug/bookmarks")({
 	validateSearch: z.object({
@@ -121,14 +125,22 @@ function BookmarksPage() {
 			),
 		[data, c, archived],
 	);
-	// tags in this place, most used first, for the filter
+	// every tag once, whatever its case (first spelling wins), most used first
 	const allTags = useMemo(() => {
-		const counts = new Map<string, number>();
+		const counts = new Map<string, { name: string; n: number }>();
 		for (const b of data.bookmarks)
-			for (const t of b.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
-		return [...counts].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+			for (const t of b.tags) {
+				const seen = counts.get(sameTag(t));
+				counts.set(sameTag(t), {
+					name: seen?.name ?? t,
+					n: (seen?.n ?? 0) + 1,
+				});
+			}
+		return [...counts.values()].sort((a, b) => b.n - a.n).map((e) => e.name);
 	}, [data]);
-	const placeTags = [...new Set(inPlace.flatMap((b) => b.tags))];
+	const placeTags = allTags.filter((t) =>
+		inPlace.some((b) => hasTag(b.tags, t)),
+	);
 
 	const query = q.trim().toLowerCase();
 	const shown = inPlace
@@ -136,7 +148,7 @@ function BookmarksPage() {
 			(b) =>
 				(!kind || b.kind === kind) &&
 				(!fav || b.isFavorite) &&
-				(!tags.length || tags.some((t) => b.tags.includes(t))) &&
+				(!tags.length || tags.some((t) => hasTag(b.tags, t))) &&
 				(!query ||
 					[b.title, b.description, b.url, b.site, ...b.tags].some((v) =>
 						v?.toLowerCase().includes(query),
@@ -157,7 +169,9 @@ function BookmarksPage() {
 			fav: undefined,
 		});
 	const toggleTag = (t: string) => {
-		const next = tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t];
+		const next = hasTag(tags, t)
+			? tags.filter((x) => sameTag(x) !== sameTag(t))
+			: [...tags, t];
 		setSearch({ tags: next.length ? next : undefined });
 	};
 	const cardProps = {
@@ -481,7 +495,7 @@ function FilterMenu({
 							{placeTags.map((t) => (
 								<MenuItem
 									key={t}
-									checked={tags.includes(t)}
+									checked={hasTag(tags, t)}
 									keepOpen
 									onSelect={() => toggleTag(t)}
 								>
