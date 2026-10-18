@@ -477,7 +477,13 @@ const addDays = (date: Date, days: number) => {
  * completion dates, the "moved/completed/reopened" feed lines, and the next copy of a
  * repeating task when it gets done.
  */
-async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
+async function applyPatch(
+	actor: Actor,
+	task: TaskRow,
+	patch: Patch,
+	/** bulk edits check the assignee once per project before changing anything */
+	assigneeChecked = false,
+) {
 	const set: Partial<typeof tables.task.$inferInsert> = {};
 	const logs: [string, string?][] = [];
 	if (patch.title !== undefined && patch.title !== task.name) {
@@ -591,7 +597,8 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 		const next = patch.assigneeId || null;
 		let changed = false;
 		if ((current?.memberId ?? null) !== next) {
-			await checkAssignee(actor.workspace.id, task.project_id, next);
+			if (!assigneeChecked)
+				await checkAssignee(actor.workspace.id, task.project_id, next);
 			// lock the task so two assigns at once can't both leave an assignee row
 			changed = await db.transaction(async (tx) => {
 				await tx
@@ -988,12 +995,29 @@ export const tasksResolvers = {
 				ids,
 				"edit",
 			);
-			for (const task of tasks) {
-				const { workspace } = checked.get(task.project_id) as {
-					workspace: Workspace;
-				};
-				await applyPatch({ workspace, userId: user.id }, task, patch);
-			}
+			const actorFor = (task: TaskRow) => ({
+				workspace: (checked.get(task.project_id) as { workspace: Workspace })
+					.workspace,
+				userId: user.id,
+			});
+			// a bad assignee fails before any task changes, not halfway through the list
+			if (patch.assigneeId)
+				for (const projectId of new Set(tasks.map((t) => t.project_id))) {
+					const task = tasks.find((t) => t.project_id === projectId) as TaskRow;
+					await checkAssignee(
+						actorFor(task).workspace.id,
+						projectId,
+						patch.assigneeId,
+					);
+				}
+			// a few at a time: matches the database pool, so 500 tasks finish well inside the timeout
+			const BATCH = 3;
+			for (let i = 0; i < tasks.length; i += BATCH)
+				await Promise.all(
+					tasks
+						.slice(i, i + BATCH)
+						.map((task) => applyPatch(actorFor(task), task, patch, true)),
+				);
 			return tasks.length;
 		},
 

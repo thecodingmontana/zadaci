@@ -212,3 +212,16 @@ test("sidebar counts: my open tasks and everything archived", async () => {
 	await gql(owner, `mutation($s: String!, $p: ID!) { archiveProject(slug: $s, projectId: $p, archived: true) { id } }`, { s: slug, p: project.id });
 	assert.deepEqual((await gql(owner, COUNTS, { s: slug })).data?.workspace, { myOpenTasks: 0, archivedCount: 1 }, "an archived project counts once, its tasks don't");
 });
+
+test("bulk edits check the assignee first, so a bad one changes no task", async () => {
+	const { owner, slug, create } = await setup();
+	const ids = [];
+	for (const title of ["One", "Two", "Three", "Four"]) ids.push((await create(owner, { title })).data?.createTask.id);
+	const BULK = `mutation($s: String!, $ids: [ID!]!, $p: TaskPatch!) { bulkUpdateTasks(slug: $s, ids: $ids, patch: $p) }`;
+	const bad = await gql(owner, BULK, { s: slug, ids, p: { status: "completed", assigneeId: "not-a-member" } });
+	assert.equal(code(bad), "BAD_USER_INPUT");
+	const after = (await gql(owner, TASKS, { s: slug })).data?.workspace.tasks.filter((t: { id: string }) => ids.includes(t.id));
+	assert.ok(after.every((t: { status: string }) => t.status !== "completed"), "nothing changed");
+	const ok = await gql(owner, BULK, { s: slug, ids, p: { priority: "high" } });
+	assert.equal(ok.data?.bulkUpdateTasks, 4);
+});
