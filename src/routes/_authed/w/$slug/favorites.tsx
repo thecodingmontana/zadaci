@@ -1,16 +1,25 @@
 import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
+import { BookmarkCard } from "#/components/bookmarks/bookmark-card";
+import { BookmarkModal } from "#/components/bookmarks/bookmark-modal";
 import { ProjectCard } from "#/components/projects/project-card";
 import { FavoritesSkeleton } from "#/components/shell/page-skeletons";
 import { ProjectMenu } from "#/components/shell/project-menu";
 import { TaskViewProvider } from "#/components/tasks/context";
 import { MiniRow } from "#/components/tasks/mini-row";
+import {
+	BOOKMARK_COLLECTIONS,
+	BOOKMARKS,
+	type BookmarkItem,
+} from "#/graphql/bookmark-operations";
 import { PROJECTS, TASKS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 
-// Ported from the reference app's Favorites page: starred projects, then starred tasks.
+// Ported from the reference app's Favorites page: starred projects, then starred tasks,
+// then starred bookmarks.
 
 export const Route = createFileRoute("/_authed/w/$slug/favorites")({
 	shouldReload: reloadOnEnter,
@@ -27,6 +36,16 @@ export const Route = createFileRoute("/_authed/w/$slug/favorites")({
 				variables,
 				fetchPolicy: "network-only",
 			}),
+			context.apolloClient.query({
+				query: BOOKMARKS,
+				variables,
+				fetchPolicy: "network-only",
+			}),
+			context.apolloClient.query({
+				query: BOOKMARK_COLLECTIONS,
+				variables,
+				fetchPolicy: "network-only",
+			}),
 		]);
 		if (!data?.workspace) throw notFound();
 	},
@@ -39,19 +58,27 @@ function FavoritesPage() {
 	const { slug } = Route.useParams();
 	const pj = useSuspenseQuery(PROJECTS, { variables: { slug } }).data.workspace;
 	const tk = useSuspenseQuery(TASKS, { variables: { slug } }).data.workspace;
+	const { bookmarks } = useSuspenseQuery(BOOKMARKS, {
+		variables: { slug },
+	}).data;
+	const { bookmarkCollections } = useSuspenseQuery(BOOKMARK_COLLECTIONS, {
+		variables: { slug },
+	}).data;
+	const [editing, setEditing] = useState<BookmarkItem>();
 	if (!pj || !tk) return null;
 	const ps = pj.projects.filter((p) => p.isFavorite);
 	const ts = tk.tasks.filter((t) => t.isFavorite);
+	const bs = bookmarks.filter((b) => b.isFavorite);
 
 	return (
 		<div className="page wide">
 			<div className="ph">
 				<div>
 					<h1>Favorites</h1>
-					<p>Projects and tasks you've starred for quick access.</p>
+					<p>Projects, tasks and bookmarks you've starred for quick access.</p>
 				</div>
 			</div>
-			{!ps.length && !ts.length ? (
+			{!ps.length && !ts.length && !bs.length ? (
 				<div className="panel">
 					<div className="empty-state">
 						<div className="glyph">
@@ -61,7 +88,7 @@ function FavoritesPage() {
 							/>
 						</div>
 						<h2 className="es-h">No favorites yet</h2>
-						<p>Star a project or task to pin it here.</p>
+						<p>Star a project, task or bookmark to pin it here.</p>
 						<Link
 							to="/w/$slug/projects"
 							params={{ slug }}
@@ -138,7 +165,39 @@ function FavoritesPage() {
 							Open a task and click the star to add it here.
 						</p>
 					)}
+					{bs.length > 0 && (
+						<>
+							<h2 className="sec" style={{ margin: "28px 0 10px" }}>
+								Bookmarks{" "}
+								<span className="faint" style={{ fontWeight: 500 }}>
+									{bs.length}
+								</span>
+							</h2>
+							<div className="bgrid">
+								{bs.map((b) => (
+									<BookmarkCard
+										key={b.id}
+										slug={slug}
+										b={b}
+										collections={bookmarkCollections}
+										onEdit={setEditing}
+									/>
+								))}
+							</div>
+						</>
+					)}
 				</>
+			)}
+			{editing && (
+				<BookmarkModal
+					key={editing.id}
+					slug={slug}
+					open
+					onOpenChange={(o) => !o && setEditing(undefined)}
+					bookmark={editing}
+					collections={bookmarkCollections}
+					allTags={[...new Set(bookmarks.flatMap((b) => b.tags))]}
+				/>
 			)}
 		</div>
 	);

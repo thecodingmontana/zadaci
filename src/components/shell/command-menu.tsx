@@ -281,6 +281,12 @@ export function CommandMenuProvider({
 			run: () => go("calendar"),
 		},
 		{
+			id: "c-bm",
+			name: "Go to Bookmarks",
+			icon: "icon-[solar--bookmark-linear]",
+			run: () => go("bookmarks"),
+		},
+		{
 			id: "c-tl",
 			name: "Go to Timeline",
 			icon: "icon-[hugeicons--chart-gantt]",
