@@ -123,3 +123,22 @@ test("archiving drops a link from the counts; stars are per person; edits are ch
 	assert.equal(code(await gql(owner, UPDATE, { s: slug, id: saved.id, p: { kind: "podcast" } })), "BAD_USER_INPUT");
 	assert.equal((await gql(member, `mutation($s: String!, $id: ID!) { deleteBookmark(slug: $s, id: $id) }`, { s: slug, id: saved.id })).data?.deleteBookmark, true, "authors delete their own");
 });
+
+test("a private bookmark is only its author's, even in a shared collection", async () => {
+	const { owner, member, slug } = await setup();
+	const shared = await collection(owner, slug, { name: "Team" });
+	const mine = (await add(member, slug, { url: "https://example.com/me", title: "Mine", isPrivate: true, collectionIds: [shared.id] })).data?.createBookmark;
+	const loose = (await add(member, slug, { url: "https://example.com/loose", title: "Loose", isPrivate: true })).data?.createBookmark;
+	assert.deepEqual(
+		(await list(member, slug)).map((b) => b.title).sort(),
+		["Loose", "Mine"],
+	);
+	assert.deepEqual(await list(owner, slug), [], "not even an admin sees it");
+	assert.equal((await collections(owner, slug))[0]?.count, 0, "nor counts it");
+	assert.equal(code(await gql(owner, `mutation($s: String!, $id: ID!) { deleteBookmark(slug: $s, id: $id) }`, { s: slug, id: mine.id })), "BAD_USER_INPUT");
+
+	const UPDATE = `mutation($s: String!, $id: ID!, $p: BookmarkPatch!) { updateBookmark(slug: $s, id: $id, patch: $p) { isPrivate } }`;
+	await gql(member, UPDATE, { s: slug, id: loose.id, p: { isPrivate: false } });
+	assert.deepEqual((await list(owner, slug)).map((b) => b.title), ["Loose"]);
+	assert.equal(code(await gql(owner, UPDATE, { s: slug, id: loose.id, p: { isPrivate: true } })), "FORBIDDEN", "only the author hides it");
+});

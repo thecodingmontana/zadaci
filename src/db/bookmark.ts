@@ -42,7 +42,7 @@ export const bookmark_collection = pgTable(
 	],
 );
 
-/** A saved link. One that's in no collection is "unsorted" and open to members. */
+/** A saved link. One that's in no collection is "unsorted" and open to members, unless private. */
 export const bookmark = pgTable(
 	"bookmark",
 	{
@@ -62,6 +62,8 @@ export const bookmark = pgTable(
 		/** article, document or video (see lib/link-preview) */
 		kind: varchar("kind", { length: 16 }).notNull().default("article"),
 		tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+		/** only its author sees it, whatever collections it's in */
+		private: boolean("private").notNull().default(false),
 		archived_at: timestamp("archived_at", {
 			mode: "date",
 			precision: 3,

@@ -104,6 +104,13 @@ function Meta({ b }: { b: BookmarkItem }) {
 					aria-label="Favorite"
 				/>
 			)}
+			{b.isPrivate && (
+				<span
+					className="icon-[solar--lock-keyhole-linear] size-3"
+					role="img"
+					aria-label="Private"
+				/>
+			)}
 			{b.archivedAt && (
 				<span
 					className="icon-[solar--archive-linear] size-3"

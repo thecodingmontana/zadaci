@@ -25,6 +25,7 @@ type Form = {
 	kind: BookmarkKind | null;
 	tags: string[];
 	collectionIds: string[];
+	isPrivate: boolean;
 };
 
 const blank = (collectionId?: string): Form => ({
@@ -35,6 +36,7 @@ const blank = (collectionId?: string): Form => ({
 	kind: null,
 	tags: [],
 	collectionIds: collectionId ? [collectionId] : [],
+	isPrivate: false,
 });
 
 const fromBookmark = (b: BookmarkItem): Form => ({
@@ -45,6 +47,7 @@ const fromBookmark = (b: BookmarkItem): Form => ({
 	kind: b.kind,
 	tags: b.tags,
 	collectionIds: b.collectionIds,
+	isPrivate: b.isPrivate,
 });
 
 export function BookmarkModal({
@@ -74,6 +77,10 @@ export function BookmarkModal({
 	const [loading, setLoading] = useState(false);
 	const [err, setErr] = useState("");
 	const previewed = useRef(bookmark?.url ?? "");
+	// what the last preview filled in, to tell it apart from what was typed
+	const filled = useRef<Pick<Form, "title" | "description" | "image" | "kind">>(
+		{ title: "", description: "", image: null, kind: null },
+	);
 	const [create] = useMutation(CREATE_BOOKMARK, { refetchQueries: REFETCH });
 	const [update] = useMutation(UPDATE_BOOKMARK);
 	const [move] = useMutation(MOVE_BOOKMARK);
@@ -99,14 +106,27 @@ export function BookmarkModal({
 			const page = data?.linkPreview;
 			if (!page) return;
 			// the page's details replace what came from the last link, never what was typed
+			const last = filled.current;
+			const keep = <T,>(typed: T, before: T, next: T) =>
+				!typed || typed === before ? next : typed;
 			setForm((f) => ({
 				...f,
 				url: page.url,
+				title: keep(f.title, last.title, page.title),
+				description: keep(
+					f.description,
+					last.description,
+					page.description ?? "",
+				),
+				image: keep(f.image, last.image, page.image),
+				kind: keep(f.kind, last.kind, page.kind),
+			}));
+			filled.current = {
 				title: page.title,
 				description: page.description ?? "",
 				image: page.image,
 				kind: page.kind,
-			}));
+			};
 		} catch (error) {
 			setErr((error as Error).message);
 		} finally {
@@ -125,6 +145,8 @@ export function BookmarkModal({
 			image: form.image,
 			kind: form.kind ?? undefined,
 			tags: form.tags,
+			// only the author may change it; others leave it as it is
+			...((!bookmark || bookmark.isAuthor) && { isPrivate: form.isPrivate }),
 		};
 		try {
 			if (bookmark) {
@@ -343,6 +365,28 @@ export function BookmarkModal({
 							))}
 						</div>
 					</fieldset>
+				)}
+
+				{(!bookmark || bookmark.isAuthor) && (
+					<label className="row" style={{ gap: 8, fontSize: 13 }}>
+						<input
+							type="checkbox"
+							className="check"
+							checked={form.isPrivate}
+							onChange={(e) => set("isPrivate", e.target.checked)}
+						/>
+						<span
+							className="icon-[solar--lock-keyhole-linear] size-3.5 faint"
+							aria-hidden="true"
+						/>
+						<span>
+							Private
+							<span className="faint">
+								{" "}
+								· only you can see it, even in shared collections
+							</span>
+						</span>
+					</label>
 				)}
 
 				<TagInput

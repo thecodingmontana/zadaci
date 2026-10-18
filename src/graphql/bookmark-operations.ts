@@ -20,6 +20,8 @@ export type BookmarkItem = {
 	canEdit: boolean;
 	canDelete: boolean;
 	isFavorite: boolean;
+	isPrivate: boolean;
+	isAuthor: boolean;
 };
 
 export type BookmarkCollectionItem = {
@@ -51,6 +53,7 @@ export type BookmarkInput = {
 	image?: string | null;
 	kind?: BookmarkKind;
 	tags?: string[];
+	isPrivate?: boolean;
 };
 
 const BOOKMARK_FIELDS = gql`
@@ -70,6 +73,8 @@ const BOOKMARK_FIELDS = gql`
 		canEdit
 		canDelete
 		isFavorite
+		isPrivate
+		isAuthor
 	}
 `;
 

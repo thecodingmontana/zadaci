@@ -1,0 +1,1 @@
+ALTER TABLE "app_bookmark" ADD COLUMN "private" boolean DEFAULT false NOT NULL;

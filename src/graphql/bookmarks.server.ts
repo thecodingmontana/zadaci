@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { cleanUrl, fetchPreview } from "#/lib/link-preview.server";
@@ -21,6 +21,7 @@ import { parse } from "./settings.server";
 // Saved links in collections. A collection is shared like a note: open to members, private
 // to its author, or linked to a project. A bookmark can sit in several collections and is
 // visible through any of them; one in no collection is "unsorted" and open to members.
+// A private bookmark is only its author's, wherever it's filed.
 
 type Workspace = Awaited<ReturnType<typeof findWorkspaces>>[number];
 type Collection = typeof tables.bookmark_collection.$inferSelect;
@@ -61,6 +62,10 @@ export const bookmarksTypeDefs = /* GraphQL */ `
 		canEdit: Boolean!
 		canDelete: Boolean!
 		isFavorite: Boolean!
+		"only its author sees it"
+		isPrivate: Boolean!
+		"the viewer saved it (only they can make it private)"
+		isAuthor: Boolean!
 	}
 
 	type LinkPreview {
@@ -81,6 +86,7 @@ export const bookmarksTypeDefs = /* GraphQL */ `
 		kind: String
 		tags: [String!]
 		collectionIds: [ID!]
+		isPrivate: Boolean
 	}
 
 	input BookmarkPatch {
@@ -91,6 +97,8 @@ export const bookmarksTypeDefs = /* GraphQL */ `
 		image: String
 		kind: String
 		tags: [String!]
+		"only the author can make a bookmark private or shared again"
+		isPrivate: Boolean
 	}
 
 	input NewBookmarkCollection {
@@ -247,10 +255,11 @@ async function collectionsOf(workspace: Workspace) {
 /** What the viewer may do with a bookmark in these collections, or null when they can't see it. */
 function bookmarkRight(
 	workspace: Workspace,
-	b: Pick<Bookmark, "created_by">,
+	b: Pick<Bookmark, "created_by" | "private">,
 	inCollections: string[],
 	rights: Rights,
 ) {
+	if (b.private && b.created_by !== workspace.memberId) return null;
 	if (!inCollections.length) return openRight(workspace, b.created_by);
 	const right = best(inCollections.flatMap((id) => rights.get(id) ?? []));
 	return right && b.created_by === workspace.memberId ? "full" : right;
@@ -295,6 +304,7 @@ async function starred(userId: string, workspaceId: string) {
 }
 
 const bookmarkShape = (
+	workspace: Workspace,
 	b: Bookmark,
 	right: ProjectRight | null,
 	collectionIds: string[],
@@ -316,6 +326,8 @@ const bookmarkShape = (
 	canEdit: hasRight(right, "edit"),
 	canDelete: hasRight(right, "full"),
 	isFavorite,
+	isPrivate: b.private,
+	isAuthor: b.created_by === workspace.memberId,
 });
 
 const collectionShape = (
@@ -399,6 +411,7 @@ async function oneBookmark(id: string, workspace: Workspace, userId: string) {
 	const inCollections = (await memberships(workspace.id, [id])).get(id) ?? [];
 	const stars = await starred(userId, workspace.id);
 	return bookmarkShape(
+		workspace,
 		b,
 		bookmarkRight(workspace, b, inCollections, rights),
 		inCollections,
@@ -470,7 +483,7 @@ export const bookmarksResolvers = {
 				const ids = inCollections.get(b.id) ?? [];
 				const right = bookmarkRight(workspace, b, ids, rights);
 				return right
-					? [bookmarkShape(b, right, ids, rights, stars.has(b.id))]
+					? [bookmarkShape(workspace, b, right, ids, rights, stars.has(b.id))]
 					: [];
 			});
 		},
@@ -496,6 +509,10 @@ export const bookmarksResolvers = {
 						eq(tables.bookmark.workspace_id, workspace.id),
 						isNull(tables.bookmark.deleted_at),
 						isNull(tables.bookmark.archived_at),
+						or(
+							eq(tables.bookmark.private, false),
+							eq(tables.bookmark.created_by, workspace.memberId ?? ""),
+						),
 					),
 				)
 				.groupBy(tables.bookmark_collections.collection_id);
@@ -529,6 +546,7 @@ export const bookmarksResolvers = {
 					kind?: string | null;
 					tags?: string[] | null;
 					collectionIds?: string[] | null;
+					isPrivate?: boolean | null;
 				};
 			},
 			ctx: GraphQLContext,
@@ -558,6 +576,7 @@ export const bookmarksResolvers = {
 						site: page?.site ?? new URL(url).hostname.replace(/^www\./, ""),
 						kind: parse(KIND, input.kind ?? page?.kind ?? "article"),
 						tags,
+						private: !!input.isPrivate,
 						created_by: workspace.memberId ?? "",
 					})
 					.returning({ id: tables.bookmark.id });
@@ -588,6 +607,7 @@ export const bookmarksResolvers = {
 					image?: string | null;
 					kind?: string | null;
 					tags?: string[] | null;
+					isPrivate?: boolean | null;
 				};
 			},
 			ctx: GraphQLContext,
@@ -610,6 +630,11 @@ export const bookmarksResolvers = {
 			if (patch.image !== undefined) set.image = image(patch.image);
 			if (patch.kind != null) set.kind = parse(KIND, patch.kind);
 			if (patch.tags != null) set.tags = parse(TAGS, patch.tags);
+			if (patch.isPrivate != null && patch.isPrivate !== bookmark.private) {
+				// nobody can hide or expose someone else's bookmark
+				if (bookmark.created_by !== workspace.memberId) forbidden();
+				set.private = patch.isPrivate;
+			}
 			if (Object.keys(set).length)
 				await db
 					.update(tables.bookmark)
