@@ -32,12 +32,14 @@ import {
 	can,
 	canInvite,
 	hasRight,
+	LOCKED,
 	PERMISSIONS,
 	type Permission,
 	PROJECT_ABILITIES,
 	PROJECT_RIGHT_LABEL,
 	PROJECT_RIGHTS,
 	ROLES,
+	type Role,
 } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { copy, toast } from "#/lib/toast";
@@ -269,7 +271,7 @@ export function InviteActions({ slug, id }: { slug: string; id: string }) {
 }
 
 export function MembersSection({ slug, workspace, title }: SectionProps) {
-	const canAdmin = can(workspace.role, "manageRoles");
+	const canAdmin = can(workspace.role, "manageRoles", workspace.settings);
 	const mayInvite = canInvite(workspace.role, workspace.settings);
 	const [inviting, setInviting] = useState(false);
 	const people = workspace.members.length + workspace.invites.length;
@@ -337,7 +339,7 @@ export function MembersSection({ slug, workspace, title }: SectionProps) {
 							</div>
 						</div>
 						<span className="badge amber">Invited</span>
-						{can(workspace.role, "inviteMembers") && (
+						{can(workspace.role, "inviteMembers", workspace.settings) && (
 							<InviteActions slug={slug} id={inv.id} />
 						)}
 					</div>
@@ -372,7 +374,7 @@ export function InviteModal({
 }) {
 	// Admins invite anyone; members may only invite guests (when the workspace allows it).
 	const roles = (
-		can(workspace.role, "inviteMembers")
+		can(workspace.role, "inviteMembers", workspace.settings)
 			? [
 					["member", "Member"],
 					["moderator", "Admin"],
@@ -522,8 +524,14 @@ export function InviteModal({
 						aria-hidden="true"
 					/>
 					<span>
-						<b>Guests</b> can only see projects they're added to and can't
-						create projects.
+						<b>Guests</b>{" "}
+						{can("guest", "viewAllProjects", workspace.settings)
+							? "can see projects shared with the workspace"
+							: "only see projects they're added to"}
+						{can("guest", "createProjects", workspace.settings)
+							? " and can create projects."
+							: " and can't create projects."}{" "}
+						See Settings → Permissions.
 					</span>
 				</div>
 			</form>
@@ -636,9 +644,9 @@ export function TeamsGrid({
 }
 
 export function ProjectsSection({ slug, workspace, title }: SectionProps) {
-	const canAdmin = can(workspace.role, "workspaceSettings");
-	const canEdit = can(workspace.role, "editProjects");
-	const canDelete = can(workspace.role, "deleteProjects");
+	const canAdmin = can(workspace.role, "workspaceSettings", workspace.settings);
+	const canEdit = can(workspace.role, "editProjects", workspace.settings);
+	const canDelete = can(workspace.role, "deleteProjects", workspace.settings);
 	const [deleting, setDeleting] = useState<{
 		id: string;
 		title: string;
@@ -797,53 +805,59 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 }
 
 export function PermissionsSection({ slug, workspace, title }: SectionProps) {
-	const canAdmin = can(workspace.role, "workspaceSettings");
+	const canAdmin = can(workspace.role, "workspaceSettings", workspace.settings);
 	const [update] = useMutation(UPDATE_WORKSPACE, {
-		refetchQueries: ["Settings"],
+		refetchQueries: ["Settings", "Shell"],
 	});
+	const custom = Object.keys(workspace.settings.permOverrides ?? {}).length > 0;
+	const save = (settings: Record<string, unknown>, success: string) =>
+		toast
+			.promise(update({ variables: { slug, input: { settings } } }), {
+				loading: "Saving permissions…",
+				success,
+				error: (e) => `Couldn't save that: ${(e as Error).message}`,
+			})
+			.catch(() => {});
 	return (
 		<>
-			<SettingsHeader title={title} lead="Control what each role can do." />
-			{(
-				[
-					["permCreate", "Members can create projects", undefined],
-					[
-						"permGuests",
-						"Members can invite guests",
-						"Guests only see projects they are added to.",
-					],
-					[
-						"permPublic",
-						"Allow public share links",
-						"Anyone with the link can view a project.",
-					],
-				] as const
-			).map(([key, t, d]) => (
-				<SRow key={key} t={t} d={d}>
-					<Toggle
-						checked={workspace.settings[key]}
-						label={t}
-						disabled={!canAdmin}
-						onChange={(value) => {
-							toast
-								.promise(
-									update({
-										variables: { slug, input: { settings: { [key]: value } } },
-									}),
-									{
-										loading: "Saving preference…",
-										success: "Preference saved",
-										error: "Couldn't save that",
-									},
-								)
-								.catch(() => {});
-						}}
-					/>
-				</SRow>
-			))}
+			<SettingsHeader
+				title={title}
+				lead={
+					canAdmin
+						? "Control what each role can do. Tick or untick a box to change it for this workspace."
+						: "What each role can do in this workspace."
+				}
+			/>
 			<SBlock title="Role permissions">
+				{custom && (
+					<div className="row" style={{ marginTop: 8, gap: 8 }}>
+						<span className="badge accent">Custom permissions</span>
+						{canAdmin && (
+							<button
+								type="button"
+								className="btn btn-ghost btn-sm"
+								onClick={() =>
+									save(
+										{ permOverrides: {}, permCreate: true, permGuests: true },
+										"Permissions reset to the defaults",
+									)
+								}
+							>
+								Reset to defaults
+							</button>
+						)}
+					</div>
+				)}
 				<div style={{ marginTop: 12 }}>
-					<PermissionsTable settings={workspace.settings} />
+					<PermissionsTable
+						settings={workspace.settings}
+						onChange={
+							canAdmin
+								? (permOverrides) =>
+										save({ permOverrides }, "Permissions saved")
+								: undefined
+						}
+					/>
 				</div>
 				<p className="faint" style={{ fontSize: 12.5, marginTop: 8 }}>
 					Private notes, bookmarks and collections are only visible to the
@@ -913,12 +927,30 @@ function ProjectAccessTable() {
 	);
 }
 
-/** What each role can do, generated from the rules the server enforces. */
+/**
+ * What each role can do, generated from the rules the server enforces. With `onChange`,
+ * an admin can tick or untick a role (except the owner's column and locked rows).
+ */
 export function PermissionsTable({
 	settings,
+	onChange,
 }: {
-	settings: { permCreate: boolean; permGuests: boolean };
+	settings: {
+		permCreate: boolean;
+		permGuests: boolean;
+		permOverrides?: Record<string, string[]>;
+	};
+	onChange?: (overrides: Record<string, string[]>) => void;
 }) {
+	const toggle = (key: Permission, role: Role) => {
+		const allowed = ROLES.filter(
+			(r) => r !== "owner" && can(r, key, settings),
+		) as string[];
+		const next = allowed.includes(role)
+			? allowed.filter((r) => r !== role)
+			: [...allowed, role];
+		onChange?.({ ...settings.permOverrides, [key]: next });
+	};
 	return (
 		<div className="panel" style={{ overflowX: "auto" }}>
 			<table className="perm-t" style={{ minWidth: 560 }}>
@@ -931,16 +963,44 @@ export function PermissionsTable({
 					</tr>
 				</thead>
 				<tbody>
-					{(Object.keys(PERMISSIONS) as Permission[]).map((key) => (
-						<tr key={key}>
-							<td style={{ paddingLeft: 14 }}>{PERMISSIONS[key].label}</td>
-							{ROLES.map((r) => (
-								<td key={r}>
-									<Mark ok={can(r, key, settings)} />
+					{(Object.keys(PERMISSIONS) as Permission[]).map((key) => {
+						const locked = LOCKED.includes(key);
+						return (
+							<tr key={key}>
+								<td style={{ paddingLeft: 14 }}>
+									<span className="row" style={{ gap: 6 }}>
+										{PERMISSIONS[key].label}
+										{locked && onChange && (
+											<span
+												className="icon-[solar--lock-keyhole-linear] size-3 faint"
+												role="img"
+												aria-label="Can't be changed"
+												title="Can't be changed, so nobody gets locked out"
+											/>
+										)}
+									</span>
 								</td>
-							))}
-						</tr>
-					))}
+								{ROLES.map((r) => {
+									const ok = can(r, key, settings);
+									return (
+										<td key={r}>
+											{onChange && !locked && r !== "owner" ? (
+												<input
+													type="checkbox"
+													className="check"
+													checked={ok}
+													aria-label={`${ROLE_LABEL[r]}: ${PERMISSIONS[key].label}`}
+													onChange={() => toggle(key, r)}
+												/>
+											) : (
+												<Mark ok={ok} />
+											)}
+										</td>
+									);
+								})}
+							</tr>
+						);
+					})}
 				</tbody>
 			</table>
 		</div>

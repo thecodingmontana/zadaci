@@ -226,7 +226,7 @@ async function collectionsOf(workspace: Workspace) {
 			),
 		),
 	);
-	const admin = can(workspace.role, "manageAllProjects");
+	const admin = can(workspace.role, "manageAllProjects", workspace.settings);
 	const rights: Rights = new Map();
 	for (const c of all) {
 		if (c.private && c.created_by !== workspace.memberId) continue;
@@ -401,7 +401,7 @@ function planMove(
 		removed.length &&
 		!wanted.length &&
 		!hidden.length &&
-		(!can(workspace.role, "workspaceContent") ||
+		(!can(workspace.role, "workspaceContent", workspace.settings) ||
 			bookmark.created_by !== workspace.memberId)
 	)
 		badInput(
@@ -599,7 +599,10 @@ export const bookmarksResolvers = {
 			const { rights } = await collectionsOf(workspace);
 			const collectionIds = editable(input.collectionIds ?? [], rights);
 			// guests only work inside projects, so their bookmarks need a collection
-			if (!collectionIds.length && !can(workspace.role, "workspaceContent"))
+			if (
+				!collectionIds.length &&
+				!can(workspace.role, "workspaceContent", workspace.settings)
+			)
 				forbidden();
 			// a quick add with just a link: read the rest from the page
 			const page = input.title ? null : await preview(user.id, url);
@@ -800,7 +803,8 @@ export const bookmarksResolvers = {
 			const { workspace } = await workspaceOf(ctx, args.slug);
 			const projectId = input.projectId ?? null;
 			if (projectId) await checkProject(workspace, projectId);
-			else if (!can(workspace.role, "workspaceContent")) forbidden();
+			else if (!can(workspace.role, "workspaceContent", workspace.settings))
+				forbidden();
 			const [last] = await db
 				.select({
 					max: sql<number>`coalesce(max(${tables.bookmark_collection.sort_order}), 0)`,
@@ -854,7 +858,8 @@ export const bookmarksResolvers = {
 				// moving it between projects changes who can see its bookmarks
 				if (right !== "full") forbidden();
 				if (patch.projectId) await checkProject(workspace, patch.projectId);
-				else if (!can(workspace.role, "workspaceContent")) forbidden();
+				else if (!can(workspace.role, "workspaceContent", workspace.settings))
+					forbidden();
 				set.project_id = patch.projectId;
 			}
 			if (patch.isPrivate != null && patch.isPrivate !== collection.private) {

@@ -136,9 +136,9 @@ export const openRight = (
 	workspace: Workspace,
 	createdBy: string,
 ): ProjectRight | null =>
-	!can(workspace.role, "workspaceContent")
+	!can(workspace.role, "workspaceContent", workspace.settings)
 		? null
-		: can(workspace.role, "manageAllContent") ||
+		: can(workspace.role, "manageAllContent", workspace.settings) ||
 				createdBy === workspace.memberId
 			? "full"
 			: "edit";
@@ -161,7 +161,9 @@ async function noteRight(workspace: Workspace, note: NoteRow) {
 			);
 		if (project) return viewerRight(workspace, project);
 		// its project was deleted: don't fall back to "every member", only admins can clean up
-		return can(workspace.role, "manageAllProjects") ? "full" : null;
+		return can(workspace.role, "manageAllProjects", workspace.settings)
+			? "full"
+			: null;
 	}
 	return openRight(workspace, note.created_by);
 }
@@ -213,7 +215,7 @@ function visible(workspace: Workspace) {
 		),
 		scope &&
 			or(
-				can(workspace.role, "workspaceContent")
+				can(workspace.role, "workspaceContent", workspace.settings)
 					? isNull(tables.note.project_id)
 					: undefined,
 				scope,
@@ -362,7 +364,11 @@ async function oneNote(id: string, workspace: Workspace, userId: string) {
 
 /** Guests may only add top-level pages inside a project they can edit. */
 function canOwnTopLevel(workspace: Workspace, projectId: string | null) {
-	if (!projectId && !can(workspace.role, "workspaceContent")) forbidden();
+	if (
+		!projectId &&
+		!can(workspace.role, "workspaceContent", workspace.settings)
+	)
+		forbidden();
 }
 
 export const notesResolvers = {
@@ -416,7 +422,11 @@ export const notesResolvers = {
 							),
 						)
 				: [];
-			const admin = can(workspace.role, "manageAllProjects");
+			const admin = can(
+				workspace.role,
+				"manageAllProjects",
+				workspace.settings,
+			);
 			const rights = new Map(
 				await Promise.all(
 					projects.map(

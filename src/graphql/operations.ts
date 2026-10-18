@@ -10,7 +10,11 @@ export type WorkspaceSummary = {
 	defaultView: string;
 	role: string;
 	/** permission toggles (Shell and Settings queries only) */
-	settings?: { permCreate: boolean; permGuests: boolean };
+	settings?: {
+		permCreate: boolean;
+		permGuests: boolean;
+		permOverrides?: Record<string, string[]>;
+	};
 };
 
 export const WORKSPACES: TypedDocumentNode<{ workspaces: WorkspaceSummary[] }> =
@@ -246,6 +250,7 @@ export type SettingsData = {
 					permGuests: boolean;
 					permPublic: boolean;
 					showDoneBoard: boolean;
+					permOverrides?: Record<string, string[]>;
 				};
 				projectCount: number;
 				archivedProjects: {
@@ -984,7 +989,11 @@ export const PROJECTS: TypedDocumentNode<
 		workspace: {
 			id: string;
 			role: string;
-			settings: { permCreate: boolean; permGuests: boolean };
+			settings: {
+				permCreate: boolean;
+				permGuests: boolean;
+				permOverrides?: Record<string, string[]>;
+			};
 			projects: ProjectSummary[];
 			projectStats: ProjectStats[];
 			members: SettingsMember[];

@@ -8,7 +8,7 @@ import { isDicebearUrl } from "#/lib/dicebear";
 import { sendInviteEmails } from "#/lib/email.server";
 import { requireEnv } from "#/lib/env";
 import { EMAIL_RE } from "#/lib/onboarding";
-import { can, type Permission } from "#/lib/permissions";
+import { can, LOCKED, PERMISSIONS, type Permission } from "#/lib/permissions";
 import {
 	PREF_DEFAULTS,
 	preferencesPatch,
@@ -131,10 +131,7 @@ export async function requireWorkspace(
 		throw new GraphQLError("Workspace not found", {
 			extensions: { code: "NOT_FOUND" },
 		});
-	if (
-		permission &&
-		!can(workspace.role, permission, workspace.settings as object)
-	)
+	if (permission && !can(workspace.role, permission, workspace.settings))
 		forbidden();
 	return { user, workspace };
 }
@@ -214,6 +211,17 @@ const memberRows = (workspaceId: string) =>
 		)
 		.orderBy(tables.workspace_members.created_at);
 
+/** Custom permissions as saved: only real ones the owner hasn't locked, each role once. */
+function customPermissions(overrides: Record<string, string[]>) {
+	return Object.fromEntries(
+		Object.entries(overrides)
+			.filter(
+				([key]) => key in PERMISSIONS && !LOCKED.includes(key as Permission),
+			)
+			.map(([key, roles]) => [key, [...new Set(roles)]]),
+	);
+}
+
 export const settingsResolvers = {
 	JSON: JSONScalar,
 	User: {
@@ -234,7 +242,7 @@ export const settingsResolvers = {
 		color: (w: Workspace) => w.color,
 		settings: (w: Workspace) => ({
 			...WS_SETTINGS_DEFAULTS,
-			...(w.settings as object),
+			...w.settings,
 		}),
 		members: async (w: Workspace, _: unknown, ctx: GraphQLContext) => {
 			const me = requireUser(ctx).id;
@@ -249,7 +257,7 @@ export const settingsResolvers = {
 			});
 		},
 		invites: (w: Workspace) =>
-			can(w.role, "inviteMembers", w.settings as object)
+			can(w.role, "inviteMembers", w.settings)
 				? db
 						.select({
 							id: tables.workspace_invite_request.id,
@@ -382,7 +390,15 @@ export const settingsResolvers = {
 						color: input.color,
 						default_view: input.defaultView,
 						settings: input.settings
-							? { ...(workspace.settings as object), ...input.settings }
+							? {
+									...(workspace.settings as object),
+									...input.settings,
+									...(input.settings.permOverrides && {
+										permOverrides: customPermissions(
+											input.settings.permOverrides,
+										),
+									}),
+								}
 							: undefined,
 					})
 					.where(eq(tables.workspace.id, workspace.id))
@@ -491,8 +507,7 @@ export const settingsResolvers = {
 			// Guests can be invited by members when "Members can invite guests" is on.
 			const needed =
 				role === USER_ROLE.GUEST ? "inviteGuests" : "inviteMembers";
-			if (!can(workspace.role, needed, workspace.settings as object))
-				forbidden();
+			if (!can(workspace.role, needed, workspace.settings)) forbidden();
 			if (args.teamId) {
 				const [team] = await db
 					.select({ id: tables.team.id })

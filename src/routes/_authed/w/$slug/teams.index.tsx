@@ -43,7 +43,7 @@ function TeamsPage() {
 	const [creating, setCreating] = useState(false);
 	const workspace = data.workspace;
 	if (!workspace) return null;
-	const canAdmin = can(workspace.role, "manageTeams");
+	const canAdmin = can(workspace.role, "manageTeams", workspace.settings);
 	const stats = statsData.workspace?.memberStats ?? [];
 	const newTeam = canAdmin && (
 		<button

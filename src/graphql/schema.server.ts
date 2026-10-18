@@ -225,10 +225,10 @@ export async function findWorkspaces(
  * added to. Use inside `and(...)` on any column holding a project id.
  */
 export function projectScope(
-	w: { id: string; role?: string; memberId?: string },
+	w: { id: string; role?: string; memberId?: string; settings?: unknown },
 	column: AnyPgColumn = tables.project.id,
 ) {
-	if (can(w.role, "manageAllProjects")) return undefined;
+	if (can(w.role, "manageAllProjects", w.settings)) return undefined;
 	const memberId = w.memberId ?? "";
 	const mine = db
 		.select({ id: tables.project_members.project_id })
@@ -248,7 +248,7 @@ export function projectScope(
 				and(
 					eq(tables.project.workspace_id, w.id),
 					or(
-						can(w.role, "viewAllProjects")
+						can(w.role, "viewAllProjects", w.settings)
 							? eq(tables.project.access, "workspace")
 							: undefined,
 						eq(tables.project.lead_id, memberId),
@@ -644,7 +644,7 @@ const resolvers = {
 		imageUrl: (w: Workspace) => w.image_url,
 		// the link makes whoever holds it a member, so only people who may invite members see it
 		inviteCode: (w: Workspace & { role?: string }) =>
-			can(w.role, "inviteMembers") ? w.invite_code : "",
+			can(w.role, "inviteMembers", w.settings) ? w.invite_code : "",
 		useCase: (w: Workspace) => w.use_case,
 		teamSize: (w: Workspace) => w.team_size,
 		defaultView: (w: Workspace) => w.default_view,
@@ -692,6 +692,7 @@ const resolvers = {
 							w.role,
 							{ access: p.access, isLead: p.lead_id === w.memberId },
 							onProject ? permission : undefined,
+							w.settings,
 						),
 					})),
 				),

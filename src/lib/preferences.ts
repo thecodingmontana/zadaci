@@ -132,6 +132,13 @@ export const workspaceSettingsPatch = z
 		permGuests: z.boolean(),
 		permPublic: z.boolean(),
 		showDoneBoard: z.boolean(),
+		// custom role permissions: permission key -> roles allowed (see lib/permissions)
+		permOverrides: z
+			.record(
+				z.string().max(40),
+				z.array(z.enum(["moderator", "member", "guest"])).max(3),
+			)
+			.refine((o) => Object.keys(o).length <= 40, "Too many permissions"),
 	})
 	.partial()
 	.strict();
@@ -141,6 +148,7 @@ export const WS_SETTINGS_DEFAULTS = {
 	permGuests: true,
 	permPublic: false,
 	showDoneBoard: true,
+	permOverrides: {} as Record<string, string[]>,
 };
 
 export type ResolvedPreferences = typeof PREF_DEFAULTS;

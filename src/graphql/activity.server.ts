@@ -205,7 +205,7 @@ async function requireSlug(ctx: GraphQLContext, slug: string) {
 export const activityResolvers = {
 	Workspace: {
 		activity: async (
-			w: { id: string; role?: string; memberId?: string },
+			w: { id: string; role?: string; memberId?: string; settings?: unknown },
 			args: {
 				filter?: string | null;
 				actorId?: string | null;
@@ -237,7 +237,7 @@ export const activityResolvers = {
 						eq(tables.activity.workspace_id, w.id),
 						filter,
 						// workspace-wide events, plus events from projects the viewer can see
-						can(w.role, "manageAllProjects")
+						can(w.role, "manageAllProjects", w.settings)
 							? undefined
 							: or(
 									isNull(tables.activity.project_id),

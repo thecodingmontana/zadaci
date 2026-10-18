@@ -111,7 +111,11 @@ function BookmarksPage() {
 	const collections = cols.bookmarkCollections;
 	const collection = collections.find((x) => x.id === c);
 	// guests only work inside projects: no unsorted links or open collections
-	const isGuest = !can(shell.workspace?.role, "workspaceContent");
+	const isGuest = !can(
+		shell?.workspace?.role,
+		"workspaceContent",
+		shell?.workspace?.settings,
+	);
 	const setSearch = (patch: Partial<typeof search>) =>
 		navigate({ search: (s) => ({ ...s, ...patch }), replace: true });
 

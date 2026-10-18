@@ -131,7 +131,7 @@ export const membersResolvers = {
 		},
 		// One person's active projects and assigned tasks, for their profile page.
 		memberProfile: async (
-			w: { id: string; role?: string; memberId?: string },
+			w: { id: string; role?: string; memberId?: string; settings?: unknown },
 			args: { memberId: string },
 		) => {
 			// only what the viewer may see (guests: their own projects)

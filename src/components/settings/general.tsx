@@ -58,7 +58,7 @@ export function usePrefs() {
 
 export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 	const navigate = useNavigate();
-	const canAdmin = can(workspace.role, "workspaceSettings");
+	const canAdmin = can(workspace.role, "workspaceSettings", workspace.settings);
 	const [name, setName] = useState(workspace.name);
 	const [url, setUrl] = useState(workspace.slug);
 	const [host, setHost] = useState("");
@@ -310,7 +310,7 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 					</div>
 				</SBlock>
 			</form>
-			{can(workspace.role, "deleteWorkspace") && (
+			{can(workspace.role, "deleteWorkspace", workspace.settings) && (
 				<SBlock title="Danger zone" danger>
 					<SRow
 						t="Delete workspace"

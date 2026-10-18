@@ -183,6 +183,10 @@ export const sharingResolvers = {
 					),
 				)
 				.orderBy(tables.project_members.created_at);
+			const [{ settings } = { settings: null }] = await db
+				.select({ settings: tables.workspace.settings })
+				.from(tables.workspace)
+				.where(eq(tables.workspace.id, p.workspace_id));
 			return rows.map((r) => {
 				const isLead = r.memberId === p.lead_id;
 				return {
@@ -190,15 +194,19 @@ export const sharingResolvers = {
 					isLead,
 					isMe: r.userId === me,
 					permission:
-						projectRight(r.role, { access: p.access, isLead }, r.permission) ??
-						"view",
+						projectRight(
+							r.role,
+							{ access: p.access, isLead },
+							r.permission,
+							settings,
+						) ?? "view",
 				};
 			});
 		},
 	},
 	Workspace: {
 		project: async (
-			w: { id: string; role?: string; memberId?: string },
+			w: { id: string; role?: string; memberId?: string; settings?: unknown },
 			args: { id: string },
 		) => {
 			const [project] = await db
@@ -303,15 +311,14 @@ export const sharingResolvers = {
 				return true;
 			}
 			// A new person joins the workspace as a guest and lands on this project.
-			if (!can(workspace.role, "inviteGuests", workspace.settings as object))
-				forbidden();
+			if (!can(workspace.role, "inviteGuests", workspace.settings)) forbidden();
 			const pending = and(
 				eq(tables.workspace_invite_request.workspace_id, workspace.id),
 				eq(tables.workspace_invite_request.email, email),
 				eq(tables.workspace_invite_request.status, "PENDING"),
 				isNull(tables.workspace_invite_request.deleted_at),
 				// someone who can only invite guests must not revive an expired member/admin invite
-				can(workspace.role, "inviteMembers")
+				can(workspace.role, "inviteMembers", workspace.settings)
 					? undefined
 					: and(
 							eq(tables.workspace_invite_request.role, USER_ROLE.GUEST),

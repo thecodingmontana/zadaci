@@ -75,9 +75,9 @@ function MembersPage() {
 	const [newTeam, setNewTeam] = useState(false);
 	const workspace = data.workspace;
 	if (!workspace) return null;
-	const canAdmin = can(workspace.role, "manageRoles");
+	const canAdmin = can(workspace.role, "manageRoles", workspace.settings);
 	const mayInvite = canInvite(workspace.role, workspace.settings);
-	const canTeams = can(workspace.role, "manageTeams");
+	const canTeams = can(workspace.role, "manageTeams", workspace.settings);
 	const stats = statsData.workspace?.memberStats ?? [];
 	const teamMembers = (teamId: string) =>
 		workspace.members.filter((m) =>
@@ -367,9 +367,11 @@ function MembersTable({
 										</span>
 									</td>
 									<td style={{ whiteSpace: "nowrap" }}>
-										{can(workspace.role, "inviteMembers") && (
-											<InviteActions slug={slug} id={i.id} />
-										)}
+										{can(
+											workspace.role,
+											"inviteMembers",
+											workspace.settings,
+										) && <InviteActions slug={slug} id={i.id} />}
 									</td>
 								</tr>
 							))}

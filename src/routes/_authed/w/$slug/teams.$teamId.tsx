@@ -65,7 +65,7 @@ function TeamPage() {
 	const workspace = data.workspace;
 	const team = workspace?.teams.find((t) => t.id === teamId);
 	if (!workspace || !team) return null;
-	const canAdmin = can(workspace.role, "manageTeams");
+	const canAdmin = can(workspace.role, "manageTeams", workspace.settings);
 	const mayInvite = canInvite(workspace.role, workspace.settings);
 	const stats = statsData.workspace?.memberStats ?? [];
 	const members = workspace.members.filter((m) =>

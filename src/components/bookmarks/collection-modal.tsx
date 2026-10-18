@@ -63,7 +63,11 @@ export function CollectionModal({
 	const id = useId();
 	const { data: shell } = useQuery(SHELL, { variables: { slug } });
 	// guests only work inside projects
-	const openToAll = can(shell?.workspace?.role, "workspaceContent");
+	const openToAll = can(
+		shell?.workspace?.role,
+		"workspaceContent",
+		shell?.workspace?.settings,
+	);
 	const projects = (shell?.workspace?.projects ?? []).filter((p) =>
 		hasRight(p.myAccess, "edit"),
 	);

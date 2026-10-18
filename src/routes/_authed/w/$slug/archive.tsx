@@ -1,4 +1,4 @@
-import { useMutation, useSuspenseQuery } from "@apollo/client/react";
+import { useMutation, useQuery, useSuspenseQuery } from "@apollo/client/react";
 import {
 	createFileRoute,
 	notFound,
@@ -17,6 +17,7 @@ import {
 	ARCHIVE_TASK,
 	DELETE_PROJECT,
 	DELETE_TASKS,
+	SHELL,
 } from "#/graphql/operations";
 import { can, hasRight } from "#/lib/permissions";
 import { PSTAT } from "#/lib/projects";
@@ -55,6 +56,9 @@ function ArchivePage() {
 	const navigate = useNavigate({ from: Route.fullPath });
 	const router = useRouter();
 	const { data } = useSuspenseQuery(ARCHIVE, { variables: { slug } });
+	// custom permissions live in the workspace settings the shell already loaded
+	const settings = useQuery(SHELL, { variables: { slug } }).data?.workspace
+		?.settings;
 	const [archiveTask] = useMutation(ARCHIVE_TASK, REFETCH);
 	const [archiveProject] = useMutation(ARCHIVE_PROJECT, REFETCH);
 	const [deleteTasks] = useMutation(DELETE_TASKS, REFETCH);
@@ -169,7 +173,7 @@ function ArchivePage() {
 									: undefined
 							}
 							onDelete={
-								can(w.role, "deleteProjects")
+								can(w.role, "deleteProjects", settings)
 									? () =>
 											setPending({
 												title: `Delete ${p.title}?`,

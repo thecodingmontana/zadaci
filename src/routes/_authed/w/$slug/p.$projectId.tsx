@@ -26,6 +26,7 @@ import {
 	ACTIVITY,
 	PROJECT_EXISTS,
 	PROJECT_PAGE,
+	SHELL,
 	TOGGLE_FAVORITE,
 	UPDATE_PROJECT,
 } from "#/graphql/operations";
@@ -92,6 +93,9 @@ function ProjectPage() {
 	const { slug, projectId } = Route.useParams();
 	const { tab = "board" } = Route.useSearch();
 	const { user } = Route.useRouteContext();
+	// custom permissions live in the workspace settings the shell already loaded
+	const settings = useQuery(SHELL, { variables: { slug } }).data?.workspace
+		?.settings;
 	const { data } = useSuspenseQuery(PROJECT_PAGE, {
 		variables: { slug, projectId },
 	});
@@ -269,7 +273,7 @@ function ProjectPage() {
 							project={project}
 							index={0}
 							count={1}
-							allowed={(p) => can(workspace.role, p)}
+							allowed={(p) => can(workspace.role, p, settings)}
 						/>
 					</div>
 				</div>

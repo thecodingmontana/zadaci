@@ -102,3 +102,40 @@ test("project access table: each right allows exactly its rows", async () => {
 		}
 	}
 });
+
+test("custom permissions: admins change what roles can do, except the locked ones", async () => {
+	const owner = await makeUser("owner");
+	const { slug } = await makeWorkspace(owner);
+	const member = await joinAs(owner, slug, "member");
+	const guest = await joinAs(owner, slug, "guest");
+	const SET = `mutation($s: String!, $o: JSON!) { updateWorkspace(slug: $s, input: { settings: { permOverrides: $o } }) { settings } }`;
+	const CREATE = `mutation($s: String!) { createProject(slug: $s, input: { title: "Mine", icon: "icon-[solar--global-linear]", color: "teal", template: "blank" }) { id } }`;
+	const RENAME_WS = `mutation($s: String!) { updateWorkspace(slug: $s, input: { name: "Taken" }) { id } }`;
+
+	assert.equal(allowed(await gql(member, SET, { s: slug, o: {} })), false, "members can't change permissions");
+	const saved = await gql(owner, SET, {
+		s: slug,
+		o: {
+			createProjects: ["moderator"],
+			workspaceContent: ["moderator", "member", "guest"],
+			viewAllProjects: ["moderator"],
+			workspaceSettings: ["member"],
+			notAPermission: ["member"],
+		},
+	});
+	assert.deepEqual(
+		Object.keys(saved.data?.updateWorkspace.settings.permOverrides).sort(),
+		["createProjects", "viewAllProjects", "workspaceContent"],
+		"locked and unknown ones aren't saved",
+	);
+
+	assert.equal(allowed(await gql(member, CREATE, { s: slug })), false, "members no longer create projects");
+	assert.equal(allowed(await addBookmark(guest, slug, "guest link")), true, "guests may now add bookmarks");
+	assert.equal(allowed(await addNote(guest, slug)), true, "and pages");
+	const seen = (await gql(member, WS, { s: slug })).data?.workspace.projects;
+	assert.deepEqual(seen, [], "members no longer see workspace projects they aren't on");
+	assert.equal(allowed(await gql(member, RENAME_WS, { s: slug })), false, "workspace settings stay admin-only");
+
+	await gql(owner, SET, { s: slug, o: {} });
+	assert.equal(allowed(await gql(member, CREATE, { s: slug })), true, "clearing them restores the defaults");
+});

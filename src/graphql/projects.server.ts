@@ -53,7 +53,7 @@ export const projectsTypeDefs = /* GraphQL */ `
 
 /** The viewer's right on one project (null when they can't see it). */
 export async function viewerRight(
-	workspace: { role?: string; memberId?: string },
+	workspace: { role?: string; memberId?: string; settings?: unknown },
 	project: Project,
 ) {
 	const [row] = await db
@@ -70,6 +70,7 @@ export async function viewerRight(
 		workspace.role,
 		{ access: project.access, isLead: project.lead_id === workspace.memberId },
 		row ? row.permission : undefined,
+		workspace.settings,
 	);
 }
 
@@ -77,8 +78,16 @@ export async function viewerRight(
 export async function projectAudience(projectId: string) {
 	const [[project], rows] = await Promise.all([
 		db
-			.select({ access: tables.project.access, leadId: tables.project.lead_id })
+			.select({
+				access: tables.project.access,
+				leadId: tables.project.lead_id,
+				settings: tables.workspace.settings,
+			})
 			.from(tables.project)
+			.innerJoin(
+				tables.workspace,
+				eq(tables.workspace.id, tables.project.workspace_id),
+			)
 			.where(eq(tables.project.id, projectId)),
 		db
 			.select({
@@ -100,6 +109,7 @@ export async function projectAudience(projectId: string) {
 			m.role,
 			{ access: project.access, isLead: project.leadId === m.memberId },
 			on.has(m.memberId) ? on.get(m.memberId) : undefined,
+			project.settings,
 		) !== null;
 }
 
@@ -133,7 +143,7 @@ export async function requireProject(
 	if (!project) badInput("Project not found");
 	if (
 		need.permission &&
-		!can(workspace.role, need.permission, workspace.settings as object)
+		!can(workspace.role, need.permission, workspace.settings)
 	)
 		forbidden();
 	const right = await viewerRight(workspace, project);
@@ -232,8 +242,13 @@ export const projectsResolvers = {
 				.select({
 					role: tables.workspace_members.role,
 					memberId: tables.workspace_members.id,
+					settings: tables.workspace.settings,
 				})
 				.from(tables.workspace_members)
+				.innerJoin(
+					tables.workspace,
+					eq(tables.workspace.id, tables.workspace_members.workspace_id),
+				)
 				.where(
 					and(
 						eq(tables.workspace_members.workspace_id, p.workspace_id),
@@ -245,7 +260,12 @@ export const projectsResolvers = {
 		},
 	},
 	Workspace: {
-		archivedProjects: (w: { id: string; role?: string; memberId?: string }) =>
+		archivedProjects: (w: {
+			id: string;
+			role?: string;
+			memberId?: string;
+			settings?: unknown;
+		}) =>
 			db
 				.select()
 				.from(tables.project)

@@ -10,7 +10,12 @@ export type Role = (typeof ROLES)[number];
 /** Roles that manage the workspace. */
 export const ADMIN_ROLES: readonly Role[] = ["owner", "moderator"];
 
-type Settings = { permCreate: boolean; permGuests: boolean };
+type Settings = {
+	permCreate: boolean;
+	permGuests: boolean;
+	/** custom permissions an admin set: which roles may do each one */
+	permOverrides?: Record<string, string[]>;
+};
 type Rule = (role: string, settings: Settings) => boolean;
 
 const admin: Rule = (role) => (ADMIN_ROLES as readonly string[]).includes(role);
@@ -55,23 +60,39 @@ export const PERMISSIONS = {
 
 export type Permission = keyof typeof PERMISSIONS;
 
-/** Whether `role` may do `permission`, given the workspace's permission toggles. */
+/**
+ * Permissions an admin can't change: the owner's own, and the ones that would let admins
+ * lock themselves (or everyone) out of fixing the settings.
+ */
+export const LOCKED: readonly Permission[] = [
+	"deleteWorkspace",
+	"workspaceSettings",
+	"manageRoles",
+];
+
+/** Whether `role` may do `permission`, given the workspace's settings and custom permissions. */
 export function can(
 	role: string | null | undefined,
 	permission: Permission,
-	settings?: Partial<Settings> | null,
+	/** the workspace's settings, as stored (an object, or nothing for the defaults) */
+	settings?: unknown,
 ) {
 	if (!role) return false;
-	return PERMISSIONS[permission].allow(role, {
+	const s: Settings = {
 		...WS_SETTINGS_DEFAULTS,
-		...settings,
-	});
+		...(settings as Partial<Settings> | null | undefined),
+	};
+	const custom = s.permOverrides?.[permission];
+	// the owner can always do everything their role allows
+	if (custom && role !== "owner" && !LOCKED.includes(permission))
+		return custom.includes(role);
+	return PERMISSIONS[permission].allow(role, s);
 }
 
 /** Admins invite anyone; members may invite guests when the workspace allows it. */
 export const canInvite = (
 	role: string | null | undefined,
-	settings?: Partial<Settings> | null,
+	settings?: unknown,
 ) => can(role, "inviteMembers") || can(role, "inviteGuests", settings);
 
 // ---- project rights (the Share modal) ----
@@ -94,15 +115,16 @@ export function projectRight(
 	role: string | null | undefined,
 	project: { access: string; isLead: boolean },
 	membership: string | null | undefined,
+	settings?: unknown,
 ): ProjectRight | null {
-	if (can(role, "manageAllProjects") || project.isLead) return "full";
+	if (can(role, "manageAllProjects", settings) || project.isLead) return "full";
 	if (membership !== undefined)
 		return (PROJECT_RIGHTS as readonly string[]).includes(membership ?? "")
 			? (membership as ProjectRight)
 			: role === "guest"
 				? "comment"
 				: "edit";
-	if (project.access === "workspace" && can(role, "viewAllProjects"))
+	if (project.access === "workspace" && can(role, "viewAllProjects", settings))
 		return "comment";
 	return null;
 }

@@ -90,7 +90,11 @@ export function NotesTree({ slug }: { slug: string }) {
 	const { data } = useQuery(NOTES, { variables: { slug } });
 	const { data: shell } = useQuery(SHELL, { variables: { slug } });
 	// guests only add pages inside project pages they can edit
-	const canAddTop = can(shell?.workspace?.role, "workspaceContent");
+	const canAddTop = can(
+		shell?.workspace?.role,
+		"workspaceContent",
+		shell?.workspace?.settings,
+	);
 	const notes = useMemo(() => data?.notes ?? [], [data]);
 	const tree = useMemo(() => childrenOf(notes), [notes]);
 	const pathname = useRouterState({ select: (s) => s.location.pathname });

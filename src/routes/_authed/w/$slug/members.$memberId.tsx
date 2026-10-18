@@ -187,7 +187,7 @@ function MemberPage() {
 					<MemberActions
 						slug={slug}
 						m={m}
-						canAdmin={can(workspace.role, "manageRoles")}
+						canAdmin={can(workspace.role, "manageRoles", workspace.settings)}
 						openTasks={open.length}
 					/>
 				</div>
