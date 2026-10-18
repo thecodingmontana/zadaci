@@ -8,7 +8,7 @@ import {
 	PROJECT_RIGHTS,
 	type ProjectRight,
 } from "#/lib/permissions";
-import { checkProject, workspaceOf } from "./notes.server";
+import { checkProject, openRight, starred, workspaceOf } from "./notes.server";
 import { viewerRight } from "./projects.server";
 import {
 	badInput,
@@ -190,18 +190,6 @@ const best = (rights: ProjectRight[]) =>
 		null,
 	);
 
-/** Something open to the workspace: admins and its author have full access, members edit. */
-const openRight = (
-	workspace: Workspace,
-	createdBy: string,
-): ProjectRight | null =>
-	workspace.role === "guest"
-		? null
-		: can(workspace.role, "manageAllProjects") ||
-				createdBy === workspace.memberId
-			? "full"
-			: "edit";
-
 /** The workspace's live collections and what the viewer may do in each one they can see. */
 async function collectionsOf(workspace: Workspace) {
 	const all = await db
@@ -287,20 +275,6 @@ async function memberships(workspaceId: string, bookmarkIds?: string[]) {
 	for (const r of rows)
 		map.set(r.bookmarkId, [...(map.get(r.bookmarkId) ?? []), r.collectionId]);
 	return map;
-}
-
-async function starred(userId: string, workspaceId: string) {
-	const rows = await db
-		.select({ id: tables.favorite.entity_id })
-		.from(tables.favorite)
-		.where(
-			and(
-				eq(tables.favorite.user_id, userId),
-				eq(tables.favorite.workspace_id, workspaceId),
-				eq(tables.favorite.entity_type, "bookmark"),
-			),
-		);
-	return new Set(rows.map((r) => r.id));
 }
 
 const bookmarkShape = (
@@ -409,7 +383,7 @@ async function oneBookmark(id: string, workspace: Workspace, userId: string) {
 	if (!b) badInput("Bookmark not found");
 	const { rights } = await collectionsOf(workspace);
 	const inCollections = (await memberships(workspace.id, [id])).get(id) ?? [];
-	const stars = await starred(userId, workspace.id);
+	const stars = await starred(userId, workspace.id, "bookmark");
 	return bookmarkShape(
 		workspace,
 		b,
@@ -466,7 +440,7 @@ export const bookmarksResolvers = {
 			const [{ rights }, inCollections, stars, rows] = await Promise.all([
 				collectionsOf(workspace),
 				memberships(workspace.id),
-				starred(user.id, workspace.id),
+				starred(user.id, workspace.id, "bookmark"),
 				db
 					.select()
 					.from(tables.bookmark)

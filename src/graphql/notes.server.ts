@@ -128,15 +128,18 @@ const coverFolder = (noteId: string) => `zadaci/notes/${noteId}`;
 const TITLE = z.string().trim().max(200, "Keep titles under 200 characters");
 const ICON = z.string().trim().max(16).nullable();
 
-/** An unlinked page's right: admins and its author have full access, members edit. */
-const unlinkedRight = (
+/**
+ * The right on something open to the workspace (an unlinked page, an unsorted bookmark):
+ * admins and its author have full access, members edit, guests can't see it.
+ */
+export const openRight = (
 	workspace: Workspace,
-	note: NoteMeta,
+	createdBy: string,
 ): ProjectRight | null =>
 	workspace.role === "guest"
 		? null
 		: can(workspace.role, "manageAllProjects") ||
-				note.created_by === workspace.memberId
+				createdBy === workspace.memberId
 			? "full"
 			: "edit";
 
@@ -160,7 +163,7 @@ async function noteRight(workspace: Workspace, note: NoteRow) {
 		// its project was deleted: don't fall back to "every member", only admins can clean up
 		return can(workspace.role, "manageAllProjects") ? "full" : null;
 	}
-	return unlinkedRight(workspace, note);
+	return openRight(workspace, note.created_by);
 }
 
 export async function workspaceOf(ctx: GraphQLContext, slug: string) {
@@ -272,8 +275,12 @@ const noteShape = (
 	isAuthor: n.created_by === viewer.memberId,
 });
 
-/** Ids of the pages the user starred in this workspace. */
-async function starred(userId: string, workspaceId: string) {
+/** Ids of the pages (or other things, by type) the user starred in this workspace. */
+export async function starred(
+	userId: string,
+	workspaceId: string,
+	type: "note" | "bookmark" = "note",
+) {
 	const rows = await db
 		.select({ id: tables.favorite.entity_id })
 		.from(tables.favorite)
@@ -281,7 +288,7 @@ async function starred(userId: string, workspaceId: string) {
 			and(
 				eq(tables.favorite.user_id, userId),
 				eq(tables.favorite.workspace_id, workspaceId),
-				eq(tables.favorite.entity_type, "note"),
+				eq(tables.favorite.entity_type, type),
 			),
 		);
 	return new Set(rows.map((r) => r.id));
@@ -417,7 +424,7 @@ export const notesResolvers = {
 			);
 			return rows.flatMap((n) => {
 				const right = !n.project_id
-					? unlinkedRight(workspace, n)
+					? openRight(workspace, n.created_by)
 					: rights.has(n.project_id)
 						? (rights.get(n.project_id) ?? null)
 						: admin // its project was deleted
