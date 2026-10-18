@@ -477,13 +477,7 @@ const addDays = (date: Date, days: number) => {
  * completion dates, the "moved/completed/reopened" feed lines, and the next copy of a
  * repeating task when it gets done.
  */
-async function applyPatch(
-	actor: Actor,
-	task: TaskRow,
-	patch: Patch,
-	/** bulk edits check the assignee once per project before changing anything */
-	assigneeChecked = false,
-) {
+async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 	const set: Partial<typeof tables.task.$inferInsert> = {};
 	const logs: [string, string?][] = [];
 	if (patch.title !== undefined && patch.title !== task.name) {
@@ -597,8 +591,7 @@ async function applyPatch(
 		const next = patch.assigneeId || null;
 		let changed = false;
 		if ((current?.memberId ?? null) !== next) {
-			if (!assigneeChecked)
-				await checkAssignee(actor.workspace.id, task.project_id, next);
+			await checkAssignee(actor.workspace.id, task.project_id, next);
 			// lock the task so two assigns at once can't both leave an assignee row
 			changed = await db.transaction(async (tx) => {
 				await tx
@@ -636,46 +629,216 @@ async function applyPatch(
 	for (const [verb, extra] of logs)
 		await taskActivity(actor, updated, verb, extra);
 
-	// A repeating task comes back: the next copy is due one interval later. The repeat
-	// moves to the copy, so completing this one again (or twice at once) makes no extra copy.
-	const handedOn =
+	if (
 		statusApplied &&
 		set.status === STATUS.COMPLETED &&
-		updated.recur &&
-		updated.due_date
-			? await db
-					.update(tables.task)
-					.set({ recur: null })
-					.where(and(eq(tables.task.id, task.id), isNotNull(tables.task.recur)))
-					.returning({ id: tables.task.id })
-			: [];
-	if (handedOn.length && updated.recur && updated.due_date) {
-		const due = addDays(updated.due_date, RECUR_DAYS[updated.recur] ?? 7);
-		const [assignee] = await db
-			.select({ memberId: tables.task_assignees.member_id })
-			.from(tables.task_assignees)
-			.where(
-				and(
-					eq(tables.task_assignees.task_id, task.id),
-					isNull(tables.task_assignees.deleted_at),
-				),
-			);
-		await insertTask(actor, {
-			projectId: updated.project_id,
-			title: updated.name,
-			description: updated.description,
-			status: STATUS.TODO,
-			priority: updated.priority,
-			assigneeId: assignee?.memberId ?? null,
-			dueDate: toDay(due),
-			startDate: toDay(due),
-			labels: updated.labels,
-			estimate: updated.estimate,
-			recur: updated.recur,
-		});
+		(await repeatNext(actor, updated))
+	)
 		return { ...updated, recur: null };
-	}
 	return updated;
+}
+
+/**
+ * A repeating task comes back: the next copy is due one interval later. The repeat moves
+ * to the copy, so completing this one again (or twice at once) makes no extra copy.
+ */
+async function repeatNext(actor: Actor, updated: TaskRow) {
+	if (!updated.recur || !updated.due_date) return false;
+	const handedOn = await db
+		.update(tables.task)
+		.set({ recur: null })
+		.where(and(eq(tables.task.id, updated.id), isNotNull(tables.task.recur)))
+		.returning({ id: tables.task.id });
+	if (!handedOn.length) return false;
+	const due = addDays(updated.due_date, RECUR_DAYS[updated.recur] ?? 7);
+	const [assignee] = await db
+		.select({ memberId: tables.task_assignees.member_id })
+		.from(tables.task_assignees)
+		.where(
+			and(
+				eq(tables.task_assignees.task_id, updated.id),
+				isNull(tables.task_assignees.deleted_at),
+			),
+		);
+	await insertTask(actor, {
+		projectId: updated.project_id,
+		title: updated.name,
+		description: updated.description,
+		status: STATUS.TODO,
+		priority: updated.priority,
+		assigneeId: assignee?.memberId ?? null,
+		dueDate: toDay(due),
+		startDate: toDay(due),
+		labels: updated.labels,
+		estimate: updated.estimate,
+		recur: updated.recur,
+	});
+	return true;
+}
+
+/** The feed line for a status change, the same way a single edit words it. */
+function statusLine(
+	task: TaskRow,
+	from: string,
+	to: string,
+): [string, string?] {
+	const done = to === STATUS.COMPLETED;
+	if (task.parent_task_id)
+		return [
+			done ? "completed subtask on" : "reopened subtask on",
+			`“${task.name}”`,
+		];
+	if (done) return ["completed"];
+	if (from === STATUS.COMPLETED) return ["reopened"];
+	return ["moved", `from ${taskStatus(from).name} to ${taskStatus(to).name}`];
+}
+
+/**
+ * The same edit (status, priority, assignee) on many tasks at once: one statement per
+ * field and one insert for all feed lines and notifications, inside one transaction, so a
+ * big batch is quick and either fully applies or not at all. Feed lines and notifications
+ * match what single edits write.
+ */
+async function bulkPatch(
+	actorFor: (task: TaskRow) => Actor,
+	tasks: TaskRow[],
+	patch: {
+		status?: string | null;
+		priority?: string | null;
+		assigneeId?: string | null;
+	},
+) {
+	const ids = tasks.map((t) => t.id);
+	const before = new Map(tasks.map((t) => [t.id, t]));
+	const lines: (typeof tables.activity.$inferInsert)[] = [];
+	const line = (task: TaskRow, verb: string, extra?: string) => {
+		const actor = actorFor(task);
+		lines.push({
+			workspace_id: actor.workspace.id,
+			actor_id: actor.userId,
+			kind: "task",
+			verb,
+			target: task.name,
+			extra,
+			project_id: task.project_id,
+			task_id: task.parent_task_id ?? task.id,
+		});
+	};
+	const person =
+		patch.assigneeId !== undefined && patch.assigneeId
+			? await memberName(patch.assigneeId)
+			: null;
+
+	const completed = await db.transaction(async (tx) => {
+		let done: TaskRow[] = [];
+		if (patch.status) {
+			const status = patch.status as STATUS;
+			// only rows whose status this request flips: two people finishing a task at
+			// once log it (and repeat it) once
+			const changed = await tx
+				.update(tables.task)
+				.set({
+					status,
+					completed_at: status === STATUS.COMPLETED ? new Date() : null,
+				})
+				.where(
+					and(inArray(tables.task.id, ids), ne(tables.task.status, status)),
+				)
+				.returning();
+			for (const row of changed) {
+				const [verb, extra] = statusLine(
+					row,
+					before.get(row.id)?.status ?? row.status,
+					status,
+				);
+				line(row, verb, extra);
+			}
+			if (status === STATUS.COMPLETED) done = changed;
+		}
+		if (patch.priority) {
+			const priority = patch.priority as PRIORITY;
+			const changed = await tx
+				.update(tables.task)
+				.set({ priority })
+				.where(
+					and(inArray(tables.task.id, ids), ne(tables.task.priority, priority)),
+				)
+				.returning();
+			for (const row of changed)
+				line(row, "changed priority of", `to ${priorityOf(priority).name}`);
+		}
+		if (patch.assigneeId !== undefined) {
+			const next = patch.assigneeId || null;
+			// lock the tasks so a single assign running at the same time can't leave two rows
+			await tx
+				.select({ id: tables.task.id })
+				.from(tables.task)
+				.where(inArray(tables.task.id, ids))
+				.for("update");
+			const current = new Map(
+				(
+					await tx
+						.select({
+							taskId: tables.task_assignees.task_id,
+							memberId: tables.task_assignees.member_id,
+						})
+						.from(tables.task_assignees)
+						.where(
+							and(
+								inArray(tables.task_assignees.task_id, ids),
+								isNull(tables.task_assignees.deleted_at),
+							),
+						)
+				).map((r) => [r.taskId, r.memberId]),
+			);
+			const changed = tasks.filter((t) => (current.get(t.id) ?? null) !== next);
+			if (changed.length) {
+				const changedIds = changed.map((t) => t.id);
+				await tx
+					.update(tables.task_assignees)
+					.set({ deleted_at: new Date() })
+					.where(
+						and(
+							inArray(tables.task_assignees.task_id, changedIds),
+							isNull(tables.task_assignees.deleted_at),
+						),
+					);
+				if (next)
+					await tx.insert(tables.task_assignees).values(
+						changedIds.map((task_id) => ({
+							task_id,
+							member_id: next,
+							assigned_at: new Date(),
+						})),
+					);
+				for (const t of changed) {
+					const to = person ? `to ${person.name}` : "(unassigned)";
+					line(t, t.parent_task_id ? "assigned a subtask on" : "assigned", to);
+				}
+				const notice = person;
+				if (notice)
+					await notify(
+						tx,
+						changed
+							.filter((t) => notice.userId !== actorFor(t).userId)
+							.map((t) => ({
+								user_id: notice.userId,
+								workspace_id: actorFor(t).workspace.id,
+								actor_id: actorFor(t).userId,
+								type: "assign",
+								text: "assigned you",
+								task_id: t.id,
+								project_id: t.project_id,
+							})),
+					);
+			}
+		}
+		if (lines.length) await tx.insert(tables.activity).values(lines);
+		return done;
+	});
+
+	// next copies of repeating tasks that were just finished (usually none or a few)
+	for (const row of completed) await repeatNext(actorFor(row), row);
 }
 
 type NewTask = z.infer<typeof taskInput> & { sortOrder?: number };
@@ -1018,14 +1181,7 @@ export const tasksResolvers = {
 						patch.assigneeId,
 					);
 				}
-			// a few at a time: matches the database pool, so 500 tasks finish well inside the timeout
-			const BATCH = 3;
-			for (let i = 0; i < tasks.length; i += BATCH)
-				await Promise.all(
-					tasks
-						.slice(i, i + BATCH)
-						.map((task) => applyPatch(actorFor(task), task, patch, true)),
-				);
+			await bulkPatch(actorFor, tasks, patch);
 			return tasks.length;
 		},
 

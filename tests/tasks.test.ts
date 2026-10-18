@@ -260,3 +260,23 @@ test("duplicating a project copies tasks in bulk and keeps subtasks under their 
 	const subtasks = (await gql(owner, `query($s: String!, $t: ID!) { workspace(slug: $s) { task(id: $t) { subtasks { name } } } }`, { s: slug, t: launch.id })).data?.workspace.task.subtasks;
 	assert.deepEqual(subtasks, [{ name: "Write post" }], "the subtask points at the copied parent");
 });
+
+test("bulk edits write the same feed lines, notifications and repeats as single edits", async () => {
+	const { owner, member, slug, memberId, create } = await setup();
+	const BULK = `mutation($s: String!, $ids: [ID!]!, $p: TaskPatch!) { bulkUpdateTasks(slug: $s, ids: $ids, patch: $p) }`;
+	const a = (await create(owner, { title: "Bulk A", priority: "high" })).data?.createTask.id;
+	const b = (await create(owner, { title: "Bulk B", recur: "Weekly", dueDate: "2026-11-02" })).data?.createTask.id;
+
+	await gql(owner, BULK, { s: slug, ids: [a, b], p: { priority: "high", assigneeId: memberId } });
+	const inbox = (await gql(member, `query($s: String!) { workspace(slug: $s) { notifications { type } } }`, { s: slug })).data?.workspace.notifications;
+	assert.equal(inbox.filter((n: { type: string }) => n.type === "assign").length, 2, "one notice per task");
+	const feed = (await gql(owner, `query($s: String!) { workspace(slug: $s) { activity { verb target } } }`, { s: slug })).data?.workspace.activity;
+	const priorityLines = feed.filter((x: { verb: string }) => x.verb === "changed priority of");
+	assert.deepEqual(priorityLines.map((x: { target: string }) => x.target), ["Bulk B"], "only the task that changed");
+
+	await gql(owner, BULK, { s: slug, ids: [a, b], p: { status: "completed" } });
+	const tasks = (await gql(owner, TASKS, { s: slug })).data?.workspace.tasks.filter((t: { title: string }) => t.title === "Bulk B");
+	assert.equal(tasks.length, 2, "the repeating task came back once");
+	const assignees = (await gql(owner, TASKS, { s: slug })).data?.workspace.tasks.filter((t: { id: string }) => [a, b].includes(t.id)).map((t: { assigneeId: string }) => t.assigneeId);
+	assert.deepEqual(assignees, [memberId, memberId]);
+});
