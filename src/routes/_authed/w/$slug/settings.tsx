@@ -3,6 +3,11 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Fragment } from "react";
 import { z } from "zod";
 import {
+	BookmarksSection,
+	CollectionsSection,
+	NotesSection,
+} from "#/components/settings/content-sections";
+import {
 	AppearanceSection,
 	DateTimeSection,
 	LanguageSection,
@@ -41,6 +46,9 @@ const SECTIONS = [
 	"members",
 	"teams",
 	"projects",
+	"notes",
+	"bookmarks",
+	"collections",
 	"permissions",
 	"notif-email",
 	"notif-push",
@@ -71,6 +79,9 @@ const SET_NAV: [string, [Section, string, string][]][] = [
 			["members", "Members", "icon-[solar--users-group-rounded-linear]"],
 			["teams", "Teams", "icon-[solar--users-group-two-rounded-linear]"],
 			["projects", "Projects", "icon-[solar--folder-with-files-linear]"],
+			["notes", "Notes", "icon-[solar--document-text-linear]"],
+			["bookmarks", "Bookmarks", "icon-[solar--bookmark-linear]"],
+			["collections", "Collections", "icon-[solar--folder-linear]"],
 			["permissions", "Permissions", "icon-[solar--shield-linear]"],
 		],
 	],
@@ -161,6 +172,11 @@ function Settings() {
 					{sec === "members" && <MembersSection {...props} title={title} />}
 					{sec === "teams" && <TeamsSection {...props} title={title} />}
 					{sec === "projects" && <ProjectsSection {...props} title={title} />}
+					{sec === "notes" && <NotesSection {...props} title={title} />}
+					{sec === "bookmarks" && <BookmarksSection {...props} title={title} />}
+					{sec === "collections" && (
+						<CollectionsSection {...props} title={title} />
+					)}
 					{sec === "permissions" && (
 						<PermissionsSection {...props} title={title} />
 					)}
