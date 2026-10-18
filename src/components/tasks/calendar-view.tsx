@@ -275,9 +275,42 @@ export function CalendarView({
 						))}
 					</div>
 				</div>
+				<UnscheduledTray
+					tasks={tasks.filter((t) => !t.dueDate && t.status !== "completed")}
+					hint="Drag one onto a day to schedule it."
+					item={(t) => <Chip key={t.id} t={t} />}
+				/>
 				{body}
 			</div>
 		</DndContext>
+	);
+}
+
+/**
+ * Open tasks with no date, which a calendar or timeline can't place: listed so they don't
+ * silently disappear. `item` draws each one (the calendar's are draggable onto days).
+ */
+export function UnscheduledTray({
+	tasks,
+	hint,
+	item,
+}: {
+	tasks: TaskItem[];
+	hint: string;
+	item: (t: TaskItem) => React.ReactNode;
+}) {
+	if (!tasks.length) return null;
+	return (
+		<details className="unsched" open={tasks.length <= 12}>
+			<summary>
+				Unscheduled <span className="faint">· {tasks.length}</span>
+				<span className="faint hide-m" style={{ fontWeight: 400 }}>
+					{" "}
+					— {hint}
+				</span>
+			</summary>
+			<div className="unsched-list">{tasks.map(item)}</div>
+		</details>
 	);
 }
 

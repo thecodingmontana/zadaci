@@ -13,7 +13,7 @@ import { useModKey } from "#/components/shell/command-menu";
 import { SHELL, TASKS, type TaskItem } from "#/graphql/operations";
 import { FILE_TYPES, fileKind, fmtSize } from "#/lib/files";
 import { hasRight } from "#/lib/permissions";
-import { LABELS, RECURS } from "#/lib/tasks";
+import { inlineMarks, LABELS, RECURS } from "#/lib/tasks";
 import { fmtDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -590,6 +590,9 @@ const escapeHtml = (s: string) =>
 function toHtml(text: string) {
 	return text
 		.split(/\n{2,}/)
-		.map((block) => `<p>${escapeHtml(block).replace(/\n/g, "<br>")}</p>`)
+		.map(
+			(block) =>
+				`<p>${inlineMarks(escapeHtml(block)).replace(/\n/g, "<br>")}</p>`,
+		)
 		.join("");
 }

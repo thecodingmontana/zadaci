@@ -578,11 +578,11 @@ function Composer({
 }) {
 	const { create } = useTaskView();
 	const [title, setTitle] = useState("");
-	// the card appears at once (optimistic), so close straight away; a failure shows a toast
+	// the card appears at once (optimistic); the box stays open for the next one
 	const add = () => {
 		const name = title.trim();
 		if (!name) return;
-		onClose();
+		setTitle("");
 		void create({ projectId, title: name, status }, { quiet: true });
 	};
 	return (
@@ -605,7 +605,7 @@ function Composer({
 			/>
 			<div className="row">
 				<span className="faint" style={{ fontSize: 11 }}>
-					Enter to add · Esc to cancel
+					Enter to add · Esc to close
 				</span>
 				<span className="sp" />
 				<button
@@ -613,7 +613,7 @@ function Composer({
 					className="btn btn-sm btn-ghost"
 					onClick={onClose}
 				>
-					Cancel
+					Done
 				</button>
 				<button type="button" className="btn btn-sm btn-primary" onClick={add}>
 					Add

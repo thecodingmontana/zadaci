@@ -14,6 +14,7 @@ import type { TaskItem } from "#/graphql/operations";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { type GroupBy, groupTasks } from "#/lib/view-engine";
+import { UnscheduledTray } from "./calendar-view";
 import { useTaskView } from "./context";
 
 // The Timeline view (reference views/timeline.js): a Gantt chart of tasks with dates,
@@ -193,31 +194,58 @@ export function TimelineView({
 		if (right.current) right.current.scrollLeft = Math.max(0, todayX - 160);
 	}, [zoom, todayTick]);
 
+	// tasks with no due date can't be drawn: list them so they don't silently vanish
+	const tray = (
+		<UnscheduledTray
+			tasks={tasks.filter((t) => !t.dueDate && t.status !== "completed")}
+			hint="Give one a due date to place it on the timeline."
+			item={(t) => (
+				<button
+					key={t.id}
+					type="button"
+					className="cev"
+					style={
+						{
+							"--c": projectColor(projectOf(t.projectId)?.color),
+						} as React.CSSProperties
+					}
+					title={t.name}
+					onClick={() => openTask(t.id)}
+				>
+					<span className="trunc">{t.name}</span>
+				</button>
+			)}
+		/>
+	);
+
 	if (!rows.length)
 		return (
-			<div className="empty-state">
-				<div className="glyph">
-					<span
-						className="icon-[hugeicons--chart-gantt] size-5"
-						aria-hidden="true"
-					/>
-				</div>
-				<h2 className="es-h">Nothing on the timeline</h2>
-				<p>Give tasks a start and due date to see them here.</p>
-				{onNew && (
-					<button
-						type="button"
-						className="btn btn-primary btn-sm"
-						onClick={onNew}
-					>
+			<>
+				{tray}
+				<div className="empty-state">
+					<div className="glyph">
 						<span
-							className="icon-[hugeicons--plus-sign] size-3.5"
+							className="icon-[hugeicons--chart-gantt] size-5"
 							aria-hidden="true"
 						/>
-						New task
-					</button>
-				)}
-			</div>
+					</div>
+					<h2 className="es-h">Nothing on the timeline</h2>
+					<p>Give tasks a start and due date to see them here.</p>
+					{onNew && (
+						<button
+							type="button"
+							className="btn btn-primary btn-sm"
+							onClick={onNew}
+						>
+							<span
+								className="icon-[hugeicons--plus-sign] size-3.5"
+								aria-hidden="true"
+							/>
+							New task
+						</button>
+					)}
+				</div>
+			</>
 		);
 
 	const months: { d: Date; n: number }[] = [];
@@ -241,245 +269,261 @@ export function TimelineView({
 	};
 
 	return (
-		<div className="tl">
-			<div className="tl-left">
-				<div className="tl-head">Task</div>
-				<div className="tl-rows" ref={left}>
-					{rows.map((r, i) => {
-						if (r.type === "ms")
-							return (
-								// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
-								<div key={i} className="tl-row g">
-									<span
-										className="icon-[hugeicons--diamond-01] size-3"
-										aria-hidden="true"
-									/>
-									Milestones
-									<span className="faint" style={{ fontWeight: 500 }}>
-										{milestones.length}
-									</span>
-								</div>
-							);
-						if (r.type === "g")
-							return (
-								// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
-								<div key={i} className="tl-row g">
-									{r.icon}
-									{r.name}
-									<span className="faint" style={{ fontWeight: 500 }}>
-										{r.n}
-									</span>
-								</div>
-							);
-						const m = member(r.t.assigneeId);
-						return (
-							<button
-								key={r.t.id}
-								type="button"
-								className="tl-row"
-								onClick={() => openTask(r.t.id)}
-							>
-								<StatusIcon status={r.t.status} size={13} />
-								<span
-									className="trunc grow"
-									style={
-										r.t.status === "completed"
-											? { color: "var(--q-text-3)" }
-											: undefined
-									}
-								>
-									{r.t.name}
-								</span>
-								{!!r.t.subtaskCount && (
-									<span className="faint num" style={{ fontSize: 11 }}>
-										{r.t.subtaskDone}/{r.t.subtaskCount}
-									</span>
-								)}
-								{m && <Av name={m.name} image={m.image} className="sm" />}
-							</button>
-						);
-					})}
-					<div style={{ height: 40 }} />
-				</div>
-			</div>
-			<div
-				className="tl-right"
-				ref={right}
-				onScroll={(e) => {
-					if (left.current) left.current.scrollTop = e.currentTarget.scrollTop;
-				}}
-			>
-				<div className="tl-head" style={{ width: W }}>
-					<div className="tl-months">
-						{months.map((m) => (
-							<div key={m.d.toISOString()} style={{ width: m.n * dw }}>
-								<span>{format(m.d, "MMMM yyyy")}</span>
-							</div>
-						))}
-					</div>
-					<div className="tl-days">
-						{zoom === "week"
-							? Array.from({ length: nDays }, (_, i) => {
-									const d = addDays(start, i);
-									return (
-										<div
-											key={iso(d)}
-											style={{ width: dw }}
-											className={isSameDay(d, today) ? "today" : undefined}
-										>
-											{format(d, "d")}
-										</div>
-									);
-								})
-							: Array.from({ length: nDays / 7 }, (_, i) => {
-									const d = addDays(start, i * 7);
-									return (
-										<div key={iso(d)} style={{ width: dw * 7 }}>
-											{format(d, "MMM d")}
-										</div>
-									);
-								})}
-					</div>
-				</div>
-				<div className="tl-grid" style={{ width: W, height: H + 40 }}>
-					{zoom === "week" &&
-						Array.from({ length: nDays }, (_, i) => {
-							const d = addDays(start, i);
-							return d.getDay() === 0 || d.getDay() === 6 ? (
-								<div
-									key={iso(d)}
-									className="tl-we"
-									style={{ left: i * dw, width: dw, bottom: "auto", height: H }}
-								/>
-							) : null;
-						})}
-					{Array.from({ length: nDays / 7 }, (_, i) => (
-						<div
-							// biome-ignore lint/suspicious/noArrayIndexKey: week gridlines by position
-							key={i}
-							className="tl-gl"
-							style={{ left: i * 7 * dw, bottom: "auto", height: H }}
-						/>
-					))}
-					<div
-						className="tl-today"
-						// the shading and lines stop at the last row, not in the scroll padding below
-						style={{ left: todayX + dw / 2, bottom: "auto", height: H }}
-						title="Today"
-					/>
-					{rows.map((r, i) => {
-						const y = i * ROW;
-						if (r.type === "g")
-							// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
-							return <div key={i} className="tl-rowbg g" style={{ top: y }} />;
-						if (r.type === "ms")
-							return (
-								// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
-								<div key={i}>
-									<div className="tl-rowbg" style={{ top: y }} />
-									<MilestoneLane milestones={milestones} X={X} dw={dw} y={y} />
-								</div>
-							);
-						const t = r.t;
-						const { s, x, w } = span(t);
-						const color =
-							by === "status" || by === "none"
-								? projectColor(projectOf(t.projectId)?.color)
-								: `var(--q-st-${{ idea: "backlog", todo: "todo", in_progress: "progress", in_review: "review", completed: "done" }[t.status] ?? "todo"})`;
-						return (
-							<div key={t.id}>
-								<div className="tl-rowbg" style={{ top: y }} />
-								<Bar
-									t={t}
-									x={x}
-									y={y}
-									w={w}
-									dw={dw}
-									color={color}
-									editable={canEdit(t.projectId)}
-									title={`${t.name} · ${format(parseISO(s), "MMM d")} → ${format(parseISO(t.dueDate as string), "MMM d")}`}
-									onOpen={() => openTask(t.id)}
-									onMove={(days) => {
-										const shift = (d: string | null) =>
-											d ? iso(addDays(parseISO(d), days)) : null;
-										update(t, {
-											dueDate: shift(t.dueDate),
-											startDate: shift(t.startDate),
-										});
-										toast.success(
-											`Moved “${t.name}” ${Math.abs(days)} day${Math.abs(days) > 1 ? "s" : ""} ${days > 0 ? "later" : "earlier"}`,
-											{ duration: 2200 },
-										);
-									}}
-								>
-									<span className="pf" style={{ width: `${progress(t)}%` }} />
-									{w > 110 && (
-										<>
-											{member(t.assigneeId) && (
-												<Av
-													name={member(t.assigneeId)?.name ?? ""}
-													image={member(t.assigneeId)?.image}
-													className="sm"
-												/>
-											)}
-											<span className="trunc">{t.name}</span>
-										</>
-									)}
-								</Bar>
-								{w <= 110 && (
-									<div
-										className="blabel"
-										style={{ left: x + w + 6, top: y + 9 }}
-									>
-										{t.name}
+		<>
+			{tray}
+			<div className="tl">
+				<div className="tl-left">
+					<div className="tl-head">Task</div>
+					<div className="tl-rows" ref={left}>
+						{rows.map((r, i) => {
+							if (r.type === "ms")
+								return (
+									// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
+									<div key={i} className="tl-row g">
+										<span
+											className="icon-[hugeicons--diamond-01] size-3"
+											aria-hidden="true"
+										/>
+										Milestones
+										<span className="faint" style={{ fontWeight: 500 }}>
+											{milestones.length}
+										</span>
 									</div>
-								)}
-							</div>
-						);
-					})}
-					<svg
-						className="tl-deps"
-						width={W}
-						height={H}
-						viewBox={`0 0 ${W} ${H}`}
-						aria-hidden="true"
-					>
-						{tasks.flatMap((t) =>
-							t.dependsOn
-								.filter((d) => rowY.has(d) && rowY.has(t.id))
-								.map((d) => {
-									const a = tasks.find((x) => x.id === d);
-									if (!a?.dueDate || !t.dueDate) return null;
-									const x1 = X(a.dueDate) + dw;
-									const y1 = rowY.get(d) as number;
-									const x2 = span(t).x;
-									const y2 = rowY.get(t.id) as number;
-									const mx = Math.max(x1 + 10, x2 - 10);
-									return (
-										<g key={`${d}-${t.id}`}>
-											<path
-												d={`M${x1} ${y1} C ${mx} ${y1}, ${Math.min(x1 + 10, x2 - 10)} ${y2}, ${x2 - 1} ${y2}`}
-												fill="none"
-												stroke="var(--q-text-3)"
-												strokeWidth="1.3"
-												strokeDasharray={x2 < x1 ? "3 3" : undefined}
-											/>
-											<path
-												d={`M${x2 - 6} ${y2 - 3.5} L${x2 - 1} ${y2} L${x2 - 6} ${y2 + 3.5}`}
-												fill="none"
-												stroke="var(--q-text-3)"
-												strokeWidth="1.3"
-												strokeLinecap="round"
-												strokeLinejoin="round"
-											/>
-										</g>
-									);
-								}),
-						)}
-					</svg>
+								);
+							if (r.type === "g")
+								return (
+									// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
+									<div key={i} className="tl-row g">
+										{r.icon}
+										{r.name}
+										<span className="faint" style={{ fontWeight: 500 }}>
+											{r.n}
+										</span>
+									</div>
+								);
+							const m = member(r.t.assigneeId);
+							return (
+								<button
+									key={r.t.id}
+									type="button"
+									className="tl-row"
+									onClick={() => openTask(r.t.id)}
+								>
+									<StatusIcon status={r.t.status} size={13} />
+									<span
+										className="trunc grow"
+										style={
+											r.t.status === "completed"
+												? { color: "var(--q-text-3)" }
+												: undefined
+										}
+									>
+										{r.t.name}
+									</span>
+									{!!r.t.subtaskCount && (
+										<span className="faint num" style={{ fontSize: 11 }}>
+											{r.t.subtaskDone}/{r.t.subtaskCount}
+										</span>
+									)}
+									{m && <Av name={m.name} image={m.image} className="sm" />}
+								</button>
+							);
+						})}
+						<div style={{ height: 40 }} />
+					</div>
+				</div>
+				<div
+					className="tl-right"
+					ref={right}
+					onScroll={(e) => {
+						if (left.current)
+							left.current.scrollTop = e.currentTarget.scrollTop;
+					}}
+				>
+					<div className="tl-head" style={{ width: W }}>
+						<div className="tl-months">
+							{months.map((m) => (
+								<div key={m.d.toISOString()} style={{ width: m.n * dw }}>
+									<span>{format(m.d, "MMMM yyyy")}</span>
+								</div>
+							))}
+						</div>
+						<div className="tl-days">
+							{zoom === "week"
+								? Array.from({ length: nDays }, (_, i) => {
+										const d = addDays(start, i);
+										return (
+											<div
+												key={iso(d)}
+												style={{ width: dw }}
+												className={isSameDay(d, today) ? "today" : undefined}
+											>
+												{format(d, "d")}
+											</div>
+										);
+									})
+								: Array.from({ length: nDays / 7 }, (_, i) => {
+										const d = addDays(start, i * 7);
+										return (
+											<div key={iso(d)} style={{ width: dw * 7 }}>
+												{format(d, "MMM d")}
+											</div>
+										);
+									})}
+						</div>
+					</div>
+					<div className="tl-grid" style={{ width: W, height: H + 40 }}>
+						{zoom === "week" &&
+							Array.from({ length: nDays }, (_, i) => {
+								const d = addDays(start, i);
+								return d.getDay() === 0 || d.getDay() === 6 ? (
+									<div
+										key={iso(d)}
+										className="tl-we"
+										style={{
+											left: i * dw,
+											width: dw,
+											bottom: "auto",
+											height: H,
+										}}
+									/>
+								) : null;
+							})}
+						{Array.from({ length: nDays / 7 }, (_, i) => (
+							<div
+								// biome-ignore lint/suspicious/noArrayIndexKey: week gridlines by position
+								key={i}
+								className="tl-gl"
+								style={{ left: i * 7 * dw, bottom: "auto", height: H }}
+							/>
+						))}
+						<div
+							className="tl-today"
+							// the shading and lines stop at the last row, not in the scroll padding below
+							style={{ left: todayX + dw / 2, bottom: "auto", height: H }}
+							title="Today"
+						/>
+						{rows.map((r, i) => {
+							const y = i * ROW;
+							if (r.type === "g")
+								// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
+								return (
+									<div key={i} className="tl-rowbg g" style={{ top: y }} />
+								);
+							if (r.type === "ms")
+								return (
+									// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
+									<div key={i}>
+										<div className="tl-rowbg" style={{ top: y }} />
+										<MilestoneLane
+											milestones={milestones}
+											X={X}
+											dw={dw}
+											y={y}
+										/>
+									</div>
+								);
+							const t = r.t;
+							const { s, x, w } = span(t);
+							const color =
+								by === "status" || by === "none"
+									? projectColor(projectOf(t.projectId)?.color)
+									: `var(--q-st-${{ idea: "backlog", todo: "todo", in_progress: "progress", in_review: "review", completed: "done" }[t.status] ?? "todo"})`;
+							return (
+								<div key={t.id}>
+									<div className="tl-rowbg" style={{ top: y }} />
+									<Bar
+										t={t}
+										x={x}
+										y={y}
+										w={w}
+										dw={dw}
+										color={color}
+										editable={canEdit(t.projectId)}
+										title={`${t.name} · ${format(parseISO(s), "MMM d")} → ${format(parseISO(t.dueDate as string), "MMM d")}`}
+										onOpen={() => openTask(t.id)}
+										onMove={(days) => {
+											const shift = (d: string | null) =>
+												d ? iso(addDays(parseISO(d), days)) : null;
+											update(t, {
+												dueDate: shift(t.dueDate),
+												startDate: shift(t.startDate),
+											});
+											toast.success(
+												`Moved “${t.name}” ${Math.abs(days)} day${Math.abs(days) > 1 ? "s" : ""} ${days > 0 ? "later" : "earlier"}`,
+												{ duration: 2200 },
+											);
+										}}
+									>
+										<span className="pf" style={{ width: `${progress(t)}%` }} />
+										{w > 110 && (
+											<>
+												{member(t.assigneeId) && (
+													<Av
+														name={member(t.assigneeId)?.name ?? ""}
+														image={member(t.assigneeId)?.image}
+														className="sm"
+													/>
+												)}
+												<span className="trunc">{t.name}</span>
+											</>
+										)}
+									</Bar>
+									{w <= 110 && (
+										<div
+											className="blabel"
+											style={{ left: x + w + 6, top: y + 9 }}
+										>
+											{t.name}
+										</div>
+									)}
+								</div>
+							);
+						})}
+						<svg
+							className="tl-deps"
+							width={W}
+							height={H}
+							viewBox={`0 0 ${W} ${H}`}
+							aria-hidden="true"
+						>
+							{tasks.flatMap((t) =>
+								t.dependsOn
+									.filter((d) => rowY.has(d) && rowY.has(t.id))
+									.map((d) => {
+										const a = tasks.find((x) => x.id === d);
+										if (!a?.dueDate || !t.dueDate) return null;
+										const x1 = X(a.dueDate) + dw;
+										const y1 = rowY.get(d) as number;
+										const x2 = span(t).x;
+										const y2 = rowY.get(t.id) as number;
+										const mx = Math.max(x1 + 10, x2 - 10);
+										return (
+											<g key={`${d}-${t.id}`}>
+												<path
+													d={`M${x1} ${y1} C ${mx} ${y1}, ${Math.min(x1 + 10, x2 - 10)} ${y2}, ${x2 - 1} ${y2}`}
+													fill="none"
+													stroke="var(--q-text-3)"
+													strokeWidth="1.3"
+													strokeDasharray={x2 < x1 ? "3 3" : undefined}
+												/>
+												<path
+													d={`M${x2 - 6} ${y2 - 3.5} L${x2 - 1} ${y2} L${x2 - 6} ${y2 + 3.5}`}
+													fill="none"
+													stroke="var(--q-text-3)"
+													strokeWidth="1.3"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+												/>
+											</g>
+										);
+									}),
+							)}
+						</svg>
+					</div>
 				</div>
 			</div>
-		</div>
+		</>
 	);
 }
 

@@ -18,7 +18,7 @@ import {
 	TOGGLE_TASK_FAVORITE,
 } from "#/graphql/operations";
 import { FILE_TYPES, fileKind, fmtSize } from "#/lib/files";
-import { ESTIMATES, RECURS } from "#/lib/tasks";
+import { ESTIMATES, inlineMarks, RECURS } from "#/lib/tasks";
 import { ago, daysUntil, relDay } from "#/lib/time";
 import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -731,7 +731,8 @@ function Description({ t, editable }: { t: TaskDetail; editable: boolean }) {
 					aria-multiline="true"
 					aria-labelledby="d-desc-l"
 					onBlur={() => {
-						const html = clean(ref.current?.innerHTML ?? "");
+						// **bold** and *italic* typed by hand become real formatting
+						const html = clean(inlineMarks(ref.current?.innerHTML ?? ""));
 						const text = (ref.current?.textContent ?? "").trim();
 						const next = text ? html : "";
 						if (next !== (t.description ?? ""))

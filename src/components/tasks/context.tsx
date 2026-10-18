@@ -6,7 +6,14 @@ import {
 } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
 import { useRouter } from "@tanstack/react-router";
-import { createContext, type ReactNode, useContext, useMemo } from "react";
+import {
+	createContext,
+	type ReactNode,
+	useContext,
+	useMemo,
+	useState,
+} from "react";
+import { ConfirmModal } from "#/components/q/confirm";
 import {
 	CREATE_TASK,
 	type ProjectSummary,
@@ -18,6 +25,7 @@ import {
 } from "#/graphql/operations";
 import { hasRight } from "#/lib/permissions";
 import { toast } from "#/lib/toast";
+import { count } from "#/lib/utils";
 
 // What every task view needs: people and projects to show, who may edit what, and the
 // actions views take. Edits are optimistic so drag and drop and pickers feel instant.
@@ -116,6 +124,11 @@ export function TaskViewProvider({
 	children: ReactNode;
 }) {
 	const router = useRouter();
+	// completing a task with open subtasks asks first; resolves with the answer
+	const [asking, setAsking] = useState<{
+		open: number;
+		answer: (ok: boolean) => void;
+	} | null>(null);
 	const [updateTask] = useMutation(UPDATE_TASK);
 	const [createTask] = useMutation(CREATE_TASK);
 
@@ -132,6 +145,14 @@ export function TaskViewProvider({
 			member: (id) => (id ? byMember.get(id) : undefined),
 			project: (id) => byProject.get(id),
 			update: async (task, patch) => {
+				const open = task.subtaskCount - task.subtaskDone;
+				if (
+					patch.status === "completed" &&
+					task.status !== "completed" &&
+					open > 0 &&
+					!(await new Promise<boolean>((answer) => setAsking({ open, answer })))
+				)
+					return;
 				const { title, ...rest } = patch;
 				try {
 					await updateTask({
@@ -143,6 +164,16 @@ export function TaskViewProvider({
 								...(title !== undefined && { name: title }),
 								__typename: "Task",
 							} as TaskItem,
+						},
+						// ticking a subtask off moves its parent's "2/5" at once
+						update: (cache) => {
+							const was = task.status === "completed";
+							const now = (patch.status ?? task.status) === "completed";
+							if (!task.parentId || was === now) return;
+							cache.modify({
+								id: cache.identify({ __typename: "Task", id: task.parentId }),
+								fields: { subtaskDone: (n: number) => n + (now ? 1 : -1) },
+							});
 						},
 						// moving between projects or completing a repeating task changes lists
 						refetchQueries:
@@ -203,7 +234,18 @@ export function TaskViewProvider({
 						// add it to the cached lists it belongs in instead of refetching them all
 						update: (cache, { data }) => {
 							const task = data?.createTask;
-							if (!task || input.parentId) return;
+							if (!task) return;
+							// a new subtask counts on its parent's card at once, not after a refetch
+							if (input.parentId) {
+								cache.modify({
+									id: cache.identify({
+										__typename: "Task",
+										id: input.parentId,
+									}),
+									fields: { subtaskCount: (n: number) => n + 1 },
+								});
+								return;
+							}
 							const ws = cache.readQuery({
 								query: WORKSPACE_ID,
 								variables: { slug },
@@ -278,5 +320,25 @@ export function TaskViewProvider({
 		};
 	}, [slug, members, projects, assignToMe, router, updateTask, createTask]);
 
-	return <TaskContext.Provider value={value}>{children}</TaskContext.Provider>;
+	return (
+		<TaskContext.Provider value={value}>
+			{children}
+			<ConfirmModal
+				open={!!asking}
+				onOpenChange={(o) => {
+					if (o) return;
+					asking?.answer(false);
+					setAsking(null);
+				}}
+				title="Complete it with open subtasks?"
+				body={`${count(asking?.open ?? 0, "subtask is", "subtasks are")} still open. They'll stay open if you complete the task.`}
+				ok="Complete anyway"
+				icon="icon-[solar--checklist-minimalistic-linear]"
+				onConfirm={() => {
+					asking?.answer(true);
+					setAsking(null);
+				}}
+			/>
+		</TaskContext.Provider>
+	);
 }

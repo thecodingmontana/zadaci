@@ -158,6 +158,10 @@
   --q-acc-l: #34332f;
   --q-acc-d: #d9d6cf;
 }
+/* graphite is light grey in dark mode: white text on it would vanish */
+:root.dark[data-accent='graphite'] {
+  --q-on-accent: #1d1c1a;
+}
 :root[data-side='compact'] {
   --q-side-row: 26px;
 }
@@ -2690,7 +2694,7 @@ fieldset.field {
   padding: 0 4px;
   border-radius: var(--q-r-full);
   background: var(--q-accent);
-  color: #fff;
+  color: var(--q-on-accent);
   font-size: 10.5px;
   display: inline-grid;
   place-items: center;
@@ -3228,6 +3232,27 @@ fieldset.field {
 }
 
 /* ---- ported from the reference views/board.css ---- */
+/* tasks with no date, above a calendar or timeline */
+.unsched {
+  margin: 0 var(--q-gutter) 10px;
+  border: 1px dashed var(--q-border-strong);
+  border-radius: var(--q-r);
+  padding: 6px 10px;
+  font-size: var(--q-fs-sm);
+}
+.unsched summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.unsched-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.unsched-list .cev {
+  max-width: 240px;
+}
 .board {
   display: flex;
   gap: 12px;
@@ -3240,6 +3265,12 @@ fieldset.field {
 .board::after {
   content: '';
   flex: 0 0 8px;
+}
+/* the task panel covers the right of the page: leave room to scroll the last column out from under it */
+@media (min-width: 901px) {
+  body:has(.drawer:not(.full)) .board::after {
+    flex-basis: min(620px, 100vw);
+  }
 }
 .bcol {
   width: 284px;

@@ -66,3 +66,23 @@ export const ESTIMATES = [
 /** A task's short code, e.g. WEB-12. */
 export const taskKey = (projectKey: string, number: number) =>
 	`${projectKey}-${number}`;
+
+/**
+ * Markdown-style marks typed into a description: **bold**, *italic* or _italic_. Works on
+ * HTML text; the marked text can't hold tags, so markup is never split or invented.
+ */
+export const inlineMarks = (html: string) => {
+	// the marked text starts and ends with a non-space, like markdown: "2 * 3 * 4" stays
+	const body = (mark: string) =>
+		`([^\\s${mark}<>](?:[^${mark}<>\\n]*?[^\\s${mark}<>])?)`;
+	return html
+		.replace(new RegExp(`\\*\\*${body("*")}\\*\\*`, "g"), "<b>$1</b>")
+		.replace(
+			new RegExp(`(^|[^\\w*])\\*${body("*")}\\*(?![\\w*])`, "g"),
+			"$1<i>$2</i>",
+		)
+		.replace(
+			new RegExp(`(^|[^\\w])_${body("_")}_(?!\\w)`, "g"),
+			"$1<i>$2</i>",
+		);
+};
