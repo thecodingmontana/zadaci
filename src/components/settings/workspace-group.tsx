@@ -43,7 +43,7 @@ import {
 } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { copy, toast } from "#/lib/toast";
-import { cn } from "#/lib/utils";
+import { cn, count } from "#/lib/utils";
 import type { SectionProps } from "./general";
 import { SBlock, Select, SettingsHeader, SRow, Toggle } from "./ui";
 
@@ -602,14 +602,14 @@ export function TeamsGrid({
 										className="icon-[solar--users-group-rounded-linear] size-3"
 										aria-hidden="true"
 									/>
-									{t.memberCount} members
+									{count(t.memberCount, "member")}
 								</span>
 								<span className="row" style={{ gap: 4 }}>
 									<span
 										className="icon-[solar--folder-linear] size-3"
 										aria-hidden="true"
 									/>
-									{t.projectCount} projects
+									{count(t.projectCount, "project")}
 								</span>
 								{avatars && (
 									<>

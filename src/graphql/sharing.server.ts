@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { USER_ROLE } from "#/db/enums";
@@ -42,6 +42,8 @@ export const sharingTypeDefs = /* GraphQL */ `
 		project(id: ID!): Project
 		"whether a live project has this id, even one you can't open (deleted vs no access)"
 		projectExists(id: ID!): Boolean!
+		"whether this workspace had a project with this id that was deleted"
+		projectDeleted(id: ID!): Boolean!
 	}
 
 	extend type Mutation {
@@ -232,6 +234,19 @@ export const sharingResolvers = {
 						eq(tables.project.id, args.id),
 						eq(tables.project.workspace_id, w.id),
 						isNull(tables.project.deleted_at),
+					),
+				);
+			return !!row;
+		},
+		projectDeleted: async (w: { id: string }, args: { id: string }) => {
+			const [row] = await db
+				.select({ id: tables.project.id })
+				.from(tables.project)
+				.where(
+					and(
+						eq(tables.project.id, args.id),
+						eq(tables.project.workspace_id, w.id),
+						isNotNull(tables.project.deleted_at),
 					),
 				);
 			return !!row;

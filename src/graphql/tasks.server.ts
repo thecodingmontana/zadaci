@@ -627,8 +627,14 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 			if (next) await notifyAssignee(actor, updated, next);
 		}
 	}
+	// a rename reads "renamed <old name> to “<new name>”"
 	for (const [verb, extra] of logs)
-		await taskActivity(actor, updated, verb, extra);
+		await taskActivity(
+			actor,
+			verb === "renamed" ? { ...updated, name: task.name } : updated,
+			verb,
+			extra,
+		);
 
 	if (
 		statusApplied &&

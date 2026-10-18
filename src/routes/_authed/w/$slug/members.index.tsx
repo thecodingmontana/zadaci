@@ -29,6 +29,7 @@ import { ROLE_LABEL } from "#/lib/preferences";
 import { reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { ago } from "#/lib/time";
+import { count } from "#/lib/utils";
 
 // Ported from the reference app's member directory (Members, Teams, Roles & permissions).
 
@@ -90,8 +91,8 @@ function MembersPage() {
 				<div>
 					<h1>Members</h1>
 					<p>
-						{workspace.members.length} people in {workspace.name} ·{" "}
-						{workspace.invites.length} pending
+						{count(workspace.members.length, "person", "people")} in{" "}
+						{workspace.name} · {workspace.invites.length} pending
 					</p>
 				</div>
 				{mayInvite && (
@@ -133,7 +134,7 @@ function MembersPage() {
 				<>
 					<div className="row" style={{ marginBottom: 12 }}>
 						<span className="muted" style={{ fontSize: 13 }}>
-							{workspace.teams.length} teams
+							{count(workspace.teams.length, "team")}
 						</span>
 						<span className="sp" />
 						{canTeams && (

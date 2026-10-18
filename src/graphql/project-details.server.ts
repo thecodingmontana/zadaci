@@ -346,7 +346,8 @@ export const projectDetailsResolvers = {
 						),
 						status: PROJECT_STATUS.PLANNING,
 						start_date: addDays(0),
-						due_date: input.dueDate ? fromDay(input.dueDate) : addDays(30),
+						// no target date unless the person picks one
+						due_date: input.dueDate ? fromDay(input.dueDate) : null,
 						// new projects go to the top of the sidebar, like the reference
 						sort_order: first - 1,
 					})

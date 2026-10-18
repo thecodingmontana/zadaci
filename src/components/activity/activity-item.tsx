@@ -29,6 +29,8 @@ export function ActivityItem({
 						<Link
 							to="/w/$slug/p/$projectId"
 							params={{ slug, projectId: a.projectId }}
+							// a task line opens the task itself (the drawer), not just its project
+							search={a.kind === "task" && a.taskId ? { task: a.taskId } : {}}
 							className="obj"
 						>
 							{a.target}

@@ -52,7 +52,8 @@ function Onboarding() {
 	const { hasWorkspace } = Route.useLoaderData();
 	const navigate = useNavigate();
 	const [step, setStep] = useState(0);
-	const [use, setUse] = useState<string>("product");
+	// nothing picked yet: step 1 waits for a choice
+	const [use, setUse] = useState<string>("");
 	const [ws, setWs] = useState("");
 	const [url, setUrl] = useState("");
 	const [urlTouched, setUrlTouched] = useState(false);
@@ -119,6 +120,8 @@ function Onboarding() {
 	}
 
 	function next() {
+		if (step === 0 && !use)
+			return toast.error("Pick what you're working on to continue");
 		if (step === 1) {
 			if (!ws.trim())
 				return setErrors({ ws: "Name your workspace to continue" });

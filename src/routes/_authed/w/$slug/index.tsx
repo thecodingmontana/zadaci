@@ -30,7 +30,7 @@ import { can, canInvite } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { isClosed } from "#/lib/tasks";
-import { cn } from "#/lib/utils";
+import { cn, count } from "#/lib/utils";
 import { isOverdue, sortTasks } from "#/lib/view-engine";
 
 // Ported from the reference app's Home page: greeting, stats, my tasks, project
@@ -326,7 +326,7 @@ function Home({ slug, tasks }: { slug: string; tasks: TaskItem[] }) {
 									borderBottom: 0,
 								}}
 							>
-								View all {lists[tab].length} tasks
+								View all {count(lists[tab].length, "task")}
 								<span
 									className="icon-[solar--arrow-right-linear] size-[13px]"
 									aria-hidden="true"

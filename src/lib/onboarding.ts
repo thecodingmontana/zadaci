@@ -161,12 +161,17 @@ export const MAX_INVITES = 3;
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function slugify(value: string) {
-	return value
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 48);
+	return (
+		value
+			// "Été" becomes "ete", not "t": split accents off their letters, then drop them
+			.normalize("NFKD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.toLowerCase()
+			.trim()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-|-$/g, "")
+			.slice(0, 48)
+	);
 }
 
 // Project colours (same palette as the reference app).

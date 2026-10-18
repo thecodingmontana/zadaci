@@ -19,7 +19,8 @@ test("creating from a template adds starter tasks, a key and a lead, at the top 
 	assert.equal(created.key, "WR");
 	assert.equal(created.status, "planning");
 	assert.equal(created.myAccess, "full");
-	assert.ok(created.startDate && created.dueDate, "start today, due in 30 days");
+	assert.ok(created.startDate, "starts today");
+	assert.equal(created.dueDate, null, "no target date unless one is picked");
 
 	const ws = (await gql(owner, LIST, { s: slug })).data?.workspace;
 	assert.equal(ws.projects[0].id, created.id, "new projects go first");
@@ -80,9 +81,12 @@ test("project stats count what the task lists show: archived and abandoned tasks
 test("projectExists tells a deleted project from one you can't open", async () => {
 	const owner = await makeUser("owner");
 	const { slug } = await makeWorkspace(owner);
-	const EXISTS = `query($s: String!, $id: ID!) { workspace(slug: $s) { projectExists(id: $id) } }`;
+	const EXISTS = `query($s: String!, $id: ID!) { workspace(slug: $s) { projectExists(id: $id) projectDeleted(id: $id) } }`;
 	const id = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0].id;
 	assert.equal((await gql(owner, EXISTS, { s: slug, id })).data?.workspace.projectExists, true);
 	await gql(owner, `mutation($s: String!, $p: ID!) { deleteProject(slug: $s, projectId: $p) }`, { s: slug, p: id });
-	assert.equal((await gql(owner, EXISTS, { s: slug, id })).data?.workspace.projectExists, false);
+	const gone = (await gql(owner, EXISTS, { s: slug, id })).data?.workspace;
+	assert.deepEqual(gone, { projectExists: false, projectDeleted: true }, "deleted: the page sends you to Projects");
+	const bad = (await gql(owner, EXISTS, { s: slug, id: "nope0000nope0000" })).data?.workspace;
+	assert.deepEqual(bad, { projectExists: false, projectDeleted: false }, "a bad link: the page says not found");
 });

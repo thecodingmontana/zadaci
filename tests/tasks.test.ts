@@ -280,3 +280,12 @@ test("bulk edits write the same feed lines, notifications and repeats as single 
 	const assignees = (await gql(owner, TASKS, { s: slug })).data?.workspace.tasks.filter((t: { id: string }) => [a, b].includes(t.id)).map((t: { assigneeId: string }) => t.assigneeId);
 	assert.deepEqual(assignees, [memberId, memberId]);
 });
+
+test("renaming a task reads old name → new name in the activity", async () => {
+	const { owner, slug, create } = await setup();
+	const task = (await create(owner, { title: "Old name" })).data?.createTask;
+	await gql(owner, UPDATE, { s: slug, id: task.id, p: { title: "New name" } });
+	const feed = (await gql(owner, `query($s: String!) { workspace(slug: $s) { activity { verb target extra } } }`, { s: slug })).data?.workspace.activity;
+	const renamed = feed.find((a: { verb: string }) => a.verb === "renamed");
+	assert.deepEqual(renamed, { verb: "renamed", target: "Old name", extra: "to “New name”" });
+});

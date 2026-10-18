@@ -31,7 +31,7 @@ import {
 	type TaskItem,
 } from "#/graphql/operations";
 import { toast } from "#/lib/toast";
-import { cn } from "#/lib/utils";
+import { cn, count } from "#/lib/utils";
 import {
 	type Group,
 	planDrop,
@@ -725,7 +725,7 @@ function BulkBar({
 			.promise(bulk({ variables: { slug, ids, patch } }), {
 				loading: `Updating ${ids.length} task${ids.length > 1 ? "s" : ""}…`,
 				success: ({ data }) =>
-					`Updated ${data?.bulkUpdateTasks ?? ids.length} tasks`,
+					`Updated ${count(data?.bulkUpdateTasks ?? ids.length, "task")}`,
 				error: "Couldn't update those tasks",
 			})
 			.catch(() => {});

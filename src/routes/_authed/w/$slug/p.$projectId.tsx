@@ -66,19 +66,20 @@ export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 			}),
 		]);
 		if (!data?.workspace) throw notFound();
-		// a project that's gone (deleted, or a bad link) goes to the projects list; one that
-		// exists but isn't shared with you still shows the access screen
+		// a deleted project goes to the projects list, a link to no project at all is "not
+		// found"; one that exists but isn't shared with you still shows the access screen
 		if (!data.workspace.project) {
 			const { data: check } = await context.apolloClient.query({
 				query: PROJECT_EXISTS,
 				variables: { slug: params.slug, id: params.projectId },
 				fetchPolicy: "network-only",
 			});
-			if (!check?.workspace?.projectExists)
+			if (check?.workspace?.projectDeleted)
 				throw redirect({
 					to: "/w/$slug/projects",
 					params: { slug: params.slug },
 				});
+			if (!check?.workspace?.projectExists) throw notFound();
 		}
 		return { title: data.workspace.project?.title ?? null };
 	},
