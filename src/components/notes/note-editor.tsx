@@ -39,6 +39,7 @@ import { randomGalleryCover } from "#/lib/note-covers";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { Callout, Embed } from "./blocks";
+import { CodeBlock } from "./code-block";
 import { InsertDialog } from "./insert-dialog";
 import { NoteActions } from "./note-actions";
 import { NoteCover } from "./note-cover";
@@ -151,6 +152,8 @@ export function NoteEditor({
 				link: { openOnClick: false, autolink: true },
 				// no forced empty line at the end of the page (Notion doesn't keep one)
 				trailingNode: false,
+				// replaced by the Shiki-highlighted block below
+				codeBlock: false,
 				dropcursor: { color: "var(--q-accent)", width: 3 },
 			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
@@ -161,6 +164,7 @@ export function NoteEditor({
 				placeholder: "Write something, or press / for blocks",
 			}),
 			SlashCommands,
+			CodeBlock,
 			Image.configure({ allowBase64: false }),
 			Youtube.configure({ nocookie: true, modestBranding: true }),
 			TableKit.configure({ table: { resizable: true } }),

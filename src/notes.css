@@ -807,3 +807,94 @@
 	justify-content: space-between;
 	font-size: 12px;
 }
+
+/* ---- code blocks (Shiki) ---- */
+.note-body .tiptap .code-wrap {
+	position: relative;
+	margin: 0.6em 0;
+	border-radius: var(--q-r-md, 10px);
+	background: var(--q-surface-2);
+	border: 1px solid var(--q-border);
+}
+.note-body .tiptap .code-wrap > pre {
+	margin: 0;
+	padding: 14px 16px 16px;
+	background: transparent !important;
+	border-radius: 0;
+	overflow-x: auto;
+	font-size: 13px;
+	line-height: 1.6;
+}
+.note-body .tiptap .code-wrap.wrap > pre {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.code-bar {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px 4px;
+	border-radius: var(--q-r-sm);
+	background: var(--q-surface);
+	box-shadow: 0 0 0 1px var(--q-border);
+	opacity: 0;
+	transition: opacity var(--q-dur);
+	user-select: none;
+}
+.note-body .tiptap .code-wrap:hover .code-bar,
+.code-bar:focus-within,
+.code-bar:has([data-state="open"]) {
+	opacity: 1;
+}
+.code-lang {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 2px 6px;
+	border-radius: 4px;
+	color: var(--q-text-2);
+	font-size: 12px;
+}
+button.code-lang:hover {
+	background: var(--q-surface-2);
+	color: var(--q-text);
+}
+.code-sep {
+	width: 1px;
+	height: 14px;
+	margin: 0 2px;
+	background: var(--q-border);
+}
+.code-bar .ibtn.on {
+	color: var(--q-accent);
+}
+.code-langs {
+	max-height: 300px;
+	overflow-y: auto;
+}
+/* Shiki writes both themes' colours; dark mode uses the dark ones */
+.dark .note-body .tiptap .code-wrap pre span {
+	color: var(--shiki-dark) !important;
+}
+@media (hover: none) {
+	.code-bar {
+		opacity: 1;
+	}
+}
+.code-bar .code-lang:focus {
+	outline: none;
+}
+.code-bar .code-lang:focus-visible {
+	background: var(--q-surface-2);
+	color: var(--q-text);
+}
+.note-body .tiptap .code-wrap.ProseMirror-selectednode {
+	border-radius: var(--q-r-md, 10px);
+	outline: 2px solid color-mix(in srgb, var(--q-accent) 50%, transparent);
+	outline-offset: 1px;
+	background: var(--q-surface-2);
+}
