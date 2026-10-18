@@ -1,6 +1,6 @@
 import type { TypedDocumentNode } from "@apollo/client";
 import { gql } from "@apollo/client";
-import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import DOMPurify from "dompurify";
 import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
@@ -36,7 +36,7 @@ import { DrawerConversation } from "./drawer-conversation";
 import { FilePreviewModal, Preview } from "./files-view";
 import { DatePick, PickList, PickPopover } from "./pick";
 import { TaskMenu } from "./task-menu";
-import { uploadFile } from "./upload";
+import { useUploads } from "./use-uploads";
 
 // The task drawer (reference overlays/drawer.js drawerHtml), opened from any page with
 // ?task=<id>. Subtasks are tasks too, so opening one shows it here with a way back.
@@ -854,52 +854,18 @@ function Subtasks({
 	);
 }
 
-type Upload = { id: string; name: string; pct: number };
-
 /** Files on the task, uploaded straight to Cloudinary with a signed request. */
 function Attachments({ t, editable }: { t: TaskDetail; editable: boolean }) {
 	const { slug, member } = useTaskView();
-	const [uploads, setUploads] = useState<Upload[]>([]);
+	const { uploads, upload, picker } = useUploads(
+		slug,
+		{ taskId: t.id },
+		TASK_REFETCH,
+	);
 	const [preview, setPreview] = useState<TaskAttachment | null>(null);
-	const client = useApolloClient();
 	const [remove] = useMutation(REMOVE_ATTACHMENT, {
 		refetchQueries: TASK_REFETCH,
 	});
-
-	async function upload(files: FileList | File[]) {
-		for (const file of files) {
-			const id = crypto.randomUUID();
-			setUploads((u) => [...u, { id, name: file.name, pct: 0 }]);
-			try {
-				await uploadFile(client, slug, { taskId: t.id }, file, (pct) =>
-					setUploads((u) => u.map((x) => (x.id === id ? { ...x, pct } : x))),
-				);
-				await client.refetchQueries({ include: TASK_REFETCH });
-			} catch (error) {
-				toast.error(`Couldn't upload ${file.name}`, {
-					desc: (error as Error).message,
-				});
-			} finally {
-				setUploads((u) => u.filter((x) => x.id !== id));
-			}
-		}
-	}
-
-	const picker = (
-		label: ReactNode,
-		className: string,
-		style?: React.CSSProperties,
-	) => (
-		<label className={className} style={{ cursor: "pointer", ...style }}>
-			{label}
-			<input
-				type="file"
-				multiple
-				hidden
-				onChange={(e) => e.target.files && upload(e.target.files)}
-			/>
-		</label>
-	);
 
 	return (
 		<div className="dsec">

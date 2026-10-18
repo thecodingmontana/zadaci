@@ -1,6 +1,6 @@
-import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { useRouter } from "@tanstack/react-router";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { ConfirmModal } from "#/components/q/confirm";
 import {
 	Menu,
@@ -24,12 +24,11 @@ import { ago } from "#/lib/time";
 import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { TASK_REFETCH } from "./context";
-import { uploadFile } from "./upload";
+import { useUploads } from "./use-uploads";
 
 // The project Files tab (reference views/files.js): every file on the project and its
 // tasks, with upload, search, type filter, sort, and grid or list layout.
 
-type Upload = { id: string; name: string; pct: number };
 const REFETCH = { refetchQueries: ["ProjectFiles", ...TASK_REFETCH] };
 
 export function FilesView({
@@ -42,7 +41,6 @@ export function FilesView({
 	members: SettingsMember[];
 }) {
 	const router = useRouter();
-	const client = useApolloClient();
 	const { data } = useQuery(PROJECT_FILES, {
 		variables: { slug, projectId },
 		fetchPolicy: "cache-and-network",
@@ -52,7 +50,9 @@ export function FilesView({
 	const [sort, setSort] = useState<"date" | "name" | "type">("date");
 	const [layout, setLayout] = useState<"grid" | "list">("grid");
 	const [preview, setPreview] = useState<TaskAttachment | null>(null);
-	const [uploads, setUploads] = useState<Upload[]>([]);
+	const { uploads, upload, picker } = useUploads(slug, { projectId }, [
+		"ProjectFiles",
+	]);
 	const project = data?.workspace?.project;
 	const editable = hasRight(
 		(project?.myAccess ?? null) as ProjectRight | null,
@@ -82,39 +82,6 @@ export function FilesView({
 			})) as never,
 		});
 
-	async function upload(list: FileList | File[]) {
-		for (const file of list) {
-			const id = crypto.randomUUID();
-			setUploads((u) => [...u, { id, name: file.name, pct: 0 }]);
-			try {
-				await uploadFile(client, slug, { projectId }, file, (pct) =>
-					setUploads((u) => u.map((x) => (x.id === id ? { ...x, pct } : x))),
-				);
-			} catch (error) {
-				toast.error(`Couldn't upload ${file.name}`, {
-					desc: (error as Error).message,
-				});
-			} finally {
-				setUploads((u) => u.filter((x) => x.id !== id));
-			}
-		}
-		await client.refetchQueries({ include: ["ProjectFiles"] });
-	}
-	const picker = (
-		body: ReactNode,
-		className: string,
-		style?: React.CSSProperties,
-	) => (
-		<label className={className} style={{ cursor: "pointer", ...style }}>
-			{body}
-			<input
-				type="file"
-				multiple
-				hidden
-				onChange={(e) => e.target.files && upload(e.target.files)}
-			/>
-		</label>
-	);
 	const filtered = !!q || kind !== "all";
 
 	return (
