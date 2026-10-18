@@ -14,7 +14,7 @@ import { StatusIcon } from "#/components/q/status-icon";
 import { OverviewSkeleton } from "#/components/shell/page-skeletons";
 import { OVERVIEW, PROJECTS, TASKS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { TASK_STATUSES } from "#/lib/tasks";
 import { daysUntil, fmtDay, relDay } from "#/lib/time";
@@ -26,12 +26,11 @@ import { isOverdue } from "#/lib/view-engine";
 export const Route = createFileRoute("/_authed/w/$slug/overview")({
 	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
-		const q = context.apolloClient.query;
 		const variables = { slug: params.slug };
 		const [{ data }] = await Promise.all([
-			q({ query: OVERVIEW, variables, fetchPolicy: "network-only" }),
-			q({ query: PROJECTS, variables, fetchPolicy: "network-only" }),
-			q({ query: TASKS, variables, fetchPolicy: "network-only" }),
+			prime(context.apolloClient, { query: OVERVIEW, variables }),
+			prime(context.apolloClient, { query: PROJECTS, variables }),
+			prime(context.apolloClient, { query: TASKS, variables }),
 		]);
 		if (!data?.workspace) throw notFound();
 	},

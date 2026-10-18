@@ -27,7 +27,7 @@ import {
 	WORKSPACE,
 } from "#/graphql/operations";
 import { can, canInvite } from "#/lib/permissions";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { isClosed } from "#/lib/tasks";
 import { cn, count } from "#/lib/utils";
@@ -45,12 +45,11 @@ export const Route = createFileRoute("/_authed/w/$slug/")({
 		const variables = { slug: params.slug };
 		const [{ data }] = await Promise.all([
 			q({ query: WORKSPACE, variables }),
-			q({ query: TASKS, variables, fetchPolicy: "network-only" }),
-			q({ query: PROJECTS, variables, fetchPolicy: "network-only" }),
-			q({
+			prime(context.apolloClient, { query: TASKS, variables }),
+			prime(context.apolloClient, { query: PROJECTS, variables }),
+			prime(context.apolloClient, {
 				query: ACTIVITY,
 				variables: { ...variables, filter: "all" },
-				fetchPolicy: "network-only",
 			}),
 		]);
 		if (!data?.workspace) throw notFound();

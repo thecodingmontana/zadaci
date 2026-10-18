@@ -26,7 +26,7 @@ import {
 } from "#/graphql/operations";
 import { can, canInvite, ROLES } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { ago } from "#/lib/time";
 import { count } from "#/lib/utils";
@@ -46,15 +46,13 @@ export const Route = createFileRoute("/_authed/w/$slug/members/")({
 	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const [{ data }] = await Promise.all([
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: SETTINGS,
 				variables: { slug: params.slug },
-				fetchPolicy: "network-only",
 			}),
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: MEMBER_STATS,
 				variables: { slug: params.slug },
-				fetchPolicy: "network-only",
 			}),
 		]);
 		if (!data?.workspace) throw notFound();

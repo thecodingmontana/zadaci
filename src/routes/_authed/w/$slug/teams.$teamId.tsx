@@ -14,7 +14,7 @@ import {
 import { can, canInvite } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
 import { pstat } from "#/lib/projects";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { cn } from "#/lib/utils";
 
@@ -25,20 +25,17 @@ export const Route = createFileRoute("/_authed/w/$slug/teams/$teamId")({
 	loader: async ({ context, params }) => {
 		const variables = { slug: params.slug };
 		const [{ data }] = await Promise.all([
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: SETTINGS,
 				variables,
-				fetchPolicy: "network-only",
 			}),
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: MEMBER_STATS,
 				variables,
-				fetchPolicy: "network-only",
 			}),
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: WORKSPACE_PROJECTS,
 				variables,
-				fetchPolicy: "network-only",
 			}),
 		]);
 		const team = data?.workspace?.teams.find((t) => t.id === params.teamId);

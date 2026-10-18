@@ -242,7 +242,14 @@ export function TaskViewProvider({
 										__typename: "Task",
 										id: input.parentId,
 									}),
-									fields: { subtaskCount: (n: number) => n + 1 },
+									fields: {
+										subtaskCount: (n: number) => n + 1,
+										// and shows in the open task's list before the server answers
+										subtasks: (list, { toReference }) => [
+											...((list ?? []) as readonly Reference[]),
+											toReference(task) as Reference,
+										],
+									},
 								});
 								return;
 							}

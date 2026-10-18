@@ -15,7 +15,7 @@ import {
 } from "#/graphql/bookmark-operations";
 import { PROJECTS, TASKS } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 
 // Ported from the reference app's Favorites page: starred projects, then starred tasks,
@@ -26,25 +26,21 @@ export const Route = createFileRoute("/_authed/w/$slug/favorites")({
 	loader: async ({ context, params }) => {
 		const variables = { slug: params.slug };
 		const [{ data }] = await Promise.all([
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: PROJECTS,
 				variables,
-				fetchPolicy: "network-only",
 			}),
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: TASKS,
 				variables,
-				fetchPolicy: "network-only",
 			}),
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: BOOKMARKS,
 				variables,
-				fetchPolicy: "network-only",
 			}),
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: BOOKMARK_COLLECTIONS,
 				variables,
-				fetchPolicy: "network-only",
 			}),
 		]);
 		if (!data?.workspace) throw notFound();

@@ -5,7 +5,7 @@ import { ActivityItem } from "#/components/activity/activity-item";
 import { Select } from "#/components/settings/ui";
 import { ActivitySkeleton } from "#/components/shell/page-skeletons";
 import { ACTIVITY } from "#/graphql/operations";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { byDay } from "#/lib/time";
 
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authed/w/$slug/activity")({
 	loaderDeps: ({ search }) => search,
 	shouldReload: reloadOnEnter,
 	loader: ({ context, params, deps }) =>
-		context.apolloClient.query({
+		prime(context.apolloClient, {
 			query: ACTIVITY,
 			variables: {
 				slug: params.slug,
@@ -34,7 +34,6 @@ export const Route = createFileRoute("/_authed/w/$slug/activity")({
 				actorId: deps.who,
 			},
 			// the feed changes on every action; always show the latest
-			fetchPolicy: "network-only",
 		}),
 	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Activity") }] }),
 	pendingComponent: ActivitySkeleton,

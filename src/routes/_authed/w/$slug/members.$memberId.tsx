@@ -15,7 +15,7 @@ import {
 } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
 import { ROLE_LABEL } from "#/lib/preferences";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { isClosed } from "#/lib/tasks";
 import { ago, fmtDay } from "#/lib/time";
@@ -32,27 +32,23 @@ export const Route = createFileRoute("/_authed/w/$slug/members/$memberId")({
 	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const { slug, memberId } = params;
-		const q = context.apolloClient.query;
 		const [{ data }] = await Promise.all([
-			q({ query: SETTINGS, variables: { slug }, fetchPolicy: "network-only" }),
-			q({
+			prime(context.apolloClient, { query: SETTINGS, variables: { slug } }),
+			prime(context.apolloClient, {
 				query: MEMBER_STATS,
 				variables: { slug },
-				fetchPolicy: "network-only",
 			}),
-			q({
+			prime(context.apolloClient, {
 				query: MEMBER_PROFILE,
 				variables: { slug, memberId },
-				fetchPolicy: "network-only",
 			}),
 		]);
 		const member = data?.workspace?.members.find((m) => m.id === memberId);
 		if (!member) throw notFound();
 		// recent activity is filtered by the person's user id
-		await q({
+		await prime(context.apolloClient, {
 			query: ACTIVITY,
 			variables: { slug, filter: "all", actorId: member.userId },
-			fetchPolicy: "network-only",
 		});
 		return { name: member.name, userId: member.userId };
 	},

@@ -9,7 +9,7 @@ import {
 	type NotificationItem,
 	SET_NOTIFICATION_READ,
 } from "#/graphql/operations";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { ago, byDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
@@ -22,10 +22,9 @@ export const Route = createFileRoute("/_authed/w/$slug/notifications")({
 	loaderDeps: ({ search }) => search,
 	shouldReload: reloadOnEnter,
 	loader: ({ context, params, deps }) =>
-		context.apolloClient.query({
+		prime(context.apolloClient, {
 			query: NOTIFICATIONS,
 			variables: { slug: params.slug, unread: deps.filter === "unread" },
-			fetchPolicy: "network-only",
 		}),
 	head: ({ matches }) => ({
 		meta: [{ title: wsTitle(matches, "Notifications") }],

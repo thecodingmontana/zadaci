@@ -32,7 +32,7 @@ import {
 } from "#/graphql/operations";
 import { can, hasRight } from "#/lib/permissions";
 import { pstat } from "#/lib/projects";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { byDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
@@ -54,15 +54,13 @@ export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 	loader: async ({ context, params }) => {
 		const { slug, projectId } = params;
 		const [{ data }] = await Promise.all([
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: PROJECT_PAGE,
 				variables: { slug, projectId },
-				fetchPolicy: "network-only",
 			}),
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: ACTIVITY,
 				variables: { slug, filter: "all", projectId },
-				fetchPolicy: "network-only",
 			}),
 		]);
 		if (!data?.workspace) throw notFound();

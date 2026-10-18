@@ -32,7 +32,7 @@ import {
 } from "#/graphql/bookmark-operations";
 import { SHELL } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 
 // Saved links: every bookmark the viewer can see, narrowed by collection, type, tags,
@@ -68,15 +68,13 @@ export const Route = createFileRoute("/_authed/w/$slug/bookmarks")({
 	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const [list] = await Promise.all([
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: BOOKMARKS,
 				variables: { slug: params.slug },
-				fetchPolicy: "network-only",
 			}),
-			context.apolloClient.query({
+			prime(context.apolloClient, {
 				query: BOOKMARK_COLLECTIONS,
 				variables: { slug: params.slug },
-				fetchPolicy: "network-only",
 			}),
 		]);
 		if (!list.data) throw notFound();

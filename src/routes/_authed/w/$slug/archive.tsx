@@ -21,7 +21,7 @@ import {
 } from "#/graphql/operations";
 import { can, hasRight } from "#/lib/permissions";
 import { PSTAT } from "#/lib/projects";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
@@ -36,10 +36,9 @@ export const Route = createFileRoute("/_authed/w/$slug/archive")({
 	validateSearch: z.object({ tab: z.enum(["tasks", "projects"]).optional() }),
 	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
-		const { data } = await context.apolloClient.query({
+		const { data } = await prime(context.apolloClient, {
 			query: ARCHIVE,
 			variables: { slug: params.slug },
-			fetchPolicy: "network-only",
 		});
 		if (!data?.workspace) throw notFound();
 	},

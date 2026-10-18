@@ -1,3 +1,4 @@
+import type { Reference } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
 import { Fragment, useRef, useState } from "react";
 import { Av } from "#/components/q/av";
@@ -235,9 +236,26 @@ function Composer({
 	const ref = useRef<HTMLTextAreaElement>(null);
 	const [text, setText] = useState("");
 	const [mention, setMention] = useState<string | null>(null);
+	// the comment shows at once and the server's copy replaces it; feeds and counts refresh after
 	const [post, { loading }] = useMutation(ADD_COMMENT, {
-		refetchQueries: TASK_REFETCH,
+		refetchQueries: ["Activity", "NotificationCounts"],
+		update: (cache, { data }) => {
+			const c = data?.addComment;
+			if (!c) return;
+			cache.modify({
+				id: cache.identify({ __typename: "Task", id: t.id }),
+				fields: {
+					// the mutation's result is already in the cache: point the list at it
+					comments: (list, { toReference }) => [
+						...(list as readonly Reference[]),
+						toReference(c) as Reference,
+					],
+					commentCount: (n: number) => n + 1,
+				},
+			});
+		},
 	});
+	const self = members.find((m) => m.isMe);
 	const matches =
 		mention === null
 			? []
@@ -270,18 +288,34 @@ function Composer({
 	const submit = async () => {
 		const body = text.trim();
 		if (!body) return;
+		setText("");
 		try {
-			await toast.promise(
-				post({ variables: { slug, taskId: t.id, text: body } }),
-				{
-					loading: "Posting comment…",
-					success: "Comment posted",
-					error: "Couldn't post the comment",
+			await post({
+				variables: { slug, taskId: t.id, text: body },
+				optimisticResponse: {
+					addComment: {
+						__typename: "TaskComment",
+						id: `temp-${Date.now()}`,
+						text: body,
+						createdAt: new Date().toISOString(),
+						author: {
+							__typename: "User",
+							id: self?.userId ?? "",
+							name: me.name,
+							image: me.image,
+						},
+						authorMemberId: self?.id ?? null,
+						isMine: true,
+						reactions: [],
+					} as TaskComment,
 				},
-			);
-			setText("");
-		} catch {
-			// the toast already shows why
+			});
+		} catch (error) {
+			// put the text back so nothing typed is lost
+			setText(body);
+			toast.error("Couldn't post the comment", {
+				desc: (error as Error).message,
+			});
 		}
 	};
 

@@ -1635,6 +1635,21 @@ export const ADD_COMMENT: TypedDocumentNode<
 	mutation AddComment($slug: String!, $taskId: ID!, $text: String!) {
 		addComment(slug: $slug, taskId: $taskId, text: $text) {
 			id
+			text
+			createdAt
+			author {
+				id
+				name
+				image
+			}
+			authorMemberId
+			isMine
+			reactions {
+				emoji
+				count
+				mine
+				names
+			}
 		}
 	}
 `;

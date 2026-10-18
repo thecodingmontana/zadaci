@@ -20,7 +20,7 @@ import {
 	SET_NOTIFICATION_READ,
 	TASK_DETAIL,
 } from "#/graphql/operations";
-import { reloadOnEnter } from "#/lib/routing";
+import { prime, reloadOnEnter } from "#/lib/routing";
 import { wsTitle } from "#/lib/seo";
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
@@ -53,10 +53,9 @@ export const Route = createFileRoute("/_authed/w/$slug/inbox")({
 	}),
 	shouldReload: reloadOnEnter,
 	loader: ({ context, params }) =>
-		context.apolloClient.query({
+		prime(context.apolloClient, {
 			query: NOTIFICATIONS,
 			variables: { slug: params.slug, unread: false },
-			fetchPolicy: "network-only",
 		}),
 	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Inbox") }] }),
 	pendingComponent: InboxSkeleton,

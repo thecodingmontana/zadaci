@@ -81,8 +81,5 @@ export const inlineMarks = (html: string) => {
 			new RegExp(`(^|[^\\w*])\\*${body("*")}\\*(?![\\w*])`, "g"),
 			"$1<i>$2</i>",
 		)
-		.replace(
-			new RegExp(`(^|[^\\w])_${body("_")}_(?!\\w)`, "g"),
-			"$1<i>$2</i>",
-		);
+		.replace(new RegExp(`(^|[^\\w])_${body("_")}_(?!\\w)`, "g"), "$1<i>$2</i>");
 };
