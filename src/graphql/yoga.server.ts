@@ -1,3 +1,6 @@
+import { costLimitPlugin } from "@escape.tech/graphql-armor-cost-limit";
+import { maxAliasesPlugin } from "@escape.tech/graphql-armor-max-aliases";
+import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth";
 import { createSchema, createYoga } from "graphql-yoga";
 import { auth } from "#/lib/auth";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
@@ -16,7 +19,14 @@ import { tasksResolvers, tasksTypeDefs } from "./tasks.server";
 import { teamsResolvers, teamsTypeDefs } from "./teams.server";
 import { unsplashResolvers, unsplashTypeDefs } from "./unsplash.server";
 
-const schema = createSchema<GraphQLContext>({
+/**
+ * How much one request may ask for, so a single query can't flood the database (e.g. the
+ * same list repeated under hundreds of aliases). Every operation the app sends fits;
+ * tests/graphql-limits.test.ts checks that.
+ */
+export const LIMITS = { aliases: 15, depth: 12, cost: 5000 };
+
+export const schema = createSchema<GraphQLContext>({
 	typeDefs: [
 		typeDefs,
 		settingsTypeDefs,
@@ -49,6 +59,11 @@ const schema = createSchema<GraphQLContext>({
 
 export const yoga = createYoga<object, GraphQLContext>({
 	schema,
+	plugins: [
+		maxAliasesPlugin({ n: LIMITS.aliases }),
+		maxDepthPlugin({ n: LIMITS.depth }),
+		costLimitPlugin({ maxCost: LIMITS.cost }),
+	],
 	graphqlEndpoint: "/api/graphql",
 	graphiql: process.env.NODE_ENV !== "production",
 	fetchAPI: { Response },
