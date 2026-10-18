@@ -39,6 +39,7 @@ import {
 	projectScope,
 	requireUser,
 } from "./schema.server";
+import { requireWorkspace } from "./settings.server";
 
 // Tasks (reference actions.js createTask / updateTask / applyPatch): the rows every task view
 // reads, and every change those views make. Reading needs view rights on the project,
@@ -1158,7 +1159,11 @@ export const tasksResolvers = {
 			);
 			if (args.ids.length > 500) badInput("Update up to 500 tasks at a time");
 			const ids = [...new Set(args.ids)];
-			if (!ids.length) return 0;
+			// an empty list still has to come from someone in this workspace
+			if (!ids.length) {
+				await requireWorkspace(ctx, args.slug);
+				return 0;
+			}
 			// access is checked for every task before anything changes
 			const { user, tasks, checked } = await requireTasks(
 				ctx,
@@ -1192,7 +1197,10 @@ export const tasksResolvers = {
 		) => {
 			if (args.ids.length > 500) badInput("Delete up to 500 tasks at a time");
 			const ids = [...new Set(args.ids)];
-			if (!ids.length) return 0;
+			if (!ids.length) {
+				await requireWorkspace(ctx, args.slug);
+				return 0;
+			}
 			await requireTasks(ctx, args.slug, ids, "edit");
 			// all or nothing: the tasks, their subtasks, and everyone's stars on them
 			await db.transaction(async (tx) => {

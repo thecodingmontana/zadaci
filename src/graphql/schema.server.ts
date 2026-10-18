@@ -267,8 +267,12 @@ const resolvers = {
 			ctx: GraphQLContext,
 		) => {
 			const [workspace] = await findWorkspaces(requireUser(ctx).id, args.slug);
+			if (!workspace)
+				throw new GraphQLError("Workspace not found", {
+					extensions: { code: "NOT_FOUND" },
+				});
 			const q = args.q.trim().slice(0, 100);
-			if (!workspace || !q) return { tasks: [], projects: [], people: [] };
+			if (!q) return { tasks: [], projects: [], people: [] };
 			const like = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
 			const LIMIT = 12;
 			const [tasks, projects, people] = await Promise.all([
