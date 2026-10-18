@@ -233,3 +233,18 @@ test("completing a repeating task again after reopening it makes no second copy"
 	const copies = (await gql(owner, TASKS, { s: slug })).data?.workspace.tasks.filter((t: { title: string }) => t.title === "Weekly review");
 	assert.equal(copies.length, 2, "the original and one next copy");
 });
+
+test("two reactions at the same moment both count, and tasks can't wait on each other", async () => {
+	const { owner, member, slug, create } = await setup();
+	const a = (await create(owner, { title: "A" })).data?.createTask.id;
+	const b = (await create(owner, { title: "B" })).data?.createTask.id;
+	const comment = (await gql(owner, `mutation($s: String!, $t: ID!) { addComment(slug: $s, taskId: $t, text: "Ship it") { id } }`, { s: slug, t: a })).data?.addComment.id;
+	const REACT = `mutation($s: String!, $id: ID!) { reactToComment(slug: $s, id: $id, emoji: "🎉") { id } }`;
+	await Promise.all([gql(owner, REACT, { s: slug, id: comment }), gql(member, REACT, { s: slug, id: comment })]);
+	const reactions = (await gql(owner, `query($s: String!, $t: ID!) { workspace(slug: $s) { task(id: $t) { comments { reactions { emoji count } } } } }`, { s: slug, t: a })).data?.workspace.task.comments[0].reactions;
+	assert.deepEqual(reactions, [{ emoji: "🎉", count: 2 }]);
+
+	const DEPS = `mutation($s: String!, $id: ID!, $d: [ID!]!) { setDependencies(slug: $s, id: $id, dependsOn: $d) { id } }`;
+	await gql(owner, DEPS, { s: slug, id: a, d: [b] });
+	assert.equal(code(await gql(owner, DEPS, { s: slug, id: b, d: [a] })), "BAD_USER_INPUT");
+});

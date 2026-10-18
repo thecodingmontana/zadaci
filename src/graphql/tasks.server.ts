@@ -1170,16 +1170,32 @@ export const tasksResolvers = {
 					);
 				if (same.length !== ids.length)
 					badInput("A task can only wait on tasks in the same project");
+				// a task can't wait on something that (through others) waits on it
+				const loop = await db.execute<{ id: string }>(sql`
+					with recursive up as (
+						select task_id as id from ${tables.task_dependency}
+						where depends_on_id = ${task.id}
+						union
+						select d.task_id from ${tables.task_dependency} d join up on d.depends_on_id = up.id
+					)
+					select id from up
+				`);
+				if ([...loop].some((r) => ids.includes(r.id)))
+					badInput("That would make tasks wait on each other");
 			}
-			await db
-				.delete(tables.task_dependency)
-				.where(eq(tables.task_dependency.task_id, task.id));
-			if (ids.length)
-				await db
-					.insert(tables.task_dependency)
-					.values(
-						ids.map((depends_on_id) => ({ task_id: task.id, depends_on_id })),
-					);
+			// replace the list in one go: a double click or a crash can't leave it half-written
+			await db.transaction(async (tx) => {
+				await tx
+					.delete(tables.task_dependency)
+					.where(eq(tables.task_dependency.task_id, task.id));
+				if (ids.length)
+					await tx
+						.insert(tables.task_dependency)
+						.values(
+							ids.map((depends_on_id) => ({ task_id: task.id, depends_on_id })),
+						)
+						.onConflictDoNothing();
+			});
 			await taskActivity(
 				{ workspace, userId: user.id },
 				task,

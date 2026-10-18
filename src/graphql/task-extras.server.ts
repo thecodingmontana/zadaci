@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
 import { db, tables } from "#/db";
@@ -469,16 +469,13 @@ export const taskExtrasResolvers = {
 				args.id,
 			);
 			const me = workspace.memberId ?? "";
-			const reactions = {
-				...((comment.reactions ?? {}) as Record<string, string[]>),
-			};
-			const list = reactions[args.emoji] ?? [];
-			reactions[args.emoji] = list.includes(me)
-				? list.filter((id) => id !== me)
-				: [...list, me];
+			const list = sql`coalesce(${tables.comment.reactions} -> ${args.emoji}::text, '[]'::jsonb)`;
+			// toggled in one statement, so two people reacting at once both count
 			await db
 				.update(tables.comment)
-				.set({ reactions })
+				.set({
+					reactions: sql`jsonb_set(${tables.comment.reactions}, array[${args.emoji}::text], case when ${list} ? ${me}::text then ${list} - ${me}::text else ${list} || to_jsonb(${me}::text) end)`,
+				})
 				.where(eq(tables.comment.id, comment.id));
 			return oneComment(comment.id, user.id);
 		},
