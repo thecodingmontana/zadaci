@@ -1,403 +1,111 @@
-Welcome to your new TanStack Start app!
+# Zadaci
 
-# Getting Started
+Zadaci is a collaborative project and task manager for teams. Plan projects in the view that suits the work, keep docs and meeting notes next to them, and share exactly what each person should see.
 
-To run this application:
+Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 
-```bash
-npm install
-npm run dev
-```
+## Features
 
-# Building For Production
+- **Workspaces** with roles (Owner, Admin, Member, Guest), email invites, invite links and teams.
+- **Projects** with board, list, table, calendar, timeline, files and activity views, saved views, statuses, leads and private or workspace-wide sharing.
+- **Tasks** with subtasks, assignees, priorities, labels, due and start dates, estimates, dependencies, repeating tasks, comments with @mentions and reactions, attachments, favorites and bulk edits.
+- **My Tasks, Inbox and Notifications**, plus a workspace activity feed and a command menu (`Ctrl/⌘ K`).
+- **Notes**, Notion-style:
+  - **Pages:** nest pages inside pages to group them, drag to reorder, star them, and make them private.
+  - **Editor:** a Tiptap editor with a `/` block menu and a block handle (`+` and drag).
+  - **Blocks:** headings, lists, to-dos, quotes, callouts, toggles, tables, images, YouTube and embeds (Vimeo, Loom, Figma, CodePen, Spotify, Google Maps), and code blocks highlighted by Shiki.
+  - **Covers:** from a colour gallery, an upload, a link or Unsplash.
+  - **Saving:** autosave that never overwrites someone else's newer edit.
+- **Sign-in** with Google or a passkey. Optional two-step verification with an authenticator app.
+- **Settings** for appearance (light, dark, accent, density, motion), language, date and time, notifications, profile, sessions and security.
+- Light and dark themes, responsive layout with a mobile bottom nav.
 
-To build this application for production:
+## Tech stack
 
-```bash
-npm run build
-```
+| Area | Tools |
+|---|---|
+| App | [TanStack Start](https://tanstack.com/start) (React 19, TanStack Router), Vite, Nitro |
+| API | GraphQL Yoga, Apollo Client 4, request limits with graphql-armor |
+| Data | PostgreSQL (Supabase), Drizzle ORM and drizzle-kit migrations |
+| Auth | Better Auth (Google, passkeys, TOTP two-step) |
+| Editor | Tiptap 3, Shiki, Novel-style global drag handle |
+| UI | Tailwind CSS 4, Radix UI, Motion, Iconify icons (Solar, Hugeicons, Logos) |
+| Files and email | Cloudinary (signed uploads), Resend with React Email |
+| Quality | Biome, TypeScript, Node's built-in test runner |
 
-## Styling
+## Getting started
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
-
-```bash
-npm run lint
-npm run format
-npm run check
-```
-
-
-## Deploy with Nitro
-
-This project uses Nitro as a generic server adapter, so it can run on any Node-compatible host.
+You need Node 22 or newer, pnpm and a Postgres database.
 
 ```bash
-npm run build
-node dist/server/index.mjs
+pnpm install
+cp .env.example .env.local   # then fill it in
+pnpm db:migrate              # create the tables
+pnpm dev                     # http://localhost:3000
 ```
 
-The build output is a self-contained Node server. To deploy, push the `dist/` directory to your host (Render, Fly.io, your own VPS, etc.) and run the server command above.
+### Environment variables
 
-For host-specific presets (Vercel, Netlify, Cloudflare, AWS Lambda, etc.) and tuning, see https://v3.nitro.build/deploy.
+| Name | Required | What it is |
+|---|---|---|
+| `DATABASE_URL` | yes | Postgres connection string. On Supabase, use the pooler (port 6543). |
+| `BETTER_AUTH_URL` | yes | Address the app runs at, e.g. `http://localhost:3000`. |
+| `BETTER_AUTH_SECRET` | yes | A long random string for signing sessions. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | yes | Google OAuth app for sign-in. |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | yes | For attachments, logos, covers and note images. |
+| `RESEND_API_KEY` | no | Sends invite emails. Leave empty to skip sending. |
+| `VITE_SITE_URL` | no | Public address for canonical links, the sitemap and emails. Defaults to `https://zadaci.vercel.app`. |
+| `UNSPLASH_ACCESS_KEY` | no | Turns on the Unsplash tab in image pickers. |
 
+## Scripts
 
-## Shadcn
+| Command | What it does |
+|---|---|
+| `pnpm dev` | Run the app on port 3000 |
+| `pnpm build` / `pnpm preview` | Build for production and preview the build |
+| `pnpm check` / `pnpm lint` / `pnpm format` | Biome checks, lint and formatting |
+| `pnpm test` | Run the test suite (see below) |
+| `pnpm db:generate` | Create a migration from schema changes in `src/db` |
+| `pnpm db:migrate` | Apply migrations to `DATABASE_URL` |
+| `pnpm db:studio` | Browse the database with Drizzle Studio |
+| `pnpm email` | Preview the email templates on port 3001 |
+| `pnpm generate-routes` | Regenerate `src/routeTree.gen.ts` |
 
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
+## Tests
+
+The tests call the GraphQL API against a real database, so point them at a separate one:
 
 ```bash
-pnpm dlx shadcn@latest add button
+DATABASE_URL=postgres://…/zadaci_test pnpm db:migrate
+DATABASE_URL=postgres://…/zadaci_test pnpm test
 ```
 
+They cover permissions and sharing, tasks, projects, members and invites, notes, the note document sanitizer, embeds and covers, and a check that every query the app sends fits the API's request limits.
 
-## Setting up Better Auth
+## Project structure
 
-1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
-
-   ```bash
-   npx -y @better-auth/cli secret
-   ```
-
-2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
-
-### Adding a Database (Optional)
-
-Better Auth can work in stateless mode, but to persist user data, add a database:
-
-```typescript
-// src/lib/auth.ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
-
-export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-  // ... rest of config
-});
+```text
+src/
+  routes/        pages and API routes (file-based, TanStack Router)
+    _authed/     everything behind sign-in: workspaces, projects, tasks, notes, settings
+    api/         /api/graphql and /api/auth
+  graphql/       schema and resolvers (*.server.ts) and the client operations
+  components/    UI by area: tasks, projects, notes, shell, settings, auth, …
+  db/            Drizzle schema and migrations
+  lib/           shared logic: permissions, auth, note sanitizer, embeds, time, toasts
+  emails/        React Email templates
+tests/           API tests
 ```
 
-Then run migrations:
+## Deployment
 
-```bash
-npx -y @better-auth/cli migrate
-```
+The app deploys to Vercel. Push to `main` and Vercel builds it. Set the environment variables above in the Vercel project, and run `pnpm db:migrate` against the production database when a change adds a migration.
 
+## Support and credits
 
-# Apollo Client Integration
+- Questions or problems: [thecodingmontana@gmail.com](mailto:thecodingmontana@gmail.com)
+- Designed and built by [@codewithmontana](https://x.com/codewithmontana)
 
-This add-on integrates Apollo Client with TanStack Start to provide modern streaming SSR support for GraphQL data fetching.
+## License
 
-## Dependencies
-
-The following packages are automatically installed:
-
-- `@apollo/client` - Apollo Client core
-- `@apollo/client-integration-tanstack-start` - TanStack Start integration
-- `graphql` - GraphQL implementation
-
-## Configuration
-
-### 1. GraphQL Endpoint
-
-Configure your GraphQL API endpoint in `src/router.tsx`:
-
-```tsx
-// Configure Apollo Client
-const apolloClient = new ApolloClient({
-  cache: new InMemoryCache(),
-  link: new HttpLink({
-    uri: 'https://your-graphql-api.example.com/graphql', // Update this!
-  }),
-})
-```
-
-You can use environment variables by creating a `.env.local` file:
-
-```bash
-VITE_GRAPHQL_ENDPOINT=https://your-api.com/graphql
-```
-
-The default configuration already uses this pattern:
-
-```tsx
-uri: import.meta.env.VITE_GRAPHQL_ENDPOINT ||
-  'https://your-graphql-api.example.com/graphql'
-```
-
-## Usage Patterns
-
-### Pattern 1: Loader with preloadQuery (Recommended for SSR)
-
-Use `preloadQuery` in route loaders for optimal streaming SSR performance:
-
-```tsx
-import { gql, TypedDocumentNode } from '@apollo/client'
-import { useReadQuery } from '@apollo/client/react'
-import { createFileRoute } from '@tanstack/react-router'
-
-const MY_QUERY: TypedDocumentNode<{
-  posts: { id: string; title: string; content: string }[]
-}> = gql`
-  query GetData {
-    posts {
-      id
-      title
-      content
-    }
-  }
-`
-
-export const Route = createFileRoute('/my-route')({
-  component: RouteComponent,
-  loader: ({ context: { preloadQuery } }) => {
-    const queryRef = preloadQuery(MY_QUERY, {
-      variables: {},
-    })
-    return { queryRef }
-  },
-})
-
-function RouteComponent() {
-  const { queryRef } = Route.useLoaderData()
-  const { data } = useReadQuery(queryRef)
-
-  return <div>{/* render your data */}</div>
-}
-```
-
-### Pattern 2: useSuspenseQuery
-
-Use `useSuspenseQuery` directly in components with automatic suspense support:
-
-```tsx
-import { gql, TypedDocumentNode } from '@apollo/client'
-import { useSuspenseQuery } from '@apollo/client/react'
-import { createFileRoute } from '@tanstack/react-router'
-
-const MY_QUERY: TypedDocumentNode<{
-  posts: { id: string; title: string }[]
-}> = gql`
-  query GetData {
-    posts {
-      id
-      title
-    }
-  }
-`
-
-export const Route = createFileRoute('/my-route')({
-  component: RouteComponent,
-})
-
-function RouteComponent() {
-  const { data } = useSuspenseQuery(MY_QUERY)
-
-  return <div>{/* render your data */}</div>
-}
-```
-
-### Pattern 3: Manual Refetching
-
-```tsx
-import { useQueryRefHandlers, useReadQuery } from '@apollo/client/react'
-
-function MyComponent() {
-  const { queryRef } = Route.useLoaderData()
-  const { refetch } = useQueryRefHandlers(queryRef)
-  const { data } = useReadQuery(queryRef)
-
-  return (
-    <div>
-      <button onClick={() => refetch()}>Refresh</button>
-      {/* render data */}
-    </div>
-  )
-}
-```
-
-## Important Notes
-
-### SSR Optimization
-
-The integration automatically handles:
-
-- Query deduplication across server and client
-- Streaming SSR with `@defer` directive support
-- Proper cache hydration
-
-## Learn More
-
-- [Apollo Client Documentation](https://www.apollographql.com/docs/react)
-- [@apollo/client-integration-tanstack-start](https://www.npmjs.com/package/@apollo/client-integration-tanstack-start)
-
-## Demo
-
-Visit `/demo/apollo-client` in your application to see a working example of Apollo Client integration.
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+MIT
