@@ -697,7 +697,18 @@ const resolvers = {
 				),
 		teams: (w: Workspace) =>
 			db
-				.select()
+				.select({
+					...getTableColumns(tables.team),
+					// counted here so a list of teams is one query, not two more per team
+					memberCount:
+						sql<number>`(select count(*) from ${tables.team_members} m where m.team_id = ${tables.team}.id and m.deleted_at is null)`.mapWith(
+							Number,
+						),
+					projectCount:
+						sql<number>`(select count(*) from ${tables.project} p where p.team_id = ${tables.team}.id and p.deleted_at is null)`.mapWith(
+							Number,
+						),
+				})
 				.from(tables.team)
 				.where(
 					and(

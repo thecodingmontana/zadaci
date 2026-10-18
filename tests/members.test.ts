@@ -124,3 +124,12 @@ test("invites can't be resent every second, and a member can't revive an admin i
 	const fresh = await db.select({ role: tables.workspace_invite_request.role }).from(tables.workspace_invite_request).where(eq(tables.workspace_invite_request.email, email));
 	assert.ok(fresh.some((r) => r.role === "guest"), "a separate guest invite was made");
 });
+
+test("team lists carry their member and project counts", async () => {
+	const owner = await makeUser("owner");
+	const { slug } = await makeWorkspace(owner);
+	const me = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug })).data?.workspace.members.find((m: { isMe: boolean }) => m.isMe).id;
+	await gql(owner, CREATE_TEAM, { s: slug, i: team("Design", [me]) });
+	const teams = (await gql(owner, `query($s: String!) { workspace(slug: $s) { teams { name memberCount projectCount } } }`, { s: slug })).data?.workspace.teams;
+	assert.deepEqual(teams, [{ name: "Design", memberCount: 1, projectCount: 0 }]);
+});

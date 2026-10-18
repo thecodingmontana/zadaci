@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { GraphQLError } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
+import { generateNanoId } from "#/db/utils";
 import {
 	can,
 	hasRight,
@@ -381,25 +382,23 @@ export const projectsResolvers = {
 						),
 					)
 					.orderBy(asc(tables.task.created_at));
-				// Parents first so subtasks can point at their copied parent.
-				const ids = new Map<string, string>();
-				for (const t of [
+				// New ids up front, so subtasks can point at their copied parent; then a few bulk
+				// inserts instead of one per task (parents first, in chunks under Postgres's
+				// parameter limit).
+				const ids = new Map(tasks.map((t) => [t.id, generateNanoId()]));
+				const rows = [
 					...tasks.filter((t) => !t.parent_task_id),
 					...tasks.filter((t) => t.parent_task_id),
-				]) {
-					const { id, created_at: _tc, updated_at: _tu, ...task } = t;
-					const [row] = await tx
-						.insert(tables.task)
-						.values({
-							...task,
-							project_id: copy.id,
-							parent_task_id: t.parent_task_id
-								? (ids.get(t.parent_task_id) ?? null)
-								: null,
-						})
-						.returning({ id: tables.task.id });
-					if (row) ids.set(id, row.id);
-				}
+				].map(({ id, created_at: _tc, updated_at: _tu, ...task }) => ({
+					...task,
+					id: ids.get(id),
+					project_id: copy.id,
+					parent_task_id: task.parent_task_id
+						? (ids.get(task.parent_task_id) ?? null)
+						: null,
+				}));
+				for (let i = 0; i < rows.length; i += 500)
+					await tx.insert(tables.task).values(rows.slice(i, i + 500));
 				const members = await tx
 					.select({
 						member_id: tables.project_members.member_id,

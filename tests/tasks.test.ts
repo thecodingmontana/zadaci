@@ -248,3 +248,15 @@ test("two reactions at the same moment both count, and tasks can't wait on each 
 	await gql(owner, DEPS, { s: slug, id: a, d: [b] });
 	assert.equal(code(await gql(owner, DEPS, { s: slug, id: b, d: [a] })), "BAD_USER_INPUT");
 });
+
+test("duplicating a project copies tasks in bulk and keeps subtasks under their copied parent", async () => {
+	const { owner, slug, project, create } = await setup();
+	const parent = (await create(owner, { title: "Launch" })).data?.createTask.id;
+	await create(owner, { title: "Write post", parentId: parent });
+	const copy = (await gql(owner, `mutation($s: String!, $p: ID!) { duplicateProject(slug: $s, projectId: $p) { id } }`, { s: slug, p: project.id })).data?.duplicateProject.id;
+	const tasks = (await gql(owner, `query($s: String!, $p: ID) { workspace(slug: $s) { tasks(projectId: $p) { id name } } }`, { s: slug, p: copy })).data?.workspace.tasks;
+	const launch = tasks.find((t: { name: string }) => t.name === "Launch");
+	assert.ok(launch && launch.id !== parent, "the parent was copied");
+	const subtasks = (await gql(owner, `query($s: String!, $t: ID!) { workspace(slug: $s) { task(id: $t) { subtasks { name } } } }`, { s: slug, t: launch.id })).data?.workspace.task.subtasks;
+	assert.deepEqual(subtasks, [{ name: "Write post" }], "the subtask points at the copied parent");
+});

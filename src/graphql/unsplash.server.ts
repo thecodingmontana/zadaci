@@ -125,7 +125,10 @@ export const unsplashResolvers = {
 				badInput("Not an Unsplash download link");
 			}
 			// only ever call Unsplash's own API with our key
-			if (url.origin !== API || !url.pathname.startsWith("/photos/"))
+			if (
+				url.origin !== API ||
+				!/^\/photos\/[\w-]+\/download$/.test(url.pathname)
+			)
 				badInput("Not an Unsplash download link");
 			await unsplash(`${url.pathname}${url.search}`);
 			return true;

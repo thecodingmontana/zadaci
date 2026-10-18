@@ -280,7 +280,8 @@ export const settingsResolvers = {
 		},
 	},
 	Team: {
-		memberCount: async (t: { id: string }) => {
+		memberCount: async (t: { id: string; memberCount?: number }) => {
+			if (t.memberCount !== undefined) return t.memberCount;
 			const [row] = await db
 				.select({ n: count() })
 				.from(tables.team_members)
@@ -292,7 +293,8 @@ export const settingsResolvers = {
 				);
 			return row?.n ?? 0;
 		},
-		projectCount: async (t: { id: string }) => {
+		projectCount: async (t: { id: string; projectCount?: number }) => {
+			if (t.projectCount !== undefined) return t.projectCount;
 			const [row] = await db
 				.select({ n: count() })
 				.from(tables.project)
