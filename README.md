@@ -16,6 +16,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
   - **Blocks:** headings, lists, to-dos, quotes, callouts, toggles, tables, images, YouTube and embeds (Vimeo, Loom, Figma, CodePen, Spotify, Google Maps), and code blocks highlighted by Shiki.
   - **Covers:** from a colour gallery, an upload, a link or Unsplash.
   - **Saving:** autosave that never overwrites someone else's newer edit.
+- **Bookmarks:** paste a link and its title, description and image fill in. File it in collections (shared with the workspace, private, or linked to a project), tag it, star or archive it, and filter by type (article, document, video), tag or search in a grid or list.
 - **Sign-in** with Google or a passkey. Optional two-step verification with an authenticator app.
 - **Settings** for appearance (light, dark, accent, density, motion), language, date and time, notifications, profile, sessions and security.
 - Light and dark themes, responsive layout with a mobile bottom nav.
@@ -80,7 +81,7 @@ DATABASE_URL=postgres://…/zadaci_test pnpm db:migrate
 DATABASE_URL=postgres://…/zadaci_test pnpm test
 ```
 
-They cover permissions and sharing, tasks, projects, members and invites, notes, the note document sanitizer, embeds and covers, and a check that every query the app sends fits the API's request limits.
+They cover permissions and sharing, tasks, projects, members and invites, notes, bookmarks and safe link previews, the note document sanitizer, embeds and covers, and a check that every query the app sends fits the API's request limits.
 
 ## Project structure
 
