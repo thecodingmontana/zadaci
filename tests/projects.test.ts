@@ -76,3 +76,13 @@ test("project stats count what the task lists show: archived and abandoned tasks
 	const stats = (await gql(owner, LIST, { s: slug })).data?.workspace.projectStats.find((x: { projectId: string }) => x.projectId === projectId);
 	assert.equal(stats.total, tasks.length - 2);
 });
+
+test("projectExists tells a deleted project from one you can't open", async () => {
+	const owner = await makeUser("owner");
+	const { slug } = await makeWorkspace(owner);
+	const EXISTS = `query($s: String!, $id: ID!) { workspace(slug: $s) { projectExists(id: $id) } }`;
+	const id = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0].id;
+	assert.equal((await gql(owner, EXISTS, { s: slug, id })).data?.workspace.projectExists, true);
+	await gql(owner, `mutation($s: String!, $p: ID!) { deleteProject(slug: $s, projectId: $p) }`, { s: slug, p: id });
+	assert.equal((await gql(owner, EXISTS, { s: slug, id })).data?.workspace.projectExists, false);
+});

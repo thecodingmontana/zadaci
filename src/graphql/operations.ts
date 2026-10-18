@@ -1803,3 +1803,15 @@ export const DELETE_VIEW: TypedDocumentNode<
 		deleteView(slug: $slug, id: $id)
 	}
 `;
+
+export const PROJECT_EXISTS: TypedDocumentNode<
+	{ workspace: { id: string; projectExists: boolean } | null },
+	{ slug: string; id: string }
+> = gql`
+	query ProjectExists($slug: String!, $id: ID!) {
+		workspace(slug: $slug) {
+			id
+			projectExists(id: $id)
+		}
+	}
+`;

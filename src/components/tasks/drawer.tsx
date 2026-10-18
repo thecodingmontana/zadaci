@@ -1,7 +1,7 @@
 import type { TypedDocumentNode } from "@apollo/client";
 import { gql } from "@apollo/client";
 import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import DOMPurify from "dompurify";
 import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { ProgBar, projectColor } from "#/components/projects/bits";
@@ -59,6 +59,16 @@ export function TaskDrawer({
 	const [full, setFull] = useState(false);
 	const workspace = data?.workspace;
 	const task = workspace?.task;
+	const navigate = useNavigate();
+	const shown = useRef(false);
+	if (task) shown.current = true;
+	// a link to a deleted task goes to the Tasks page; one deleted while open just closes
+	useEffect(() => {
+		if (loading || !workspace || task) return;
+		if (shown.current) return onClose();
+		toast.info("That task doesn't exist anymore");
+		navigate({ to: "/w/$slug/tasks", params: { slug } });
+	}, [loading, workspace, task, navigate, slug, onClose]);
 
 	// Esc closes the drawer unless a picker or menu is open on top of it
 	useEffect(() => {

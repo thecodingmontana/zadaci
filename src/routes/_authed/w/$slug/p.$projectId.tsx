@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useSuspenseQuery } from "@apollo/client/react";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	notFound,
+	redirect,
+} from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { ActivityItem } from "#/components/activity/activity-item";
@@ -19,6 +24,7 @@ import { FilesView } from "#/components/tasks/files-view";
 import { ProjectTasks } from "#/components/tasks/project-tasks";
 import {
 	ACTIVITY,
+	PROJECT_EXISTS,
 	PROJECT_PAGE,
 	TOGGLE_FAVORITE,
 	UPDATE_PROJECT,
@@ -59,6 +65,20 @@ export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 			}),
 		]);
 		if (!data?.workspace) throw notFound();
+		// a project that's gone (deleted, or a bad link) goes to the projects list; one that
+		// exists but isn't shared with you still shows the access screen
+		if (!data.workspace.project) {
+			const { data: check } = await context.apolloClient.query({
+				query: PROJECT_EXISTS,
+				variables: { slug: params.slug, id: params.projectId },
+				fetchPolicy: "network-only",
+			});
+			if (!check?.workspace?.projectExists)
+				throw redirect({
+					to: "/w/$slug/projects",
+					params: { slug: params.slug },
+				});
+		}
 		return { title: data.workspace.project?.title ?? null };
 	},
 	head: ({ loaderData, matches }) => ({

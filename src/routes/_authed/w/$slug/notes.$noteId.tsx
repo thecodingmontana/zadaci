@@ -18,6 +18,8 @@ export const Route = createFileRoute("/_authed/w/$slug/notes/$noteId")({
 				query: NOTE,
 				variables: { ...variables, id: params.noteId },
 				fetchPolicy: "network-only",
+				// a deleted page (or one you can't see) is "not found", not a crash
+				errorPolicy: "all",
 			}),
 			context.apolloClient.query({ query: NOTES, variables }),
 		]);

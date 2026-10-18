@@ -40,6 +40,8 @@ export const sharingTypeDefs = /* GraphQL */ `
 
 	extend type Workspace {
 		project(id: ID!): Project
+		"whether a live project has this id, even one you can't open (deleted vs no access)"
+		projectExists(id: ID!): Boolean!
 	}
 
 	extend type Mutation {
@@ -212,6 +214,19 @@ export const sharingResolvers = {
 				);
 			if (!project) return null;
 			return { ...project, myAccess: await viewerRight(w, project) };
+		},
+		projectExists: async (w: { id: string }, args: { id: string }) => {
+			const [row] = await db
+				.select({ id: tables.project.id })
+				.from(tables.project)
+				.where(
+					and(
+						eq(tables.project.id, args.id),
+						eq(tables.project.workspace_id, w.id),
+						isNull(tables.project.deleted_at),
+					),
+				);
+			return !!row;
 		},
 	},
 	Mutation: {
