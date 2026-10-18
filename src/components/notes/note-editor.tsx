@@ -23,6 +23,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import GlobalDragHandle from "tiptap-extension-global-drag-handle";
+import { IconMenu } from "#/components/q/icon-menu";
 import {
 	Menu,
 	MenuContent,
@@ -50,10 +51,6 @@ import { SLASH_COMMANDS, SlashCommands } from "./slash-menu";
 
 const SAVE_MS = 800;
 const HANDLE_ID = "note-block-handle";
-const EMOJI =
-	"📄 📝 📌 📎 📚 📘 📗 📕 🗂️ 🗒️ 💡 🎯 🚀 ✅ ⭐ 🔥 🧭 🧪 🛠️ 🎨 📣 📈 💬 🗓️ 🔒 🌱 🏁 🧩 ❤️ 👋".split(
-		" ",
-	);
 
 type Patch = {
 	title?: string;
@@ -344,46 +341,6 @@ export function NoteEditor({
 				<EditorContent editor={editor} className="note-body" />
 			</div>
 		</>
-	);
-}
-
-/** The emoji picker for a page's icon, opened from its trigger. */
-function IconMenu({
-	icon,
-	onPick,
-	disabled,
-	children,
-}: {
-	icon: string | null;
-	onPick: (icon: string | null) => void;
-	disabled?: boolean;
-	children: ReactNode;
-}) {
-	return (
-		<Menu>
-			<MenuTrigger asChild disabled={disabled}>
-				{children}
-			</MenuTrigger>
-			<MenuContent width={236} align="start">
-				<div className="emoji-grid">
-					{EMOJI.map((e) => (
-						<button key={e} type="button" onClick={() => onPick(e)}>
-							{e}
-						</button>
-					))}
-				</div>
-				{icon && (
-					<button
-						type="button"
-						className="mi"
-						style={{ width: "100%" }}
-						onClick={() => onPick(null)}
-					>
-						Remove icon
-					</button>
-				)}
-			</MenuContent>
-		</Menu>
 	);
 }
 
