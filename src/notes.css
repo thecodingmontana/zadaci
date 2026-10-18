@@ -51,12 +51,7 @@
 	margin: 0 auto;
 	padding: 40px 0 120px;
 }
-.note-head {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	min-height: 48px;
-}
+
 .note-icon {
 	font-size: 40px;
 	line-height: 1;
@@ -463,18 +458,7 @@
 .cover-grid button:hover {
 	transform: scale(1.03);
 }
-.cover-pane {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 10px;
-	padding: 18px 8px 10px;
-	text-align: center;
-	font-size: var(--q-fs-sm);
-}
-.cover-pane .input {
-	width: 100%;
-}
+
 .cover-acts button:focus,
 .note-adds button:focus {
 	outline: none;
