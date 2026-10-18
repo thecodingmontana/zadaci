@@ -116,3 +116,44 @@ test("covers take gallery colours and https images, and keep their position", as
 	assert.deepEqual((await set({ cover: "https://images.example.com/a.jpg", coverY: 130 })).data?.updateNote, { cover: "https://images.example.com/a.jpg", coverY: 100 });
 	assert.equal((await set({ cover: null })).data?.updateNote.cover, null);
 });
+
+test("audit: sharing changes need the right access and never touch other people's privacy", async () => {
+	const { owner, member, slug } = await setup();
+	const UPDATE = `mutation($s: String!, $id: ID!, $p: NotePatch!, $b: String) { updateNote(slug: $s, id: $id, patch: $p, baseUpdatedAt: $b) { id updatedAt isPrivate } }`;
+	const projects = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects;
+	const alpha = projects[0].id;
+
+	// a member who can only edit a page can't move it into (or out of) a project
+	const page = (await create(owner, slug, { title: "Plan" })).data?.createNote;
+	assert.equal(code(await gql(member, UPDATE, { s: slug, id: page.id, p: { projectId: alpha } })), "FORBIDDEN");
+
+	// someone else's private sub-page stays private when the parent's privacy changes
+	const mine = (await create(member, slug, { title: "My draft", parentId: page.id })).data?.createNote;
+	await gql(member, UPDATE, { s: slug, id: mine.id, p: { isPrivate: true } });
+	await gql(owner, UPDATE, { s: slug, id: page.id, p: { isPrivate: true } });
+	await gql(owner, UPDATE, { s: slug, id: page.id, p: { isPrivate: false } });
+	assert.equal((await list(owner, slug)).some((n) => n.id === mine.id), false, "still hidden from the owner");
+
+	// the same person saving from two tabs: the older tab gets a conflict, not a silent overwrite
+	const loaded = (await gql(owner, `query($s: String!, $id: ID!) { note(slug: $s, id: $id) { updatedAt } }`, { s: slug, id: page.id })).data?.note.updatedAt;
+	await new Promise((r) => setTimeout(r, 5));
+	await gql(owner, UPDATE, { s: slug, id: page.id, p: { title: "Tab 2" }, b: loaded });
+	assert.equal(code(await gql(owner, UPDATE, { s: slug, id: page.id, p: { title: "Tab 1" }, b: loaded })), "CONFLICT");
+
+	// changing privacy isn't an edit: an open editor keeps saving without a conflict
+	const fresh = (await gql(owner, `query($s: String!, $id: ID!) { note(slug: $s, id: $id) { updatedAt } }`, { s: slug, id: page.id })).data?.note.updatedAt;
+	await gql(owner, UPDATE, { s: slug, id: page.id, p: { isPrivate: true } });
+	assert.equal(code(await gql(owner, UPDATE, { s: slug, id: page.id, p: { title: "Still mine" }, b: fresh })), undefined);
+});
+
+test("audit: pages of a deleted project are hidden, and copying needs edit rights", async () => {
+	const { owner, member, slug } = await setup();
+	const alpha = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0].id;
+	const linked = (await create(owner, slug, { title: "Specs", projectId: alpha })).data?.createNote;
+	const DUP = `mutation($s: String!, $id: ID!) { duplicateNote(slug: $s, id: $id) { id } }`;
+	assert.equal(code(await gql(member, DUP, { s: slug, id: linked.id })), "FORBIDDEN", "members only comment on workspace projects");
+
+	await gql(owner, `mutation($s: String!, $p: ID!) { deleteProject(slug: $s, projectId: $p) }`, { s: slug, p: alpha });
+	assert.equal(code(await gql(member, `query($s: String!, $id: ID!) { note(slug: $s, id: $id) { id } }`, { s: slug, id: linked.id })), "BAD_USER_INPUT");
+	assert.equal((await list(member, slug)).length, 0);
+});

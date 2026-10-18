@@ -69,10 +69,11 @@ function useAutosave(slug: string, note: NoteDetail) {
 	const pending = useRef<Patch>({});
 	const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 	const base = useRef(note.updatedAt);
+	// one save at a time, in order, so a slow save can't land after a newer one
+	const inflight = useRef<Promise<void>>(Promise.resolve());
 	const [status, setStatus] = useState<Status>("saved");
 
-	const flush = async () => {
-		clearTimeout(timer.current);
+	const send = async () => {
 		const patch = pending.current;
 		if (!Object.keys(patch).length) return;
 		pending.current = {};
@@ -82,17 +83,24 @@ function useAutosave(slug: string, note: NoteDetail) {
 				variables: { slug, id: note.id, patch, baseUpdatedAt: base.current },
 			});
 			if (data) base.current = data.updateNote.updatedAt;
-			setStatus("saved");
+			setStatus(Object.keys(pending.current).length ? "saving" : "saved");
 		} catch (error) {
 			const conflict =
 				CombinedGraphQLErrors.is(error) &&
 				error.errors.some((e) => e.extensions?.code === "CONFLICT");
 			setStatus(conflict ? "conflict" : "error");
-			if (!conflict)
-				toast.error("Couldn't save the page", {
-					desc: (error as Error).message,
-				});
+			if (conflict) return;
+			// keep the edits; the next change (or leaving the page) sends them again
+			pending.current = { ...patch, ...pending.current };
+			toast.error("Couldn't save the page", {
+				desc: (error as Error).message,
+			});
 		}
+	};
+	const flush = () => {
+		clearTimeout(timer.current);
+		inflight.current = inflight.current.then(send);
+		return inflight.current;
 	};
 	const queue = (patch: Patch) => {
 		pending.current = { ...pending.current, ...patch };
@@ -100,9 +108,16 @@ function useAutosave(slug: string, note: NoteDetail) {
 		clearTimeout(timer.current);
 		timer.current = setTimeout(() => void flush(), SAVE_MS);
 	};
-	// leaving the page saves what's waiting
-	// biome-ignore lint/correctness/useExhaustiveDependencies: flush on unmount only
-	useEffect(() => () => void flush(), []);
+	// leaving the page, or closing the tab, saves what's waiting
+	// biome-ignore lint/correctness/useExhaustiveDependencies: register once; flush reads refs
+	useEffect(() => {
+		const onHide = () => void flush();
+		window.addEventListener("pagehide", onHide);
+		return () => {
+			window.removeEventListener("pagehide", onHide);
+			void flush();
+		};
+	}, []);
 	return { queue, status };
 }
 
@@ -282,6 +297,7 @@ export function NoteEditor({
 					className="note-title"
 					value={title}
 					placeholder="Untitled"
+					maxLength={200}
 					readOnly={!editable}
 					rows={1}
 					aria-label="Page title"

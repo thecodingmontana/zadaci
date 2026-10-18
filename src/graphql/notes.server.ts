@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import type { PgUpdateSetSource } from "drizzle-orm/pg-core";
 import { GraphQLError } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
@@ -144,6 +145,8 @@ async function noteRight(workspace: Workspace, note: NoteRow) {
 				),
 			);
 		if (project) return viewerRight(workspace, project);
+		// its project was deleted: don't fall back to "every member", only admins can clean up
+		return can(workspace.role, "manageAllProjects") ? "full" : null;
 	}
 	return unlinkedRight(workspace, note);
 }
@@ -199,6 +202,36 @@ function visible(workspace: Workspace) {
 				scope,
 			),
 	);
+}
+
+/**
+ * Copies a page's sharing down to the pages inside it. A project applies to all of them;
+ * privacy only to the actor's own pages, so nobody can expose or hide someone else's page.
+ * Leaves updated_at alone, so people editing those pages don't hit a false conflict.
+ */
+async function applySharing(
+	tx: Tx,
+	ids: string[],
+	actorMemberId: string | undefined,
+	share: Share,
+) {
+	if (!ids.length) return;
+	const keep = { updated_at: sql`${tables.note.updated_at}` };
+	if (share.project_id !== undefined)
+		await tx
+			.update(tables.note)
+			.set({ project_id: share.project_id, ...keep })
+			.where(inArray(tables.note.id, ids));
+	if (share.private !== undefined)
+		await tx
+			.update(tables.note)
+			.set({ private: share.private, ...keep })
+			.where(
+				and(
+					inArray(tables.note.id, ids),
+					eq(tables.note.created_by, actorMemberId ?? ""),
+				),
+			);
 }
 
 const noteShape = (
@@ -274,12 +307,15 @@ async function lastSibling(workspaceId: string, parentId: string | null) {
 	return Number(row?.max ?? 0);
 }
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Share = { project_id?: string | null; private?: boolean };
+
 /** Ids of a page and every live page under it. */
-async function subtree(id: string) {
-	const result = await db.execute<{ id: string }>(sql`
+async function subtree(id: string, q: typeof db | Tx = db) {
+	const result = await q.execute<{ id: string }>(sql`
 		with recursive t as (
 			select id from ${tables.note} where id = ${id}
-			union all
+			union
 			select n.id from ${tables.note} n join t on n.parent_id = t.id
 			where n.deleted_at is null
 		)
@@ -347,8 +383,14 @@ export const notesResolvers = {
 				? await db
 						.select()
 						.from(tables.project)
-						.where(inArray(tables.project.id, projectIds))
+						.where(
+							and(
+								inArray(tables.project.id, projectIds),
+								isNull(tables.project.deleted_at),
+							),
+						)
 				: [];
+			const admin = can(workspace.role, "manageAllProjects");
 			const rights = new Map(
 				await Promise.all(
 					projects.map(
@@ -356,16 +398,16 @@ export const notesResolvers = {
 					),
 				),
 			);
-			return rows.map((n) =>
-				noteShape(
-					n,
-					n.project_id && rights.has(n.project_id)
+			return rows.flatMap((n) => {
+				const right = !n.project_id
+					? unlinkedRight(workspace, n)
+					: rights.has(n.project_id)
 						? (rights.get(n.project_id) ?? null)
-						: unlinkedRight(workspace, n),
-					workspace,
-					stars.has(n.id),
-				),
-			);
+						: admin // its project was deleted
+							? "full"
+							: null;
+				return right ? [noteShape(n, right, workspace, stars.has(n.id))] : [];
+			});
 		},
 		note: async (
 			_: unknown,
@@ -453,25 +495,24 @@ export const notesResolvers = {
 			},
 			ctx: GraphQLContext,
 		) => {
-			const { user, workspace, note } = await requireNote(
+			const { user, workspace, note, right } = await requireNote(
 				ctx,
 				args.slug,
 				args.id,
 				"edit",
 			);
 			const { patch } = args;
-			// someone else saved since this editor loaded the page: don't overwrite their work
-			if (
-				args.baseUpdatedAt &&
-				note.updated_by !== workspace.memberId &&
-				note.updated_at.getTime() > new Date(args.baseUpdatedAt).getTime()
-			)
-				throw new GraphQLError("Someone else changed this note", {
-					extensions: { code: "CONFLICT" },
-				});
-			const set: Partial<typeof tables.note.$inferInsert> = {
-				updated_by: workspace.memberId ?? null,
-			};
+			// only content edits count as editing; sharing changes keep the version as it is
+			const edits = [
+				patch.title,
+				patch.icon,
+				patch.doc,
+				patch.cover,
+				patch.coverY,
+			].some((v) => v !== undefined);
+			const set: PgUpdateSetSource<typeof tables.note> = edits
+				? { updated_by: workspace.memberId ?? null }
+				: { updated_at: sql`${tables.note.updated_at}` };
 			if (patch.title != null) set.title = parse(TITLE, patch.title);
 			if (patch.icon !== undefined) set.icon = parse(ICON, patch.icon);
 			if (patch.cover !== undefined) {
@@ -492,30 +533,47 @@ export const notesResolvers = {
 				set.doc = checked.doc;
 				set.content = checked.text;
 			}
-			// sharing (project, privacy) applies to the page and every page inside it
-			const share: Partial<typeof tables.note.$inferInsert> = {};
-			if (patch.projectId !== undefined) {
+			// sharing (project, privacy) applies to the page and the pages inside it
+			const share: Share = {};
+			if (
+				patch.projectId !== undefined &&
+				patch.projectId !== note.project_id
+			) {
 				if (note.parent_id)
 					badInput("Sub-pages follow their parent page's project");
+				// moving pages between projects changes who can see them
+				if (right !== "full") forbidden();
 				if (patch.projectId) await checkProject(workspace, patch.projectId);
 				canOwnTopLevel(workspace, patch.projectId);
 				share.project_id = patch.projectId;
 			}
-			if (patch.isPrivate != null) {
+			if (patch.isPrivate != null && patch.isPrivate !== note.private) {
 				if (note.created_by !== workspace.memberId) forbidden();
 				share.private = patch.isPrivate;
 			}
-			const below = Object.keys(share).length ? await subtree(note.id) : [];
+			const below =
+				share.project_id !== undefined || share.private !== undefined
+					? await subtree(note.id)
+					: [];
 			await db.transaction(async (tx) => {
-				await tx
+				const saved = await tx
 					.update(tables.note)
 					.set(set)
-					.where(eq(tables.note.id, note.id));
-				if (below.length)
-					await tx
-						.update(tables.note)
-						.set(share)
-						.where(inArray(tables.note.id, below));
+					.where(
+						and(
+							eq(tables.note.id, note.id),
+							// someone saved since this editor loaded the page: don't overwrite it
+							args.baseUpdatedAt
+								? eq(tables.note.updated_at, new Date(args.baseUpdatedAt))
+								: undefined,
+						),
+					)
+					.returning({ id: tables.note.id });
+				if (!saved.length)
+					throw new GraphQLError("Someone else changed this note", {
+						extensions: { code: "CONFLICT" },
+					});
+				await applySharing(tx, below, workspace.memberId, share);
 			});
 			return oneNote(note.id, workspace, user.id);
 		},
@@ -530,7 +588,7 @@ export const notesResolvers = {
 			},
 			ctx: GraphQLContext,
 		) => {
-			const { user, workspace, note } = await requireNote(
+			const { user, workspace, note, right } = await requireNote(
 				ctx,
 				args.slug,
 				args.id,
@@ -547,21 +605,26 @@ export const notesResolvers = {
 				projectId = parent.note.project_id;
 				isPrivate = parent.note.private;
 			} else canOwnTopLevel(workspace, projectId);
+			// moving into another project changes who can see the pages
+			if (projectId !== note.project_id && right !== "full") forbidden();
 			await db.transaction(async (tx) => {
+				// re-check inside the write: two moves at once could otherwise make a loop
+				if (parentId && (await subtree(note.id, tx)).includes(parentId))
+					badInput("A page can't go inside itself");
 				await tx
 					.update(tables.note)
 					.set({
 						parent_id: parentId,
 						sort_order: args.sortOrder,
-						updated_by: workspace.memberId ?? null,
+						// moving isn't editing: open editors keep saving without a conflict
+						updated_at: sql`${tables.note.updated_at}`,
 					})
 					.where(eq(tables.note.id, note.id));
 				// moved pages take their new parent's sharing
-				if (projectId !== note.project_id || isPrivate !== note.private)
-					await tx
-						.update(tables.note)
-						.set({ project_id: projectId, private: isPrivate })
-						.where(inArray(tables.note.id, ids));
+				await applySharing(tx, ids, workspace.memberId, {
+					...(projectId !== note.project_id && { project_id: projectId }),
+					...(isPrivate !== note.private && { private: isPrivate }),
+				});
 			});
 			return oneNote(note.id, workspace, user.id);
 		},
@@ -578,7 +641,10 @@ export const notesResolvers = {
 			);
 			if (note.parent_id)
 				await requireNote(ctx, args.slug, note.parent_id, "edit");
-			else canOwnTopLevel(workspace, note.project_id);
+			else {
+				if (note.project_id) await checkProject(workspace, note.project_id);
+				canOwnTopLevel(workspace, note.project_id);
+			}
 			const [row] = await db
 				.insert(tables.note)
 				.values({

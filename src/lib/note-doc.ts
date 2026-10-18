@@ -45,7 +45,6 @@ const MARKS = new Set([
 	"code",
 	"highlight",
 	"link",
-	"comment",
 ]);
 // blocks that end a line in the plain-text copy
 const LINES = new Set(["paragraph", "heading", "codeBlock", "hardBreak"]);
