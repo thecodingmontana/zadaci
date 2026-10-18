@@ -54,8 +54,13 @@ export type ShellUser = { name: string; email: string; image?: string | null };
 
 function useActive(slug: string) {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
+	// an open collection lights up in Collections instead of Bookmarks
+	const inCollection = useRouterState({
+		select: (s) => !!(s.location.search as { c?: string }).c,
+	});
 	return (path: string) => {
 		const href = path ? `/w/${slug}/${path}` : `/w/${slug}`;
+		if (path === "bookmarks" && inCollection) return false;
 		return path
 			? pathname === href || pathname.startsWith(`${href}/`)
 			: pathname === href || pathname === `${href}/`;
