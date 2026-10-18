@@ -41,6 +41,22 @@ export function CollectionsNav({ slug }: { slug: string }) {
 					/>
 				</button>
 			</div>
+			{/* collections load after the sidebar; hold their place */}
+			{!data &&
+				[60, 72].map((w) => (
+					<div
+						key={w}
+						className="sitem"
+						style={{ cursor: "default" }}
+						aria-hidden="true"
+					>
+						<span
+							className="sk"
+							style={{ width: 14, height: 14, borderRadius: 4 }}
+						/>
+						<span className="sk" style={{ width: `${w}%`, height: 11 }} />
+					</div>
+				))}
 			{collections.map((c) => (
 				<div key={c.id} className={cn("sitem snote", active === c.id && "on")}>
 					<Link
