@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	getTableColumns,
+	inArray,
+	isNull,
+	or,
+	sql,
+} from "drizzle-orm";
 import type { PgUpdateSetSource } from "drizzle-orm/pg-core";
 import { GraphQLError } from "graphql";
 import { z } from "zod";
@@ -24,6 +34,8 @@ import { commentRows, oneComment, shape } from "./task-extras.server";
 // sharing; other pages are open to the workspace's members (not guests).
 
 type NoteRow = typeof tables.note.$inferSelect;
+/** what lists need: everything but the document body */
+type NoteMeta = Omit<NoteRow, "doc">;
 type Workspace = Awaited<ReturnType<typeof findWorkspaces>>[number];
 
 export const notesTypeDefs = /* GraphQL */ `
@@ -119,7 +131,7 @@ const ICON = z.string().trim().max(16).nullable();
 /** An unlinked page's right: admins and its author have full access, members edit. */
 const unlinkedRight = (
 	workspace: Workspace,
-	note: NoteRow,
+	note: NoteMeta,
 ): ProjectRight | null =>
 	workspace.role === "guest"
 		? null
@@ -235,7 +247,7 @@ async function applySharing(
 }
 
 const noteShape = (
-	n: NoteRow,
+	n: NoteMeta,
 	right: ProjectRight | null,
 	viewer: { memberId?: string },
 	isFavorite = false,
@@ -370,8 +382,13 @@ export const notesResolvers = {
 		notes: async (_: unknown, args: { slug: string }, ctx: GraphQLContext) => {
 			const { user, workspace } = await workspaceOf(ctx, args.slug);
 			const stars = await starred(user.id, workspace.id);
+			// the sidebar needs titles and a short preview, never whole documents
+			const { doc: _doc, ...meta } = getTableColumns(tables.note);
 			const rows = await db
-				.select()
+				.select({
+					...meta,
+					content: sql<string | null>`left(${tables.note.content}, 200)`,
+				})
 				.from(tables.note)
 				.where(visible(workspace))
 				.orderBy(asc(tables.note.sort_order), desc(tables.note.created_at));

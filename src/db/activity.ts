@@ -37,6 +37,12 @@ export const activity = pgTable(
 			table.workspace_id,
 			table.created_at,
 		),
+		// a task's or project's history (task drawer, project activity)
+		index("activity_task_created_idx").on(table.task_id, table.created_at),
+		index("activity_project_created_idx").on(
+			table.project_id,
+			table.created_at,
+		),
 	],
 );
 
