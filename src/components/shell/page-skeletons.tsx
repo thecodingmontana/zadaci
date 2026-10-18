@@ -128,10 +128,10 @@ export function OverviewSkeleton() {
 	);
 }
 
-export function ProjectsSkeleton() {
+export function ProjectsSkeleton({ title = "Projects" }: { title?: string }) {
 	return (
 		<div className="page wide" {...busy}>
-			<Head title="Projects" sub={140} />
+			<Head title={title} sub={140} />
 			<div className="row" style={{ marginBottom: 16, gap: 8 }}>
 				<Sk w={200} h={28} r={7} />
 				<Sk w={110} h={26} r={7} />
@@ -140,6 +140,14 @@ export function ProjectsSkeleton() {
 			<Cards />
 		</div>
 	);
+}
+
+/** Same layout as Projects; an open collection's name isn't known yet, so it's a bar. */
+export function BookmarksSkeleton() {
+	const inCollection = useRouterState({
+		select: (s) => !!(s.location.search as { c?: string }).c,
+	});
+	return <ProjectsSkeleton title={inCollection ? undefined : "Bookmarks"} />;
 }
 
 export function ProjectPageSkeleton() {

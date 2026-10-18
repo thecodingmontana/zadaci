@@ -22,7 +22,7 @@ import {
 	MenuTrigger,
 } from "#/components/q/menu";
 import { Select } from "#/components/settings/ui";
-import { ProjectsSkeleton } from "#/components/shell/page-skeletons";
+import { BookmarksSkeleton } from "#/components/shell/page-skeletons";
 import {
 	BOOKMARK_COLLECTIONS,
 	BOOKMARKS,
@@ -82,7 +82,7 @@ export const Route = createFileRoute("/_authed/w/$slug/bookmarks")({
 	head: ({ matches }) => ({
 		meta: [{ title: wsTitle(matches, "Bookmarks") }],
 	}),
-	pendingComponent: ProjectsSkeleton,
+	pendingComponent: BookmarksSkeleton,
 	component: BookmarksPage,
 });
 
