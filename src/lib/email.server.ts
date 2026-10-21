@@ -1,7 +1,11 @@
 import { render } from "@react-email/components";
+import { inArray } from "drizzle-orm";
 import { createElement, type ReactElement } from "react";
 import { Resend } from "resend";
+import { db, tables } from "#/db";
+import NotificationEmail from "#/emails/notification";
 import WorkspaceInvite from "#/emails/workspace-invite";
+import { PREF_DEFAULTS } from "#/lib/preferences";
 import { SITE_URL } from "#/lib/seo";
 
 const FROM = "Team Zadaci <noreply@thegoodslab.tech>";
@@ -69,4 +73,126 @@ export function sendInviteEmails(
 			),
 		),
 	);
+}
+
+// ---- notification emails (mentions, assignments, comments) ----
+
+/** The email setting each notification type answers to; other types send no email. */
+const EMAIL_KEY: Record<
+	string,
+	"email_mention" | "email_assign" | "email_comment"
+> = {
+	mention: "email_mention",
+	assign: "email_assign",
+	comment: "email_comment",
+};
+
+/** Which setting decides this email, or null when it shouldn't be sent at all. */
+export function emailKey(
+	row: { type: string; user_id: string; actor_id?: string | null },
+	prefs: unknown,
+) {
+	const key = EMAIL_KEY[row.type];
+	if (!key || row.actor_id === row.user_id) return null;
+	const chosen = (prefs as { notif?: Record<string, boolean> } | null)?.notif?.[
+		key
+	];
+	return (chosen ?? PREF_DEFAULTS.notif[key]) ? key : null;
+}
+
+// emails wait here until the request's work is saved, then go out together (drainEmails)
+const pending: Promise<unknown>[] = [];
+
+/** Sends the queued emails; called at the end of each API request, capped so mail can't hang it. */
+export async function drainEmails(limitMs = 3000) {
+	if (!pending.length) return;
+	const batch = pending.splice(0);
+	await Promise.race([
+		Promise.allSettled(batch),
+		new Promise((r) => setTimeout(r, limitMs)),
+	]);
+}
+
+type NotificationRow = {
+	user_id: string;
+	workspace_id: string;
+	actor_id?: string | null;
+	type: string;
+	text: string;
+	snippet?: string | null;
+	project_id?: string | null;
+	task_id?: string | null;
+};
+
+/** Queues an email for each notification its recipient asked to get by email. */
+export async function queueNotificationEmails(rows: NotificationRow[]) {
+	const wanted = rows.filter(
+		(r) => EMAIL_KEY[r.type] && r.actor_id !== r.user_id,
+	);
+	if (!wanted.length) return;
+	const ids = (list: (string | null | undefined)[]) => [
+		...new Set(list.filter((x): x is string => !!x)),
+	];
+	const [people, workspaces, tasks] = await Promise.all([
+		db
+			.select({
+				id: tables.user.id,
+				name: tables.user.name,
+				email: tables.user.email,
+				prefs: tables.user.preferences,
+			})
+			.from(tables.user)
+			.where(
+				inArray(
+					tables.user.id,
+					ids(wanted.flatMap((r) => [r.user_id, r.actor_id])),
+				),
+			),
+		db
+			.select({
+				id: tables.workspace.id,
+				slug: tables.workspace.slug,
+				name: tables.workspace.name,
+			})
+			.from(tables.workspace)
+			.where(
+				inArray(tables.workspace.id, ids(wanted.map((r) => r.workspace_id))),
+			),
+		ids(wanted.map((r) => r.task_id)).length
+			? db
+					.select({ id: tables.task.id, name: tables.task.name })
+					.from(tables.task)
+					.where(inArray(tables.task.id, ids(wanted.map((r) => r.task_id))))
+			: Promise.resolve([]),
+	]);
+	const person = new Map(people.map((p) => [p.id, p]));
+	const space = new Map(workspaces.map((w) => [w.id, w]));
+	const taskName = new Map(tasks.map((t) => [t.id, t.name]));
+	const appUrl = (process.env.BETTER_AUTH_URL ?? SITE_URL).replace(/\/$/, "");
+	for (const row of wanted) {
+		const to = person.get(row.user_id);
+		const ws = space.get(row.workspace_id);
+		if (!to || !ws || !emailKey(row, to.prefs)) continue;
+		const actor = row.actor_id ? person.get(row.actor_id)?.name : null;
+		const about = row.task_id ? taskName.get(row.task_id) : null;
+		const headline = `${actor ?? "Someone"} ${row.text}${about ? ` “${about}”` : ""}`;
+		const link =
+			row.task_id && row.project_id
+				? `${appUrl}/w/${ws.slug}/p/${row.project_id}?task=${row.task_id}`
+				: `${appUrl}/w/${ws.slug}/notifications`;
+		pending.push(
+			sendEmail(
+				to.email,
+				headline,
+				createElement(NotificationEmail, {
+					headline,
+					snippet: row.snippet,
+					workspace: ws.name,
+					link,
+					settingsLink: `${appUrl}/w/${ws.slug}/settings?sec=notif-email`,
+					baseUrl: SITE_URL,
+				}),
+			),
+		);
+	}
 }

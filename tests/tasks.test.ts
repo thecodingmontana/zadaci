@@ -308,3 +308,14 @@ test("undo a delete: the task and the subtasks deleted with it come back", async
 	assert.deepEqual(back.subtasks.map((t: { id: string }) => t.id), [keep.id], "the one deleted on its own stays deleted");
 	assert.equal(code(await gql(owner, RESTORE, { s: slug, ids: [parent.id] })), "BAD_USER_INPUT", "only deleted tasks can be restored");
 });
+
+test("notification emails follow each person's email settings", async () => {
+	const { emailKey } = await import("#/lib/email.server");
+	const row = (type: string, actor = "a") => ({ type, user_id: "u", actor_id: actor });
+	assert.equal(emailKey(row("mention"), null), "email_mention", "mentions email by default");
+	assert.equal(emailKey(row("comment"), null), null, "comments don't, unless turned on");
+	assert.equal(emailKey(row("comment"), { notif: { email_comment: true } }), "email_comment");
+	assert.equal(emailKey(row("assign"), { notif: { email_assign: false } }), null, "turned off");
+	assert.equal(emailKey(row("mention", "u"), null), null, "never for your own action");
+	assert.equal(emailKey(row("update"), null), null, "status updates send no email");
+});

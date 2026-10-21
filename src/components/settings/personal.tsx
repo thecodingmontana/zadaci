@@ -36,7 +36,7 @@ const NOTIF_SECTIONS: Record<
 		],
 	},
 	"notif-push": {
-		lead: "Notifications on desktop and mobile.",
+		lead: "Coming soon: push notifications on desktop and mobile aren't available yet. Your choices here are saved for when they are.",
 		rows: [
 			["push_mention", "Mentions"],
 			["push_assign", "Assignments"],
