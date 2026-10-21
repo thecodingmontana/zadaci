@@ -51,17 +51,18 @@ export async function sendPushes(messages: PushMessage[]) {
 						);
 						sent++;
 					} catch (error) {
-						const status = (error as { statusCode?: number }).statusCode;
+						const { statusCode, body } = error as {
+							statusCode?: number;
+							body?: string;
+						};
+						console.error(
+							`[push] ${new URL(s.endpoint).host} answered ${statusCode ?? (error as Error).message}: ${String(body ?? "").slice(0, 200)}`,
+						);
 						// 404/410: the person unsubscribed or reinstalled; the endpoint is gone for good
-						if (status === 404 || status === 410)
+						if (statusCode === 404 || statusCode === 410)
 							await db
 								.delete(tables.push_subscription)
 								.where(eq(tables.push_subscription.id, s.id));
-						else
-							console.error(
-								"[push] failed:",
-								status ?? (error as Error).message,
-							);
 					}
 				}),
 		),

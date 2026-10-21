@@ -50,13 +50,27 @@ export function PushDevice({ onChange }: { onChange: (on: boolean) => void }) {
 	const [busy, setBusy] = useState(false);
 	useEffect(() => onChange(state === "on"), [state, onChange]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: checks this device once, on open
 	useEffect(() => {
 		if (!supported()) return setState("unsupported");
 		if (Notification.permission === "denied") return setState("denied");
 		currentSubscription()
-			.then((sub) => setState(sub ? "on" : "off"))
+			.then(async (sub) => {
+				// re-save it, so the server knows this device even if it forgot it
+				if (sub) await save(sub);
+				setState(sub ? "on" : "off");
+			})
 			.catch(() => setState("off"));
 	}, []);
+
+	async function save(sub: PushSubscription) {
+		const { endpoint, keys } = sub.toJSON();
+		if (!endpoint || !keys?.p256dh || !keys.auth)
+			throw new Error("The browser returned an incomplete subscription.");
+		await subscribe({
+			variables: { endpoint, p256dh: keys.p256dh, auth: keys.auth },
+		});
+	}
 
 	async function turnOn() {
 		const { data } = await client.query({ query: PUSH_PUBLIC_KEY });
@@ -73,12 +87,7 @@ export function PushDevice({ onChange }: { onChange: (on: boolean) => void }) {
 			userVisibleOnly: true,
 			applicationServerKey: keyBytes(data.pushPublicKey),
 		});
-		const { endpoint, keys } = sub.toJSON();
-		if (!endpoint || !keys?.p256dh || !keys.auth)
-			throw new Error("The browser returned an incomplete subscription.");
-		await subscribe({
-			variables: { endpoint, p256dh: keys.p256dh, auth: keys.auth },
-		});
+		await save(sub);
 		setState("on");
 	}
 
