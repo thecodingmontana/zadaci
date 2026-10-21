@@ -4,7 +4,14 @@ import { db, driver, tables } from "#/db";
 import { yoga } from "#/graphql/yoga.server";
 import { auth } from "#/lib/auth";
 
-// Integration helpers: run GraphQL and better-auth in-process against the dev database.
+// Integration helpers: run GraphQL and better-auth in-process against a test database.
+
+// The tests create and delete users and workspaces: refuse to run them against a real database.
+const dbName = new URL(process.env.DATABASE_URL ?? "postgres://x/").pathname.slice(1);
+if (!/test/i.test(dbName))
+	throw new Error(
+		`Refusing to run tests against "${dbName || "no database"}": point DATABASE_URL at a test database (its name must contain "test").`,
+	);
 
 const created: string[] = [];
 const secret = process.env.BETTER_AUTH_SECRET ?? "";
