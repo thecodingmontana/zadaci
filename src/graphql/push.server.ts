@@ -31,7 +31,10 @@ const subscription = z.object({
 
 export const pushResolvers = {
 	Query: {
-		pushPublicKey: () => pushPublicKey(),
+		pushPublicKey: (_: unknown, __: unknown, ctx: GraphQLContext) => {
+			requireUser(ctx);
+			return pushPublicKey();
+		},
 	},
 	Mutation: {
 		subscribePush: async (_: unknown, args: unknown, ctx: GraphQLContext) => {
