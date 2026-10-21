@@ -310,7 +310,8 @@ test("undo a delete: the task and the subtasks deleted with it come back", async
 });
 
 test("notification emails follow each person's email settings", async () => {
-	const { emailKey } = await import("#/lib/email.server");
+	const { notifKey } = await import("#/lib/email.server");
+	const emailKey = (r: Parameters<typeof notifKey>[1], prefs: unknown) => notifKey("email", r, prefs);
 	const row = (type: string, actor = "a") => ({ type, user_id: "u", actor_id: actor });
 	assert.equal(emailKey(row("mention"), null), "email_mention", "mentions email by default");
 	assert.equal(emailKey(row("comment"), null), null, "comments don't, unless turned on");
@@ -318,4 +319,6 @@ test("notification emails follow each person's email settings", async () => {
 	assert.equal(emailKey(row("assign"), { notif: { email_assign: false } }), null, "turned off");
 	assert.equal(emailKey(row("mention", "u"), null), null, "never for your own action");
 	assert.equal(emailKey(row("update"), null), null, "status updates send no email");
+	assert.equal(notifKey("push", row("comment"), null), "push_comment", "comments push by default");
+	assert.equal(notifKey("push", row("mention"), { notif: { push_mention: false } }), null, "push turned off");
 });

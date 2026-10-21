@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db, tables } from "#/db";
-import { queueNotificationEmails } from "#/lib/email.server";
+import { queueNotifications } from "#/lib/email.server";
 import { ADMIN_ROLES, can } from "#/lib/permissions";
 import {
 	badInput,
@@ -37,8 +37,8 @@ export async function notify(
 ) {
 	if (!rows.length) return;
 	await q.insert(tables.notification).values(rows);
-	// emails go out at the end of the request, once its changes are saved
-	await queueNotificationEmails(rows);
+	// emails and pushes go out at the end of the request, once its changes are saved
+	await queueNotifications(rows);
 }
 
 /** User ids of the workspace's owner and admins, for "someone joined" style updates. */

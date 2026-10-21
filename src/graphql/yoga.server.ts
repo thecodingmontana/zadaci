@@ -12,6 +12,7 @@ import {
 	projectDetailsTypeDefs,
 } from "./project-details.server";
 import { projectsResolvers, projectsTypeDefs } from "./projects.server";
+import { pushResolvers, pushTypeDefs } from "./push.server";
 import { type GraphQLContext, resolvers, typeDefs } from "./schema.server";
 import { settingsResolvers, settingsTypeDefs } from "./settings.server";
 import { sharingResolvers, sharingTypeDefs } from "./sharing.server";
@@ -42,6 +43,7 @@ export const schema = createSchema<GraphQLContext>({
 		notesTypeDefs,
 		unsplashTypeDefs,
 		bookmarksTypeDefs,
+		pushTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -57,6 +59,7 @@ export const schema = createSchema<GraphQLContext>({
 		notesResolvers,
 		unsplashResolvers,
 		bookmarksResolvers,
+		pushResolvers,
 	],
 });
 

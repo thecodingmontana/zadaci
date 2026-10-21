@@ -15,6 +15,7 @@ import {
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { type SectionProps, usePrefs } from "./general";
+import { PushDevice } from "./push-device";
 import { SBlock, Select, SettingsHeader, SRow, Swatches, Toggle } from "./ui";
 
 type NotifKey = keyof SectionProps["me"]["preferences"]["notif"];
@@ -37,7 +38,7 @@ const NOTIF_SECTIONS: Record<
 		],
 	},
 	"notif-push": {
-		lead: "Coming soon: push notifications on desktop and mobile aren't available yet. Your choices here are saved for when they are.",
+		lead: "Notifications on your desktop or phone, even when Zadaci isn't open.",
 		rows: [
 			["push_mention", "Mentions"],
 			["push_assign", "Assignments"],
@@ -78,6 +79,7 @@ export function NotificationsSection({
 	return (
 		<>
 			<SettingsHeader title={title} lead={section.lead} />
+			{sec === "notif-push" && <PushDevice />}
 			{section.rows.map(([k, t, d]) => (
 				<SRow key={k} t={t} d={d}>
 					<Toggle

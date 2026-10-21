@@ -88,3 +88,21 @@ export const notification = pgTable(
 		),
 	],
 );
+
+// One row per browser or phone that turned on push notifications (Settings → Push).
+export const push_subscription = pgTable(
+	"push_subscription",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		user_id: varchar("user_id", { length: 16 })
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		endpoint: text("endpoint").notNull().unique(),
+		p256dh: text("p256dh").notNull(),
+		auth: text("auth").notNull(),
+		...timestamps,
+	},
+	(table) => [index("push_subscription_user_idx").on(table.user_id)],
+);

@@ -6,6 +6,7 @@ import DailyDigest from "#/emails/daily-digest";
 import { sendEmail } from "#/lib/email.server";
 import { PREF_DEFAULTS } from "#/lib/preferences";
 import { fromDay } from "#/lib/projects";
+import { sendPushes } from "#/lib/push.server";
 import { SITE_URL } from "#/lib/seo";
 
 // The morning job behind /api/cron/daily, run hourly by a GitHub Action: once a person's
@@ -70,7 +71,11 @@ export async function runDaily(now = new Date()) {
 			.returning({ day: tables.daily_sent.day });
 		if (!claimed.length) continue;
 		result.people++;
-		result.reminders += await remindDueTomorrow(person.id, clock.day);
+		result.reminders += await remindDueTomorrow(
+			person.id,
+			clock.day,
+			prefs?.notif?.push_due ?? PREF_DEFAULTS.notif.push_due,
+		);
 		const digestOn =
 			prefs?.notif?.email_digest ?? PREF_DEFAULTS.notif.email_digest;
 		if (digestOn && !clock.weekend) {
@@ -83,7 +88,7 @@ export async function runDaily(now = new Date()) {
 }
 
 /** Adds an inbox reminder for each open task assigned to this person that's due tomorrow. */
-async function remindDueTomorrow(userId: string, today: string) {
+async function remindDueTomorrow(userId: string, today: string, push: boolean) {
 	// due dates are stored as UTC midnight of the chosen day
 	const tomorrow = fromDay(today).getTime() + DAY_MS;
 	const due = await db
@@ -91,6 +96,8 @@ async function remindDueTomorrow(userId: string, today: string) {
 			task_id: tables.task.id,
 			project_id: tables.task.project_id,
 			workspace_id: tables.workspace_members.workspace_id,
+			name: tables.task.name,
+			slug: tables.workspace.slug,
 		})
 		.from(tables.task_assignees)
 		.innerJoin(
@@ -99,6 +106,10 @@ async function remindDueTomorrow(userId: string, today: string) {
 		)
 		.innerJoin(tables.task, eq(tables.task.id, tables.task_assignees.task_id))
 		.innerJoin(tables.project, eq(tables.project.id, tables.task.project_id))
+		.innerJoin(
+			tables.workspace,
+			eq(tables.workspace.id, tables.workspace_members.workspace_id),
+		)
 		.where(
 			and(
 				eq(tables.workspace_members.user_id, userId),
@@ -118,9 +129,23 @@ async function remindDueTomorrow(userId: string, today: string) {
 			user_id: userId,
 			type: "update",
 			text: "is due tomorrow",
-			...t,
+			task_id: t.task_id,
+			project_id: t.project_id,
+			workspace_id: t.workspace_id,
 		})),
 	);
+	if (push) {
+		const appUrl = (process.env.BETTER_AUTH_URL ?? SITE_URL).replace(/\/$/, "");
+		await sendPushes(
+			due.map((t) => ({
+				userId,
+				title: "Due tomorrow",
+				body: t.name,
+				url: `${appUrl}/w/${t.slug}/p/${t.project_id}?task=${t.task_id}`,
+				tag: t.task_id,
+			})),
+		);
+	}
 	return due.length;
 }
 

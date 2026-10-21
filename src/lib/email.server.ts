@@ -6,6 +6,7 @@ import { db, tables } from "#/db";
 import NotificationEmail from "#/emails/notification";
 import WorkspaceInvite from "#/emails/workspace-invite";
 import { PREF_DEFAULTS } from "#/lib/preferences";
+import { type PushMessage, sendPushes } from "#/lib/push.server";
 import { SITE_URL } from "#/lib/seo";
 
 const FROM = "Team Zadaci <noreply@thegoodslab.tech>";
@@ -75,24 +76,34 @@ export function sendInviteEmails(
 	);
 }
 
-// ---- notification emails (mentions, assignments, comments) ----
+// ---- notification emails and pushes (mentions, assignments, comments) ----
 
-/** The email setting each notification type answers to; other types send no email. */
-const EMAIL_KEY: Record<
+/** The setting each notification type answers to, per channel; other types send nothing. */
+const CHANNEL_KEY = {
+	email: {
+		mention: "email_mention",
+		assign: "email_assign",
+		comment: "email_comment",
+	},
+	push: {
+		mention: "push_mention",
+		assign: "push_assign",
+		comment: "push_comment",
+	},
+} as const satisfies Record<
 	string,
-	"email_mention" | "email_assign" | "email_comment"
-> = {
-	mention: "email_mention",
-	assign: "email_assign",
-	comment: "email_comment",
-};
+	Record<string, keyof typeof PREF_DEFAULTS.notif>
+>;
 
-/** Which setting decides this email, or null when it shouldn't be sent at all. */
-export function emailKey(
+/** Which setting decides this email or push, or null when it shouldn't be sent at all. */
+export function notifKey(
+	channel: keyof typeof CHANNEL_KEY,
 	row: { type: string; user_id: string; actor_id?: string | null },
 	prefs: unknown,
 ) {
-	const key = EMAIL_KEY[row.type];
+	const key = (
+		CHANNEL_KEY[channel] as Record<string, keyof typeof PREF_DEFAULTS.notif>
+	)[row.type];
 	if (!key || row.actor_id === row.user_id) return null;
 	const chosen = (prefs as { notif?: Record<string, boolean> } | null)?.notif?.[
 		key
@@ -100,10 +111,10 @@ export function emailKey(
 	return (chosen ?? PREF_DEFAULTS.notif[key]) ? key : null;
 }
 
-// emails wait here until the request's work is saved, then go out together (drainEmails)
+// emails and pushes wait here until the request's work is saved, then go out together (drainEmails)
 const pending: Promise<unknown>[] = [];
 
-/** Sends the queued emails; called at the end of each API request, capped so mail can't hang it. */
+/** Sends the queued emails and pushes; called at the end of each API request, capped so they can't hang it. */
 export async function drainEmails(limitMs = 3000) {
 	if (!pending.length) return;
 	const batch = pending.splice(0);
@@ -124,10 +135,10 @@ type NotificationRow = {
 	task_id?: string | null;
 };
 
-/** Queues an email for each notification its recipient asked to get by email. */
-export async function queueNotificationEmails(rows: NotificationRow[]) {
+/** Queues an email and a push for each notification, as far as its recipient asked for them. */
+export async function queueNotifications(rows: NotificationRow[]) {
 	const wanted = rows.filter(
-		(r) => EMAIL_KEY[r.type] && r.actor_id !== r.user_id,
+		(r) => r.type in CHANNEL_KEY.email && r.actor_id !== r.user_id,
 	);
 	if (!wanted.length) return;
 	const ids = (list: (string | null | undefined)[]) => [
@@ -169,10 +180,11 @@ export async function queueNotificationEmails(rows: NotificationRow[]) {
 	const space = new Map(workspaces.map((w) => [w.id, w]));
 	const taskName = new Map(tasks.map((t) => [t.id, t.name]));
 	const appUrl = (process.env.BETTER_AUTH_URL ?? SITE_URL).replace(/\/$/, "");
+	const pushes: PushMessage[] = [];
 	for (const row of wanted) {
 		const to = person.get(row.user_id);
 		const ws = space.get(row.workspace_id);
-		if (!to || !ws || !emailKey(row, to.prefs)) continue;
+		if (!to || !ws) continue;
 		const actor = row.actor_id ? person.get(row.actor_id)?.name : null;
 		const about = row.task_id ? taskName.get(row.task_id) : null;
 		const headline = `${actor ?? "Someone"} ${row.text}${about ? ` “${about}”` : ""}`;
@@ -180,19 +192,29 @@ export async function queueNotificationEmails(rows: NotificationRow[]) {
 			row.task_id && row.project_id
 				? `${appUrl}/w/${ws.slug}/p/${row.project_id}?task=${row.task_id}`
 				: `${appUrl}/w/${ws.slug}/notifications`;
-		pending.push(
-			sendEmail(
-				to.email,
-				headline,
-				createElement(NotificationEmail, {
+		if (notifKey("push", row, to.prefs))
+			pushes.push({
+				userId: to.id,
+				title: headline,
+				body: row.snippet ?? ws.name,
+				url: link,
+				tag: row.task_id ?? undefined,
+			});
+		if (notifKey("email", row, to.prefs))
+			pending.push(
+				sendEmail(
+					to.email,
 					headline,
-					snippet: row.snippet,
-					workspace: ws.name,
-					link,
-					settingsLink: `${appUrl}/w/${ws.slug}/settings?sec=notif-email`,
-					baseUrl: SITE_URL,
-				}),
-			),
-		);
+					createElement(NotificationEmail, {
+						headline,
+						snippet: row.snippet,
+						workspace: ws.name,
+						link,
+						settingsLink: `${appUrl}/w/${ws.slug}/settings?sec=notif-email`,
+						baseUrl: SITE_URL,
+					}),
+				),
+			);
 	}
+	if (pushes.length) pending.push(sendPushes(pushes));
 }

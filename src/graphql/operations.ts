@@ -327,6 +327,42 @@ export const SETTINGS: TypedDocumentNode<SettingsData, { slug: string }> = gql`
 	}
 `;
 
+export const PUSH_PUBLIC_KEY: TypedDocumentNode<
+	{ pushPublicKey: string | null },
+	Record<string, never>
+> = gql`
+	query PushPublicKey {
+		pushPublicKey
+	}
+`;
+
+export const SUBSCRIBE_PUSH: TypedDocumentNode<
+	{ subscribePush: boolean },
+	{ endpoint: string; p256dh: string; auth: string }
+> = gql`
+	mutation SubscribePush($endpoint: String!, $p256dh: String!, $auth: String!) {
+		subscribePush(endpoint: $endpoint, p256dh: $p256dh, auth: $auth)
+	}
+`;
+
+export const UNSUBSCRIBE_PUSH: TypedDocumentNode<
+	{ unsubscribePush: boolean },
+	{ endpoint: string }
+> = gql`
+	mutation UnsubscribePush($endpoint: String!) {
+		unsubscribePush(endpoint: $endpoint)
+	}
+`;
+
+export const TEST_PUSH: TypedDocumentNode<
+	{ testPush: number },
+	Record<string, never>
+> = gql`
+	mutation TestPush {
+		testPush
+	}
+`;
+
 export const UPDATE_PREFERENCES: TypedDocumentNode<
 	{ updatePreferences: unknown },
 	{ patch: unknown }

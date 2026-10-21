@@ -29,6 +29,10 @@ const ACCOUNT_LEVEL = new Set([
 	"unsplashEnabled",
 	"unsplashPicked",
 	"updatePreferences",
+	"pushPublicKey",
+	"subscribePush",
+	"unsubscribePush",
+	"testPush",
 ]);
 
 function value(type: GraphQLInputType, slug: string, name: string): unknown {
