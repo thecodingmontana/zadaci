@@ -1,6 +1,12 @@
 // Shows Zadaci's push notifications and opens their link when tapped (see src/lib/push.server.ts).
 self.addEventListener("push", (event) => {
-	const data = event.data ? event.data.json() : {};
+	// DevTools' "Push" button sends plain text, so fall back to it instead of failing silently
+	let data = {};
+	try {
+		data = event.data ? event.data.json() : {};
+	} catch {
+		data = { body: event.data ? event.data.text() : "" };
+	}
 	event.waitUntil(
 		self.registration.showNotification(data.title || "Zadaci", {
 			body: data.body,

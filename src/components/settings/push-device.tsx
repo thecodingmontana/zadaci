@@ -81,7 +81,9 @@ export function PushDevice({ onChange }: { onChange: (on: boolean) => void }) {
 			if (permission === "denied") setState("denied");
 			throw new Error("Notifications weren't allowed.");
 		}
-		const reg = await navigator.serviceWorker.register("/sw.js");
+		const reg = await navigator.serviceWorker.register("/sw.js", {
+			updateViaCache: "none",
+		});
 		await navigator.serviceWorker.ready;
 		const sub = await reg.pushManager.subscribe({
 			userVisibleOnly: true,
