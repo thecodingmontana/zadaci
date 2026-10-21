@@ -3282,6 +3282,17 @@ fieldset.field {
   background: var(--q-sunken);
   border: 1px solid var(--q-divider);
 }
+/* phones: one column per screen, swiped into place */
+@media (max-width: 640px) {
+  .board {
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--q-gutter);
+  }
+  .bcol {
+    width: calc(100vw - 2 * var(--q-gutter) - 24px);
+    scroll-snap-align: start;
+  }
+}
 .bcol.collapsed {
   width: 44px;
   align-items: center;
@@ -3489,6 +3500,8 @@ fieldset.field {
   border-bottom: 1px solid var(--q-border);
   flex-wrap: wrap;
   min-height: 44px;
+  /* in a full-height page, wrapped rows must push content down, not spill over it */
+  flex-shrink: 0;
 }
 .toolbar .btn-ghost {
   height: var(--q-h-sm);
