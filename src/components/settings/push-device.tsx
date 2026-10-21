@@ -125,7 +125,9 @@ export function PushDevice({ onChange }: { onChange: (on: boolean) => void }) {
 						test()
 							.then(({ data }) =>
 								data?.testPush
-									? toast.success("Test notification sent")
+									? toast.success("Test notification sent", {
+											desc: "Not seeing it? Check that your computer's notification settings allow your browser, and that Do not disturb is off.",
+										})
 									: toast.error("No device got it", {
 											desc: "Turn push off and on again here.",
 										}),
