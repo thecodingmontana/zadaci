@@ -4,7 +4,7 @@ import { TEMPLATES } from "./onboarding";
 
 /** Project health: label and colour (reference PSTAT). */
 export const PSTAT = {
-	planning: { name: "Planning", c: "var(--q-gray)" },
+	planning: { name: "Planning", c: "var(--q-violet)" },
 	active: { name: "In Progress", c: "var(--q-blue)" },
 	risk: { name: "At Risk", c: "var(--q-red)" },
 	hold: { name: "On Hold", c: "var(--q-amber)" },
