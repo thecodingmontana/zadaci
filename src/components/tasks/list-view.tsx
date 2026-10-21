@@ -47,7 +47,7 @@ import {
 	CellProject,
 	CellStatus,
 } from "./cells";
-import { TASK_REFETCH, useTaskView } from "./context";
+import { TASK_REFETCH, useTaskView, useUndoDelete } from "./context";
 import { AssigneePick, PriorityPick, StatusPick } from "./pick";
 import { TaskMenu } from "./task-menu";
 
@@ -719,6 +719,7 @@ function BulkBar({
 		refetchQueries: TASK_REFETCH,
 	});
 	const [remove] = useMutation(DELETE_TASKS, { refetchQueries: TASK_REFETCH });
+	const undo = useUndoDelete(slug);
 	if (!ids.length) return null;
 	const apply = (patch: Record<string, string | null>) =>
 		toast
@@ -796,12 +797,22 @@ function BulkBar({
 				danger
 				onConfirm={async () => {
 					const label = `${ids.length} task${ids.length > 1 ? "s" : ""}`;
-					await toast.promise(remove({ variables: { slug, ids } }), {
-						loading: `Deleting ${label}…`,
-						success: `Deleted ${label}`,
-						error: "Couldn't delete those tasks",
-					});
-					onClear();
+					const id = toast.pending(`Deleting ${label}…`);
+					try {
+						await remove({ variables: { slug, ids } });
+						toast.update(id, {
+							title: `Deleted ${label}`,
+							type: "success",
+							action: undo(ids),
+						});
+						onClear();
+					} catch (error) {
+						toast.update(id, {
+							title: "Couldn't delete those tasks",
+							desc: (error as Error).message,
+							type: "error",
+						});
+					}
 				}}
 			/>
 		</div>

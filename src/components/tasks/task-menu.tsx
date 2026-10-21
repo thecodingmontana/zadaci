@@ -24,7 +24,12 @@ import {
 import { PRIORITIES, TASK_STATUSES } from "#/lib/tasks";
 import { copy, toast } from "#/lib/toast";
 import { PrIcon } from "./bits";
-import { dropTaskFromLists, TASK_REFETCH, useTaskView } from "./context";
+import {
+	dropTaskFromLists,
+	TASK_REFETCH,
+	useTaskView,
+	useUndoDelete,
+} from "./context";
 
 // The task "…" menu (reference context menu for tasks).
 
@@ -57,6 +62,7 @@ export function TaskMenu({
 		update: (cache) => dropTaskFromLists(cache, slug, t.id),
 		refetchQueries: ["ProjectPage", "Projects", "NotificationCounts"],
 	});
+	const undo = useUndoDelete(slug);
 	const editable = canEdit(t.projectId);
 	const done = t.status === "completed";
 	return (
@@ -310,11 +316,21 @@ export function TaskMenu({
 				ok="Delete task"
 				danger
 				onConfirm={async () => {
-					await toast.promise(remove({ variables: { slug, ids: [t.id] } }), {
-						loading: `Deleting “${t.name}”…`,
-						success: "Task deleted",
-						error: "Couldn't delete the task",
-					});
+					const id = toast.pending(`Deleting “${t.name}”…`);
+					try {
+						await remove({ variables: { slug, ids: [t.id] } });
+						toast.update(id, {
+							title: "Task deleted",
+							type: "success",
+							action: undo([t.id]),
+						});
+					} catch (error) {
+						toast.update(id, {
+							title: "Couldn't delete the task",
+							desc: (error as Error).message,
+							type: "error",
+						});
+					}
 				}}
 			/>
 		</>

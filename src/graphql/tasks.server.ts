@@ -10,6 +10,7 @@ import {
 	max,
 	ne,
 	notInArray,
+	or,
 	type SQL,
 	sql,
 } from "drizzle-orm";
@@ -122,6 +123,8 @@ export const tasksTypeDefs = /* GraphQL */ `
 		updateTask(slug: String!, id: ID!, patch: TaskPatch!): Task!
 		bulkUpdateTasks(slug: String!, ids: [ID!]!, patch: TaskPatch!): Int!
 		deleteTasks(slug: String!, ids: [ID!]!): Int!
+		"brings deleted tasks back (and the subtasks deleted with them), for Undo"
+		restoreTasks(slug: String!, ids: [ID!]!): Int!
 		archiveTask(slug: String!, id: ID!, archived: Boolean!): Task!
 		duplicateTask(slug: String!, id: ID!): Task!
 		setDependencies(slug: String!, id: ID!, dependsOn: [ID!]!): Task!
@@ -1236,6 +1239,48 @@ export const tasksResolvers = {
 							]),
 						),
 					);
+			});
+			return ids.length;
+		},
+
+		restoreTasks: async (
+			_: unknown,
+			args: { slug: string; ids: string[] },
+			ctx: GraphQLContext,
+		) => {
+			if (args.ids.length > 500) badInput("Restore up to 500 tasks at a time");
+			const ids = [...new Set(args.ids)];
+			await requireWorkspace(ctx, args.slug);
+			if (!ids.length) return 0;
+			const rows = await db
+				.select({
+					id: tables.task.id,
+					projectId: tables.task.project_id,
+					deletedAt: tables.task.deleted_at,
+				})
+				.from(tables.task)
+				.where(
+					and(inArray(tables.task.id, ids), isNotNull(tables.task.deleted_at)),
+				);
+			if (rows.length !== ids.length) badInput("Task not found");
+			// the same right deleting took, in each task's project (which must be in this workspace)
+			for (const projectId of new Set(rows.map((r) => r.projectId)))
+				await requireProject(ctx, args.slug, projectId, { right: "edit" });
+			await db.transaction(async (tx) => {
+				for (const r of rows)
+					await tx
+						.update(tables.task)
+						.set({ deleted_at: null })
+						.where(
+							or(
+								eq(tables.task.id, r.id),
+								// its subtasks that went with it, not ones deleted earlier on their own
+								and(
+									eq(tables.task.parent_task_id, r.id),
+									eq(tables.task.deleted_at, r.deletedAt as Date),
+								),
+							),
+						);
 			});
 			return ids.length;
 		},

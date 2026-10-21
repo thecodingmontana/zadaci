@@ -1360,6 +1360,15 @@ export const BULK_UPDATE_TASKS: TypedDocumentNode<
 	}
 `;
 
+export const RESTORE_TASKS: TypedDocumentNode<
+	{ restoreTasks: number },
+	{ slug: string; ids: string[] }
+> = gql`
+	mutation RestoreTasks($slug: String!, $ids: [ID!]!) {
+		restoreTasks(slug: $slug, ids: $ids)
+	}
+`;
+
 export const DELETE_TASKS: TypedDocumentNode<
 	{ deleteTasks: number },
 	{ slug: string; ids: string[] }

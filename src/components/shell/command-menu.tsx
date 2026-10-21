@@ -16,6 +16,7 @@ import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";
 import { StatusIcon } from "#/components/q/status-icon";
 import { WsLogo } from "#/components/q/ws-logo";
+import { undoLastTaskEdit } from "#/components/tasks/context";
 import { ZadaciLogo } from "#/components/zadaci-logo";
 import {
 	SEARCH,
@@ -124,6 +125,7 @@ export const SHORTCUTS: [string, [string, string[]][]][] = [
 			["Toggle sidebar", ["["]],
 			["Toggle dark mode", ["mod", "Shift", "L"]],
 			["Close panel or dialog", ["Esc"]],
+			["Undo the last task change", ["mod", "Z"]],
 		],
 	],
 	[
@@ -203,6 +205,17 @@ export function CommandMenuProvider({
 			if (modKey && e.shiftKey && e.key.toLowerCase() === "l") {
 				e.preventDefault();
 				toggleDark();
+				return;
+			}
+			// Ctrl/⌘+Z outside a text field undoes the last task change (fields keep their own undo)
+			if (
+				modKey &&
+				!e.shiftKey &&
+				e.key.toLowerCase() === "z" &&
+				!isTyping(e.target) &&
+				!document.querySelector('[role="dialog"]')
+			) {
+				if (undoLastTaskEdit()) e.preventDefault();
 				return;
 			}
 			if (

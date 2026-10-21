@@ -289,3 +289,22 @@ test("renaming a task reads old name → new name in the activity", async () => 
 	const renamed = feed.find((a: { verb: string }) => a.verb === "renamed");
 	assert.deepEqual(renamed, { verb: "renamed", target: "Old name", extra: "to “New name”" });
 });
+
+test("undo a delete: the task and the subtasks deleted with it come back", async () => {
+	const { owner, member, slug, create } = await setup();
+	const parent = (await create(owner, { title: "Launch" })).data?.createTask;
+	const keep = (await create(owner, { title: "Keep me", parentId: parent.id })).data?.createTask;
+	const gone = (await create(owner, { title: "Gone already", parentId: parent.id })).data?.createTask;
+	const DELETE = `mutation($s: String!, $ids: [ID!]!) { deleteTasks(slug: $s, ids: $ids) }`;
+	const RESTORE = `mutation($s: String!, $ids: [ID!]!) { restoreTasks(slug: $s, ids: $ids) }`;
+	await gql(owner, DELETE, { s: slug, ids: [gone.id] });
+	await gql(owner, DELETE, { s: slug, ids: [parent.id] });
+
+	const outsider = await makeUser("outsider");
+	assert.equal(code(await gql(outsider, RESTORE, { s: slug, ids: [parent.id] })), "NOT_FOUND");
+	assert.equal(code(await gql(member, RESTORE, { s: slug, ids: [parent.id] })), "FORBIDDEN", "members only comment here");
+	assert.equal((await gql(owner, RESTORE, { s: slug, ids: [parent.id] })).data?.restoreTasks, 1);
+	const back = (await gql(owner, `query($s: String!, $id: ID!) { workspace(slug: $s) { task(id: $id) { subtasks { id } } } }`, { s: slug, id: parent.id })).data?.workspace.task;
+	assert.deepEqual(back.subtasks.map((t: { id: string }) => t.id), [keep.id], "the one deleted on its own stays deleted");
+	assert.equal(code(await gql(owner, RESTORE, { s: slug, ids: [parent.id] })), "BAD_USER_INPUT", "only deleted tasks can be restored");
+});

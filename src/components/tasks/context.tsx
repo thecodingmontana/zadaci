@@ -17,6 +17,7 @@ import { ConfirmModal } from "#/components/q/confirm";
 import {
 	CREATE_TASK,
 	type ProjectSummary,
+	RESTORE_TASKS,
 	type SettingsMember,
 	TASK_FIELDS,
 	type TaskItem,
@@ -109,6 +110,18 @@ export function useTaskView() {
 	return ctx;
 }
 
+// the last task edit made in this tab, so Ctrl/⌘+Z can put it back
+let lastEdit: (() => Promise<void>) | null = null;
+
+/** Undoes the last task edit; false when there's nothing to undo. */
+export function undoLastTaskEdit() {
+	const run = lastEdit;
+	if (!run) return false;
+	lastEdit = null;
+	void run();
+	return true;
+}
+
 export function TaskViewProvider({
 	slug,
 	members,
@@ -135,6 +148,73 @@ export function TaskViewProvider({
 	const value = useMemo<Ctx>(() => {
 		const byProject = new Map(projects.map((p) => [p.id, p]));
 		const byMember = new Map(members.map((m) => [m.id, m]));
+		const apply = async (
+			task: TaskItem,
+			patch: TaskPatch,
+			record = true,
+		): Promise<void> => {
+			const open = task.subtaskCount - task.subtaskDone;
+			if (
+				patch.status === "completed" &&
+				task.status !== "completed" &&
+				open > 0 &&
+				!(await new Promise<boolean>((answer) => setAsking({ open, answer })))
+			)
+				return;
+			const { title, ...rest } = patch;
+			try {
+				await updateTask({
+					variables: { slug, id: task.id, patch },
+					optimisticResponse: {
+						updateTask: {
+							...task,
+							...rest,
+							...(title !== undefined && { name: title }),
+							__typename: "Task",
+						} as TaskItem,
+					},
+					// ticking a subtask off moves its parent's "2/5" at once
+					update: (cache) => {
+						const was = task.status === "completed";
+						const now = (patch.status ?? task.status) === "completed";
+						if (!task.parentId || was === now) return;
+						cache.modify({
+							id: cache.identify({ __typename: "Task", id: task.parentId }),
+							fields: { subtaskDone: (n: number) => n + (now ? 1 : -1) },
+						});
+					},
+					// moving between projects or completing a repeating task changes lists
+					refetchQueries:
+						patch.projectId || patch.status === "completed"
+							? TASK_REFETCH
+							: ["ProjectPage", "Projects", "TaskDetail"],
+				});
+				if (record) {
+					// what this edit replaced, for Ctrl/⌘+Z
+					const before = Object.fromEntries(
+						Object.keys(patch).map((k) => [
+							k,
+							k === "title"
+								? task.name
+								: ((task as Record<string, unknown>)[k] ?? null),
+						]),
+					) as TaskPatch;
+					const after = {
+						...task,
+						...rest,
+						...(title !== undefined && { name: title }),
+					} as TaskItem;
+					lastEdit = () => {
+						toast.success(`Undid the change to “${after.name}”`);
+						return apply(after, before, false);
+					};
+				}
+			} catch (error) {
+				toast.error("Couldn't update the task", {
+					desc: (error as Error).message,
+				});
+			}
+		};
 		return {
 			slug,
 			members,
@@ -144,49 +224,7 @@ export function TaskViewProvider({
 				hasRight(byProject.get(projectId)?.myAccess ?? null, "edit"),
 			member: (id) => (id ? byMember.get(id) : undefined),
 			project: (id) => byProject.get(id),
-			update: async (task, patch) => {
-				const open = task.subtaskCount - task.subtaskDone;
-				if (
-					patch.status === "completed" &&
-					task.status !== "completed" &&
-					open > 0 &&
-					!(await new Promise<boolean>((answer) => setAsking({ open, answer })))
-				)
-					return;
-				const { title, ...rest } = patch;
-				try {
-					await updateTask({
-						variables: { slug, id: task.id, patch },
-						optimisticResponse: {
-							updateTask: {
-								...task,
-								...rest,
-								...(title !== undefined && { name: title }),
-								__typename: "Task",
-							} as TaskItem,
-						},
-						// ticking a subtask off moves its parent's "2/5" at once
-						update: (cache) => {
-							const was = task.status === "completed";
-							const now = (patch.status ?? task.status) === "completed";
-							if (!task.parentId || was === now) return;
-							cache.modify({
-								id: cache.identify({ __typename: "Task", id: task.parentId }),
-								fields: { subtaskDone: (n: number) => n + (now ? 1 : -1) },
-							});
-						},
-						// moving between projects or completing a repeating task changes lists
-						refetchQueries:
-							patch.projectId || patch.status === "completed"
-								? TASK_REFETCH
-								: ["ProjectPage", "Projects", "TaskDetail"],
-					});
-				} catch (error) {
-					toast.error("Couldn't update the task", {
-						desc: (error as Error).message,
-					});
-				}
-			},
+			update: (task, patch) => apply(task, patch),
 			create: async (patch, opts) => {
 				const meId = members.find((m) => m.isMe)?.id;
 				const input =
@@ -348,4 +386,22 @@ export function TaskViewProvider({
 			/>
 		</TaskContext.Provider>
 	);
+}
+
+/** An "Undo" for a delete: brings the tasks back and refreshes the lists they belong in. */
+export function useUndoDelete(slug: string) {
+	const [restore] = useMutation(RESTORE_TASKS, {
+		refetchQueries: [...TASK_REFETCH, "Archive"],
+	});
+	return (ids: string[]) => ({
+		label: "Undo",
+		onClick: () =>
+			void toast
+				.promise(restore({ variables: { slug, ids } }), {
+					loading: "Restoring…",
+					success: `${count(ids.length, "task")} restored`,
+					error: "Couldn't restore them",
+				})
+				.catch(() => {}),
+	});
 }
