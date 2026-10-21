@@ -9,10 +9,9 @@ import { fromDay } from "#/lib/projects";
 import { SITE_URL } from "#/lib/seo";
 
 // The morning job behind /api/cron/daily, run hourly by a GitHub Action: once a person's
-// local clock passes 8:00 it adds "due tomorrow" reminders to their inbox and, on weekdays,
-// emails a digest of what's unread.
+// local clock passes their digest hour (8:00 by default) it adds "due tomorrow" reminders
+// to their inbox and, on weekdays, emails a digest of what's unread.
 
-const MORNING = 8;
 const DAY_MS = 86_400_000;
 
 /** A person's local date, hour and weekday; an unknown or empty time zone counts as UTC. */
@@ -56,10 +55,13 @@ export async function runDaily(now = new Date()) {
 	for (const person of people) {
 		const prefs = person.prefs as {
 			tz?: string;
+			autoTz?: string;
+			digestHour?: string;
 			notif?: Record<string, boolean>;
 		} | null;
-		const clock = localClock(prefs?.tz ?? "", now);
-		if (clock.hour < MORNING) continue;
+		const hour = Number(prefs?.digestHour ?? PREF_DEFAULTS.digestHour);
+		const clock = localClock(prefs?.tz || prefs?.autoTz || "", now);
+		if (clock.hour < hour) continue;
 		// claiming the day first means a second, overlapping run skips this person
 		const claimed = await db
 			.insert(tables.daily_sent)
@@ -74,7 +76,7 @@ export async function runDaily(now = new Date()) {
 		if (digestOn && !clock.weekend) {
 			// Monday's digest also covers the weekend
 			const since = new Date(now.getTime() - (clock.monday ? 3 : 1) * DAY_MS);
-			if (await sendDigest(person, since)) result.digests++;
+			if (await sendDigest(person, since, hour)) result.digests++;
 		}
 	}
 	return result;
@@ -123,7 +125,7 @@ async function remindDueTomorrow(userId: string, today: string) {
 }
 
 /** Emails one summary of this person's unread notifications; false when there was nothing. */
-async function sendDigest(person: Person, since: Date) {
+async function sendDigest(person: Person, since: Date, hour: number) {
 	const actor = alias(tables.user, "actor");
 	const rows = await db
 		.select({
@@ -171,6 +173,7 @@ async function sendDigest(person: Person, since: Date) {
 		`Your Zadaci summary: ${items.length} ${items.length === 1 ? "update" : "updates"}`,
 		createElement(DailyDigest, {
 			items,
+			hour,
 			settingsLink: `${appUrl}/w/${rows[0].slug}/settings?sec=notif-email`,
 			baseUrl: SITE_URL,
 		}),

@@ -1,10 +1,11 @@
-import { useQuery, useSuspenseQuery } from "@apollo/client/react";
+import { useMutation, useQuery, useSuspenseQuery } from "@apollo/client/react";
 import {
 	createFileRoute,
 	notFound,
 	Outlet,
 	useRouter,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { z } from "zod";
 import { AppSidebar, SidebarSkeleton } from "#/components/shell/app-sidebar";
 import { CommandMenuProvider } from "#/components/shell/command-menu";
@@ -13,7 +14,11 @@ import { BottomNav, Topbar } from "#/components/shell/topbar";
 import { TaskDrawer } from "#/components/tasks/drawer";
 import { NewTaskProvider } from "#/components/tasks/new-task";
 import { DataTips, TooltipProvider } from "#/components/ui/tooltip";
-import { NOTIFICATION_COUNTS, SHELL } from "#/graphql/operations";
+import {
+	NOTIFICATION_COUNTS,
+	SHELL,
+	UPDATE_PREFERENCES,
+} from "#/graphql/operations";
 import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
 import { getSidebarOpen } from "#/lib/session";
@@ -166,6 +171,28 @@ function ShellLayout() {
 				</CommandMenuProvider>
 			</NewTaskProvider>
 			<DataTips />
+			<SyncTimeZone />
 		</TooltipProvider>
 	);
+}
+
+/** Saves this browser's time zone once per change, so emails on "Automatic" arrive on local time. */
+function SyncTimeZone() {
+	const [save] = useMutation(UPDATE_PREFERENCES);
+	useEffect(() => {
+		const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		let saved: string | null = null;
+		try {
+			saved = localStorage.getItem("zadaci-tz");
+		} catch {}
+		if (!zone || saved === zone) return;
+		save({ variables: { patch: { autoTz: zone } } })
+			.then(() => {
+				try {
+					localStorage.setItem("zadaci-tz", zone);
+				} catch {}
+			})
+			.catch(() => {});
+	}, [save]);
+	return null;
 }

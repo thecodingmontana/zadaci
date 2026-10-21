@@ -17,12 +17,15 @@ import {
 
 export type DailyDigestProps = {
 	items: { text: string; workspace: string; link: string }[];
+	/** the person's digest hour, 0-23 */
+	hour: number;
 	settingsLink: string;
 	baseUrl: string;
 };
 
 export default function DailyDigest({
 	items,
+	hour,
 	settingsLink,
 	baseUrl,
 }: DailyDigestProps) {
@@ -70,8 +73,8 @@ export default function DailyDigest({
 						</Section>
 						<Hr className="my-6 border-[#e7e5e4]" />
 						<Text className="m-0 text-[13px] leading-5 text-[#a8a29e]">
-							You get this email every weekday at 8:00 because the daily digest
-							is on.{" "}
+							You get this email every weekday at {hour}:00 because the daily
+							digest is on.{" "}
 							<Link href={settingsLink} className="text-brand">
 								Turn it off
 							</Link>
@@ -96,6 +99,7 @@ DailyDigest.PreviewProps = {
 			link: "https://zadaci.vercel.app/w/acme/p/abc?task=uvw",
 		},
 	],
+	hour: 8,
 	settingsLink: "https://zadaci.vercel.app/w/acme/settings?sec=notif-email",
 	baseUrl: "https://zadaci.vercel.app",
 } satisfies DailyDigestProps;

@@ -23,9 +23,9 @@ test("the cron endpoint only answers to the secret", () => {
 	assert.equal(authorized("Bearer ", ""), false, "no secret configured locks the endpoint");
 });
 
-test("tasks due tomorrow get one inbox reminder per morning, never twice", async () => {
+test("tasks due tomorrow get one reminder at the chosen hour in the browser's zone, never twice", async () => {
 	const owner = await makeUser("owner");
-	await db.update(tables.user).set({ preferences: { tz: "Africa/Nairobi" } }).where(eq(tables.user.id, owner.id));
+	await db.update(tables.user).set({ preferences: { autoTz: "Africa/Nairobi", digestHour: "9" } }).where(eq(tables.user.id, owner.id));
 	const { slug } = await makeWorkspace(owner);
 	const ws = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } projects { id } } }`, { s: slug })).data
 		?.workspace;
@@ -43,12 +43,20 @@ test("tasks due tomorrow get one inbox reminder per morning, never twice", async
 			.from(tables.notification)
 			.where(and(eq(tables.notification.user_id, owner.id), eq(tables.notification.text, "is due tomorrow")));
 
-	await runDaily(new Date("2026-10-21T04:30:00Z")); // 7:30 in Nairobi: too early
+	await runDaily(new Date("2026-10-21T05:30:00Z")); // 8:30 in Nairobi: before their 9:00
 	assert.equal((await reminders()).length, 0);
 
-	await runDaily(new Date("2026-10-21T05:30:00Z")); // 8:30
+	await runDaily(new Date("2026-10-21T06:30:00Z")); // 9:30
 	assert.deepEqual(await reminders(), [{ task: dueTomorrow }]);
 
-	await runDaily(new Date("2026-10-21T06:30:00Z")); // the next hourly run
+	await runDaily(new Date("2026-10-21T07:30:00Z")); // the next hourly run
 	assert.equal((await reminders()).length, 1, "a later run the same day sends nothing again");
+});
+
+test("the saved browser zone must be a real time zone", async () => {
+	const user = await makeUser("tz");
+	const save = (patch: object) => gql(user, `mutation($p: JSON!) { updatePreferences(patch: $p) }`, { p: patch });
+	assert.equal((await save({ autoTz: "Europe/Berlin", digestHour: "7" })).data?.updatePreferences.digestHour, "7");
+	assert.ok((await save({ autoTz: "Mars/Olympus" })).errors, "unknown zones are refused");
+	assert.ok((await save({ digestHour: "24" })).errors, "hours stop at 23");
 });

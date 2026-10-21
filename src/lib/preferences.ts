@@ -53,6 +53,12 @@ export const WS_COLORS = [
 	"#C48A1E",
 ] as const;
 
+// the hour (0-23, the person's own time) for the morning digest and due-date reminders
+export const DIGEST_HOURS = Array.from(
+	{ length: 24 },
+	(_, h) => [String(h), String(h)] as const,
+);
+
 export const NOTIF_KEYS = [
 	"email_mention",
 	"email_assign",
@@ -78,6 +84,9 @@ export const preferencesPatch = z
 		lang: z.enum(values(LANGS)),
 		spell: z.boolean(),
 		tz: z.string().max(64),
+		// the browser's zone, saved quietly so "Automatic" also works for emails
+		autoTz: z.string().max(64),
+		digestHour: z.enum(values(DIGEST_HOURS)),
 		dateFmt: z.enum(values(DATE_FMTS)),
 		weekStart: z.enum(values(WEEK_STARTS)),
 		timeFmt: z.enum(values(TIME_FMTS)),
@@ -100,6 +109,8 @@ export const PREF_DEFAULTS = {
 	lang: "en-US",
 	spell: true,
 	tz: "",
+	autoTz: "",
+	digestHour: "8",
 	dateFmt: "MMM d",
 	weekStart: "1",
 	timeFmt: "12",

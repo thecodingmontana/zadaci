@@ -7,6 +7,7 @@ import { UPDATE_PREFERENCES } from "#/graphql/operations";
 import { authClient } from "#/lib/auth-client";
 import {
 	AVATAR_COLORS,
+	DIGEST_HOURS,
 	HOME_OPTS,
 	OPEN_TASKS,
 	type Preferences,
@@ -31,7 +32,7 @@ const NOTIF_SECTIONS: Record<
 			[
 				"email_digest",
 				"Daily digest",
-				"A summary of what changed, every weekday at 8:00.",
+				"A summary of what's unread, every weekday morning.",
 			],
 		],
 	},
@@ -88,9 +89,35 @@ export function NotificationsSection({
 					/>
 				</SRow>
 			))}
+			{sec === "notif-email" && (
+				<SRow
+					t="Morning time"
+					d="When the digest and due-date reminders arrive, in your time zone."
+				>
+					<Select
+						value={me.preferences.digestHour}
+						options={DIGEST_HOURS.map(([h]) => [
+							h,
+							hourLabel(Number(h), me.preferences.timeFmt),
+						])}
+						onChange={(digestHour) =>
+							save(
+								{ digestHour: digestHour as Preferences["digestHour"] },
+								"Morning time saved",
+							)
+						}
+						label="Morning time"
+					/>
+				</SRow>
+			)}
 		</>
 	);
 }
+
+const hourLabel = (h: number, fmt: string) =>
+	fmt === "24"
+		? `${String(h).padStart(2, "0")}:00`
+		: `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`;
 
 export function ProfileSection({ me, title }: SectionProps) {
 	const router = useRouter();

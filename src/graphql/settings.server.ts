@@ -323,8 +323,9 @@ export const settingsResolvers = {
 		) => {
 			const user = requireUser(ctx);
 			const patch = parse(preferencesPatch, args.patch);
-			if (patch.tz && !Intl.supportedValuesOf("timeZone").includes(patch.tz))
-				badInput("Unknown time zone");
+			for (const zone of [patch.tz, patch.autoTz])
+				if (zone && !Intl.supportedValuesOf("timeZone").includes(zone))
+					badInput("Unknown time zone");
 			const [row] = await db
 				.select({ preferences: tables.user.preferences })
 				.from(tables.user)
