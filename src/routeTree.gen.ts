@@ -20,6 +20,7 @@ import { Route as AuthedJoinCodeRouteImport } from './routes/_authed/join.$code'
 import { Route as AuthedWSlugRouteImport } from './routes/_authed/w/$slug'
 import { Route as AuthedWorkspaceIndexRouteImport } from './routes/_authed/workspace/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiCronDailyRouteImport } from './routes/api/cron/daily'
 import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor/index'
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
@@ -95,6 +96,11 @@ const AuthedWorkspaceIndexRoute = AuthedWorkspaceIndexRouteImport.update({
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCronDailyRoute = ApiCronDailyRouteImport.update({
+  id: '/api/cron/daily',
+  path: '/api/cron/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthTwoFactorIndexRoute = AuthTwoFactorIndexRouteImport.update({
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/join/$code': typeof AuthedJoinCodeRoute
   '/w/$slug': typeof AuthedWSlugRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/daily': typeof ApiCronDailyRoute
   '/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/auth/signin': typeof AuthSigninRoute
   '/join/$code': typeof AuthedJoinCodeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/daily': typeof ApiCronDailyRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -289,6 +297,7 @@ export interface FileRoutesById {
   '/_authed/join/$code': typeof AuthedJoinCodeRoute
   '/_authed/w/$slug': typeof AuthedWSlugRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/daily': typeof ApiCronDailyRoute
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -325,6 +334,7 @@ export interface FileRouteTypes {
     | '/join/$code'
     | '/w/$slug'
     | '/api/auth/$'
+    | '/api/cron/daily'
     | '/workspace/'
     | '/auth/two-factor/'
     | '/w/$slug/$'
@@ -358,6 +368,7 @@ export interface FileRouteTypes {
     | '/auth/signin'
     | '/join/$code'
     | '/api/auth/$'
+    | '/api/cron/daily'
     | '/workspace'
     | '/auth/two-factor'
     | '/w/$slug/$'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/_authed/join/$code'
     | '/_authed/w/$slug'
     | '/api/auth/$'
+    | '/api/cron/daily'
     | '/_authed/workspace/'
     | '/auth/two-factor/'
     | '/_authed/w/$slug/$'
@@ -426,6 +438,7 @@ export interface RootRouteChildren {
   ApiGraphqlRoute: typeof ApiGraphqlRoute
   AuthSigninRoute: typeof AuthSigninRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCronDailyRoute: typeof ApiCronDailyRoute
   AuthTwoFactorIndexRoute: typeof AuthTwoFactorIndexRoute
 }
 
@@ -506,6 +519,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/daily': {
+      id: '/api/cron/daily'
+      path: '/api/cron/daily'
+      fullPath: '/api/cron/daily'
+      preLoaderRoute: typeof ApiCronDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/two-factor/': {
@@ -742,6 +762,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGraphqlRoute: ApiGraphqlRoute,
   AuthSigninRoute: AuthSigninRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCronDailyRoute: ApiCronDailyRoute,
   AuthTwoFactorIndexRoute: AuthTwoFactorIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,0 +1,23 @@
+name: Daily notifications
+
+# Every hour, ask the app to send due-date reminders and daily digests to everyone whose
+# local morning it is. The app remembers who already got theirs, so late or repeated runs are safe.
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run the morning job
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://zadaci.vercel.app' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET is not set"; exit 1; fi
+          curl -fsS --max-time 240 -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/daily"
