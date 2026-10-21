@@ -703,8 +703,8 @@ function Composer({
 	);
 }
 
-/** Actions for the selected rows (reference bulkBar). */
-function BulkBar({
+/** Actions for the selected rows (reference bulkBar); the board uses it too. */
+export function BulkBar({
 	ids,
 	slug,
 	onClear,

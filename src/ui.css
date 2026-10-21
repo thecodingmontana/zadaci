@@ -3347,6 +3347,25 @@ fieldset.field {
     box-shadow var(--q-dur),
     transform var(--q-dur);
 }
+/* bulk-select checkbox: shows on hover, stays while picked */
+.kcard {
+  position: relative;
+}
+.kcard .ksel {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity var(--q-dur);
+}
+.kcard:hover .ksel,
+.kcard .ksel:focus-visible,
+.kcard.sel .ksel {
+  opacity: 1;
+}
+.kcard.sel {
+  box-shadow: 0 0 0 2px var(--q-accent);
+}
 .kcard:hover {
   box-shadow:
     0 2px 6px -2px rgba(0, 0, 0, 0.08),
@@ -3363,6 +3382,8 @@ fieldset.field {
   display: flex;
   align-items: flex-start;
   gap: 0;
+  /* room for the bulk-select checkbox in the corner */
+  padding-right: 18px;
 }
 .kcard .title {
   font-size: var(--q-fs);

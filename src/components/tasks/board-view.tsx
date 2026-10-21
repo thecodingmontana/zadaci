@@ -16,7 +16,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { ProgBar, projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import {
@@ -33,6 +33,7 @@ import { cn } from "#/lib/utils";
 import { type Group, groupTasks, planDrop } from "#/lib/view-engine";
 import { Due, Lbl, PrIcon } from "./bits";
 import { useTaskView } from "./context";
+import { BulkBar } from "./list-view";
 import { AssigneePick, DatePick, PriorityPick } from "./pick";
 import { TaskMenu } from "./task-menu";
 
@@ -53,8 +54,28 @@ export function BoardView({
 	showProject?: boolean;
 	storageKey: string;
 }) {
-	const { update } = useTaskView();
+	const { update, slug, canEdit } = useTaskView();
 	const [dragging, setDragging] = useState<TaskItem | null>(null);
+	// cards picked for a bulk change (Ctrl/⌘- or Shift-click, or a card's checkbox)
+	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const toggle = (id: string) =>
+		setSelected((s) => {
+			const next = new Set(s);
+			if (!next.delete(id)) next.add(id);
+			return next;
+		});
+	// only cards still on the board and still editable count
+	const picked = tasks
+		.filter((t) => selected.has(t.id) && canEdit(t.projectId))
+		.map((t) => t.id);
+	useEffect(() => {
+		if (!picked.length) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setSelected(new Set());
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [picked.length]);
 	const [collapsed, setCollapsed] = useCollapsed(storageKey);
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -86,40 +107,54 @@ export function BoardView({
 	}
 
 	return (
-		<DndContext
-			sensors={sensors}
-			collisionDetection={closestCorners}
-			onDragStart={({ active }) =>
-				setDragging(tasks.find((t) => t.id === active.id) ?? null)
-			}
-			onDragEnd={onDragEnd}
-			onDragCancel={() => setDragging(null)}
-		>
-			<div className="board">
-				{columns.map((col) =>
-					collapsed.has(col.key) ? (
-						<CollapsedColumn
-							key={col.key}
-							col={col}
-							onExpand={() => setCollapsed(col.key, false)}
-						/>
-					) : (
-						<Column
-							key={col.key}
-							col={col}
-							projectId={projectId}
-							showProject={showProject}
-							onCollapse={() => setCollapsed(col.key, true)}
-						/>
-					),
-				)}
-			</div>
-			<DragOverlay>
-				{dragging && <Card t={dragging} showProject={showProject} overlay />}
-			</DragOverlay>
-		</DndContext>
+		<Selection.Provider value={{ selected, toggle }}>
+			<DndContext
+				sensors={sensors}
+				collisionDetection={closestCorners}
+				onDragStart={({ active }) =>
+					setDragging(tasks.find((t) => t.id === active.id) ?? null)
+				}
+				onDragEnd={onDragEnd}
+				onDragCancel={() => setDragging(null)}
+			>
+				<div className="board">
+					{columns.map((col) =>
+						collapsed.has(col.key) ? (
+							<CollapsedColumn
+								key={col.key}
+								col={col}
+								onExpand={() => setCollapsed(col.key, false)}
+							/>
+						) : (
+							<Column
+								key={col.key}
+								col={col}
+								projectId={projectId}
+								showProject={showProject}
+								onCollapse={() => setCollapsed(col.key, true)}
+							/>
+						),
+					)}
+				</div>
+				<DragOverlay>
+					{dragging && <Card t={dragging} showProject={showProject} overlay />}
+				</DragOverlay>
+			</DndContext>
+			{picked.length > 0 && (
+				<BulkBar
+					ids={picked}
+					slug={slug}
+					onClear={() => setSelected(new Set())}
+				/>
+			)}
+		</Selection.Provider>
 	);
 }
+
+const Selection = createContext<{
+	selected: Set<string>;
+	toggle: (id: string) => void;
+}>({ selected: new Set(), toggle: () => {} });
 
 /** Collapsed columns, remembered per board in this browser. */
 function useCollapsed(key: string) {
@@ -359,7 +394,9 @@ function Card({
 	overlay?: boolean;
 }) {
 	const { update, openTask, canEdit, member, project, members } = useTaskView();
+	const { selected, toggle } = useContext(Selection);
 	const editable = canEdit(t.projectId) && !overlay;
+	const isSelected = selected.has(t.id);
 	const done = t.status === "completed";
 	const p = project(t.projectId);
 	const m = member(t.assigneeId);
@@ -370,20 +407,36 @@ function Card({
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: the card holds its own buttons, so it can't be one
 		<div
-			className={cn("kcard", done && "done")}
+			className={cn("kcard", done && "done", isSelected && "sel")}
 			role="button"
 			tabIndex={0}
 			aria-label={t.name}
+			aria-pressed={editable ? isSelected : undefined}
 			style={
 				overlay
 					? { boxShadow: "var(--q-shadow-pop)", cursor: "grabbing" }
 					: undefined
 			}
-			onClick={() => openTask(t.id)}
+			onClick={(e) => {
+				// a modifier-click picks the card for a bulk change instead of opening it
+				if (editable && (e.metaKey || e.ctrlKey || e.shiftKey)) toggle(t.id);
+				else openTask(t.id);
+			}}
 			onKeyDown={(e) => {
 				if (e.target === e.currentTarget && e.key === "Enter") openTask(t.id);
 			}}
 		>
+			{editable && (
+				<input
+					type="checkbox"
+					className="check ksel"
+					aria-label={`Select ${t.name}`}
+					checked={isSelected}
+					onClick={stop}
+					onPointerDown={stop}
+					onChange={() => toggle(t.id)}
+				/>
+			)}
 			{!!t.labels.length && (
 				<div className="labels">
 					{t.labels.map((id) => (
