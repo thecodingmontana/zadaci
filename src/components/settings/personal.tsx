@@ -74,16 +74,20 @@ export function NotificationsSection({
 	sec,
 }: SectionProps & { sec: string }) {
 	const save = usePrefs();
+	// push choices only mean something once this device is turned on
+	const [deviceOn, setDeviceOn] = useState(false);
 	const section = NOTIF_SECTIONS[sec];
 	if (!section) return null;
+	const locked = sec === "notif-push" && !deviceOn;
 	return (
 		<>
 			<SettingsHeader title={title} lead={section.lead} />
-			{sec === "notif-push" && <PushDevice />}
+			{sec === "notif-push" && <PushDevice onChange={setDeviceOn} />}
 			{section.rows.map(([k, t, d]) => (
 				<SRow key={k} t={t} d={d}>
 					<Toggle
-						checked={me.preferences.notif[k]}
+						checked={!locked && me.preferences.notif[k]}
+						disabled={locked}
 						onChange={(v) =>
 							save({ notif: { [k]: v } }, "Notification preferences saved")
 						}

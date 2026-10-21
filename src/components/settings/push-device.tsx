@@ -36,17 +36,19 @@ const DESC: Record<State, string> = {
 		"This browser can't receive push notifications. On iPhone or iPad, add Zadaci to your Home Screen first, then open it from there.",
 	denied:
 		"Notifications are blocked for Zadaci in this browser. Allow them in the site settings, then come back.",
-	off: "Get notified here even when Zadaci isn't open. Turn it on for each browser or phone you use.",
+	off: "Push is off on this device. Turn it on to choose what reaches you here; each browser or phone is turned on separately.",
 	on: "This device gets push notifications for the choices below.",
 };
 
-export function PushDevice() {
+/** `onChange` tells the page whether this device gets pushes, so it can grey out the choices. */
+export function PushDevice({ onChange }: { onChange: (on: boolean) => void }) {
 	const client = useApolloClient();
 	const [subscribe] = useMutation(SUBSCRIBE_PUSH);
 	const [unsubscribe] = useMutation(UNSUBSCRIBE_PUSH);
 	const [test] = useMutation(TEST_PUSH);
 	const [state, setState] = useState<State>("loading");
 	const [busy, setBusy] = useState(false);
+	useEffect(() => onChange(state === "on"), [state, onChange]);
 
 	useEffect(() => {
 		if (!supported()) return setState("unsupported");
