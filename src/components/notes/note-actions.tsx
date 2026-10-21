@@ -102,7 +102,7 @@ export function NoteActions({
 				<MenuTrigger
 					className="btn btn-ghost btn-sm hide-m"
 					disabled={!isAuthor}
-					title={isAuthor ? undefined : "Only the author can change this"}
+					data-tip={isAuthor ? undefined : "Only the author can change this"}
 				>
 					<span
 						className={cn(

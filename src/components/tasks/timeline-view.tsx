@@ -209,7 +209,7 @@ export function TimelineView({
 							"--c": projectColor(projectOf(t.projectId)?.color),
 						} as React.CSSProperties
 					}
-					title={t.name}
+					data-tip={t.name}
 					onClick={() => openTask(t.id)}
 				>
 					<span className="trunc">{t.name}</span>
@@ -401,7 +401,7 @@ export function TimelineView({
 							className="tl-today"
 							// the shading and lines stop at the last row, not in the scroll padding below
 							style={{ left: todayX + dw / 2, bottom: "auto", height: H }}
-							title="Today"
+							data-tip="Today"
 						/>
 						{rows.map((r, i) => {
 							const y = i * ROW;
@@ -571,7 +571,7 @@ function Bar({
 					width: w,
 				} as React.CSSProperties
 			}
-			title={title}
+			data-tip={title}
 			onPointerDown={(e) => {
 				if (!editable || e.button !== 0) return;
 				const x0 = e.clientX;
@@ -636,7 +636,6 @@ function MilestoneLane({
 						className="ms-w"
 						style={{ left: pt.x - 6, top: y + 9 }}
 						data-tip={tip}
-						title={tip}
 						role="img"
 						aria-label={`Milestone: ${tip}`}
 					>

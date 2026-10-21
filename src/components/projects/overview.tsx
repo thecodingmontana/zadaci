@@ -153,7 +153,7 @@ export function ProjectOverview({
 											width: `${(count(s.id) / Math.max(total, 1)) * 100}%`,
 											background: `var(--q-st-${s.st})`,
 										}}
-										title={`${s.name}: ${count(s.id)}`}
+										data-tip={`${s.name}: ${count(s.id)}`}
 									/>
 								))}
 							</div>

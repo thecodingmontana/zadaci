@@ -182,7 +182,7 @@ function CommentItem({
 							type="button"
 							className={cn("react", r.mine && "mine")}
 							aria-label={`${r.emoji} ${r.count}`}
-							title={r.names.join(", ")}
+							data-tip={r.names.join(", ")}
 							onClick={() => toggle(r.emoji)}
 						>
 							{r.emoji}

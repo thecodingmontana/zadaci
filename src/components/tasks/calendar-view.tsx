@@ -391,7 +391,7 @@ function Chip({ t }: { t: TaskItem }) {
 					...drag.style,
 				} as React.CSSProperties
 			}
-			title={t.name}
+			data-tip={t.name}
 			{...drag.props}
 			onClick={() => openTask(t.id)}
 		>

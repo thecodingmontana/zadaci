@@ -12,7 +12,7 @@ import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
 import { TaskDrawer } from "#/components/tasks/drawer";
 import { NewTaskProvider } from "#/components/tasks/new-task";
-import { TooltipProvider } from "#/components/ui/tooltip";
+import { DataTips, TooltipProvider } from "#/components/ui/tooltip";
 import { NOTIFICATION_COUNTS, SHELL } from "#/graphql/operations";
 import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
@@ -165,6 +165,7 @@ function ShellLayout() {
 					</div>
 				</CommandMenuProvider>
 			</NewTaskProvider>
+			<DataTips />
 		</TooltipProvider>
 	);
 }

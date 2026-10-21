@@ -234,7 +234,7 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
 							role="option"
 							aria-selected={i === index}
 							data-i={i}
-							title={item.hint}
+							data-tip={item.hint}
 							className={cn("mi", i === index && "hl")}
 							onMouseEnter={() => setIndex(i)}
 							onMouseDown={(e) => e.preventDefault()}

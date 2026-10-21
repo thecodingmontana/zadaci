@@ -195,7 +195,7 @@ function CollapsedColumn({
 			type="button"
 			className="bcol collapsed"
 			aria-label={`Expand ${col.name}`}
-			title="Expand"
+			data-tip="Expand"
 			onClick={onExpand}
 		>
 			<StatusIcon status={col.key} />
@@ -531,7 +531,7 @@ function Card({
 					</span>
 				)}
 				{!!t.commentCount && (
-					<span className="m" title={`${t.commentCount} comments`}>
+					<span className="m" data-tip={`${t.commentCount} comments`}>
 						<span
 							className="icon-[solar--chat-round-line-linear] size-3"
 							aria-hidden="true"
@@ -541,7 +541,7 @@ function Card({
 					</span>
 				)}
 				{!!t.attachmentCount && (
-					<span className="m" title={`${t.attachmentCount} attachments`}>
+					<span className="m" data-tip={`${t.attachmentCount} attachments`}>
 						<span
 							className="icon-[solar--paperclip-linear] size-3"
 							aria-hidden="true"

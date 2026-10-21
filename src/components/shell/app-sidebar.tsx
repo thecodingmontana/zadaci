@@ -426,7 +426,7 @@ export function AppSidebar({
 									<span
 										className="sdot"
 										style={{ background: pstat(p.status).c }}
-										title={pstat(p.status).name}
+										data-tip={pstat(p.status).name}
 									/>
 									<span className="hov">
 										<ProjectMenu

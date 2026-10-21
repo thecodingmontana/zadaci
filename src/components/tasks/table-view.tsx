@@ -400,7 +400,7 @@ function Cell({
 			) : (
 				<td
 					className="sticky cellbtn"
-					title={editable ? "Double-click to rename" : undefined}
+					data-tip={editable ? "Double-click to rename" : undefined}
 				>
 					<button
 						type="button"
@@ -552,7 +552,7 @@ function Cell({
 						? t.dependsOn.map((id) => {
 								const d = byId.get(id);
 								return d ? (
-									<span key={id} className="depchip" title={d.name}>
+									<span key={id} className="depchip" data-tip={d.name}>
 										{d.key}
 									</span>
 								) : null;
