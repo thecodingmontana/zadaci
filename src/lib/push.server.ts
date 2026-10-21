@@ -1,7 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import webpush from "web-push";
 import { db, tables } from "#/db";
-import { SITE_URL } from "#/lib/seo";
 
 // Web push to the browsers and phones people turned on in Settings → Push. The service
 // worker (public/sw.js) shows each message and opens its link when tapped.
@@ -10,7 +9,13 @@ const publicKey = process.env.VAPID_PUBLIC_KEY;
 const privateKey = process.env.VAPID_PRIVATE_KEY;
 // No keys (local setups, tests): pushes are skipped, like emails without a Resend key.
 const ready = !!(publicKey && privateKey);
-if (ready) webpush.setVapidDetails(SITE_URL, publicKey, privateKey);
+// push services want a contact; an http://localhost site URL would be refused, so use the mail sender
+if (ready)
+	webpush.setVapidDetails(
+		"mailto:noreply@thegoodslab.tech",
+		publicKey,
+		privateKey,
+	);
 
 export const pushPublicKey = () => (ready ? (publicKey ?? null) : null);
 
