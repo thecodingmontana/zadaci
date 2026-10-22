@@ -7,8 +7,10 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { useEffect } from "react";
 import { Toaster } from "#/components/toast/toaster";
 import { APPEARANCE_SCRIPT } from "#/lib/appearance";
+import { startPwa } from "#/lib/install";
 import { SITE_DESCRIPTION, SITE_URL } from "#/lib/seo";
 import appCss from "../styles.css?url";
 
@@ -80,6 +82,7 @@ export const Route =
 	});
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	useEffect(startPwa, []);
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>

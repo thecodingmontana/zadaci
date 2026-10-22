@@ -1,4 +1,16 @@
-// Shows Zadaci's push notifications and opens their link when tapped (see src/lib/push.server.ts).
+// Zadaci's service worker: an offline page for navigations, plus push notifications that open
+// their link when tapped (see src/lib/push.server.ts). Nothing else is cached.
+const OFFLINE = "/offline.html";
+self.addEventListener("install", (event) => {
+	event.waitUntil(caches.open("zadaci-offline-v1").then((c) => c.add(OFFLINE)));
+	self.skipWaiting();
+});
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("fetch", (event) => {
+	if (event.request.mode !== "navigate") return;
+	event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE)));
+});
+
 self.addEventListener("push", (event) => {
 	// DevTools' "Push" button sends plain text, so fall back to it instead of failing silently
 	let data = {};

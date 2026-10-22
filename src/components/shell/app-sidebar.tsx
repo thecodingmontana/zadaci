@@ -21,6 +21,7 @@ import type {
 } from "#/graphql/operations";
 import { setAppearance, useAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
+import { useInstall } from "#/lib/install";
 import { can, type Permission } from "#/lib/permissions";
 import { pstat } from "#/lib/projects";
 import { copy } from "#/lib/toast";
@@ -114,6 +115,7 @@ export function UserMenuContent({
 	const navigate = useNavigate();
 	const { openShortcuts } = useCommandMenu();
 	const { theme } = useAppearance();
+	const install = useInstall();
 	return (
 		<MenuContent width={260} align="start">
 			<div className="row" style={{ padding: "8px 8px 10px", gap: 10 }}>
@@ -164,6 +166,14 @@ export function UserMenuContent({
 				</div>
 			</div>
 			<MenuSeparator />
+			{install && (
+				<MenuItem
+					icon="icon-[solar--download-minimalistic-linear]"
+					onSelect={install}
+				>
+					Install app
+				</MenuItem>
+			)}
 			<MenuItem
 				icon="icon-[solar--keyboard-linear]"
 				onSelect={openShortcuts}
