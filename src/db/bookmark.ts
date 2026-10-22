@@ -77,6 +77,10 @@ export const bookmark = pgTable(
 			table.workspace_id,
 			table.created_at,
 		),
+		index("bookmark_title_trgm_idx").using(
+			"gin",
+			table.title.op("gin_trgm_ops"),
+		),
 	],
 );
 

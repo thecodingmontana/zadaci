@@ -136,6 +136,8 @@ export const task = pgTable(
 	(table) => [
 		index("tasks_project_id_idx").on(table.project_id),
 		index("tasks_parent_task_id_idx").on(table.parent_task_id),
+		// trigram indexes keep search's substring matching (ilike '%q%') fast
+		index("tasks_name_trgm_idx").using("gin", table.name.op("gin_trgm_ops")),
 	],
 );
 

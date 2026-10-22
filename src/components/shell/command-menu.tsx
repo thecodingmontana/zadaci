@@ -32,7 +32,7 @@ import { useShell } from "./shell-state";
 // Tab toggles search mode, Backspace on an empty query returns to commands.
 
 type Mode = "cmd" | "search" | "ws";
-type Scope = "all" | "tasks" | "projects" | "people";
+type Scope = "all" | "tasks" | "notes" | "bookmarks" | "projects" | "people";
 type Item = {
 	id: string;
 	icon?: string;
@@ -74,6 +74,8 @@ export function useModKey() {
 const SCOPES: [Scope, string, string][] = [
 	["all", "All", "icon-[solar--layers-linear]"],
 	["tasks", "Tasks", "icon-[solar--check-circle-linear]"],
+	["notes", "Notes", "icon-[solar--document-text-linear]"],
+	["bookmarks", "Bookmarks", "icon-[solar--bookmark-linear]"],
 	["projects", "Projects", "icon-[solar--folder-linear]"],
 	["people", "People", "icon-[solar--users-group-rounded-linear]"],
 ];
@@ -470,7 +472,7 @@ function PaletteDialog({
 	workspaces: WorkspaceSummary[];
 	mod: string;
 	commands: Item[];
-	goTo: (path: string) => void;
+	goTo: (path: string, search?: string) => void;
 	onProject: (id: string) => void;
 	onWorkspace: (slug: string) => void;
 }) {
@@ -573,7 +575,43 @@ function PaletteDialog({
 					node: <StatusIcon status={t.status} size={15} />,
 					name: t.name,
 					sub: t.projectTitle,
-					run: remember(() => onProject(t.projectId)),
+					run: remember(() => goTo(`p/${t.projectId}`, `task=${t.id}`)),
+				})),
+			});
+			out.push({
+				name: "Comments",
+				items: results.comments.slice(0, lim).map((c) => ({
+					id: `c-${c.id}`,
+					icon: "icon-[solar--chat-round-line-linear]",
+					name: c.snippet,
+					sub: c.taskName,
+					run: remember(() => goTo(`p/${c.projectId}`, `task=${c.taskId}`)),
+				})),
+			});
+		}
+		if (scope === "all" || scope === "notes") {
+			out.push({
+				name: "Notes",
+				items: results.notes.slice(0, lim).map((n) => ({
+					id: `n-${n.id}`,
+					...(n.icon
+						? { node: <span style={{ width: 15 }}>{n.icon}</span> }
+						: { icon: "icon-[solar--document-text-linear]" }),
+					name: n.title || "Untitled",
+					sub: n.snippet ?? undefined,
+					run: remember(() => goTo(`notes/${n.id}`)),
+				})),
+			});
+		}
+		if (scope === "all" || scope === "bookmarks") {
+			out.push({
+				name: "Bookmarks",
+				items: results.bookmarks.slice(0, lim).map((b) => ({
+					id: `b-${b.id}`,
+					icon: "icon-[solar--bookmark-linear]",
+					name: b.title,
+					sub: b.site ?? b.url,
+					run: remember(() => goTo("bookmarks")),
 				})),
 			});
 		}

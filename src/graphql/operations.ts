@@ -183,6 +183,20 @@ export type SearchResults = {
 	}[];
 	projects: { id: string; title: string; color: string | null }[];
 	people: { id: string; name: string; email: string; image: string | null }[];
+	notes: {
+		id: string;
+		title: string;
+		icon: string | null;
+		snippet: string | null;
+	}[];
+	bookmarks: { id: string; title: string; url: string; site: string | null }[];
+	comments: {
+		id: string;
+		snippet: string;
+		taskId: string;
+		taskName: string;
+		projectId: string;
+	}[];
 };
 
 export const SEARCH: TypedDocumentNode<
@@ -208,6 +222,25 @@ export const SEARCH: TypedDocumentNode<
 				name
 				email
 				image
+			}
+			notes {
+				id
+				title
+				icon
+				snippet
+			}
+			bookmarks {
+				id
+				title
+				url
+				site
+			}
+			comments {
+				id
+				snippet
+				taskId
+				taskName
+				projectId
 			}
 		}
 	}

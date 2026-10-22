@@ -57,5 +57,10 @@ export const note = pgTable(
 		index("note_workspace_id_idx").on(table.workspace_id),
 		index("note_parent_id_idx").on(table.parent_id),
 		index("note_project_id_idx").on(table.project_id),
+		index("note_title_trgm_idx").using("gin", table.title.op("gin_trgm_ops")),
+		index("note_content_trgm_idx").using(
+			"gin",
+			table.content.op("gin_trgm_ops"),
+		),
 	],
 );

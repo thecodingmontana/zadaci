@@ -255,6 +255,23 @@ function bookmarkRight(
 	return right && b.created_by === workspace.memberId ? "full" : right;
 }
 
+/** The ones of these bookmarks the viewer may see (private ones only for their author). */
+export async function visibleBookmarks<
+	T extends Pick<Bookmark, "id" | "created_by" | "private">,
+>(workspace: Workspace, rows: T[]) {
+	if (!rows.length) return [];
+	const [{ rights }, links] = await Promise.all([
+		collectionsOf(workspace),
+		memberships(
+			workspace.id,
+			rows.map((b) => b.id),
+		),
+	]);
+	return rows.filter((b) =>
+		bookmarkRight(workspace, b, links.get(b.id) ?? [], rights),
+	);
+}
+
 /** Collection ids per bookmark, for these bookmarks (or all of the workspace's). */
 async function memberships(workspaceId: string, bookmarkIds?: string[]) {
 	const rows = await db

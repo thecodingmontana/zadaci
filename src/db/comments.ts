@@ -43,5 +43,9 @@ export const comment = pgTable(
 		index("comment_entity_idx").on(table.entity_type, table.entity_id),
 		index("comment_author_id_idx").on(table.author_id),
 		index("comment_parent_id_idx").on(table.parent_id),
+		index("comment_content_trgm_idx").using(
+			"gin",
+			table.content.op("gin_trgm_ops"),
+		),
 	],
 );

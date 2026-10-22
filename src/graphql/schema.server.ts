@@ -28,7 +28,10 @@ import {
 } from "#/lib/onboarding";
 import { can, projectRight } from "#/lib/permissions";
 import { makeKey } from "#/lib/projects";
+import { snippet } from "#/lib/search";
 import { adminUserIds, logActivity, notify } from "./activity.server";
+import { visibleBookmarks } from "./bookmarks.server";
+import { visible as visibleNotes } from "./notes.server";
 
 /** A sent invite that can still be accepted (pending, not revoked, not expired). */
 const openInvite = () =>
@@ -118,10 +121,36 @@ const typeDefs = /* GraphQL */ `
 		image: String
 	}
 
+	type SearchNote {
+		id: ID!
+		title: String!
+		icon: String
+		"where the words matched, when it's in the body"
+		snippet: String
+	}
+
+	type SearchBookmark {
+		id: ID!
+		title: String!
+		url: String!
+		site: String
+	}
+
+	type SearchComment {
+		id: ID!
+		snippet: String!
+		taskId: ID!
+		taskName: String!
+		projectId: ID!
+	}
+
 	type SearchResults {
 		tasks: [SearchTask!]!
 		projects: [Project!]!
 		people: [Person!]!
+		notes: [SearchNote!]!
+		bookmarks: [SearchBookmark!]!
+		comments: [SearchComment!]!
 	}
 
 	type Query {
@@ -272,7 +301,15 @@ const resolvers = {
 					extensions: { code: "NOT_FOUND" },
 				});
 			const q = args.q.trim().slice(0, 100);
-			if (!q) return { tasks: [], projects: [], people: [] };
+			if (!q)
+				return {
+					tasks: [],
+					projects: [],
+					people: [],
+					notes: [],
+					bookmarks: [],
+					comments: [],
+				};
 			const like = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
 			const LIMIT = 12;
 			const [tasks, projects, people] = await Promise.all([
@@ -295,9 +332,14 @@ const resolvers = {
 							isNull(tables.task.deleted_at),
 							isNull(tables.project.deleted_at),
 							projectScope(workspace),
-							ilike(tables.task.name, like),
+							or(
+								ilike(tables.task.name, like),
+								ilike(tables.task.description, like),
+							),
 						),
 					)
+					// name matches before description-only matches
+					.orderBy(sql`${tables.task.name} ilike ${like} desc`)
 					.limit(LIMIT),
 				db
 					.select()
@@ -332,7 +374,94 @@ const resolvers = {
 					)
 					.limit(LIMIT),
 			]);
-			return { tasks, projects, people };
+			const [notes, bookmarks, comments] = await Promise.all([
+				db
+					.select({
+						id: tables.note.id,
+						title: tables.note.title,
+						icon: tables.note.icon,
+						content: tables.note.content,
+					})
+					.from(tables.note)
+					.where(
+						and(
+							visibleNotes(workspace),
+							or(
+								ilike(tables.note.title, like),
+								ilike(tables.note.content, like),
+							),
+						),
+					)
+					.orderBy(sql`${tables.note.title} ilike ${like} desc`)
+					.limit(LIMIT),
+				// private bookmarks and collections are filtered after the query (visibleBookmarks)
+				db
+					.select({
+						id: tables.bookmark.id,
+						title: tables.bookmark.title,
+						url: tables.bookmark.url,
+						site: tables.bookmark.site,
+						created_by: tables.bookmark.created_by,
+						private: tables.bookmark.private,
+					})
+					.from(tables.bookmark)
+					.where(
+						and(
+							eq(tables.bookmark.workspace_id, workspace.id),
+							isNull(tables.bookmark.deleted_at),
+							or(
+								ilike(tables.bookmark.title, like),
+								ilike(tables.bookmark.url, like),
+								ilike(tables.bookmark.description, like),
+							),
+						),
+					)
+					.limit(LIMIT * 3)
+					.then((rows) => visibleBookmarks(workspace, rows)),
+				db
+					.select({
+						id: tables.comment.id,
+						content: tables.comment.content,
+						taskId: tables.task.id,
+						taskName: tables.task.name,
+						projectId: tables.project.id,
+					})
+					.from(tables.comment)
+					.innerJoin(tables.task, eq(tables.task.id, tables.comment.entity_id))
+					.innerJoin(
+						tables.project,
+						eq(tables.project.id, tables.task.project_id),
+					)
+					.where(
+						and(
+							eq(tables.comment.entity_type, "task"),
+							isNull(tables.comment.deleted_at),
+							eq(tables.project.workspace_id, workspace.id),
+							isNull(tables.task.deleted_at),
+							isNull(tables.project.deleted_at),
+							projectScope(workspace),
+							ilike(tables.comment.content, like),
+						),
+					)
+					.orderBy(desc(tables.comment.created_at))
+					.limit(LIMIT),
+			]);
+			return {
+				tasks,
+				projects,
+				people,
+				notes: notes.map(({ content, ...n }) => ({
+					...n,
+					snippet: snippet(content, q),
+				})),
+				bookmarks: bookmarks
+					.slice(0, LIMIT)
+					.map(({ created_by, private: _, ...b }) => b),
+				comments: comments.map(({ content, ...c }) => ({
+					...c,
+					snippet: snippet(content, q) ?? content.slice(0, 120),
+				})),
+			};
 		},
 		me: (_: unknown, __: unknown, ctx: GraphQLContext) => requireUser(ctx),
 		workspaces: (_: unknown, __: unknown, ctx: GraphQLContext) =>

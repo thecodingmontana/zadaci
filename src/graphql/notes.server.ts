@@ -205,7 +205,7 @@ export async function requireNote(
 }
 
 /** Pages the viewer can see: members see unlinked pages, everyone sees their projects' pages. */
-function visible(workspace: Workspace) {
+export function visible(workspace: Workspace) {
 	const scope = projectScope(workspace, tables.note.project_id);
 	return and(
 		eq(tables.note.workspace_id, workspace.id),
