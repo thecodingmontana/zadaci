@@ -1,5 +1,5 @@
 import { useApolloClient, useMutation } from "@apollo/client/react";
-import { type FormEvent, useId, useRef, useState } from "react";
+import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { Modal } from "#/components/q/modal";
 import {
 	type BookmarkCollectionItem,
@@ -57,6 +57,8 @@ export function BookmarkModal({
 	collections,
 	collectionId,
 	allTags,
+	initialUrl,
+	onSaved,
 }: {
 	slug: string;
 	open: boolean;
@@ -67,10 +69,15 @@ export function BookmarkModal({
 	/** the collection a new bookmark starts in */
 	collectionId?: string;
 	allTags: string[];
+	/** a new bookmark starts with this link, previewed at once (the bookmarklet) */
+	initialUrl?: string;
+	onSaved?: () => void;
 }) {
 	const client = useApolloClient();
 	const [form, setForm] = useState<Form>(() =>
-		bookmark ? fromBookmark(bookmark) : blank(collectionId),
+		bookmark
+			? fromBookmark(bookmark)
+			: { ...blank(collectionId), url: initialUrl ?? "" },
 	);
 	const [busy, setBusy] = useState(false);
 	const [loading, setLoading] = useState(false);
@@ -132,6 +139,11 @@ export function BookmarkModal({
 		}
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: preview the starting link once, on open
+	useEffect(() => {
+		if (initialUrl && !bookmark) void preview(initialUrl);
+	}, []);
+
 	const submit = async (e: FormEvent) => {
 		e.preventDefault();
 		if (!form.url.trim()) return setErr("Paste a link first");
@@ -171,6 +183,7 @@ export function BookmarkModal({
 				});
 				toast.success("Bookmark added");
 			}
+			onSaved?.();
 			onOpenChange(false);
 		} catch (error) {
 			setErr((error as Error).message);

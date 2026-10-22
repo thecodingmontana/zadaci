@@ -18,6 +18,7 @@ import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiGraphqlRouteImport } from './routes/api/graphql'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
 import { Route as AuthedJoinCodeRouteImport } from './routes/_authed/join.$code'
+import { Route as AuthedSaveSlugRouteImport } from './routes/_authed/save.$slug'
 import { Route as AuthedWSlugRouteImport } from './routes/_authed/w/$slug'
 import { Route as AuthedWorkspaceIndexRouteImport } from './routes/_authed/workspace/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -87,6 +88,11 @@ const AuthSigninRoute = AuthSigninRouteImport.update({
 const AuthedJoinCodeRoute = AuthedJoinCodeRouteImport.update({
   id: '/join/$code',
   path: '/join/$code',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSaveSlugRoute = AuthedSaveSlugRouteImport.update({
+  id: '/save/$slug',
+  path: '/save/$slug',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedWSlugRoute = AuthedWSlugRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
   '/join/$code': typeof AuthedJoinCodeRoute
+  '/save/$slug': typeof AuthedSaveSlugRoute
   '/w/$slug': typeof AuthedWSlugRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
@@ -267,6 +274,7 @@ export interface FileRoutesByTo {
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
   '/join/$code': typeof AuthedJoinCodeRoute
+  '/save/$slug': typeof AuthedSaveSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
@@ -304,6 +312,7 @@ export interface FileRoutesById {
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
   '/_authed/join/$code': typeof AuthedJoinCodeRoute
+  '/_authed/save/$slug': typeof AuthedSaveSlugRoute
   '/_authed/w/$slug': typeof AuthedWSlugRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
@@ -342,6 +351,7 @@ export interface FileRouteTypes {
     | '/api/graphql'
     | '/auth/signin'
     | '/join/$code'
+    | '/save/$slug'
     | '/w/$slug'
     | '/api/auth/$'
     | '/api/cron/daily'
@@ -378,6 +388,7 @@ export interface FileRouteTypes {
     | '/api/graphql'
     | '/auth/signin'
     | '/join/$code'
+    | '/save/$slug'
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/workspace'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/api/graphql'
     | '/auth/signin'
     | '/_authed/join/$code'
+    | '/_authed/save/$slug'
     | '/_authed/w/$slug'
     | '/api/auth/$'
     | '/api/cron/daily'
@@ -518,6 +530,13 @@ declare module '@tanstack/react-router' {
       path: '/join/$code'
       fullPath: '/join/$code'
       preLoaderRoute: typeof AuthedJoinCodeRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/save/$slug': {
+      id: '/_authed/save/$slug'
+      path: '/save/$slug'
+      fullPath: '/save/$slug'
+      preLoaderRoute: typeof AuthedSaveSlugRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/w/$slug': {
@@ -760,6 +779,7 @@ const AuthedWSlugRouteWithChildren = AuthedWSlugRoute._addFileChildren(
 interface AuthedRouteChildren {
   AuthedOnboardingRoute: typeof AuthedOnboardingRoute
   AuthedJoinCodeRoute: typeof AuthedJoinCodeRoute
+  AuthedSaveSlugRoute: typeof AuthedSaveSlugRoute
   AuthedWSlugRoute: typeof AuthedWSlugRouteWithChildren
   AuthedWorkspaceIndexRoute: typeof AuthedWorkspaceIndexRoute
 }
@@ -767,6 +787,7 @@ interface AuthedRouteChildren {
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedOnboardingRoute: AuthedOnboardingRoute,
   AuthedJoinCodeRoute: AuthedJoinCodeRoute,
+  AuthedSaveSlugRoute: AuthedSaveSlugRoute,
   AuthedWSlugRoute: AuthedWSlugRouteWithChildren,
   AuthedWorkspaceIndexRoute: AuthedWorkspaceIndexRoute,
 }

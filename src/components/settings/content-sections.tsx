@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { REFETCH } from "#/components/bookmarks/bookmark-card";
 import {
 	CollectionIcon,
@@ -147,6 +147,12 @@ export function BookmarksSection({ slug, workspace, title }: SectionProps) {
 				>
 					Open bookmarks
 				</Link>
+			</SRow>
+			<SRow
+				t="Save from any page"
+				d="Drag this button to your browser's bookmarks bar. Click it on any page to save the page here."
+			>
+				<Bookmarklet slug={slug} />
 			</SRow>
 			<SBlock title="Archived bookmarks">
 				{data && !archived.length && <Empty text="Nothing archived." />}
@@ -295,5 +301,31 @@ export function CollectionsSection({ slug, workspace, title }: SectionProps) {
 				/>
 			)}
 		</>
+	);
+}
+
+/** A javascript: link people drag to their bookmarks bar; React won't render one, so it's set by hand. */
+function Bookmarklet({ slug }: { slug: string }) {
+	const ref = useRef<HTMLAnchorElement>(null);
+	useEffect(() => {
+		const save = `${location.origin}/save/${slug}?url=`;
+		ref.current?.setAttribute(
+			"href",
+			`javascript:(()=>{window.open(${JSON.stringify(save)}+encodeURIComponent(location.href),"zadaci-save","width=520,height=640")})()`,
+		);
+	}, [slug]);
+	return (
+		// biome-ignore lint/a11y/useValidAnchor: its javascript: href is set in the effect above (React refuses one)
+		<a
+			ref={ref}
+			className="btn btn-primary btn-sm"
+			title="Drag me to your bookmarks bar"
+		>
+			<span
+				className="icon-[solar--bookmark-linear] size-3.5"
+				aria-hidden="true"
+			/>
+			Save to Zadaci
+		</a>
 	);
 }
