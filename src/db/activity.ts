@@ -43,6 +43,8 @@ export const activity = pgTable(
 			table.project_id,
 			table.created_at,
 		),
+		// foreign keys that are set to null on delete: without these each delete scans the table
+		index("activity_actor_id_idx").on(table.actor_id),
 	],
 );
 
@@ -86,6 +88,9 @@ export const notification = pgTable(
 			table.workspace_id,
 			table.created_at,
 		),
+		index("notification_actor_id_idx").on(table.actor_id),
+		index("notification_task_id_idx").on(table.task_id),
+		index("notification_project_id_idx").on(table.project_id),
 	],
 );
 

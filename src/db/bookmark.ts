@@ -39,6 +39,7 @@ export const bookmark_collection = pgTable(
 	},
 	(table) => [
 		index("bookmark_collection_workspace_id_idx").on(table.workspace_id),
+		index("bookmark_collection_project_id_idx").on(table.project_id),
 	],
 );
 
