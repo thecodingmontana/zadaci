@@ -900,3 +900,51 @@ button.code-lang:hover {
 	color: var(--q-text-2);
 	font-size: var(--q-fs-sm);
 }
+
+/* ---- task and bookmark cards inside a page ---- */
+.item-embed-wrap {
+	margin: 6px 0;
+}
+.item-embed {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	border: 1px solid var(--q-border);
+	border-radius: var(--q-r-sm);
+	background: var(--q-surface);
+	color: var(--q-text);
+	text-decoration: none;
+	font-size: var(--q-fs);
+	transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+a.item-embed:hover {
+	background: var(--q-surface-2);
+	border-color: color-mix(in srgb, var(--q-accent) 35%, var(--q-border));
+}
+.item-embed.is-empty {
+	color: var(--q-text-3);
+}
+.item-embed-title {
+	font-weight: 500;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.item-embed-sub {
+	margin-left: auto;
+	color: var(--q-text-3);
+	font-size: var(--q-fs-sm);
+	white-space: nowrap;
+}
+.ProseMirror-selectednode > .item-embed {
+	box-shadow: 0 0 0 2px var(--q-accent-line);
+}
+.item-picker {
+	display: flex;
+	flex-direction: column;
+	max-height: 260px;
+	overflow-y: auto;
+	margin: 8px 0;
+}

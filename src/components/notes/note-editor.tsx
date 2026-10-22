@@ -42,6 +42,7 @@ import { cn } from "#/lib/utils";
 import { Callout, Embed } from "./blocks";
 import { CodeBlock } from "./code-block";
 import { InsertDialog } from "./insert-dialog";
+import { ItemEmbed } from "./item-embed";
 import { NoteActions } from "./note-actions";
 import { NoteCover } from "./note-cover";
 import { SLASH_COMMANDS, SlashCommands } from "./slash-menu";
@@ -185,6 +186,7 @@ export function NoteEditor({
 			DetailsContent,
 			Callout,
 			Embed,
+			ItemEmbed.configure({ slug }),
 			GlobalDragHandle.configure({
 				dragHandleSelector: `#${HANDLE_ID}`,
 				// the handle holds + and ⋮⋮, so it sits this far left of the block

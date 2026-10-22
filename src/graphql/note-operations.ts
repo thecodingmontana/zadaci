@@ -317,3 +317,28 @@ export const RESOLVE_NOTE_COMMENT: TypedDocumentNode<
 		}
 	}
 `;
+
+export type NoteEmbed = {
+	kind: "task" | "bookmark";
+	id: string;
+	title: string;
+	sub: string | null;
+	status: string | null;
+	href: string;
+};
+
+export const NOTE_EMBED: TypedDocumentNode<
+	{ noteEmbed: NoteEmbed | null },
+	{ slug: string; kind: string; id: string }
+> = gql`
+	query NoteEmbed($slug: String!, $kind: String!, $id: ID!) {
+		noteEmbed(slug: $slug, kind: $kind, id: $id) {
+			kind
+			id
+			title
+			sub
+			status
+			href
+		}
+	}
+`;

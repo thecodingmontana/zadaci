@@ -142,6 +142,28 @@ export const SLASH_COMMANDS: Command[] = [
 	},
 	{
 		group: "Advanced",
+		title: "Task",
+		alias: "todo issue link embed",
+		hint: "Show a task as a live card",
+		icon: "icon-[hugeicons--task-done-01]",
+		run: (c) => {
+			requestInsert("task");
+			return c;
+		},
+	},
+	{
+		group: "Advanced",
+		title: "Bookmark",
+		alias: "link saved url embed",
+		hint: "Show a saved link as a card",
+		icon: "icon-[hugeicons--bookmark-02]",
+		run: (c) => {
+			requestInsert("bookmark");
+			return c;
+		},
+	},
+	{
+		group: "Advanced",
 		title: "Table",
 		alias: "grid rows columns",
 		hint: "A simple table",

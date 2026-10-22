@@ -10,6 +10,7 @@ import {
 import { toast } from "#/lib/toast";
 import { INSERT_EVENT, type InsertKind } from "./blocks";
 import { ImagePicker } from "./image-picker";
+import { ItemPicker } from "./item-picker";
 
 // Asks for what a media block shows: an image (upload or link), a YouTube link, or a link
 // from an embed provider. The "/" menu opens it.
@@ -32,6 +33,16 @@ const COPY: Record<
 		title: "Embed a link",
 		placeholder: "Paste a link…",
 		hint: `Works with ${EMBED_PROVIDERS.join(", ")}.`,
+	},
+	task: {
+		title: "Add a task",
+		placeholder: "Search tasks…",
+		hint: 'People who can\'t see the task get a "No access" card.',
+	},
+	bookmark: {
+		title: "Add a bookmark",
+		placeholder: "Search bookmarks…",
+		hint: "Private bookmarks only show for you.",
 	},
 };
 
@@ -98,7 +109,23 @@ export function InsertDialog({
 			size="sm"
 		>
 			<div className="modal-b insert-media">
-				{kind === "image" ? (
+				{kind === "task" || kind === "bookmark" ? (
+					<ItemPicker
+						slug={slug}
+						kind={kind}
+						placeholder={copy.placeholder}
+						hint={copy.hint}
+						onPick={(id) =>
+							insert(() =>
+								editor
+									.chain()
+									.focus()
+									.insertContent({ type: "itemEmbed", attrs: { kind, id } })
+									.run(),
+							)
+						}
+					/>
+				) : kind === "image" ? (
 					<ImagePicker
 						slug={slug}
 						noteId={noteId}

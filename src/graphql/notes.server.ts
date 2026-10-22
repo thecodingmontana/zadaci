@@ -17,6 +17,7 @@ import { generateNanoId } from "#/db/utils";
 import { isCover } from "#/lib/note-covers";
 import { checkDoc } from "#/lib/note-doc";
 import { can, hasRight, type ProjectRight } from "#/lib/permissions";
+import { visibleBookmarks } from "./bookmarks.server";
 import { viewerRight } from "./projects.server";
 import {
 	badInput,
@@ -93,6 +94,23 @@ export const notesTypeDefs = /* GraphQL */ `
 		"every page the viewer can see, without bodies (the sidebar tree)"
 		notes(slug: String!): [Note!]!
 		note(slug: String!, id: ID!): Note
+	}
+
+	"a task or bookmark shown as a card inside a page"
+	type NoteEmbed {
+		kind: String!
+		id: ID!
+		title: String!
+		"the project of a task, the site of a bookmark"
+		sub: String
+		status: String
+		"where the card opens: a task in the app, or the bookmark's link"
+		href: String!
+	}
+
+	extend type Query {
+		"null when the item is gone or the viewer can't see it"
+		noteEmbed(slug: String!, kind: String!, id: ID!): NoteEmbed
 	}
 
 	extend type Mutation {
@@ -396,6 +414,78 @@ export const notesResolvers = {
 			),
 	},
 	Query: {
+		noteEmbed: async (
+			_: unknown,
+			args: { slug: string; kind: string; id: string },
+			ctx: GraphQLContext,
+		) => {
+			const { workspace } = await workspaceOf(ctx, args.slug);
+			if (args.kind === "task") {
+				const [t] = await db
+					.select({
+						id: tables.task.id,
+						name: tables.task.name,
+						status: tables.task.status,
+						projectId: tables.project.id,
+						project: tables.project.title,
+					})
+					.from(tables.task)
+					.innerJoin(
+						tables.project,
+						eq(tables.project.id, tables.task.project_id),
+					)
+					.where(
+						and(
+							eq(tables.task.id, args.id),
+							eq(tables.project.workspace_id, workspace.id),
+							isNull(tables.task.deleted_at),
+							isNull(tables.project.deleted_at),
+							projectScope(workspace),
+						),
+					);
+				return t
+					? {
+							kind: "task",
+							id: t.id,
+							title: t.name,
+							sub: t.project,
+							status: t.status,
+							href: `/w/${args.slug}/p/${t.projectId}?task=${t.id}`,
+						}
+					: null;
+			}
+			if (args.kind === "bookmark") {
+				const rows = await db
+					.select({
+						id: tables.bookmark.id,
+						title: tables.bookmark.title,
+						url: tables.bookmark.url,
+						site: tables.bookmark.site,
+						created_by: tables.bookmark.created_by,
+						private: tables.bookmark.private,
+					})
+					.from(tables.bookmark)
+					.where(
+						and(
+							eq(tables.bookmark.id, args.id),
+							eq(tables.bookmark.workspace_id, workspace.id),
+							isNull(tables.bookmark.deleted_at),
+						),
+					);
+				const [b] = await visibleBookmarks(workspace, rows);
+				return b
+					? {
+							kind: "bookmark",
+							id: b.id,
+							title: b.title,
+							sub: b.site,
+							status: null,
+							href: b.url,
+						}
+					: null;
+			}
+			badInput("Unknown embed");
+		},
 		notes: async (_: unknown, args: { slug: string }, ctx: GraphQLContext) => {
 			const { user, workspace } = await workspaceOf(ctx, args.slug);
 			const stars = await starred(user.id, workspace.id);

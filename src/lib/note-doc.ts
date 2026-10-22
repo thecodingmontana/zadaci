@@ -30,7 +30,10 @@ const NODES = new Set([
 	"details",
 	"detailsSummary",
 	"detailsContent",
+	"itemEmbed",
 ]);
+/** a task or bookmark shown as a live card; the viewer's access is checked when it's shown */
+export const EMBED_KINDS = ["task", "bookmark"] as const;
 /** blocks that load something from elsewhere, and which addresses they may use */
 const SOURCES: Record<string, (src: unknown) => boolean> = {
 	image: isImageSrc,
@@ -99,6 +102,15 @@ function walk(node: unknown, out: string[], depth: number): DocNode {
 	const allowed = SOURCES[n.type];
 	if (allowed && !allowed(attrs?.src))
 		throw new Error(`That ${n.type} can't be shown in a note`);
+	if (
+		n.type === "itemEmbed" &&
+		!(
+			EMBED_KINDS.includes(attrs?.kind as (typeof EMBED_KINDS)[number]) &&
+			typeof attrs?.id === "string" &&
+			/^[A-Za-z0-9]{1,16}$/.test(attrs.id)
+		)
+	)
+		throw new Error("That embed can't be shown in a note");
 	return {
 		type: n.type,
 		...(n.text !== undefined && { text: n.text }),
