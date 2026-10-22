@@ -36,12 +36,12 @@ const COPY: Record<
 	},
 	task: {
 		title: "Add a task",
-		placeholder: "Search tasks…",
+		placeholder: "Search tasks or paste a task link…",
 		hint: 'People who can\'t see the task get a "No access" card.',
 	},
 	bookmark: {
 		title: "Add a bookmark",
-		placeholder: "Search bookmarks…",
+		placeholder: "Search bookmarks or paste their link…",
 		hint: "Private bookmarks only show for you.",
 	},
 };

@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client/react";
 import { useEffect, useState } from "react";
 import { StatusIcon } from "#/components/q/status-icon";
+import { NOTE_EMBED } from "#/graphql/note-operations";
 import { SEARCH } from "#/graphql/operations";
 
 // Finds a task or bookmark to put in a page, using the workspace search (which already hides
@@ -25,12 +26,32 @@ export function ItemPicker({
 		const id = setTimeout(() => setDebounced(q.trim()), 150);
 		return () => clearTimeout(id);
 	}, [q]);
+	// a pasted task link (…/p/<project>?task=<id>) picks that task directly
+	const linked =
+		kind === "task"
+			? /[?&]task=([A-Za-z0-9]{1,16})/.exec(debounced)?.[1]
+			: undefined;
 	const { data, loading } = useQuery(SEARCH, {
 		variables: { slug, q: debounced },
-		skip: !debounced,
+		skip: !debounced || !!linked,
 	});
-	const items =
-		kind === "task"
+	const byLink = useQuery(NOTE_EMBED, {
+		variables: { slug, kind: "task", id: linked ?? "" },
+		skip: !linked,
+	});
+	const found = byLink.data?.noteEmbed;
+	const items = linked
+		? found
+			? [
+					{
+						id: found.id,
+						name: found.title,
+						sub: found.sub ?? "",
+						icon: <StatusIcon status={found.status ?? "todo"} size={15} />,
+					},
+				]
+			: []
+		: kind === "task"
 			? (data?.search.tasks ?? []).map((t) => ({
 					id: t.id,
 					name: t.name,
@@ -79,7 +100,7 @@ export function ItemPicker({
 						<span className="r trunc">{it.sub}</span>
 					</button>
 				))}
-				{debounced && !loading && !items.length && (
+				{debounced && !loading && !byLink.loading && !items.length && (
 					<p className="faint">Nothing found.</p>
 				)}
 			</div>
