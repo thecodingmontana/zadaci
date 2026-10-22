@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
+import { NoteComments } from "#/components/notes/note-comments";
 import { NoteEditor } from "#/components/notes/note-editor";
 import { noteTitle, useCreateNote } from "#/components/notes/notes-tree";
 import { NotePageSkeleton } from "#/components/shell/page-skeletons";
@@ -54,6 +55,7 @@ function NotePage() {
 				live={live}
 				onAdd={() => void create(note.id)}
 			/>
+			<NoteComments slug={slug} note={note} />
 		</div>
 	);
 }

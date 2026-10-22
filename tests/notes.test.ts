@@ -87,6 +87,20 @@ test("comments quote a passage, take replies and can be resolved", async () => {
 	assert.equal(all.data?.note.comments.length, 2);
 });
 
+test("a comment is resolved by its author or someone with full access, not by any commenter", async () => {
+	const { owner, member, slug, inviteCode } = await setup();
+	const other = await makeUser("other");
+	await join(other, inviteCode);
+	const page = (await create(owner, slug, { title: "Plan" })).data?.createNote;
+	const seen = await gql(other, `query($s: String!, $id: ID!) { note(slug: $s, id: $id) { canComment canDelete } }`, { s: slug, id: page.id });
+	assert.deepEqual(seen.data?.note, { canComment: true, canDelete: false });
+	const c = (await gql(member, `mutation($s: String!, $n: ID!) { addNoteComment(slug: $s, noteId: $n, text: "Typo here") { id } }`, { s: slug, n: page.id })).data?.addNoteComment;
+	const RESOLVE = `mutation($s: String!, $id: ID!, $r: Boolean!) { resolveNoteComment(slug: $s, id: $id, resolved: $r) { resolved } }`;
+	assert.equal(code(await gql(other, RESOLVE, { s: slug, id: c.id, r: true })), "FORBIDDEN", "another commenter can't");
+	assert.equal((await gql(member, RESOLVE, { s: slug, id: c.id, r: true })).data?.resolveNoteComment.resolved, true, "the author can");
+	assert.equal((await gql(owner, RESOLVE, { s: slug, id: c.id, r: false })).data?.resolveNoteComment.resolved, false, "full access can reopen");
+});
+
 test("private pages and the pages inside them are only the author's; stars are per person", async () => {
 	const { owner, member, slug } = await setup();
 	const page = (await create(owner, slug, { title: "Diary" })).data?.createNote;

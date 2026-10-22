@@ -882,3 +882,21 @@ button.code-lang:hover {
 	outline-offset: 1px;
 	background: var(--q-surface-2);
 }
+
+/* ---- page comments ---- */
+.note-comments {
+	max-width: 740px;
+	margin: -80px auto 80px;
+	padding-top: 18px;
+	border-top: 1px solid var(--q-border);
+}
+.cmt.is-resolved {
+	opacity: 0.6;
+}
+.cmt-quote {
+	margin: 4px 0 0;
+	padding-left: 10px;
+	border-left: 2px solid var(--q-border);
+	color: var(--q-text-2);
+	font-size: var(--q-fs-sm);
+}

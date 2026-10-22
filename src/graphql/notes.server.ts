@@ -58,6 +58,7 @@ export const notesTypeDefs = /* GraphQL */ `
 		createdAt: String!
 		updatedAt: String!
 		canEdit: Boolean!
+		canComment: Boolean!
 		"the author and admins (or full access on the linked project) may delete"
 		canDelete: Boolean!
 		"only the author sees it"
@@ -273,6 +274,7 @@ const noteShape = (
 	createdAt: n.created_at.toISOString(),
 	updatedAt: n.updated_at.toISOString(),
 	canEdit: hasRight(right, "edit"),
+	canComment: hasRight(right, "comment"),
 	canDelete: hasRight(right, "full"),
 	isPrivate: n.private,
 	isFavorite,
@@ -840,7 +842,15 @@ export const notesResolvers = {
 					),
 				);
 			if (!comment) badInput("Comment not found");
-			await requireNote(ctx, args.slug, comment.entity_id, "comment");
+			const { workspace, right } = await requireNote(
+				ctx,
+				args.slug,
+				comment.entity_id,
+				"comment",
+			);
+			// your own comment, or anyone's with full access to the page
+			if (comment.author_id !== workspace.memberId && !hasRight(right, "full"))
+				forbidden();
 			await db
 				.update(tables.comment)
 				.set({ resolved_at: args.resolved ? new Date() : null })

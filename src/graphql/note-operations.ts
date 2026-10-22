@@ -18,6 +18,7 @@ export type NoteItem = {
 	createdAt: string;
 	updatedAt: string;
 	canEdit: boolean;
+	canComment: boolean;
 	canDelete: boolean;
 	isPrivate: boolean;
 	isFavorite: boolean;
@@ -48,6 +49,7 @@ export const NOTE_FIELDS = gql`
 		createdAt
 		updatedAt
 		canEdit
+		canComment
 		canDelete
 		isPrivate
 		isFavorite
@@ -265,5 +267,53 @@ export const UNSPLASH_ENABLED: TypedDocumentNode<
 > = gql`
 	query UnsplashEnabled {
 		unsplashEnabled
+	}
+`;
+
+const NOTE_COMMENT_FIELDS = gql`
+	fragment NoteCommentFields on TaskComment {
+		id
+		text
+		createdAt
+		author {
+			id
+			name
+			image
+		}
+		authorMemberId
+		isMine
+		reactions {
+			emoji
+			count
+			mine
+			names
+		}
+		quote
+		parentId
+		resolved
+	}
+`;
+
+export const ADD_NOTE_COMMENT: TypedDocumentNode<
+	{ addNoteComment: NoteComment },
+	{ slug: string; noteId: string; text: string }
+> = gql`
+	${NOTE_COMMENT_FIELDS}
+	mutation AddNoteComment($slug: String!, $noteId: ID!, $text: String!) {
+		addNoteComment(slug: $slug, noteId: $noteId, text: $text) {
+			...NoteCommentFields
+		}
+	}
+`;
+
+export const RESOLVE_NOTE_COMMENT: TypedDocumentNode<
+	{ resolveNoteComment: NoteComment },
+	{ slug: string; id: string; resolved: boolean }
+> = gql`
+	${NOTE_COMMENT_FIELDS}
+	mutation ResolveNoteComment($slug: String!, $id: ID!, $resolved: Boolean!) {
+		resolveNoteComment(slug: $slug, id: $id, resolved: $resolved) {
+			...NoteCommentFields
+		}
 	}
 `;
