@@ -342,3 +342,12 @@ export const NOTE_EMBED: TypedDocumentNode<
 		}
 	}
 `;
+
+export const EXPAND_MAP_LINK: TypedDocumentNode<
+	{ expandMapLink: string },
+	{ url: string }
+> = gql`
+	query ExpandMapLink($url: String!) {
+		expandMapLink(url: $url)
+	}
+`;

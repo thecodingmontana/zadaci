@@ -1,9 +1,12 @@
+import { useApolloClient } from "@apollo/client/react";
 import type { Editor } from "@tiptap/react";
 import { useEffect, useState } from "react";
 import { Modal } from "#/components/q/modal";
+import { EXPAND_MAP_LINK } from "#/graphql/note-operations";
 import {
 	EMBED_PROVIDERS,
 	isImageSrc,
+	isShortMapLink,
 	isYoutubeSrc,
 	toEmbed,
 } from "#/lib/note-embeds";
@@ -55,6 +58,7 @@ export function InsertDialog({
 	noteId: string;
 	editor: Editor;
 }) {
+	const client = useApolloClient();
 	const [kind, setKind] = useState<InsertKind | null>(null);
 	const [link, setLink] = useState("");
 
@@ -72,8 +76,22 @@ export function InsertDialog({
 		if (run()) close();
 	};
 
-	const submitLink = () => {
-		const url = link.trim();
+	const submitLink = async () => {
+		let url = link.trim();
+		if (kind === "embed" && isShortMapLink(url)) {
+			try {
+				const { data } = await client.query({
+					query: EXPAND_MAP_LINK,
+					variables: { url },
+					fetchPolicy: "no-cache",
+				});
+				url = data?.expandMapLink ?? url;
+			} catch (error) {
+				return toast.error("Couldn't open that map link", {
+					desc: (error as Error).message,
+				});
+			}
+		}
 		if (kind === "image") {
 			if (!isImageSrc(url))
 				return toast.error("Paste an https link to an image");

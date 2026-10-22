@@ -9,6 +9,30 @@ type Provider = {
 	isEmbed: (url: URL) => boolean;
 };
 
+/** A Google Maps link (a view, a place or a search) as an address the page may frame. */
+function mapEmbed(u: URL) {
+	if (!/^(www\.|maps\.)?google\.com$/.test(u.hostname)) return null;
+	if (u.pathname === "/maps/embed") return u.href;
+	if (!u.pathname.startsWith("/maps") && u.hostname !== "maps.google.com")
+		return null;
+	// "/maps/@-1.28,36.72,15z" or "…/place/Mombasa/@-4.04,39.66,12z/…"
+	const at = u.pathname.match(
+		/@(-?\d+\.?\d*),(-?\d+\.?\d*)(?:,(\d+(?:\.\d+)?)z)?/,
+	);
+	const name = u.pathname.match(/\/(?:place|search)\/([^/]+)/)?.[1];
+	const q = name
+		? decodeURIComponent(name.replace(/\+/g, " "))
+		: (u.searchParams.get("q") ?? (at ? `${at[1]},${at[2]}` : null));
+	if (!q) return null;
+	const zoom = at?.[3] ? Math.round(Number(at[3])) : 14;
+	// the keyless embed page Google itself redirects "?q=…&output=embed" to
+	return `https://www.google.com/maps/embed?origin=mfe&pb=!1m3!2m1!1s${encodeURIComponent(q)}!6i${zoom}`;
+}
+
+/** Google's short map links, which have to be followed to the full link before embedding. */
+export const isShortMapLink = (link: string) =>
+	/^https:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//.test(link.trim());
+
 const PROVIDERS: Provider[] = [
 	{
 		name: "Vimeo",
@@ -72,11 +96,8 @@ const PROVIDERS: Provider[] = [
 	},
 	{
 		name: "Google Maps",
-		// share links can't be framed; the "Embed a map" code's address can
-		toEmbed: (u) =>
-			u.hostname === "www.google.com" && u.pathname === "/maps/embed"
-				? u.href
-				: null,
+		// share links can't be framed, so a place or a view becomes the keyless embed address
+		toEmbed: mapEmbed,
 		isEmbed: (u) =>
 			u.hostname === "www.google.com" && u.pathname === "/maps/embed",
 	},

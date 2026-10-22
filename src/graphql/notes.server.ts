@@ -16,6 +16,7 @@ import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
 import { isCover } from "#/lib/note-covers";
 import { checkDoc } from "#/lib/note-doc";
+import { isShortMapLink } from "#/lib/note-embeds";
 import { can, hasRight, type ProjectRight } from "#/lib/permissions";
 import { visibleBookmarks } from "./bookmarks.server";
 import { viewerRight } from "./projects.server";
@@ -109,6 +110,8 @@ export const notesTypeDefs = /* GraphQL */ `
 	}
 
 	extend type Query {
+		"the full Google Maps link behind a maps.app.goo.gl short link, so it can be embedded"
+		expandMapLink(url: String!): String!
 		"null when the item is gone or the viewer can't see it"
 		noteEmbed(slug: String!, kind: String!, id: ID!): NoteEmbed
 	}
@@ -414,6 +417,36 @@ export const notesResolvers = {
 			),
 	},
 	Query: {
+		expandMapLink: async (
+			_: unknown,
+			args: { url: string },
+			ctx: GraphQLContext,
+		) => {
+			requireUser(ctx);
+			if (!isShortMapLink(args.url))
+				badInput("That isn't a Google Maps short link");
+			// follows only Google's own redirects, so this can't be used to fetch other sites
+			let link = args.url.trim();
+			for (let hop = 0; hop < 5; hop++) {
+				const res = await fetch(link, {
+					redirect: "manual",
+					signal: AbortSignal.timeout(5000),
+				}).catch(() => null);
+				const next = res?.headers.get("location");
+				if (!next) break;
+				const url = new URL(next, link);
+				if (
+					url.protocol !== "https:" ||
+					!/(^|\.)(google\.com|goo\.gl)$/.test(url.hostname)
+				)
+					break;
+				link = url.href;
+				if (/^(www\.|maps\.)?google\.com$/.test(url.hostname)) return link;
+			}
+			badInput(
+				"Couldn't open that map link. Try the full link from your browser bar.",
+			);
+		},
 		noteEmbed: async (
 			_: unknown,
 			args: { slug: string; kind: string; id: string },

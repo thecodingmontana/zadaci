@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isEmbedSrc, isImageSrc, isYoutubeSrc, toEmbed } from "./note-embeds";
+import {
+	isEmbedSrc,
+	isImageSrc,
+	isShortMapLink,
+	isYoutubeSrc,
+	toEmbed,
+} from "./note-embeds";
 
 test("share links become provider embed addresses; anything else isn't embedded", () => {
 	assert.deepEqual(toEmbed("https://vimeo.com/76979871"), {
@@ -47,4 +53,38 @@ test("only allowed embed, YouTube and image addresses are stored", () => {
 	);
 	assert.equal(isImageSrc('https://x.com/a.png" onerror="alert(1)'), false);
 	assert.equal(isImageSrc("javascript:alert(1)"), false);
+});
+
+test("Google Maps views, places and searches embed without an API key", () => {
+	const src = (link: string) => toEmbed(link)?.src;
+	assert.equal(
+		src("https://www.google.com/maps/@-1.2889853,36.7280684,15z?entry=ttu"),
+		"https://www.google.com/maps/embed?origin=mfe&pb=!1m3!2m1!1s-1.2889853%2C36.7280684!6i15",
+	);
+	assert.equal(
+		src(
+			"https://www.google.com/maps/place/Mombasa/@-4.0435,39.6682,12z/data=!4m2",
+		),
+		"https://www.google.com/maps/embed?origin=mfe&pb=!1m3!2m1!1sMombasa!6i12",
+	);
+	assert.equal(
+		src("https://maps.google.com/?q=Nairobi"),
+		"https://www.google.com/maps/embed?origin=mfe&pb=!1m3!2m1!1sNairobi!6i14",
+	);
+	assert.equal(
+		src("https://www.google.com/search?q=maps"),
+		undefined,
+		"only maps pages",
+	);
+	assert.ok(
+		isEmbedSrc(
+			"https://www.google.com/maps/embed?origin=mfe&pb=!1m3!2m1!1sMombasa!6i12",
+		),
+	);
+	assert.ok(
+		!isEmbedSrc("https://www.google.com/maps?q=Mombasa"),
+		"a normal maps page can't be framed",
+	);
+	assert.ok(isShortMapLink("https://maps.app.goo.gl/KdDu6LmSXCpxKRx67"));
+	assert.ok(!isShortMapLink("https://bit.ly/abc"));
 });

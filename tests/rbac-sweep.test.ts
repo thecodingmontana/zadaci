@@ -33,6 +33,7 @@ const ACCOUNT_LEVEL = new Set([
 	"subscribePush",
 	"unsubscribePush",
 	"testPush",
+	"expandMapLink",
 ]);
 
 function value(type: GraphQLInputType, slug: string, name: string): unknown {
