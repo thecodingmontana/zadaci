@@ -1,7 +1,8 @@
 import { costLimitPlugin } from "@escape.tech/graphql-armor-cost-limit";
 import { maxAliasesPlugin } from "@escape.tech/graphql-armor-max-aliases";
 import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth";
-import { createSchema, createYoga } from "graphql-yoga";
+import { GraphQLError } from "graphql";
+import { createSchema, createYoga, useErrorHandler } from "graphql-yoga";
 import { auth } from "#/lib/auth";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
 import { bookmarksResolvers, bookmarksTypeDefs } from "./bookmarks.server";
@@ -63,12 +64,26 @@ export const schema = createSchema<GraphQLContext>({
 	],
 });
 
+/** A bug rather than an expected refusal: anything not thrown on purpose as a GraphQLError. */
+export const isUnexpected = (error: GraphQLError) =>
+	!!error.originalError && !(error.originalError instanceof GraphQLError);
+
 export const yoga = createYoga<object, GraphQLContext>({
 	schema,
 	plugins: [
 		maxAliasesPlugin({ n: LIMITS.aliases }),
 		maxDepthPlugin({ n: LIMITS.depth }),
 		costLimitPlugin({ maxCost: LIMITS.cost }),
+		// unexpected errors reach Vercel's logs; "forbidden", "not found" and bad input don't
+		// biome-ignore lint/correctness/useHookAtTopLevel: a Yoga plugin factory, not a React hook
+		useErrorHandler(({ errors }) => {
+			for (const error of errors)
+				if (error instanceof GraphQLError && isUnexpected(error))
+					console.error(
+						`[graphql] ${error.path?.join(".") ?? "request"}:`,
+						error.originalError?.stack ?? error.message,
+					);
+		}),
 	],
 	graphqlEndpoint: "/api/graphql",
 	graphiql: process.env.NODE_ENV !== "production",

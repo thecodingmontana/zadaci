@@ -3,6 +3,8 @@ import {
 	Link,
 	useRouter,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { reportError } from "#/lib/report-error";
 
 // Full-page states from the reference (pages/errors.js): a missing page, and a page that
 // failed to load. The access-denied state lives on the project page, where it knows the project.
@@ -48,8 +50,9 @@ export function PageNotFound() {
 }
 
 /** Any error a page throws while loading or rendering (the 500 state). */
-export function PageFailed({ reset }: ErrorComponentProps) {
+export function PageFailed({ error, reset }: ErrorComponentProps) {
 	const router = useRouter();
+	useEffect(() => reportError(error), [error]);
 	return (
 		<div className="fullstate">
 			<div className="box">

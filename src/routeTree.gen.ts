@@ -14,6 +14,7 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthedOnboardingRouteImport } from './routes/_authed/onboarding'
+import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiGraphqlRouteImport } from './routes/api/graphql'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
 import { Route as AuthedJoinCodeRouteImport } from './routes/_authed/join.$code'
@@ -67,6 +68,11 @@ const AuthedOnboardingRoute = AuthedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
   getParentRoute: () => AuthedRoute,
+} as any)
+const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
+  id: '/api/client-error',
+  path: '/api/client-error',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGraphqlRoute = ApiGraphqlRouteImport.update({
   id: '/api/graphql',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/onboarding': typeof AuthedOnboardingRoute
+  '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
   '/join/$code': typeof AuthedJoinCodeRoute
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/onboarding': typeof AuthedOnboardingRoute
+  '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
   '/join/$code': typeof AuthedJoinCodeRoute
@@ -292,6 +300,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authed/onboarding': typeof AuthedOnboardingRoute
+  '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
   '/_authed/join/$code': typeof AuthedJoinCodeRoute
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/onboarding'
+    | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
     | '/join/$code'
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/onboarding'
+    | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
     | '/join/$code'
@@ -399,6 +410,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/_authed/onboarding'
+    | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
     | '/_authed/join/$code'
@@ -435,6 +447,7 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiGraphqlRoute: typeof ApiGraphqlRoute
   AuthSigninRoute: typeof AuthSigninRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -478,6 +491,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthedOnboardingRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/api/client-error': {
+      id: '/api/client-error'
+      path: '/api/client-error'
+      fullPath: '/api/client-error'
+      preLoaderRoute: typeof ApiClientErrorRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/graphql': {
       id: '/api/graphql'
@@ -759,6 +779,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiClientErrorRoute: ApiClientErrorRoute,
   ApiGraphqlRoute: ApiGraphqlRoute,
   AuthSigninRoute: AuthSigninRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
