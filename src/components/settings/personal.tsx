@@ -43,7 +43,11 @@ const NOTIF_SECTIONS: Record<
 			["push_mention", "Mentions"],
 			["push_assign", "Assignments"],
 			["push_comment", "Comments"],
-			["push_due", "Due date reminders", "One day before a task is due."],
+			[
+				"push_due",
+				"Due date reminders",
+				"The day before and the morning a task is due.",
+			],
 		],
 	},
 	"notif-mentions": {

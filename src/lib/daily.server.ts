@@ -71,11 +71,11 @@ export async function runDaily(now = new Date()) {
 			.returning({ day: tables.daily_sent.day });
 		if (!claimed.length) continue;
 		result.people++;
-		result.reminders += await remindDueTomorrow(
-			person.id,
-			clock.day,
-			prefs?.notif?.push_due ?? PREF_DEFAULTS.notif.push_due,
-		);
+		const notif = { ...PREF_DEFAULTS.notif, ...prefs?.notif };
+		result.reminders += await remindDue(person.id, clock.day, {
+			push: notif.push_due,
+			overdue: notif.assign_over,
+		});
 		const digestOn =
 			prefs?.notif?.email_digest ?? PREF_DEFAULTS.notif.email_digest;
 		if (digestOn && !clock.weekend) {
@@ -87,17 +87,32 @@ export async function runDaily(now = new Date()) {
 	return result;
 }
 
-/** Adds an inbox reminder for each open task assigned to this person that's due tomorrow. */
-async function remindDueTomorrow(userId: string, today: string, push: boolean) {
+// which reminder a due date gets, by its distance from today in days: -1 means it went overdue yesterday
+export const DUE_REMINDER: Record<number, { text: string; title: string }> = {
+	1: { text: "is due tomorrow", title: "Due tomorrow" },
+	0: { text: "is due today", title: "Due today" },
+	[-1]: { text: "is overdue", title: "Overdue" },
+};
+
+/**
+ * Inbox reminders for this person's open tasks due tomorrow or today, and for ones that became
+ * overdue yesterday (once, so a late task doesn't nag every morning).
+ */
+async function remindDue(
+	userId: string,
+	today: string,
+	on: { push: boolean; overdue: boolean },
+) {
 	// due dates are stored as UTC midnight of the chosen day
-	const tomorrow = fromDay(today).getTime() + DAY_MS;
-	const due = await db
+	const start = fromDay(today).getTime();
+	const rows = await db
 		.select({
 			task_id: tables.task.id,
 			project_id: tables.task.project_id,
 			workspace_id: tables.workspace_members.workspace_id,
 			name: tables.task.name,
 			slug: tables.workspace.slug,
+			due: tables.task.due_date,
 		})
 		.from(tables.task_assignees)
 		.innerJoin(
@@ -119,27 +134,36 @@ async function remindDueTomorrow(userId: string, today: string, push: boolean) {
 				isNull(tables.task.completed_at),
 				isNull(tables.task.archived_at),
 				isNull(tables.project.deleted_at),
-				gte(tables.task.due_date, new Date(tomorrow)),
-				lt(tables.task.due_date, new Date(tomorrow + DAY_MS)),
+				gte(tables.task.due_date, new Date(start - DAY_MS)),
+				lt(tables.task.due_date, new Date(start + 2 * DAY_MS)),
 			),
 		);
+	const due = rows
+		.map((t) => ({
+			...t,
+			kind: DUE_REMINDER[
+				Math.round(((t.due?.getTime() ?? 0) - start) / DAY_MS)
+			],
+			late: (t.due?.getTime() ?? 0) < start,
+		}))
+		.filter((t) => t.kind && (!t.late || on.overdue));
 	if (!due.length) return 0;
 	await db.insert(tables.notification).values(
 		due.map((t) => ({
 			user_id: userId,
 			type: "update",
-			text: "is due tomorrow",
+			text: t.kind.text,
 			task_id: t.task_id,
 			project_id: t.project_id,
 			workspace_id: t.workspace_id,
 		})),
 	);
-	if (push) {
+	if (on.push) {
 		const appUrl = (process.env.BETTER_AUTH_URL ?? SITE_URL).replace(/\/$/, "");
 		await sendPushes(
 			due.map((t) => ({
 				userId,
-				title: "Due tomorrow",
+				title: t.kind.title,
 				body: t.name,
 				url: `${appUrl}/w/${t.slug}/p/${t.project_id}?task=${t.task_id}`,
 				tag: t.task_id,
