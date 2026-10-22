@@ -5,7 +5,7 @@ import {
 	notFound,
 	redirect,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { ActivityItem } from "#/components/activity/activity-item";
 import { PIcon, projectColor, StatusMenu } from "#/components/projects/bits";
@@ -124,6 +124,13 @@ function ProjectPage() {
 	const savedView = project.savedViews.find((v) => tab === `v:${v.id}`);
 	const activity = feed?.workspace?.activity ?? [];
 
+	// on a phone the tab strip scrolls: keep the open view's tab in sight
+	const tabsRef = useRef<HTMLElement>(null);
+	useEffect(() => {
+		tabsRef.current
+			?.querySelector('[aria-current="page"]')
+			?.scrollIntoView({ block: "nearest", inline: "nearest" });
+	}, [tab]);
 	return (
 		<div className="page flush">
 			<div className="proj-h">
@@ -279,7 +286,7 @@ function ProjectPage() {
 						/>
 					</div>
 				</div>
-				<nav className="tabs" aria-label="Project views">
+				<nav className="tabs" aria-label="Project views" ref={tabsRef}>
 					{PROJECT_PAGE_TABS.map((t) => (
 						<Link
 							key={t.tab}

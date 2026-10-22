@@ -32,11 +32,28 @@ export function ShellProvider({
 }) {
 	const [collapsed, setCollapsed] = useState(defaultCollapsed);
 	const [mnav, setMnav] = useState(false);
-	const pathname = useRouterState({ select: (s) => s.location.pathname });
+	const href = useRouterState({ select: (s) => s.location.href });
 
-	// The drawer closes after navigating, like the reference app.
+	// The drawer closes after navigating, like the reference app (a Settings section or a
+	// task opening only changes the search part, so that counts too).
 	// biome-ignore lint/correctness/useExhaustiveDependencies: run on route change only
-	useEffect(() => setMnav(false), [pathname]);
+	useEffect(() => setMnav(false), [href]);
+
+	// ...and after any link or menu action in it, even one that stays on this page or opens a
+	// dialog. Toggles (expand a section) are plain buttons, so they keep it open.
+	useEffect(() => {
+		if (!mnav) return;
+		const close = (e: MouseEvent) => {
+			const el = e.target as Element | null;
+			if (
+				el?.closest('[role="menuitem"], [role="menuitemradio"]') ||
+				el?.closest(".side")?.contains(el.closest("a[href]"))
+			)
+				setMnav(false);
+		};
+		document.addEventListener("click", close);
+		return () => document.removeEventListener("click", close);
+	}, [mnav]);
 
 	const toggleSide = () => {
 		// On phones the sidebar is a drawer; on desktop it collapses to icons.

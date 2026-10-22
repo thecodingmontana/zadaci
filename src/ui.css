@@ -3631,6 +3631,15 @@ table.tbl {
 .cday:nth-child(7n) {
   border-right: 0;
 }
+/* the outer columns line up with the page's side margin, like the table's first column */
+.cal-h div:first-child,
+.cday:nth-child(7n + 1) {
+  padding-left: var(--q-gutter);
+}
+.cal-h div:last-child,
+.cday:nth-child(7n) {
+  padding-right: var(--q-gutter);
+}
 .cday.out {
   background: var(--q-sunken);
 }
@@ -4770,11 +4779,12 @@ button.tl-row {
   .cal-g {
     grid-auto-rows: minmax(72px, 1fr);
   }
-  .cev .trunc,
-  .cev .av {
+  /* inside a month's day cells chips shrink to bars; the unscheduled tray keeps names */
+  .cday .cev .trunc,
+  .cday .cev .av {
     display: none;
   }
-  .cev {
+  .cday .cev {
     height: 8px;
     padding: 0;
     border-radius: 3px;
