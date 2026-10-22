@@ -82,7 +82,14 @@ export const Embed = Node.create({
 });
 
 /** Media blocks ask for a link (or a file) first; the editor listens for this. */
-export type InsertKind = "image" | "youtube" | "embed" | "task" | "bookmark";
+export type InsertKind =
+	| "image"
+	| "youtube"
+	| "embed"
+	| "task"
+	| "bookmark"
+	| "project"
+	| "link";
 export const INSERT_EVENT = "zadaci:note-insert";
 export const requestInsert = (kind: InsertKind) =>
 	window.dispatchEvent(new CustomEvent(INSERT_EVENT, { detail: kind }));

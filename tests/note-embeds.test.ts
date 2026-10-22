@@ -33,12 +33,20 @@ test("pages store task and bookmark cards, and each reader sees only what they m
 	assert.equal((await gql(member, EMBED, { s: slug, k: "bookmark", id: secret.id })).data?.noteEmbed, null, "private bookmarks show as no access");
 	assert.equal((await gql(owner, EMBED, { s: slug, k: "bookmark", id: secret.id })).data?.noteEmbed.title, "Secret");
 
+	const p = (await gql(member, EMBED, { s: slug, k: "project", id: project.id })).data?.noteEmbed;
+	assert.deepEqual(p, { title: project.title, sub: "Planning", href: `/w/${slug}/p/${project.id}` }, "project cards show the project's status");
+
 	const outsider = await makeUser("outsider");
 	assert.ok((await gql(outsider, EMBED, { s: slug, k: "task", id: task.id })).errors, "outsiders get nothing");
 });
 
-test("only well-formed task and bookmark cards are saved", () => {
+test("only well-formed item cards and link cards are saved", () => {
 	assert.doesNotThrow(() => checkDoc(page({ kind: "bookmark", id: "abc123" })));
-	assert.throws(() => checkDoc(page({ kind: "project", id: "abc123" })), /can't be shown/);
+	assert.throws(() => checkDoc(page({ kind: "invoice", id: "abc123" })), /can't be shown/);
 	assert.throws(() => checkDoc(page({ kind: "task", id: "<script>" })), /can't be shown/);
+	assert.doesNotThrow(() => checkDoc(page({ kind: "project", id: "abc123" })));
+	const card = (attrs: Record<string, unknown>) => ({ type: "doc", content: [{ type: "linkCard", attrs }] });
+	assert.doesNotThrow(() => checkDoc(card({ url: "http://example.com/a", title: "A", site: "Example", image: "https://example.com/a.png" })));
+	assert.throws(() => checkDoc(card({ url: "javascript:alert(1)" })), /link can't be shown/);
+	assert.throws(() => checkDoc(card({ url: "https://example.com", image: "http://insecure.example/a.png" })), /link can't be shown/);
 });

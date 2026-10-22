@@ -7,6 +7,7 @@ import {
 	NodeViewWrapper,
 	ReactNodeViewRenderer,
 } from "@tiptap/react";
+import { projectColor } from "#/components/projects/bits";
 import { StatusIcon } from "#/components/q/status-icon";
 import { NOTE_EMBED } from "#/graphql/note-operations";
 
@@ -14,6 +15,13 @@ import { NOTE_EMBED } from "#/graphql/note-operations";
 // The page only stores { kind, id }; each reader sees the item as they're allowed to.
 
 const safeLink = (href: string) => /^https?:\/\//i.test(href);
+const hostOf = (href: string) => {
+	try {
+		return new URL(href).hostname;
+	} catch {
+		return href;
+	}
+};
 
 function ItemEmbedView({ node, extension }: NodeViewProps) {
 	const { kind, id } = node.attrs as { kind: string; id: string };
@@ -26,6 +34,11 @@ function ItemEmbedView({ node, extension }: NodeViewProps) {
 	const icon =
 		kind === "task" ? (
 			<StatusIcon status={item?.status ?? "todo"} size={15} />
+		) : kind === "project" ? (
+			<span
+				className="pdot"
+				style={{ "--c": projectColor(item?.status) } as React.CSSProperties}
+			/>
 		) : (
 			<span
 				className="icon-[solar--bookmark-linear] size-[15px]"
@@ -47,7 +60,7 @@ function ItemEmbedView({ node, extension }: NodeViewProps) {
 				<span className="item-embed is-empty" contentEditable={false}>
 					{body}
 				</span>
-			) : kind === "task" ? (
+			) : kind !== "bookmark" ? (
 				<Link className="item-embed" to={item.href} contentEditable={false}>
 					{body}
 				</Link>
@@ -104,5 +117,69 @@ export const ItemEmbed = Node.create<{ slug: string }>({
 	},
 	addNodeView() {
 		return ReactNodeViewRenderer(ItemEmbedView);
+	},
+});
+
+/** A link pasted into a page as a card: the page's title, site and image (read once, when added). */
+function LinkCardView({ node }: NodeViewProps) {
+	const { url, title, site, image } = node.attrs as {
+		url: string;
+		title: string | null;
+		site: string | null;
+		image: string | null;
+	};
+	return (
+		<NodeViewWrapper className="item-embed-wrap" data-drag-handle>
+			<a
+				className="link-card"
+				href={safeLink(url) ? url : undefined}
+				target="_blank"
+				rel="noopener noreferrer"
+				contentEditable={false}
+			>
+				<span className="link-card-text">
+					<span className="item-embed-title">{title || url}</span>
+					<span className="item-embed-sub">
+						{site || hostOf(url)}
+					</span>
+				</span>
+				{image && <img src={image} alt="" loading="lazy" />}
+			</a>
+		</NodeViewWrapper>
+	);
+}
+
+export const LinkCard = Node.create({
+	name: "linkCard",
+	group: "block",
+	atom: true,
+	draggable: true,
+	addAttributes() {
+		return {
+			url: { default: "" },
+			title: { default: null },
+			site: { default: null },
+			image: { default: null },
+		};
+	},
+	parseHTML() {
+		return [
+			{
+				tag: 'div[data-type="link-card"]',
+				getAttrs: (el) => ({ url: el.getAttribute("data-url") }),
+			},
+		];
+	},
+	renderHTML({ node, HTMLAttributes }) {
+		return [
+			"div",
+			mergeAttributes(HTMLAttributes, {
+				"data-type": "link-card",
+				"data-url": node.attrs.url,
+			}),
+		];
+	},
+	addNodeView() {
+		return ReactNodeViewRenderer(LinkCardView);
 	},
 });

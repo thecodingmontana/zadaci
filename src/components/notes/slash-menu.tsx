@@ -164,6 +164,28 @@ export const SLASH_COMMANDS: Command[] = [
 	},
 	{
 		group: "Advanced",
+		title: "Project",
+		alias: "folder link embed",
+		hint: "Show a project as a live card",
+		icon: "icon-[hugeicons--folder-01]",
+		run: (c) => {
+			requestInsert("project");
+			return c;
+		},
+	},
+	{
+		group: "Media",
+		title: "Link",
+		alias: "url web preview card bookmark",
+		hint: "Any web page as a preview card",
+		icon: "icon-[hugeicons--link-01]",
+		run: (c) => {
+			requestInsert("link");
+			return c;
+		},
+	},
+	{
+		group: "Advanced",
 		title: "Table",
 		alias: "grid rows columns",
 		hint: "A simple table",

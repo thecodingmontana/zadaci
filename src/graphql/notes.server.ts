@@ -18,6 +18,7 @@ import { isCover } from "#/lib/note-covers";
 import { checkDoc } from "#/lib/note-doc";
 import { isShortMapLink } from "#/lib/note-embeds";
 import { can, hasRight, type ProjectRight } from "#/lib/permissions";
+import { pstat } from "#/lib/projects";
 import { visibleBookmarks } from "./bookmarks.server";
 import { viewerRight } from "./projects.server";
 import {
@@ -104,6 +105,7 @@ export const notesTypeDefs = /* GraphQL */ `
 		title: String!
 		"the project of a task, the site of a bookmark"
 		sub: String
+		"a task's status; a project's colour"
 		status: String
 		"where the card opens: a task in the app, or the bookmark's link"
 		href: String!
@@ -484,6 +486,34 @@ export const notesResolvers = {
 							sub: t.project,
 							status: t.status,
 							href: `/w/${args.slug}/p/${t.projectId}?task=${t.id}`,
+						}
+					: null;
+			}
+			if (args.kind === "project") {
+				const [p] = await db
+					.select({
+						id: tables.project.id,
+						title: tables.project.title,
+						status: tables.project.status,
+						color: tables.project.color,
+					})
+					.from(tables.project)
+					.where(
+						and(
+							eq(tables.project.id, args.id),
+							eq(tables.project.workspace_id, workspace.id),
+							isNull(tables.project.deleted_at),
+							projectScope(workspace),
+						),
+					);
+				return p
+					? {
+							kind: "project",
+							id: p.id,
+							title: p.title,
+							sub: pstat(p.status).name,
+							status: p.color,
+							href: `/w/${args.slug}/p/${p.id}`,
 						}
 					: null;
 			}

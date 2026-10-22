@@ -948,3 +948,42 @@ a.item-embed:hover {
 	overflow-y: auto;
 	margin: 8px 0;
 }
+.link-card {
+	display: flex;
+	align-items: stretch;
+	gap: 14px;
+	border: 1px solid var(--q-border);
+	border-radius: var(--q-r-sm);
+	background: var(--q-surface);
+	color: var(--q-text);
+	text-decoration: none;
+	overflow: hidden;
+	transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.link-card:hover {
+	background: var(--q-surface-2);
+	border-color: color-mix(in srgb, var(--q-accent) 35%, var(--q-border));
+}
+.link-card-text {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 3px;
+	min-width: 0;
+	flex: 1;
+	padding: 12px 14px;
+}
+.link-card-text .item-embed-sub {
+	margin-left: 0;
+}
+.link-card img {
+	width: 132px;
+	max-height: 86px;
+	object-fit: cover;
+	flex: none;
+}
+@media (max-width: 640px) {
+	.link-card img {
+		width: 88px;
+	}
+}

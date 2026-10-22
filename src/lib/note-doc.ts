@@ -31,9 +31,10 @@ const NODES = new Set([
 	"detailsSummary",
 	"detailsContent",
 	"itemEmbed",
+	"linkCard",
 ]);
 /** a task or bookmark shown as a live card; the viewer's access is checked when it's shown */
-export const EMBED_KINDS = ["task", "bookmark"] as const;
+export const EMBED_KINDS = ["task", "bookmark", "project"] as const;
 /** blocks that load something from elsewhere, and which addresses they may use */
 const SOURCES: Record<string, (src: unknown) => boolean> = {
 	image: isImageSrc,
@@ -111,6 +112,21 @@ function walk(node: unknown, out: string[], depth: number): DocNode {
 		)
 	)
 		throw new Error("That embed can't be shown in a note");
+	if (n.type === "linkCard") {
+		const text = (v: unknown) =>
+			v == null || (typeof v === "string" && v.length <= 300);
+		if (
+			!(
+				typeof attrs?.url === "string" &&
+				attrs.url.length <= 2000 &&
+				/^https?:\/\/[^\s"'<>\\]+$/i.test(attrs.url)
+			) ||
+			!(attrs.image == null || attrs.image === "" || isImageSrc(attrs.image)) ||
+			!text(attrs.title) ||
+			!text(attrs.site)
+		)
+			throw new Error("That link can't be shown in a note");
+	}
 	return {
 		type: n.type,
 		...(n.text !== undefined && { text: n.text }),
