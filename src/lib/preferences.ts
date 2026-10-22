@@ -153,7 +153,7 @@ export const workspaceSettingsPatch = z
 	})
 	.partial()
 	.strict();
-// shortcut: permPublic is stored only; enforce it when public share links exist
+// permPublic: public share links (graphql/share.server) only work while it is on
 export const WS_SETTINGS_DEFAULTS = {
 	permCreate: true,
 	permGuests: true,

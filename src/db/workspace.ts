@@ -108,3 +108,38 @@ export const workspace_invite_request = pgTable(
 		index("workspace_invite_invited_by_idx").on(table.invited_by),
 	],
 );
+
+// A read-only public link to a page or a project board (Share → Public link). Only works while
+// the workspace allows public links (settings.permPublic); revoking keeps the row for history.
+export const share_link = pgTable(
+	"share_link",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		workspace_id: varchar("workspace_id", { length: 16 })
+			.notNull()
+			.references(() => workspace.id, { onDelete: "cascade" }),
+		// note | project
+		entity_type: varchar("entity_type", { length: 16 }).notNull(),
+		entity_id: varchar("entity_id", { length: 16 }).notNull(),
+		token: varchar("token", { length: 32 }).notNull(),
+		created_by: varchar("created_by", { length: 16 }).notNull(),
+		revoked_at: timestamp("revoked_at", {
+			mode: "date",
+			precision: 3,
+			withTimezone: true,
+		}),
+		created_at: timestamp("created_at", {
+			mode: "date",
+			precision: 3,
+			withTimezone: true,
+		})
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("share_link_token_idx").on(table.token),
+		index("share_link_entity_idx").on(table.entity_type, table.entity_id),
+	],
+);
