@@ -125,8 +125,26 @@ export const bookmarksTypeDefs = /* GraphQL */ `
 		linkPreview(slug: String!, url: String!): LinkPreview!
 	}
 
+	input ImportedBookmark {
+		url: String!
+		title: String
+		"the browser folder it was in; it becomes a tag"
+		tag: String
+	}
+
+	type ImportResult {
+		added: Int!
+		skipped: Int!
+	}
+
 	extend type Mutation {
 		createBookmark(slug: String!, input: NewBookmark!): Bookmark!
+		"adds links from a browser's bookmark export; links already saved are skipped"
+		importBookmarks(
+			slug: String!
+			items: [ImportedBookmark!]!
+			collectionId: ID
+		): ImportResult!
 		updateBookmark(slug: String!, id: ID!, patch: BookmarkPatch!): Bookmark!
 		"puts the bookmark in exactly these collections (ones the viewer can't see stay as they are)"
 		moveBookmark(slug: String!, id: ID!, collectionIds: [ID!]!): Bookmark!
@@ -161,6 +179,8 @@ const NAME = z
 	.max(100, "Keep names under 100 characters");
 const ICON = z.string().trim().max(16).nullable();
 const KIND = z.enum(["article", "document", "video"]);
+// one browser export at a time; bigger ones are split by the client
+const MAX_IMPORT = 1000;
 const TAGS = z
 	.array(
 		z
@@ -592,6 +612,79 @@ export const bookmarksResolvers = {
 		},
 	},
 	Mutation: {
+		importBookmarks: async (
+			_: unknown,
+			args: {
+				slug: string;
+				items: { url: string; title?: string | null; tag?: string | null }[];
+				collectionId?: string | null;
+			},
+			ctx: GraphQLContext,
+		) => {
+			if (args.items.length > MAX_IMPORT)
+				badInput(`Import up to ${MAX_IMPORT} links at a time`);
+			const { workspace } = await workspaceOf(ctx, args.slug);
+			const { rights } = await collectionsOf(workspace);
+			const collectionIds = editable(
+				args.collectionId ? [args.collectionId] : [],
+				rights,
+			);
+			// same rule as adding one: guests only add into a collection they can edit
+			if (
+				!collectionIds.length &&
+				!can(workspace.role, "workspaceContent", workspace.settings)
+			)
+				forbidden();
+			const saved = new Set(
+				(
+					await db
+						.select({ url: tables.bookmark.url })
+						.from(tables.bookmark)
+						.where(
+							and(
+								eq(tables.bookmark.workspace_id, workspace.id),
+								isNull(tables.bookmark.deleted_at),
+							),
+						)
+				).map((b) => b.url),
+			);
+			const rows: (typeof tables.bookmark.$inferInsert)[] = [];
+			for (const item of args.items) {
+				const url = cleanUrl(item.url);
+				if (!url || saved.has(url)) continue;
+				saved.add(url);
+				const host = new URL(url).hostname.replace(/^www\./, "");
+				const title = TITLE.safeParse(item.title ?? "");
+				const tag = item.tag ? TAGS.safeParse([item.tag]) : null;
+				rows.push({
+					workspace_id: workspace.id,
+					url,
+					title: title.success ? title.data : host,
+					site: host,
+					kind: "article",
+					tags: tag?.success ? tag.data : [],
+					created_by: workspace.memberId ?? "",
+				});
+			}
+			if (rows.length)
+				await db.transaction(async (tx) => {
+					const ids = await tx
+						.insert(tables.bookmark)
+						.values(rows)
+						.returning({ id: tables.bookmark.id });
+					if (collectionIds.length)
+						await tx.insert(tables.bookmark_collections).values(
+							ids.flatMap(({ id }) =>
+								collectionIds.map((collection_id) => ({
+									bookmark_id: id,
+									collection_id,
+								})),
+							),
+						);
+				});
+			return { added: rows.length, skipped: args.items.length - rows.length };
+		},
+
 		createBookmark: async (
 			_: unknown,
 			args: {

@@ -16,11 +16,14 @@ import {
 	BOOKMARKS,
 	type BookmarkItem,
 	DELETE_BOOKMARK,
+	IMPORT_BOOKMARKS,
 } from "#/graphql/bookmark-operations";
 import { NOTES } from "#/graphql/note-operations";
 import { SHELL } from "#/graphql/operations";
+import { parseBookmarkExport } from "#/lib/export";
 import { can } from "#/lib/permissions";
 import { toast } from "#/lib/toast";
+import { cn } from "#/lib/utils";
 import type { SectionProps } from "./general";
 import { SBlock, SettingsHeader, SRow } from "./ui";
 
@@ -147,6 +150,12 @@ export function BookmarksSection({ slug, workspace, title }: SectionProps) {
 				>
 					Open bookmarks
 				</Link>
+			</SRow>
+			<SRow
+				t="Import from your browser"
+				d="Export your bookmarks from Chrome, Firefox, Safari or Edge as an HTML file, then pick it here. Folders become tags; links you already saved are skipped."
+			>
+				<BookmarkImport slug={slug} />
 			</SRow>
 			<SRow
 				t="Save from any page"
@@ -327,5 +336,72 @@ function Bookmarklet({ slug }: { slug: string }) {
 			/>
 			Save to Zadaci
 		</a>
+	);
+}
+
+/** Reads a browser's bookmark export and adds its links, a thousand at a time. */
+function BookmarkImport({ slug }: { slug: string }) {
+	const input = useRef<HTMLInputElement>(null);
+	const [busy, setBusy] = useState(false);
+	const [save] = useMutation(IMPORT_BOOKMARKS, { refetchQueries: REFETCH });
+	const run = async (file: File) => {
+		const links = parseBookmarkExport(await file.text());
+		if (!links.length)
+			return toast.error("No links found", {
+				desc: "Pick the HTML file your browser exports.",
+			});
+		setBusy(true);
+		let added = 0;
+		let skipped = 0;
+		try {
+			for (let i = 0; i < links.length; i += 1000) {
+				const { data } = await save({
+					variables: {
+						slug,
+						items: links
+							.slice(i, i + 1000)
+							.map((l) => ({ url: l.url, title: l.title, tag: l.folder })),
+					},
+				});
+				added += data?.importBookmarks.added ?? 0;
+				skipped += data?.importBookmarks.skipped ?? 0;
+			}
+			toast.success(`Imported ${added} ${added === 1 ? "link" : "links"}`, {
+				desc: skipped ? `${skipped} already saved or not web links` : undefined,
+			});
+		} catch (error) {
+			toast.error("Couldn't import the bookmarks", {
+				desc: `${added} added before it stopped. ${(error as Error).message}`,
+			});
+		} finally {
+			setBusy(false);
+		}
+	};
+	return (
+		<>
+			<input
+				ref={input}
+				type="file"
+				accept=".html,.htm,text/html"
+				hidden
+				onChange={(e) => {
+					const file = e.target.files?.[0];
+					e.target.value = "";
+					if (file) void run(file);
+				}}
+			/>
+			<button
+				type="button"
+				className={cn("btn btn-secondary btn-sm", busy && "is-loading")}
+				disabled={busy}
+				onClick={() => input.current?.click()}
+			>
+				<span
+					className="icon-[solar--upload-minimalistic-linear] size-3.5"
+					aria-hidden="true"
+				/>
+				Import file
+			</button>
+		</>
 	);
 }

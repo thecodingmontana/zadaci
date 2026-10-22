@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client/react";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ProjectModalLoader } from "#/components/projects/project-modal";
@@ -17,9 +17,12 @@ import {
 	DUPLICATE_PROJECT,
 	MOVE_PROJECT,
 	type ShellProject,
+	TASKS,
 	TOGGLE_FAVORITE,
 } from "#/graphql/operations";
+import { download, fileName, toCsv } from "#/lib/export";
 import { hasRight, type Permission } from "#/lib/permissions";
+import { LABELS, PRIORITIES, taskStatus } from "#/lib/tasks";
 import { copy, toast } from "#/lib/toast";
 
 // The project "…" menu, ported from the reference app's project context menu.
@@ -69,6 +72,55 @@ export function ProjectMenu({
 	const [archive] = useMutation(ARCHIVE_PROJECT, refetch);
 	const [remove] = useMutation(DELETE_PROJECT, refetch);
 	const vars = { slug, projectId: project.id };
+	const client = useApolloClient();
+	const exportCsv = async () => {
+		const { data } = await client.query({
+			query: TASKS,
+			variables: vars,
+			fetchPolicy: "network-only",
+		});
+		const ws = data?.workspace;
+		if (!ws) throw new Error("Project not found");
+		const who = new Map(ws.members.map((m) => [m.id, m.name]));
+		const rows = ws.tasks
+			.filter((t) => !t.archivedAt)
+			.map((t) => [
+				t.key,
+				t.name,
+				taskStatus(t.status).name,
+				PRIORITIES.find((p) => p.id === t.priority)?.name ?? "",
+				t.assigneeId ? (who.get(t.assigneeId) ?? "") : "",
+				t.startDate ?? "",
+				t.dueDate ?? "",
+				t.labels
+					.map((l) => LABELS.find((x) => x.id === l)?.name ?? l)
+					.join(", "),
+				t.estimate ?? "",
+				t.recur ?? "",
+				t.createdAt.slice(0, 10),
+				t.completedAt?.slice(0, 10) ?? "",
+			]);
+		const head = [
+			"Key",
+			"Title",
+			"Status",
+			"Priority",
+			"Assignee",
+			"Start",
+			"Due",
+			"Labels",
+			"Estimate",
+			"Repeats",
+			"Created",
+			"Completed",
+		];
+		download(
+			fileName(project.title, "csv"),
+			toCsv([head, ...rows]),
+			"text/csv;charset=utf-8",
+		);
+		return rows.length;
+	};
 
 	// every action shows it's running, then what happened (or why it failed)
 	const run =
@@ -146,6 +198,16 @@ export function ProjectMenu({
 						}
 					>
 						Copy link
+					</MenuItem>
+					<MenuItem
+						icon="icon-[solar--file-download-linear]"
+						onSelect={run(exportCsv, {
+							loading: "Preparing the CSV…",
+							success: (n) => `Exported ${n} ${n === 1 ? "task" : "tasks"}`,
+							error: "Couldn't export the tasks",
+						})}
+					>
+						Export tasks (CSV)
 					</MenuItem>
 					{allowed("createProjects") && (
 						<MenuItem

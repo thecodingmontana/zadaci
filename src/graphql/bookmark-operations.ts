@@ -249,3 +249,23 @@ export const DELETE_BOOKMARK_COLLECTION: TypedDocumentNode<
 		deleteBookmarkCollection(slug: $slug, id: $id)
 	}
 `;
+
+export const IMPORT_BOOKMARKS: TypedDocumentNode<
+	{ importBookmarks: { added: number; skipped: number } },
+	{
+		slug: string;
+		items: { url: string; title?: string | null; tag?: string | null }[];
+		collectionId?: string | null;
+	}
+> = gql`
+	mutation ImportBookmarks(
+		$slug: String!
+		$items: [ImportedBookmark!]!
+		$collectionId: ID
+	) {
+		importBookmarks(slug: $slug, items: $items, collectionId: $collectionId) {
+			added
+			skipped
+		}
+	}
+`;

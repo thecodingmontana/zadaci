@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client/react";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useEffect, useState } from "react";
 import {
 	Menu,
@@ -8,10 +8,12 @@ import {
 	MenuTrigger,
 } from "#/components/q/menu";
 import {
+	NOTE,
 	type NoteItem,
 	TOGGLE_NOTE_FAVORITE,
 	UPDATE_NOTE,
 } from "#/graphql/note-operations";
+import { docToMarkdown, download, fileName } from "#/lib/export";
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -50,6 +52,32 @@ export function NoteActions({
 	useEffect(() => setNow(Date.now()), [note.updatedAt]);
 
 	const [updateNote] = useMutation(UPDATE_NOTE);
+	const client = useApolloClient();
+	// the saved copy from the server, so it's exactly what everyone else sees
+	const exportMarkdown = () =>
+		toast
+			.promise(
+				client
+					.query({
+						query: NOTE,
+						variables: { slug, id: note.id },
+						fetchPolicy: "network-only",
+					})
+					.then(({ data }) => {
+						if (!data?.note) throw new Error("Page not found");
+						download(
+							fileName(note.title || "Untitled", "md"),
+							docToMarkdown(note.title, data.note.doc),
+							"text/markdown;charset=utf-8",
+						);
+					}),
+				{
+					loading: "Preparing Markdown…",
+					success: "Downloaded as Markdown",
+					error: "Couldn't export the page",
+				},
+			)
+			.catch(() => {});
 	const [toggleFavorite] = useMutation(TOGGLE_NOTE_FAVORITE, {
 		optimisticResponse: { toggleNoteFavorite: !note.isFavorite },
 		update: (cache, { data }) =>
@@ -198,6 +226,12 @@ export function NoteActions({
 						{note.isPrivate ? "Share with the workspace" : "Make private"}
 					</MenuItem>
 				)}
+				<MenuItem
+					icon="icon-[solar--file-download-linear]"
+					onSelect={exportMarkdown}
+				>
+					Export as Markdown
+				</MenuItem>
 				<MenuSeparator />
 			</NoteMenu>
 		</>
