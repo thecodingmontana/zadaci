@@ -1,5 +1,6 @@
 import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useEffect, useState } from "react";
+import { PublicLink } from "#/components/projects/public-link";
 import {
 	Menu,
 	MenuContent,
@@ -7,6 +8,7 @@ import {
 	MenuSeparator,
 	MenuTrigger,
 } from "#/components/q/menu";
+import { Modal } from "#/components/q/modal";
 import {
 	NOTE,
 	type NoteItem,
@@ -53,6 +55,7 @@ export function NoteActions({
 
 	const [updateNote] = useMutation(UPDATE_NOTE);
 	const client = useApolloClient();
+	const [publicOpen, setPublicOpen] = useState(false);
 	// the saved copy from the server, so it's exactly what everyone else sees
 	const exportMarkdown = () =>
 		toast
@@ -226,6 +229,14 @@ export function NoteActions({
 						{note.isPrivate ? "Share with the workspace" : "Make private"}
 					</MenuItem>
 				)}
+				{note.canDelete && !note.isPrivate && (
+					<MenuItem
+						icon="icon-[solar--global-linear]"
+						onSelect={() => setPublicOpen(true)}
+					>
+						Public link…
+					</MenuItem>
+				)}
 				<MenuItem
 					icon="icon-[solar--file-download-linear]"
 					onSelect={exportMarkdown}
@@ -234,6 +245,16 @@ export function NoteActions({
 				</MenuItem>
 				<MenuSeparator />
 			</NoteMenu>
+			<Modal
+				open={publicOpen}
+				onOpenChange={setPublicOpen}
+				title="Share publicly"
+				size="sm"
+			>
+				<div className="modal-b">
+					<PublicLink slug={slug} kind="note" id={note.id} />
+				</div>
+			</Modal>
 		</>
 	);
 }

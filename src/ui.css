@@ -4847,3 +4847,43 @@ button.tl-row {
     top: 8px;
   }
 }
+
+/* Share → Public link */
+.public-link {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--q-divider);
+  font-size: var(--q-fs-sm);
+}
+.modal-b > .public-link:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* public link page (routes/s.$token) */
+.shared {
+  min-height: 100dvh;
+  background: var(--q-bg);
+  color: var(--q-text);
+}
+.shared-top {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px var(--q-gutter);
+  font-size: var(--q-fs-sm);
+  border-bottom: 1px solid var(--q-divider);
+}
+.shared-title {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 12px 0 18px;
+}
+.shared .note-page {
+  padding: 40px var(--q-gutter) 120px;
+}
+.shared-board .shared-title {
+  padding: 0 var(--q-gutter);
+  margin-top: 28px;
+}

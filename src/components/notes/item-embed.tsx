@@ -139,9 +139,7 @@ function LinkCardView({ node }: NodeViewProps) {
 			>
 				<span className="link-card-text">
 					<span className="item-embed-title">{title || url}</span>
-					<span className="item-embed-sub">
-						{site || hostOf(url)}
-					</span>
+					<span className="item-embed-sub">{site || hostOf(url)}</span>
 				</span>
 				{image && <img src={image} alt="" loading="lazy" />}
 			</a>

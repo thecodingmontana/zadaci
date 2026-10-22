@@ -17,6 +17,7 @@ import { Route as AuthedOnboardingRouteImport } from './routes/_authed/onboardin
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiGraphqlRouteImport } from './routes/api/graphql'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
+import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as AuthedJoinCodeRouteImport } from './routes/_authed/join.$code'
 import { Route as AuthedSaveSlugRouteImport } from './routes/_authed/save.$slug'
 import { Route as AuthedWSlugRouteImport } from './routes/_authed/w/$slug'
@@ -83,6 +84,11 @@ const ApiGraphqlRoute = ApiGraphqlRouteImport.update({
 const AuthSigninRoute = AuthSigninRouteImport.update({
   id: '/auth/signin',
   path: '/auth/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedJoinCodeRoute = AuthedJoinCodeRouteImport.update({
@@ -236,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/s/$token': typeof STokenRoute
   '/join/$code': typeof AuthedJoinCodeRoute
   '/save/$slug': typeof AuthedSaveSlugRoute
   '/w/$slug': typeof AuthedWSlugRouteWithChildren
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/s/$token': typeof STokenRoute
   '/join/$code': typeof AuthedJoinCodeRoute
   '/save/$slug': typeof AuthedSaveSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -311,6 +319,7 @@ export interface FileRoutesById {
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/s/$token': typeof STokenRoute
   '/_authed/join/$code': typeof AuthedJoinCodeRoute
   '/_authed/save/$slug': typeof AuthedSaveSlugRoute
   '/_authed/w/$slug': typeof AuthedWSlugRouteWithChildren
@@ -350,6 +359,7 @@ export interface FileRouteTypes {
     | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
+    | '/s/$token'
     | '/join/$code'
     | '/save/$slug'
     | '/w/$slug'
@@ -387,6 +397,7 @@ export interface FileRouteTypes {
     | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
+    | '/s/$token'
     | '/join/$code'
     | '/save/$slug'
     | '/api/auth/$'
@@ -424,6 +435,7 @@ export interface FileRouteTypes {
     | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
+    | '/s/$token'
     | '/_authed/join/$code'
     | '/_authed/save/$slug'
     | '/_authed/w/$slug'
@@ -462,6 +474,7 @@ export interface RootRouteChildren {
   ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiGraphqlRoute: typeof ApiGraphqlRoute
   AuthSigninRoute: typeof AuthSigninRoute
+  STokenRoute: typeof STokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronDailyRoute: typeof ApiCronDailyRoute
   AuthTwoFactorIndexRoute: typeof AuthTwoFactorIndexRoute
@@ -523,6 +536,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/signin'
       fullPath: '/auth/signin'
       preLoaderRoute: typeof AuthSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed/join/$code': {
@@ -803,6 +823,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiClientErrorRoute: ApiClientErrorRoute,
   ApiGraphqlRoute: ApiGraphqlRoute,
   AuthSigninRoute: AuthSigninRoute,
+  STokenRoute: STokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronDailyRoute: ApiCronDailyRoute,
   AuthTwoFactorIndexRoute: AuthTwoFactorIndexRoute,

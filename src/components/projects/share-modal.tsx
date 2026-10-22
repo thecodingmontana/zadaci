@@ -15,6 +15,7 @@ import { EMAIL_RE } from "#/lib/onboarding";
 import { PROJECT_RIGHT_LABEL, PROJECT_RIGHTS } from "#/lib/permissions";
 import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { PublicLink } from "./public-link";
 
 // Ported from the reference app's Share modal: invite people, set what each person can do
 // in the project, and choose whether the whole workspace can open it.
@@ -362,6 +363,7 @@ export function ShareModal({
 						</div>
 					</>
 				)}
+				{canManage && <PublicLink slug={slug} kind="project" id={projectId} />}
 			</div>
 		</Modal>
 	);

@@ -987,3 +987,9 @@ a.item-embed:hover {
 		width: 88px;
 	}
 }
+/* cards are links but read as blocks, not as underlined text links */
+.note-body a.link-card,
+.note-body a.item-embed {
+	color: var(--q-text);
+	text-decoration: none;
+}
