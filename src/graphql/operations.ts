@@ -1952,3 +1952,27 @@ export const STOP_TIMER: TypedDocumentNode<
 		stopTimer(slug: $slug)
 	}
 `;
+
+export type AiConversation = { id: string; title: string; updatedAt: string };
+
+export const AI_CONVERSATIONS: TypedDocumentNode<
+	{ aiConversations: AiConversation[] },
+	{ slug: string }
+> = gql`
+	query AiConversations($slug: String!) {
+		aiConversations(slug: $slug) {
+			id
+			title
+			updatedAt
+		}
+	}
+`;
+
+export const DELETE_AI_CONVERSATION: TypedDocumentNode<
+	{ deleteAiConversation: boolean },
+	{ slug: string; id: string }
+> = gql`
+	mutation DeleteAiConversation($slug: String!, $id: ID!) {
+		deleteAiConversation(slug: $slug, id: $id)
+	}
+`;

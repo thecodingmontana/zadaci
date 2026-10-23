@@ -5,6 +5,7 @@ import { GraphQLError } from "graphql";
 import { createSchema, createYoga, useErrorHandler } from "graphql-yoga";
 import { auth } from "#/lib/auth";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
+import { aiResolvers, aiTypeDefs } from "./ai.server";
 import { bookmarksResolvers, bookmarksTypeDefs } from "./bookmarks.server";
 import { membersResolvers, membersTypeDefs } from "./members.server";
 import { notesResolvers, notesTypeDefs } from "./notes.server";
@@ -47,6 +48,7 @@ export const schema = createSchema<GraphQLContext>({
 		bookmarksTypeDefs,
 		pushTypeDefs,
 		shareTypeDefs,
+		aiTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -64,6 +66,7 @@ export const schema = createSchema<GraphQLContext>({
 		bookmarksResolvers,
 		pushResolvers,
 		shareResolvers,
+		aiResolvers,
 	],
 });
 

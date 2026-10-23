@@ -1,4 +1,5 @@
 export * from "./activity";
+export * from "./ai";
 export * from "./bookmark";
 export * from "./chat";
 export * from "./comments";

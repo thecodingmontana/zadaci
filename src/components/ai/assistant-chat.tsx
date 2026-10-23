@@ -33,7 +33,16 @@ const SUGGESTIONS = [
 	"Add a task to send the invoice on Friday",
 ];
 
-export function AssistantChat({ slug }: { slug: string }) {
+export function AssistantChat({
+	slug,
+	threadId,
+	onSaved,
+}: {
+	slug: string;
+	threadId: string;
+	/** a message was saved: the chat list can refresh */
+	onSaved?: () => void;
+}) {
 	const mod = useModKey();
 	const [text, setText] = useState("");
 	const list = useRef<HTMLDivElement>(null);
@@ -48,6 +57,10 @@ export function AssistantChat({ slug }: { slug: string }) {
 		resuming,
 	} = useChat({
 		connection: fetchServerSentEvents("/api/chat"),
+		threadId,
+		// the server keeps the conversation; opening a chat loads it back
+		persistence: true,
+		onFinish: () => onSaved?.(),
 		forwardedProps: { slug },
 		tools: APPROVAL_TOOLS,
 	});

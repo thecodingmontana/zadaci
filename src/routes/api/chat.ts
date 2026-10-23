@@ -4,6 +4,7 @@ import {
 	maxIterations,
 	toServerSentEventsResponse,
 } from "@tanstack/ai";
+import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
 import { createFileRoute } from "@tanstack/react-router";
 import { eq } from "drizzle-orm";
 import { db, tables } from "#/db";
@@ -15,6 +16,7 @@ import {
 	pinnedModel,
 } from "#/lib/ai/model.server";
 import { systemPrompt } from "#/lib/ai/prompt";
+import { chatStore, threadOwner } from "#/lib/ai/store.server";
 import { READ_TOOLS } from "#/lib/ai/tools.server";
 import { WRITE_TOOLS } from "#/lib/ai/write-tools.server";
 import { auth } from "#/lib/auth";
@@ -28,6 +30,22 @@ const json = (status: number, error: string) =>
 export const Route = createFileRoute("/api/chat")({
 	server: {
 		handlers: {
+			// a saved conversation, for the person who owns it
+			GET: async ({ request }) => {
+				const session = await auth.api.getSession({ headers: request.headers });
+				if (!session) return json(401, "Sign in to use the assistant");
+				const store = chatStore({
+					userId: session.user.id,
+					workspaceId: "",
+					model: () => null,
+				});
+				return reconstructChat({ stores: { messages: store } }, request, {
+					authorize: async (threadId) => {
+						const owner = await threadOwner(threadId);
+						return !owner || owner === session.user.id;
+					},
+				});
+			},
 			POST: async ({ request }) => {
 				const session = await auth.api.getSession({ headers: request.headers });
 				if (!session) return json(401, "Sign in to use the assistant");
@@ -44,8 +62,23 @@ export const Route = createFileRoute("/api/chat")({
 					.where(eq(tables.user.id, session.user.id));
 				const prefs = (me?.prefs ?? {}) as { tz?: string; autoTz?: string };
 				const timeZone = prefs.tz || prefs.autoTz || "UTC";
+				const model = pinnedModel() ?? FREE_ROUTER;
+				const owner = params.threadId
+					? await threadOwner(params.threadId)
+					: null;
+				if (owner && owner !== session.user.id)
+					return json(404, "Conversation not found");
+				const persistence = {
+					stores: {
+						messages: chatStore({
+							userId: session.user.id,
+							workspaceId: workspace.id,
+							model: () => model,
+						}),
+					},
+				};
 				const stream = chat({
-					adapter: adapterFor(pinnedModel() ?? FREE_ROUTER),
+					adapter: adapterFor(model),
 					messages: params.messages,
 					threadId: params.threadId,
 					runId: params.runId,
@@ -69,6 +102,8 @@ export const Route = createFileRoute("/api/chat")({
 					},
 					// at most 6 model turns (each can call tools) per message
 					agentLoopStrategy: maxIterations(6),
+					// saves the conversation as it goes, in our own tables
+					middleware: [withPersistence(persistence)],
 				});
 				return toServerSentEventsResponse(stream);
 			},
