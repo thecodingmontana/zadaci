@@ -1,0 +1,1 @@
+ALTER TABLE "app_activity" ADD COLUMN "via" varchar(16);

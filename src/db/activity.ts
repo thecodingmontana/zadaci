@@ -30,6 +30,8 @@ export const activity = pgTable(
 		task_id: varchar("task_id", { length: 16 }).references(() => task.id, {
 			onDelete: "set null",
 		}),
+		// "assistant" when the AI assistant made the change for the actor
+		via: varchar("via", { length: 16 }),
 		...timestamps,
 	},
 	(table) => [

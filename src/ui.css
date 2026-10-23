@@ -4986,3 +4986,34 @@ button.tl-row {
   font: inherit;
   color: inherit;
 }
+.fitem .via {
+  color: var(--q-accent);
+  font-size: var(--q-fs-xs);
+  font-weight: 500;
+}
+.ai-approve {
+  align-self: flex-start;
+  max-width: 88%;
+  border: 1px solid var(--q-accent-line);
+  background: var(--q-accent-soft);
+  border-radius: var(--q-r);
+  padding: 10px 14px;
+  font-size: var(--q-fs-sm);
+}
+.ai-approve-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.ai-approve ul {
+  margin: 6px 0 8px 18px;
+  padding: 0;
+}
+.ai-approve-tasks {
+  color: var(--q-text-2);
+}
+fieldset.ai-approve {
+  margin: 0;
+  min-width: 0;
+}

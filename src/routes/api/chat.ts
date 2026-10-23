@@ -16,6 +16,7 @@ import {
 } from "#/lib/ai/model.server";
 import { systemPrompt } from "#/lib/ai/prompt";
 import { READ_TOOLS } from "#/lib/ai/tools.server";
+import { WRITE_TOOLS } from "#/lib/ai/write-tools.server";
 import { auth } from "#/lib/auth";
 import { localClock } from "#/lib/daily.server";
 
@@ -48,6 +49,9 @@ export const Route = createFileRoute("/api/chat")({
 					messages: params.messages,
 					threadId: params.threadId,
 					runId: params.runId,
+					// an approval answer resumes the paused run from the history the browser sends back
+					parentRunId: params.parentRunId,
+					...(params.resume ? { resume: params.resume } : {}),
 					systemPrompts: [
 						systemPrompt({
 							name: session.user.name,
@@ -55,12 +59,13 @@ export const Route = createFileRoute("/api/chat")({
 							timeZone,
 						}),
 					],
-					tools: READ_TOOLS,
+					tools: [...READ_TOOLS, ...WRITE_TOOLS],
 					// tools run as this person, in this workspace
 					context: {
 						user: session.user,
 						slug,
 						today: localClock(timeZone, new Date()).day,
+						edited: new Set<string>(),
 					},
 					// at most 6 model turns (each can call tools) per message
 					agentLoopStrategy: maxIterations(6),

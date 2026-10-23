@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db, tables } from "#/db";
+import { viaAssistant } from "#/lib/ai/assistant-scope.server";
 import { queueNotifications } from "#/lib/email.server";
 import { ADMIN_ROLES, can } from "#/lib/permissions";
 import {
@@ -28,7 +29,7 @@ import {
 type Q = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export function logActivity(q: Q, row: typeof tables.activity.$inferInsert) {
-	return q.insert(tables.activity).values(row);
+	return q.insert(tables.activity).values({ via: viaAssistant(), ...row });
 }
 
 export async function notify(
@@ -85,6 +86,8 @@ export const activityTypeDefs = /* GraphQL */ `
 		projectId: ID
 		taskId: ID
 		actor: Person
+		"assistant when the AI assistant made the change"
+		via: String
 		createdAt: String!
 	}
 
@@ -269,6 +272,7 @@ export const activityResolvers = {
 				projectId: r.liveProject,
 				taskId: r.a.task_id,
 				actor: r.actor,
+				via: r.a.via,
 				createdAt: r.a.created_at.toISOString(),
 			}));
 		},

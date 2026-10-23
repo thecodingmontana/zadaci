@@ -570,6 +570,7 @@ export type ActivityItem = {
 	projectId: string | null;
 	taskId: string | null;
 	actor: { id: string; name: string; image: string | null } | null;
+	via: string | null;
 	createdAt: string;
 };
 
@@ -597,6 +598,7 @@ export const ACTIVITY: TypedDocumentNode<
 				verb
 				target
 				extra
+				via
 				projectId
 				taskId
 				actor {
@@ -1686,6 +1688,7 @@ export const TASK_DETAIL: TypedDocumentNode<
 				verb
 				target
 				extra
+				via
 				projectId
 				taskId
 				actor {

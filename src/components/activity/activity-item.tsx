@@ -23,7 +23,14 @@ export function ActivityItem({
 		<div className="fitem">
 			<Av name={a.actor?.name ?? "?"} image={a.actor?.image} className="sm" />
 			<div className="grow">
-				<b>{name}</b> <span className="muted">{a.verb}</span>{" "}
+				<b>{name}</b>
+				{a.via === "assistant" && (
+					<span className="via" title="Done by the assistant for this person">
+						{" "}
+						via assistant
+					</span>
+				)}{" "}
+				<span className="muted">{a.verb}</span>{" "}
 				{a.target &&
 					(a.projectId ? (
 						<Link
