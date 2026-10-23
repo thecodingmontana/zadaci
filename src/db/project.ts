@@ -282,3 +282,28 @@ export const project_milestone = pgTable(
 	},
 	(table) => [index("project_milestone_project_id_idx").on(table.project_id)],
 );
+
+// Time logged on a task (the timer in the task drawer). A running timer has no ended_at;
+// each member has at most one running at a time.
+export const time_entry = pgTable(
+	"time_entry",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		task_id: varchar("task_id", { length: 16 })
+			.notNull()
+			.references(() => task.id, { onDelete: "cascade" }),
+		member_id: varchar("member_id", { length: 16 })
+			.notNull()
+			.references(() => workspace_members.id, { onDelete: "cascade" }),
+		started_at: timestamp("started_at", { mode: "date", withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		ended_at: timestamp("ended_at", { mode: "date", withTimezone: true }),
+	},
+	(table) => [
+		index("time_entry_task_idx").on(table.task_id),
+		index("time_entry_member_idx").on(table.member_id, table.ended_at),
+	],
+);

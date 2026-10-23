@@ -10,6 +10,7 @@ import { requireNote } from "./notes.server";
 import { projectAudience, requireProject } from "./projects.server";
 import {
 	badInput,
+	findWorkspaces,
 	forbidden,
 	type GraphQLContext,
 	requireUser,
@@ -21,6 +22,22 @@ import { requireTask } from "./tasks.server";
 // (reference drawer.js comments/attachments and project saved views).
 
 type TaskRow = typeof tables.task.$inferSelect;
+type Q = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// a timer left running counts for 12 hours at most
+const MAX_TIMER = sql`interval '12 hours'`;
+const stopRunning = (q: Q, memberId: string) =>
+	q
+		.update(tables.time_entry)
+		.set({
+			ended_at: sql`least(now(), ${tables.time_entry.started_at} + ${MAX_TIMER})`,
+		})
+		.where(
+			and(
+				eq(tables.time_entry.member_id, memberId),
+				isNull(tables.time_entry.ended_at),
+			),
+		);
 
 export const taskExtrasTypeDefs = /* GraphQL */ `
 	type Reaction {
@@ -69,6 +86,10 @@ export const taskExtrasTypeDefs = /* GraphQL */ `
 	extend type Task {
 		comments: [TaskComment!]!
 		attachments: [Attachment!]!
+		"seconds logged on the task by everyone, the running timers included"
+		timeSpent: Int!
+		"when the viewer's own timer on this task started, while it runs"
+		myTimerStartedAt: String
 	}
 
 	extend type Project {
@@ -77,6 +98,10 @@ export const taskExtrasTypeDefs = /* GraphQL */ `
 	}
 
 	extend type Mutation {
+		"starts the viewer's timer on a task (stopping any other one of theirs)"
+		startTimer(slug: String!, taskId: ID!): Boolean!
+		"stops the viewer's running timer"
+		stopTimer(slug: String!): Boolean!
 		addComment(slug: String!, taskId: ID!, text: String!): TaskComment!
 		deleteComment(slug: String!, id: ID!): Boolean!
 		reactToComment(slug: String!, id: ID!, emoji: String!): TaskComment!
@@ -339,6 +364,33 @@ const FILTERS = z
 
 export const taskExtrasResolvers = {
 	Task: {
+		// shortcut: one query per task; only the task drawer asks for these, batch them before lists do
+		timeSpent: async (t: TaskRow) => {
+			const [row] = await db
+				.select({
+					s: sql<number>`coalesce(sum(extract(epoch from coalesce(${tables.time_entry.ended_at}, now()) - ${tables.time_entry.started_at})), 0)::int`,
+				})
+				.from(tables.time_entry)
+				.where(eq(tables.time_entry.task_id, t.id));
+			return row?.s ?? 0;
+		},
+		myTimerStartedAt: async (t: TaskRow, _: unknown, ctx: GraphQLContext) => {
+			const [row] = await db
+				.select({ at: tables.time_entry.started_at })
+				.from(tables.time_entry)
+				.innerJoin(
+					tables.workspace_members,
+					eq(tables.workspace_members.id, tables.time_entry.member_id),
+				)
+				.where(
+					and(
+						eq(tables.time_entry.task_id, t.id),
+						isNull(tables.time_entry.ended_at),
+						eq(tables.workspace_members.user_id, requireUser(ctx).id),
+					),
+				);
+			return row?.at.toISOString() ?? null;
+		},
 		comments: async (t: TaskRow, _: unknown, ctx: GraphQLContext) =>
 			shape(await taskComments(t.id), requireUser(ctx).id),
 		attachments: (t: TaskRow) =>
@@ -399,6 +451,36 @@ export const taskExtrasResolvers = {
 				.then((rows) => rows.map(viewShape)),
 	},
 	Mutation: {
+		startTimer: async (
+			_: unknown,
+			args: { slug: string; taskId: string },
+			ctx: GraphQLContext,
+		) => {
+			const { workspace, task } = await requireTask(
+				ctx,
+				args.slug,
+				args.taskId,
+				"edit",
+			);
+			const member = workspace.memberId ?? "";
+			await db.transaction(async (tx) => {
+				await stopRunning(tx, member);
+				await tx
+					.insert(tables.time_entry)
+					.values({ task_id: task.id, member_id: member });
+			});
+			return true;
+		},
+		stopTimer: async (
+			_: unknown,
+			args: { slug: string },
+			ctx: GraphQLContext,
+		) => {
+			const [workspace] = await findWorkspaces(requireUser(ctx).id, args.slug);
+			if (!workspace) badInput("Workspace not found");
+			await stopRunning(db, workspace.memberId ?? "");
+			return true;
+		},
 		addComment: async (
 			_: unknown,
 			args: { slug: string; taskId: string; text: string },

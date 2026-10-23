@@ -1611,6 +1611,8 @@ export type TaskAttachment = {
 
 export type TaskDetail = TaskItem & {
 	description: string | null;
+	timeSpent: number;
+	myTimerStartedAt: string | null;
 	subtasks: TaskItem[];
 	comments: TaskComment[];
 	attachments: TaskAttachment[];
@@ -1639,6 +1641,8 @@ export const TASK_DETAIL: TypedDocumentNode<
 			task(id: $id) {
 				...TaskFields
 				description
+				timeSpent
+				myTimerStartedAt
 				subtasks {
 					...TaskFields
 				}
@@ -1922,5 +1926,23 @@ export const PROJECT_EXISTS: TypedDocumentNode<
 			projectExists(id: $id)
 			projectDeleted(id: $id)
 		}
+	}
+`;
+
+export const START_TIMER: TypedDocumentNode<
+	{ startTimer: boolean },
+	{ slug: string; taskId: string }
+> = gql`
+	mutation StartTimer($slug: String!, $taskId: ID!) {
+		startTimer(slug: $slug, taskId: $taskId)
+	}
+`;
+
+export const STOP_TIMER: TypedDocumentNode<
+	{ stopTimer: boolean },
+	{ slug: string }
+> = gql`
+	mutation StopTimer($slug: String!) {
+		stopTimer(slug: $slug)
 	}
 `;

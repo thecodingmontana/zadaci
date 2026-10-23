@@ -11,6 +11,8 @@ import {
 	type ActivityItem,
 	REMOVE_ATTACHMENT,
 	SET_DEPENDENCIES,
+	START_TIMER,
+	STOP_TIMER,
 	TASK_DETAIL,
 	type TaskAttachment,
 	type TaskDetail,
@@ -405,6 +407,11 @@ function DrawerBody({
 						"Estimate",
 						<EstimateCell t={t} editable={editable} />,
 					)}
+					{prop(
+						"icon-[solar--clock-circle-linear]",
+						"Time",
+						<TimeCell t={t} editable={editable} />,
+					)}
 					{!t.parentId &&
 						prop(
 							"icon-[solar--routing-2-linear]",
@@ -545,6 +552,77 @@ function EstimateCell({ t, editable }: { t: TaskDetail; editable: boolean }) {
 			]}
 			onPick={(id) => update(t, { estimate: id || null })}
 		/>
+	);
+}
+
+const duration = (s: number) => {
+	const h = Math.floor(s / 3600);
+	const m = Math.floor((s % 3600) / 60);
+	return h ? `${h}h ${m}m` : m ? `${m}m` : `${s}s`;
+};
+
+/** Time logged on the task, with the viewer's own timer (one runs at a time per person). */
+function TimeCell({ t, editable }: { t: TaskDetail; editable: boolean }) {
+	const { slug } = useTaskView();
+	const refetch = { refetchQueries: ["TaskDetail"] };
+	const [start, { loading: starting }] = useMutation(START_TIMER, refetch);
+	const [stop, { loading: stopping }] = useMutation(STOP_TIMER, refetch);
+	const running = t.myTimerStartedAt;
+	// the server's total counts up to when it was fetched; a running timer adds on from there
+	const [loadedAt, setLoadedAt] = useState(() => Date.now());
+	const [now, setNow] = useState(loadedAt);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a fresh total restarts the count
+	useEffect(() => {
+		const at = Date.now();
+		setLoadedAt(at);
+		setNow(at);
+	}, [t.timeSpent, running]);
+	useEffect(() => {
+		if (!running) return;
+		const id = setInterval(() => setNow(Date.now()), 1000);
+		return () => clearInterval(id);
+	}, [running]);
+	const total =
+		t.timeSpent + (running ? Math.floor((now - loadedAt) / 1000) : 0);
+	const fail = (error: Error) =>
+		toast.error("Couldn't change the timer", { desc: error.message });
+	return (
+		<div className="row" style={{ gap: 8 }}>
+			<span
+				className={cn(!total && "faint")}
+				style={{ fontVariantNumeric: "tabular-nums" }}
+			>
+				{total ? duration(total) : "Nothing logged"}
+			</span>
+			{editable && (
+				<button
+					type="button"
+					className={cn(
+						"btn btn-sm",
+						running ? "btn-secondary" : "btn-ghost",
+						(starting || stopping) && "is-loading",
+					)}
+					disabled={starting || stopping}
+					onClick={() =>
+						(running
+							? stop({ variables: { slug } })
+							: start({ variables: { slug, taskId: t.id } })
+						).catch(fail)
+					}
+				>
+					<span
+						className={cn(
+							running
+								? "icon-[solar--stop-circle-linear]"
+								: "icon-[solar--play-circle-linear]",
+							"size-3.5",
+						)}
+						aria-hidden="true"
+					/>
+					{running ? "Stop" : "Start timer"}
+				</button>
+			)}
+		</div>
 	);
 }
 
