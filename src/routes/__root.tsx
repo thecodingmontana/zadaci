@@ -1,4 +1,5 @@
 import type { ApolloClientIntegration } from "@apollo/client-integration-tanstack-start";
+import { aiDevtoolsPlugin } from "@tanstack/react-ai-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
 	createRootRouteWithContext,
@@ -102,6 +103,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 							name: "Tanstack Router",
 							render: <TanStackRouterDevtoolsPanel />,
 						},
+						// the assistant's chats, tool calls and stream events
+						aiDevtoolsPlugin(),
 					]}
 				/>
 				<Scripts />
