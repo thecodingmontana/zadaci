@@ -14,6 +14,7 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthedOnboardingRouteImport } from './routes/_authed/onboarding'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiGraphqlRouteImport } from './routes/api/graphql'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
@@ -29,6 +30,7 @@ import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/i
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
 import { Route as AuthedWSlugActivityRouteImport } from './routes/_authed/w/$slug/activity'
 import { Route as AuthedWSlugArchiveRouteImport } from './routes/_authed/w/$slug/archive'
+import { Route as AuthedWSlugAssistantRouteImport } from './routes/_authed/w/$slug/assistant'
 import { Route as AuthedWSlugBookmarksRouteImport } from './routes/_authed/w/$slug/bookmarks'
 import { Route as AuthedWSlugCalendarRouteImport } from './routes/_authed/w/$slug/calendar'
 import { Route as AuthedWSlugFavoritesRouteImport } from './routes/_authed/w/$slug/favorites'
@@ -70,6 +72,11 @@ const AuthedOnboardingRoute = AuthedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
   getParentRoute: () => AuthedRoute,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
   id: '/api/client-error',
@@ -144,6 +151,11 @@ const AuthedWSlugActivityRoute = AuthedWSlugActivityRouteImport.update({
 const AuthedWSlugArchiveRoute = AuthedWSlugArchiveRouteImport.update({
   id: '/archive',
   path: '/archive',
+  getParentRoute: () => AuthedWSlugRoute,
+} as any)
+const AuthedWSlugAssistantRoute = AuthedWSlugAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => AuthedWSlugRoute,
 } as any)
 const AuthedWSlugBookmarksRoute = AuthedWSlugBookmarksRouteImport.update({
@@ -239,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/onboarding': typeof AuthedOnboardingRoute
+  '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
@@ -253,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
   '/w/$slug/archive': typeof AuthedWSlugArchiveRoute
+  '/w/$slug/assistant': typeof AuthedWSlugAssistantRoute
   '/w/$slug/bookmarks': typeof AuthedWSlugBookmarksRoute
   '/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
   '/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
@@ -277,6 +291,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/onboarding': typeof AuthedOnboardingRoute
+  '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
@@ -290,6 +305,7 @@ export interface FileRoutesByTo {
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/w/$slug/activity': typeof AuthedWSlugActivityRoute
   '/w/$slug/archive': typeof AuthedWSlugArchiveRoute
+  '/w/$slug/assistant': typeof AuthedWSlugAssistantRoute
   '/w/$slug/bookmarks': typeof AuthedWSlugBookmarksRoute
   '/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
   '/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
@@ -316,6 +332,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authed/onboarding': typeof AuthedOnboardingRoute
+  '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
@@ -330,6 +347,7 @@ export interface FileRoutesById {
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
   '/_authed/w/$slug/activity': typeof AuthedWSlugActivityRoute
   '/_authed/w/$slug/archive': typeof AuthedWSlugArchiveRoute
+  '/_authed/w/$slug/assistant': typeof AuthedWSlugAssistantRoute
   '/_authed/w/$slug/bookmarks': typeof AuthedWSlugBookmarksRoute
   '/_authed/w/$slug/calendar': typeof AuthedWSlugCalendarRoute
   '/_authed/w/$slug/favorites': typeof AuthedWSlugFavoritesRoute
@@ -356,6 +374,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/onboarding'
+    | '/api/chat'
     | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
@@ -370,6 +389,7 @@ export interface FileRouteTypes {
     | '/w/$slug/$'
     | '/w/$slug/activity'
     | '/w/$slug/archive'
+    | '/w/$slug/assistant'
     | '/w/$slug/bookmarks'
     | '/w/$slug/calendar'
     | '/w/$slug/favorites'
@@ -394,6 +414,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/onboarding'
+    | '/api/chat'
     | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
@@ -407,6 +428,7 @@ export interface FileRouteTypes {
     | '/w/$slug/$'
     | '/w/$slug/activity'
     | '/w/$slug/archive'
+    | '/w/$slug/assistant'
     | '/w/$slug/bookmarks'
     | '/w/$slug/calendar'
     | '/w/$slug/favorites'
@@ -432,6 +454,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/_authed/onboarding'
+    | '/api/chat'
     | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
@@ -446,6 +469,7 @@ export interface FileRouteTypes {
     | '/_authed/w/$slug/$'
     | '/_authed/w/$slug/activity'
     | '/_authed/w/$slug/archive'
+    | '/_authed/w/$slug/assistant'
     | '/_authed/w/$slug/bookmarks'
     | '/_authed/w/$slug/calendar'
     | '/_authed/w/$slug/favorites'
@@ -471,6 +495,7 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiChatRoute: typeof ApiChatRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiGraphqlRoute: typeof ApiGraphqlRoute
   AuthSigninRoute: typeof AuthSigninRoute
@@ -516,6 +541,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthedOnboardingRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/client-error': {
       id: '/api/client-error'
@@ -620,6 +652,13 @@ declare module '@tanstack/react-router' {
       path: '/archive'
       fullPath: '/w/$slug/archive'
       preLoaderRoute: typeof AuthedWSlugArchiveRouteImport
+      parentRoute: typeof AuthedWSlugRoute
+    }
+    '/_authed/w/$slug/assistant': {
+      id: '/_authed/w/$slug/assistant'
+      path: '/assistant'
+      fullPath: '/w/$slug/assistant'
+      preLoaderRoute: typeof AuthedWSlugAssistantRouteImport
       parentRoute: typeof AuthedWSlugRoute
     }
     '/_authed/w/$slug/bookmarks': {
@@ -748,6 +787,7 @@ interface AuthedWSlugRouteChildren {
   AuthedWSlugSplatRoute: typeof AuthedWSlugSplatRoute
   AuthedWSlugActivityRoute: typeof AuthedWSlugActivityRoute
   AuthedWSlugArchiveRoute: typeof AuthedWSlugArchiveRoute
+  AuthedWSlugAssistantRoute: typeof AuthedWSlugAssistantRoute
   AuthedWSlugBookmarksRoute: typeof AuthedWSlugBookmarksRoute
   AuthedWSlugCalendarRoute: typeof AuthedWSlugCalendarRoute
   AuthedWSlugFavoritesRoute: typeof AuthedWSlugFavoritesRoute
@@ -772,6 +812,7 @@ const AuthedWSlugRouteChildren: AuthedWSlugRouteChildren = {
   AuthedWSlugSplatRoute: AuthedWSlugSplatRoute,
   AuthedWSlugActivityRoute: AuthedWSlugActivityRoute,
   AuthedWSlugArchiveRoute: AuthedWSlugArchiveRoute,
+  AuthedWSlugAssistantRoute: AuthedWSlugAssistantRoute,
   AuthedWSlugBookmarksRoute: AuthedWSlugBookmarksRoute,
   AuthedWSlugCalendarRoute: AuthedWSlugCalendarRoute,
   AuthedWSlugFavoritesRoute: AuthedWSlugFavoritesRoute,
@@ -820,6 +861,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiChatRoute: ApiChatRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
   ApiGraphqlRoute: ApiGraphqlRoute,
   AuthSigninRoute: AuthSigninRoute,

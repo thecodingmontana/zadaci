@@ -126,6 +126,7 @@ export const SHORTCUTS: [string, [string, string[]][]][] = [
 			["Keyboard shortcuts", ["?"]],
 			["Toggle sidebar", ["["]],
 			["Toggle dark mode", ["mod", "Shift", "L"]],
+			["Open the assistant", ["mod", "J"]],
 			["Close panel or dialog", ["Esc"]],
 			["Undo the last task change", ["mod", "Z"]],
 		],
@@ -202,6 +203,11 @@ export function CommandMenuProvider({
 			if (modKey && e.key.toLowerCase() === "k") {
 				e.preventDefault();
 				setPal((p) => (p ? null : { mode: "cmd", q: "", scope: "all", hl: 0 }));
+				return;
+			}
+			if (modKey && !e.shiftKey && e.key.toLowerCase() === "j") {
+				e.preventDefault();
+				go("assistant");
 				return;
 			}
 			if (modKey && e.shiftKey && e.key.toLowerCase() === "l") {
