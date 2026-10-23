@@ -9,9 +9,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { findWorkspaces } from "#/graphql/schema.server";
+import {
+	dailyLimit,
+	lastUserText,
+	MAX_MESSAGE,
+	takeMessage,
+} from "#/lib/ai/limits.server";
 import { adapterFor, aiKey } from "#/lib/ai/model.server";
 import { systemPrompt } from "#/lib/ai/prompt";
-import { type Chunk, giveUp, rotate } from "#/lib/ai/rotation";
+import { type Chunk, giveUp, rotate, runError } from "#/lib/ai/rotation";
 import {
 	candidates,
 	recordFailure,
@@ -27,6 +33,14 @@ import { localClock } from "#/lib/daily.server";
 
 const json = (status: number, error: string) =>
 	Response.json({ error }, { status });
+
+// errors as a stream, so the chat shows them in place with its retry button
+const sseError = (message: string, code: string) =>
+	toServerSentEventsResponse(
+		(async function* () {
+			yield runError(message, code);
+		})() as Parameters<typeof toServerSentEventsResponse>[0],
+	);
 
 export const Route = createFileRoute("/api/chat")({
 	server: {
@@ -68,6 +82,23 @@ export const Route = createFileRoute("/api/chat")({
 					: null;
 				if (owner && owner !== session.user.id)
 					return json(404, "Conversation not found");
+				const text = lastUserText(params.messages);
+				if (text && text.length > MAX_MESSAGE)
+					return sseError(
+						`Messages can be up to ${MAX_MESSAGE} characters. Try a shorter one.`,
+						"too_long",
+					);
+				const today = localClock(timeZone, new Date()).day;
+				// approving a change continues the last message, so it isn't counted again
+				if (
+					text !== null &&
+					!params.resume &&
+					!(await takeMessage(session.user.id, today))
+				)
+					return sseError(
+						`You've sent ${dailyLimit()} messages to the assistant today, the daily limit. It resets tomorrow.`,
+						"daily_limit",
+					);
 				const models = await candidates();
 				// the model answering right now (the router reports the one it really used)
 				let model: string | null = null;
@@ -105,7 +136,7 @@ export const Route = createFileRoute("/api/chat")({
 						context: {
 							user: session.user,
 							slug,
-							today: localClock(timeZone, new Date()).day,
+							today,
 							edited: new Set<string>(),
 						},
 						// at most 6 model turns (each can call tools) per message

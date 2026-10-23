@@ -2,6 +2,7 @@ import {
 	index,
 	integer,
 	jsonb,
+	primaryKey,
 	text,
 	timestamp,
 	varchar,
@@ -95,3 +96,17 @@ export const ai_model = pgTable("ai_model", {
 		.defaultNow()
 		.notNull(),
 });
+
+// How many messages each person sent the assistant per day (their own calendar day), for the
+// daily limit (AI_DAILY_LIMIT).
+export const ai_usage = pgTable(
+	"ai_usage",
+	{
+		user_id: varchar("user_id", { length: 16 })
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		day: varchar("day", { length: 10 }).notNull(),
+		count: integer("count").notNull().default(0),
+	},
+	(table) => [primaryKey({ columns: [table.user_id, table.day] })],
+);

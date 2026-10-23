@@ -18,8 +18,12 @@ type ModelId = Parameters<typeof createOpenRouterText>[0];
  * A chat adapter for one model id. The adapter types its model against a fixed list that
  * doesn't include every free model (or openrouter/free), so the id is passed through as-is.
  */
-export function adapterFor(model: string, fallbacks: string[] = []) {
-	const key = aiKey();
+export function adapterFor(
+	model: string,
+	fallbacks: string[] = [],
+	// a person's own key can be passed here later (bring your own key)
+	key = aiKey(),
+) {
 	if (!key)
 		throw new Error(
 			"The assistant isn't set up: OPENROUTER_API_KEY is missing",

@@ -123,26 +123,25 @@ export type RotateHooks = {
 	) => void | Promise<void>;
 };
 
+/** An error chunk: the stream ends and the person sees the message, with a retry button. */
+export const runError = (message: string, code: string): Chunk => ({
+	type: "RUN_ERROR",
+	message,
+	code,
+	error: { message, code },
+	timestamp: Date.now(),
+});
+
 /** The error the person sees when every model failed, or the free limit is reached. */
-export const giveUp = (
-	kind: FailureKind | "all_failed",
-	detail?: string,
-): Chunk => {
-	const message =
+export const giveUp = (kind: FailureKind | "all_failed"): Chunk =>
+	runError(
 		kind === "account_limit"
 			? "The free AI limit for today is reached. It resets within a day; try again tomorrow."
 			: kind === "auth" || kind === "billing"
 				? "The assistant is unavailable right now. Please try again later."
-				: "The AI models are busy or failing right now. Please try again in a few minutes.";
-	return {
-		type: "RUN_ERROR",
-		message,
-		code: kind,
-		error: { message, code: kind },
-		timestamp: Date.now(),
-		...(detail && { rawEvent: { detail } }),
-	};
-};
+				: "The AI models are busy or failing right now. Please try again in a few minutes.",
+		kind,
+	);
 
 /**
  * Streams an answer, moving to the next model when one fails before any text or tool call has
