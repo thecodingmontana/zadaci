@@ -130,6 +130,11 @@ export function AssistantChat({
 								);
 							return null;
 						})}
+						{m.role === "assistant" && m.metadata?.tanstack?.model && (
+							<div className="ai-model faint">
+								{String(m.metadata.tanstack.model).replace(/:free$/, "")}
+							</div>
+						)}
 					</div>
 				))}
 				{interrupts.map((it) =>

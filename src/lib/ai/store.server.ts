@@ -115,7 +115,13 @@ export function chatStore(opts: {
 							tool_call_id: toolCallId ?? null,
 							model:
 								role === "assistant"
-									? (modelAt.get(position) ?? opts.model())
+									? (modelAt.get(position) ??
+										(
+											extra.metadata as
+												| { tanstack?: { model?: string } }
+												| undefined
+										)?.tanstack?.model ??
+										opts.model())
 									: null,
 							extra: Object.keys(extra).length ? extra : null,
 						};

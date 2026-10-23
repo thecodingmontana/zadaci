@@ -4957,6 +4957,9 @@ button.tl-row {
   border-radius: 999px;
   padding: 2px 10px;
 }
+.ai-model {
+  font-size: var(--q-fs-xs);
+}
 .ai-thinking {
   font-size: var(--q-fs-sm);
 }

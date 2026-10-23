@@ -9,13 +9,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { findWorkspaces } from "#/graphql/schema.server";
-import {
-	adapterFor,
-	aiKey,
-	FREE_ROUTER,
-	pinnedModel,
-} from "#/lib/ai/model.server";
+import { adapterFor, aiKey } from "#/lib/ai/model.server";
 import { systemPrompt } from "#/lib/ai/prompt";
+import { type Chunk, giveUp, rotate } from "#/lib/ai/rotation";
+import {
+	candidates,
+	recordFailure,
+	recordSuccess,
+} from "#/lib/ai/rotation.server";
 import { chatStore, threadOwner } from "#/lib/ai/store.server";
 import { READ_TOOLS } from "#/lib/ai/tools.server";
 import { WRITE_TOOLS } from "#/lib/ai/write-tools.server";
@@ -62,12 +63,14 @@ export const Route = createFileRoute("/api/chat")({
 					.where(eq(tables.user.id, session.user.id));
 				const prefs = (me?.prefs ?? {}) as { tz?: string; autoTz?: string };
 				const timeZone = prefs.tz || prefs.autoTz || "UTC";
-				const model = pinnedModel() ?? FREE_ROUTER;
 				const owner = params.threadId
 					? await threadOwner(params.threadId)
 					: null;
 				if (owner && owner !== session.user.id)
 					return json(404, "Conversation not found");
+				const models = await candidates();
+				// the model answering right now (the router reports the one it really used)
+				let model: string | null = null;
 				const persistence = {
 					stores: {
 						messages: chatStore({
@@ -77,35 +80,60 @@ export const Route = createFileRoute("/api/chat")({
 						}),
 					},
 				};
-				const stream = chat({
-					adapter: adapterFor(model),
-					messages: params.messages,
-					threadId: params.threadId,
-					runId: params.runId,
-					// an approval answer resumes the paused run from the history the browser sends back
-					parentRunId: params.parentRunId,
-					...(params.resume ? { resume: params.resume } : {}),
-					systemPrompts: [
-						systemPrompt({
-							name: session.user.name,
-							workspace: workspace.name,
-							timeZone,
-						}),
-					],
-					tools: [...READ_TOOLS, ...WRITE_TOOLS],
-					// tools run as this person, in this workspace
-					context: {
-						user: session.user,
-						slug,
-						today: localClock(timeZone, new Date()).day,
-						edited: new Set<string>(),
-					},
-					// at most 6 model turns (each can call tools) per message
-					agentLoopStrategy: maxIterations(6),
-					// saves the conversation as it goes, in our own tables
-					middleware: [withPersistence(persistence)],
-				});
-				return toServerSentEventsResponse(stream);
+				const start = async function* (
+					first: string,
+					fallbacks: string[],
+				): AsyncIterable<Chunk> {
+					model = first;
+					for await (const chunk of chat({
+						adapter: adapterFor(first, fallbacks),
+						messages: params.messages,
+						threadId: params.threadId,
+						runId: params.runId,
+						// an approval answer resumes the paused run from the history the browser sends back
+						parentRunId: params.parentRunId,
+						...(params.resume ? { resume: params.resume } : {}),
+						systemPrompts: [
+							systemPrompt({
+								name: session.user.name,
+								workspace: workspace.name,
+								timeZone,
+							}),
+						],
+						tools: [...READ_TOOLS, ...WRITE_TOOLS],
+						// tools run as this person, in this workspace
+						context: {
+							user: session.user,
+							slug,
+							today: localClock(timeZone, new Date()).day,
+							edited: new Set<string>(),
+						},
+						// at most 6 model turns (each can call tools) per message
+						agentLoopStrategy: maxIterations(6),
+						// saves the conversation as it goes, in our own tables
+						middleware: [withPersistence(persistence)],
+					})) {
+						const meta = (
+							chunk as { metadata?: { tanstack?: { model?: string } } }
+						).metadata?.tanstack?.model;
+						if (chunk.type === "RUN_FINISHED" && meta) model = meta;
+						yield chunk as Chunk;
+					}
+				};
+				// a failing model hands over to the next one before anything has streamed;
+				// with the account out of free requests, nothing is tried
+				const stream = models
+					? rotate(models, {
+							start,
+							onFailure: recordFailure,
+							onSuccess: recordSuccess,
+						})
+					: (async function* () {
+							yield giveUp("account_limit");
+						})();
+				return toServerSentEventsResponse(
+					stream as Parameters<typeof toServerSentEventsResponse>[0],
+				);
 			},
 		},
 	},

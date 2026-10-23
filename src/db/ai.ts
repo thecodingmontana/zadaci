@@ -74,3 +74,24 @@ export const ai_message = pgTable(
 		index("ai_message_user_idx").on(table.user_id),
 	],
 );
+
+// Free models the assistant can rotate between: their rank from the last discovery, and when
+// one fails, how long it's skipped. The row with id ACCOUNT_ROW is the account-wide free limit.
+export const ai_model = pgTable("ai_model", {
+	id: varchar("id", { length: 160 }).primaryKey(),
+	// 0 is best; null when it's no longer in the discovered list
+	rank: integer("rank"),
+	context: integer("context"),
+	ranked_at: timestamp("ranked_at", { mode: "date", withTimezone: true }),
+	cooldown_until: timestamp("cooldown_until", {
+		mode: "date",
+		withTimezone: true,
+	}),
+	last_error: text("last_error"),
+	failures: integer("failures").notNull().default(0),
+	successes: integer("successes").notNull().default(0),
+	last_ms: integer("last_ms"),
+	updated_at: timestamp("updated_at", { mode: "date", withTimezone: true })
+		.defaultNow()
+		.notNull(),
+});

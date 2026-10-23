@@ -23,6 +23,7 @@ import { Route as AuthedJoinCodeRouteImport } from './routes/_authed/join.$code'
 import { Route as AuthedSaveSlugRouteImport } from './routes/_authed/save.$slug'
 import { Route as AuthedWSlugRouteImport } from './routes/_authed/w/$slug'
 import { Route as AuthedWorkspaceIndexRouteImport } from './routes/_authed/workspace/index'
+import { Route as ApiAiModelsRouteImport } from './routes/api/ai/models'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronDailyRouteImport } from './routes/api/cron/daily'
 import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor/index'
@@ -117,6 +118,11 @@ const AuthedWorkspaceIndexRoute = AuthedWorkspaceIndexRouteImport.update({
   id: '/workspace/',
   path: '/workspace/',
   getParentRoute: () => AuthedRoute,
+} as any)
+const ApiAiModelsRoute = ApiAiModelsRouteImport.update({
+  id: '/api/ai/models',
+  path: '/api/ai/models',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/join/$code': typeof AuthedJoinCodeRoute
   '/save/$slug': typeof AuthedSaveSlugRoute
   '/w/$slug': typeof AuthedWSlugRouteWithChildren
+  '/api/ai/models': typeof ApiAiModelsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/workspace/': typeof AuthedWorkspaceIndexRoute
@@ -298,6 +305,7 @@ export interface FileRoutesByTo {
   '/s/$token': typeof STokenRoute
   '/join/$code': typeof AuthedJoinCodeRoute
   '/save/$slug': typeof AuthedSaveSlugRoute
+  '/api/ai/models': typeof ApiAiModelsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
@@ -340,6 +348,7 @@ export interface FileRoutesById {
   '/_authed/join/$code': typeof AuthedJoinCodeRoute
   '/_authed/save/$slug': typeof AuthedSaveSlugRoute
   '/_authed/w/$slug': typeof AuthedWSlugRouteWithChildren
+  '/api/ai/models': typeof ApiAiModelsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
@@ -382,6 +391,7 @@ export interface FileRouteTypes {
     | '/join/$code'
     | '/save/$slug'
     | '/w/$slug'
+    | '/api/ai/models'
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/workspace/'
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/join/$code'
     | '/save/$slug'
+    | '/api/ai/models'
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/workspace'
@@ -462,6 +473,7 @@ export interface FileRouteTypes {
     | '/_authed/join/$code'
     | '/_authed/save/$slug'
     | '/_authed/w/$slug'
+    | '/api/ai/models'
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/_authed/workspace/'
@@ -500,6 +512,7 @@ export interface RootRouteChildren {
   ApiGraphqlRoute: typeof ApiGraphqlRoute
   AuthSigninRoute: typeof AuthSigninRoute
   STokenRoute: typeof STokenRoute
+  ApiAiModelsRoute: typeof ApiAiModelsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronDailyRoute: typeof ApiCronDailyRoute
   AuthTwoFactorIndexRoute: typeof AuthTwoFactorIndexRoute
@@ -604,6 +617,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/workspace/'
       preLoaderRoute: typeof AuthedWorkspaceIndexRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/api/ai/models': {
+      id: '/api/ai/models'
+      path: '/api/ai/models'
+      fullPath: '/api/ai/models'
+      preLoaderRoute: typeof ApiAiModelsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -866,6 +886,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGraphqlRoute: ApiGraphqlRoute,
   AuthSigninRoute: AuthSigninRoute,
   STokenRoute: STokenRoute,
+  ApiAiModelsRoute: ApiAiModelsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronDailyRoute: ApiCronDailyRoute,
   AuthTwoFactorIndexRoute: AuthTwoFactorIndexRoute,
