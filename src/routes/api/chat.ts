@@ -15,7 +15,9 @@ import {
 	pinnedModel,
 } from "#/lib/ai/model.server";
 import { systemPrompt } from "#/lib/ai/prompt";
+import { READ_TOOLS } from "#/lib/ai/tools.server";
 import { auth } from "#/lib/auth";
+import { localClock } from "#/lib/daily.server";
 
 // The assistant: streams the model's answer for the signed-in person, inside one workspace.
 
@@ -40,6 +42,7 @@ export const Route = createFileRoute("/api/chat")({
 					.from(tables.user)
 					.where(eq(tables.user.id, session.user.id));
 				const prefs = (me?.prefs ?? {}) as { tz?: string; autoTz?: string };
+				const timeZone = prefs.tz || prefs.autoTz || "UTC";
 				const stream = chat({
 					adapter: adapterFor(pinnedModel() ?? FREE_ROUTER),
 					messages: params.messages,
@@ -49,9 +52,16 @@ export const Route = createFileRoute("/api/chat")({
 						systemPrompt({
 							name: session.user.name,
 							workspace: workspace.name,
-							timeZone: prefs.tz || prefs.autoTz || "UTC",
+							timeZone,
 						}),
 					],
+					tools: READ_TOOLS,
+					// tools run as this person, in this workspace
+					context: {
+						user: session.user,
+						slug,
+						today: localClock(timeZone, new Date()).day,
+					},
 					// at most 6 model turns (each can call tools) per message
 					agentLoopStrategy: maxIterations(6),
 				});

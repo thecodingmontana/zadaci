@@ -7,6 +7,14 @@ import { cn } from "#/lib/utils";
 
 export const MAX_MESSAGE = 2000;
 
+/** What each tool call reads as in the chat. */
+const TOOL_LABEL: Record<string, string> = {
+	searchItems: "Searched the workspace",
+	listTasks: "Looked at tasks",
+	listProjects: "Looked at projects",
+	getItem: "Opened an item",
+};
+
 const SUGGESTIONS = [
 	"What's due this week?",
 	"Plan my week",
@@ -70,7 +78,7 @@ export function AssistantChat({ slug }: { slug: string }) {
 						{m.parts.map((part, i) => {
 							const key = `${m.id}-${i}`;
 							if (part.type === "text")
-								return (
+								return !part.content.trim() ? null : (
 									<div key={key} className="ai-text">
 										{part.content}
 									</div>
@@ -82,7 +90,7 @@ export function AssistantChat({ slug }: { slug: string }) {
 											className="icon-[solar--widget-4-linear] size-3.5"
 											aria-hidden="true"
 										/>
-										{part.name}
+										{TOOL_LABEL[part.name] ?? part.name}
 									</div>
 								);
 							return null;
