@@ -1,4 +1,5 @@
 import { useMutation } from "@apollo/client/react";
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
@@ -63,6 +64,7 @@ export function TaskMenu({
 		refetchQueries: ["ProjectPage", "Projects", "NotificationCounts"],
 	});
 	const undo = useUndoDelete(slug);
+	const router = useRouter();
 	const editable = canEdit(t.projectId);
 	const done = t.status === "completed";
 	return (
@@ -318,10 +320,20 @@ export function TaskMenu({
 				open={deleting}
 				onOpenChange={setDeleting}
 				title={`Delete “${t.name}”?`}
-				body={`${t.subtaskCount ? `Its ${t.subtaskCount} subtask${t.subtaskCount > 1 ? "s" : ""} will be deleted too. ` : ""}This can't be undone.`}
+				body={`${t.subtaskCount ? `Its ${t.subtaskCount} subtask${t.subtaskCount > 1 ? "s" : ""} will be deleted too. ` : ""}You can undo this right after.`}
 				ok="Delete task"
 				danger
 				onConfirm={async () => {
+					// deleting the task that's open in the drawer closes the drawer
+					const open = router.state.location.search as { task?: string };
+					if (open.task === t.id)
+						router.navigate({
+							to: ".",
+							search: ((prev: Record<string, unknown>) => ({
+								...prev,
+								task: undefined,
+							})) as never,
+						});
 					const id = toast.pending(`Deleting “${t.name}”…`);
 					try {
 						await remove({ variables: { slug, ids: [t.id] } });

@@ -440,7 +440,11 @@ export function TimelineView({
 										dw={dw}
 										color={color}
 										editable={canEdit(t.projectId)}
-										title={`${t.name} · ${format(parseISO(s), "MMM d")} → ${format(parseISO(t.dueDate as string), "MMM d")}`}
+										title={
+											t.startDate
+												? `${t.name} · ${format(parseISO(s), "MMM d")} → ${format(parseISO(t.dueDate as string), "MMM d")}`
+												: `${t.name} · due ${format(parseISO(s), "MMM d")}`
+										}
 										onOpen={() => openTask(t.id)}
 										onMove={(days) => {
 											const shift = (d: string | null) =>
@@ -561,6 +565,7 @@ function Bar({
 			className={cn(
 				"bar",
 				t.status === "completed" && "done",
+				!t.startDate && "due",
 				dx !== 0 && "dragging",
 			)}
 			style={

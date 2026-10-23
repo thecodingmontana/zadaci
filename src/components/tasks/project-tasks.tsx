@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client/react";
 import { useState } from "react";
 import { type SavedView, TASKS, type TaskItem } from "#/graphql/operations";
 import { applyView, groupTasks } from "#/lib/view-engine";
+import { NoResults } from "./bits";
 import { BoardView } from "./board-view";
 import { CalendarView } from "./calendar-view";
 import { TaskViewProvider, useTaskView } from "./context";
@@ -120,23 +121,7 @@ function Body({
 		</div>
 	);
 	const emptyFilter = (
-		<div className="empty-state">
-			<div className="glyph">
-				<span
-					className="icon-[solar--magnifer-bug-linear] size-5"
-					aria-hidden="true"
-				/>
-			</div>
-			<h2 className="es-h">No results found</h2>
-			<p>No tasks match these filters.</p>
-			<button
-				type="button"
-				className="btn btn-secondary btn-sm"
-				onClick={() => setView({ filters: [], q: "" })}
-			>
-				Clear filters
-			</button>
-		</div>
+		<NoResults onClear={() => setView({ filters: [], q: "" })} />
 	);
 	const toolbar = (opts: { group?: boolean; extra?: React.ReactNode }) => (
 		<ViewToolbar
@@ -153,14 +138,16 @@ function Body({
 		return (
 			<>
 				{toolbar({ group: false })}
-				{tasks.length ? (
+				{!tasks.length ? (
+					emptyAll
+				) : shown.length ? (
 					<BoardView
 						tasks={shown}
 						projectId={projectId}
 						storageKey={projectId}
 					/>
 				) : (
-					emptyAll
+					emptyFilter
 				)}
 			</>
 		);

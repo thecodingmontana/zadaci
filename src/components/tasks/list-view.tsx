@@ -792,7 +792,7 @@ export function BulkBar({
 				open={deleting}
 				onOpenChange={setDeleting}
 				title={`Delete ${ids.length} task${ids.length > 1 ? "s" : ""}?`}
-				body="Their subtasks are deleted too. This can't be undone."
+				body="Their subtasks are deleted too. You can undo this right after."
 				ok="Delete"
 				danger
 				onConfirm={async () => {

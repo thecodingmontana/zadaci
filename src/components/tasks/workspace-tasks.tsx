@@ -10,6 +10,7 @@ import {
 	groupTasks,
 	isOverdue,
 } from "#/lib/view-engine";
+import { NoResults } from "./bits";
 import { BoardView } from "./board-view";
 import { CalendarView } from "./calendar-view";
 import { TaskViewProvider, useTaskView } from "./context";
@@ -209,7 +210,9 @@ function AllTasks({ tasks }: { tasks: TaskItem[] }) {
 				}
 				right={right}
 			/>
-			{mode === "board" ? (
+			{tasks.length > 0 && !shown.length ? (
+				<NoResults onClear={() => setView({ filters: [], q: "" })} />
+			) : mode === "board" ? (
 				<BoardView tasks={shown} showProject storageKey="tasks" />
 			) : mode === "table" ? (
 				<TableView

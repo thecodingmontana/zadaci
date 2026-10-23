@@ -119,8 +119,7 @@ function TaskModal({
 	prefill: Prefill;
 	onClose: () => void;
 }) {
-	const { slug, members, projects, meId, create, member, project } =
-		useTaskView();
+	const { slug, members, projects, create, member, project } = useTaskView();
 	const client = useApolloClient();
 	const mod = useModKey();
 	const writable = projects.filter(
@@ -134,11 +133,9 @@ function TaskModal({
 				? prefill.projectId
 				: (writable[0]?.id ?? ""),
 		status: prefill.status ?? "todo",
-		assigneeIds: (prefill.assigneeId === undefined
-			? [meId]
-			: [prefill.assigneeId]
-		).filter((id): id is string => !!id),
-		priority: prefill.priority ?? "medium",
+		// the same blank defaults as adding from a column: unassigned, no priority
+		assigneeIds: prefill.assigneeId ? [prefill.assigneeId] : [],
+		priority: prefill.priority ?? "none",
 		dueDate: prefill.dueDate ?? null,
 		startDate: null as string | null,
 		labels: [] as string[],

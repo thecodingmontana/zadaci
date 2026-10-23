@@ -322,3 +322,15 @@ test("notification emails follow each person's email settings", async () => {
 	assert.equal(notifKey("push", row("comment"), null), "push_comment", "comments push by default");
 	assert.equal(notifKey("push", row("mention"), { notif: { push_mention: false } }), null, "push turned off");
 });
+
+test("editing a description shows in the feed once per stretch of typing", async () => {
+	const { owner, slug, create } = await setup();
+	const task = (await create(owner, { title: "Describe me" })).data?.createTask;
+	for (const text of ["<p>F</p>", "<p>First draft</p>", "<p>First draft</p>"])
+		await gql(owner, UPDATE, { s: slug, id: task.id, p: { description: text } });
+	const rows = await db
+		.select({ verb: tables.activity.verb })
+		.from(tables.activity)
+		.where(and(eq(tables.activity.task_id, task.id), eq(tables.activity.verb, "edited the description of")));
+	assert.equal(rows.length, 1);
+});

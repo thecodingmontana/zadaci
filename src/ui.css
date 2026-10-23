@@ -3975,6 +3975,19 @@ button.tl-row {
 .bar.done {
   opacity: 0.6;
 }
+/* a task with only a due date: a dashed marker on that day, not a span */
+.bar.due {
+  background: var(--q-surface);
+  border-style: dashed;
+}
+/* the name beside a bar too narrow to hold it */
+.blabel {
+  position: absolute;
+  font-size: var(--q-fs-sm);
+  color: var(--q-text-2);
+  white-space: nowrap;
+  pointer-events: none;
+}
 .bar.dragging {
   cursor: grabbing;
   box-shadow: var(--q-shadow-drag);

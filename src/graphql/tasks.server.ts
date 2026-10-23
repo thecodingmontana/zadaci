@@ -475,6 +475,8 @@ async function checkAssignee(
 
 type Actor = { workspace: Workspace; userId: string };
 
+const DESCRIBED = "edited the description of";
+
 const taskActivity = (
 	actor: Actor,
 	task: TaskRow,
@@ -527,8 +529,26 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 		set.name = patch.title;
 		logs.push(["renamed", `to “${patch.title}”`]);
 	}
-	if (patch.description !== undefined)
+	if (
+		patch.description !== undefined &&
+		(patch.description || null) !== task.description
+	) {
 		set.description = patch.description || null;
+		// the editor saves as you type: one feed line per person per task every 10 minutes
+		const [recent] = await db
+			.select({ id: tables.activity.id })
+			.from(tables.activity)
+			.where(
+				and(
+					eq(tables.activity.task_id, task.parent_task_id ?? task.id),
+					eq(tables.activity.actor_id, actor.userId),
+					eq(tables.activity.verb, DESCRIBED),
+					sql`${tables.activity.created_at} > now() - interval '10 minutes'`,
+				),
+			)
+			.limit(1);
+		if (!recent) logs.push([DESCRIBED]);
+	}
 	// status logs wait until the write confirms this request made the change
 	const statusLogs: [string, string?][] = [];
 	const statusAt = logs.length;

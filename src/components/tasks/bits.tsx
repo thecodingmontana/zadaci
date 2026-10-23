@@ -110,3 +110,26 @@ export function Due({
 		</span>
 	);
 }
+
+/** Shown when tasks exist but none match the search or filters. */
+export function NoResults({ onClear }: { onClear: () => void }) {
+	return (
+		<div className="empty-state">
+			<div className="glyph">
+				<span
+					className="icon-[solar--magnifer-bug-linear] size-5"
+					aria-hidden="true"
+				/>
+			</div>
+			<h2 className="es-h">No results found</h2>
+			<p>No tasks match this search or these filters.</p>
+			<button
+				type="button"
+				className="btn btn-secondary btn-sm"
+				onClick={onClear}
+			>
+				Clear search and filters
+			</button>
+		</div>
+	);
+}

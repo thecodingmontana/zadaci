@@ -83,11 +83,8 @@ export function BoardView({
 			coordinateGetter: sortableKeyboardCoordinates,
 		}),
 	);
-	// columns keep manual order inside, like the reference board
-	const columns = groupTasks(
-		[...tasks].sort((a, b) => a.sortOrder - b.sortOrder),
-		"status",
-	);
+	// columns keep the toolbar's sort (manual order unless another is picked)
+	const columns = groupTasks(tasks, "status");
 
 	function onDragEnd({ active, over }: DragEndEvent) {
 		setDragging(null);
