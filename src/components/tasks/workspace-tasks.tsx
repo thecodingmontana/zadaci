@@ -242,7 +242,7 @@ function MyTasks({ tasks }: { tasks: TaskItem[] }) {
 		t.dueDate ? differenceInCalendarDays(parseISO(t.dueDate), today) : null;
 	// "manual" order means nothing across projects; mine sort by due date unless chosen
 	const mine = applyView(
-		tasks.filter((t) => t.assigneeId === meId),
+		tasks.filter((t) => t.assigneeIds.includes(meId)),
 		view.sort.f === "manual" ? { ...view, sort: { f: "due", dir: 1 } } : view,
 		names,
 	);

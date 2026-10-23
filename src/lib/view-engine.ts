@@ -12,6 +12,8 @@ export type ViewTask = {
 	status: string;
 	priority: string;
 	assigneeId: string | null;
+	/** everyone assigned; older callers may leave it out */
+	assigneeIds?: string[];
 	projectId: string;
 	dueDate: string | null;
 	startDate: string | null;
@@ -111,7 +113,10 @@ export function matchFilter(t: ViewTask, f: Filter, today = new Date()) {
 	if (!f.v.length) return true;
 	let hit: boolean;
 	if (f.f === "labels") hit = f.v.some((v) => t.labels.includes(v));
-	else if (f.f === "assignee") hit = f.v.includes(t.assigneeId ?? "none");
+	else if (f.f === "assignee")
+		hit = (t.assigneeIds?.length ? t.assigneeIds : ["none"]).some((a) =>
+			f.v.includes(a),
+		);
 	else if (f.f === "project") hit = f.v.includes(t.projectId);
 	else if (f.f === "due") hit = f.v.some((v) => dueBucket(t, v, today));
 	else if (f.f === "created" || f.f === "updated") {

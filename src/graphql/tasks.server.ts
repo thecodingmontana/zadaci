@@ -58,7 +58,10 @@ export const tasksTypeDefs = /* GraphQL */ `
 		projectId: ID!
 		parentId: ID
 		description: String
+		"the first assignee, for views that show one person"
 		assigneeId: ID
+		"everyone the task is assigned to"
+		assigneeIds: [ID!]!
 		"YYYY-MM-DD"
 		startDate: String
 		labels: [String!]!
@@ -86,6 +89,8 @@ export const tasksTypeDefs = /* GraphQL */ `
 		status: String
 		priority: String
 		assigneeId: ID
+		"the whole list; wins over assigneeId"
+		assigneeIds: [ID!]
 		dueDate: String
 		startDate: String
 		labels: [String!]
@@ -100,6 +105,8 @@ export const tasksTypeDefs = /* GraphQL */ `
 		status: String
 		priority: String
 		assigneeId: ID
+		"the whole list; wins over assigneeId"
+		assigneeIds: [ID!]
 		dueDate: String
 		startDate: String
 		labels: [String!]
@@ -146,6 +153,7 @@ const fields = {
 	status: z.enum(STATUS_IDS).nullish(),
 	priority: z.enum(PRIORITY_IDS).nullish(),
 	assigneeId: z.string().nullish(),
+	assigneeIds: z.array(z.string()).max(20, "Up to 20 people").nullish(),
 	dueDate: DAY.nullish(),
 	startDate: DAY.nullish(),
 	labels: z
@@ -177,6 +185,7 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
 type Enriched = TaskRow & {
 	projectKey: string;
 	assigneeId: string | null;
+	assigneeIds: string[];
 	isFavorite: boolean;
 	subtaskCount: number;
 	subtaskDone: number;
@@ -301,6 +310,10 @@ export async function enrichTasks(
 			...task,
 			projectKey,
 			assigneeId: assigneeMap.get(task.id)?.[0]?.memberId ?? null,
+			// oldest first, so the list keeps its order as people are added
+			assigneeIds: (assigneeMap.get(task.id) ?? [])
+				.map((a) => a.memberId)
+				.reverse(),
 			isFavorite: favs.has(task.id),
 			subtaskCount: sub?.n ?? 0,
 			subtaskDone: sub?.done ?? 0,
@@ -386,26 +399,52 @@ async function nextNumber(q: Tx | typeof db, projectId: string) {
 	return row?.n ?? 1;
 }
 
-async function setAssignee(
+/** The people a patch or new task assigns: the list if given, else the single assignee. */
+const assigneesOf = (input: {
+	assigneeId?: string | null;
+	assigneeIds?: string[] | null;
+}) => [
+	...new Set(input.assigneeIds ?? (input.assigneeId ? [input.assigneeId] : [])),
+];
+
+/** Makes the task's assignees exactly these people, keeping rows for those who stay. */
+async function setAssignees(
 	q: Tx | typeof db,
 	taskId: string,
-	memberId: string | null,
+	memberIds: string[],
 ) {
-	await q
-		.update(tables.task_assignees)
-		.set({ deleted_at: new Date() })
+	const current = await q
+		.select({ memberId: tables.task_assignees.member_id })
+		.from(tables.task_assignees)
 		.where(
 			and(
 				eq(tables.task_assignees.task_id, taskId),
 				isNull(tables.task_assignees.deleted_at),
 			),
 		);
-	if (memberId)
-		await q.insert(tables.task_assignees).values({
-			task_id: taskId,
-			member_id: memberId,
-			assigned_at: new Date(),
-		});
+	const had = current.map((c) => c.memberId);
+	const removed = had.filter((m) => !memberIds.includes(m));
+	const added = memberIds.filter((m) => !had.includes(m));
+	if (removed.length)
+		await q
+			.update(tables.task_assignees)
+			.set({ deleted_at: new Date() })
+			.where(
+				and(
+					eq(tables.task_assignees.task_id, taskId),
+					inArray(tables.task_assignees.member_id, removed),
+					isNull(tables.task_assignees.deleted_at),
+				),
+			);
+	if (added.length)
+		await q.insert(tables.task_assignees).values(
+			added.map((member_id) => ({
+				task_id: taskId,
+				member_id,
+				assigned_at: new Date(),
+			})),
+		);
+	return { added, removed };
 }
 
 async function checkAssignee(
@@ -582,52 +621,33 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 		}
 	}
 	if (statusApplied) logs.splice(statusAt, 0, ...statusLogs);
-	if (patch.assigneeId !== undefined) {
-		const [current] = await db
-			.select({ memberId: tables.task_assignees.member_id })
-			.from(tables.task_assignees)
-			.where(
-				and(
-					eq(tables.task_assignees.task_id, task.id),
-					isNull(tables.task_assignees.deleted_at),
-				),
-			);
-		const next = patch.assigneeId || null;
-		let changed = false;
-		if ((current?.memberId ?? null) !== next) {
-			await checkAssignee(actor.workspace.id, task.project_id, next);
-			// lock the task so two assigns at once can't both leave an assignee row
-			changed = await db.transaction(async (tx) => {
-				await tx
-					.select({ id: tables.task.id })
-					.from(tables.task)
-					.where(eq(tables.task.id, task.id))
-					.for("update");
-				const [now] = await tx
-					.select({ memberId: tables.task_assignees.member_id })
-					.from(tables.task_assignees)
-					.where(
-						and(
-							eq(tables.task_assignees.task_id, task.id),
-							isNull(tables.task_assignees.deleted_at),
-						),
-					);
-				if ((now?.memberId ?? null) === next) return false;
-				await setAssignee(tx, task.id, next);
-				return true;
-			});
-		}
-		if (changed) {
-			const person = next ? await memberName(next) : null;
-			logs.push(
-				task.parent_task_id
-					? [
-							"assigned a subtask on",
-							person ? `to ${person.name}` : "(unassigned)",
-						]
-					: ["assigned", person ? `to ${person.name}` : "(unassigned)"],
-			);
-			if (next) await notifyAssignee(actor, updated, next);
+	if (patch.assigneeId !== undefined || patch.assigneeIds !== undefined) {
+		const next = assigneesOf(patch);
+		for (const m of next)
+			await checkAssignee(actor.workspace.id, task.project_id, m);
+		// lock the task so two edits at once can't leave a mix of both lists
+		const { added, removed } = await db.transaction(async (tx) => {
+			await tx
+				.select({ id: tables.task.id })
+				.from(tables.task)
+				.where(eq(tables.task.id, task.id))
+				.for("update");
+			return setAssignees(tx, task.id, next);
+		});
+		if (added.length || removed.length) {
+			const names = (
+				await Promise.all(added.map((m) => memberName(m)))
+			).flatMap((p) => (p ? [p.name] : []));
+			const extra = names.length
+				? `to ${names.join(", ")}`
+				: next.length
+					? "(removed someone)"
+					: "(unassigned)";
+			logs.push([
+				task.parent_task_id ? "assigned a subtask on" : "assigned",
+				extra,
+			]);
+			for (const m of added) await notifyAssignee(actor, updated, m);
 		}
 	}
 	// a rename reads "renamed <old name> to “<new name>”"
@@ -661,7 +681,7 @@ async function repeatNext(actor: Actor, updated: TaskRow) {
 		.returning({ id: tables.task.id });
 	if (!handedOn.length) return false;
 	const due = addDays(updated.due_date, RECUR_DAYS[updated.recur] ?? 7);
-	const [assignee] = await db
+	const assignees = await db
 		.select({ memberId: tables.task_assignees.member_id })
 		.from(tables.task_assignees)
 		.where(
@@ -676,7 +696,7 @@ async function repeatNext(actor: Actor, updated: TaskRow) {
 		description: updated.description,
 		status: STATUS.TODO,
 		priority: updated.priority,
-		assigneeId: assignee?.memberId ?? null,
+		assigneeIds: assignees.map((a) => a.memberId),
 		dueDate: toDay(due),
 		startDate: toDay(due),
 		labels: updated.labels,
@@ -889,7 +909,7 @@ async function insertTask(actor: Actor, input: NewTask) {
 			})
 			.returning();
 		if (!task) throw new Error("Task insert returned nothing");
-		if (input.assigneeId) await setAssignee(tx, task.id, input.assigneeId);
+		await setAssignees(tx, task.id, assigneesOf(input));
 		if (input.parentId) {
 			const [parent] = await tx
 				.select()
@@ -906,7 +926,7 @@ async function insertTask(actor: Actor, input: NewTask) {
 		} else await taskActivity(actor, task, "created", undefined, tx);
 		return task;
 	});
-	if (input.assigneeId) await notifyAssignee(actor, task, input.assigneeId);
+	for (const m of assigneesOf(input)) await notifyAssignee(actor, task, m);
 	return task;
 }
 
@@ -1110,7 +1130,8 @@ export const tasksResolvers = {
 					right: "edit",
 				},
 			);
-			await checkAssignee(workspace.id, input.projectId, input.assigneeId);
+			for (const m of assigneesOf(input))
+				await checkAssignee(workspace.id, input.projectId, m);
 			if (input.parentId) {
 				const [parent] = await db
 					.select()
@@ -1330,7 +1351,7 @@ export const tasksResolvers = {
 				description: task.description,
 				status: task.status,
 				priority: task.priority,
-				assigneeId: source?.assigneeId ?? null,
+				assigneeIds: source?.assigneeIds ?? [],
 				dueDate: toDay(task.due_date),
 				startDate: toDay(task.start_date),
 				labels: task.labels,

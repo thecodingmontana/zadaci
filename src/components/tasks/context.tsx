@@ -162,6 +162,10 @@ export function TaskViewProvider({
 			)
 				return;
 			const { title, ...rest } = patch;
+			// one list of people; the single assignee is its first entry
+			if (rest.assigneeIds) rest.assigneeId = rest.assigneeIds[0] ?? null;
+			else if (rest.assigneeId !== undefined)
+				rest.assigneeIds = rest.assigneeId ? [rest.assigneeId] : [];
 			try {
 				await updateTask({
 					variables: { slug, id: task.id, patch },
@@ -250,7 +254,10 @@ export function TaskViewProvider({
 								priority: input.priority ?? "none",
 								projectId: input.projectId,
 								parentId: input.parentId ?? null,
-								assigneeId: input.assigneeId ?? null,
+								assigneeId: input.assigneeIds?.[0] ?? input.assigneeId ?? null,
+								assigneeIds:
+									input.assigneeIds ??
+									(input.assigneeId ? [input.assigneeId] : []),
 								dueDate: input.dueDate ?? null,
 								startDate: input.startDate ?? null,
 								labels: input.labels ?? [],
@@ -310,7 +317,10 @@ export function TaskViewProvider({
 										if (!ref) return list;
 										if (a.projectId && a.projectId !== task.projectId)
 											return list;
-										if (a.assigneeId && a.assigneeId !== task.assigneeId)
+										if (
+											a.assigneeId &&
+											!task.assigneeIds.includes(String(a.assigneeId))
+										)
 											return list;
 										if (list.some((r) => readField("id", r) === task.id))
 											return list;

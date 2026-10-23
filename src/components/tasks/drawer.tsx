@@ -377,8 +377,8 @@ function DrawerBody({
 					)}
 					{prop("icon-[solar--chart-2-linear]", "Priority", <CellPrio t={t} />)}
 					{prop(
-						"icon-[solar--user-linear]",
-						"Assignee",
+						"icon-[solar--users-group-rounded-linear]",
+						"Assignees",
 						<CellAssignee t={t} />,
 					)}
 					{prop("icon-[solar--calendar-linear]", "Due date", <CellDue t={t} />)}

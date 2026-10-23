@@ -1286,6 +1286,7 @@ export type TaskItem = {
 	projectId: string;
 	parentId: string | null;
 	assigneeId: string | null;
+	assigneeIds: string[];
 	dueDate: string | null;
 	startDate: string | null;
 	labels: string[];
@@ -1315,6 +1316,7 @@ export const TASK_FIELDS = gql`
 		projectId
 		parentId
 		assigneeId
+		assigneeIds
 		dueDate
 		startDate
 		labels
@@ -1380,6 +1382,7 @@ export type TaskPatch = Partial<{
 	status: string;
 	priority: string;
 	assigneeId: string | null;
+	assigneeIds: string[];
 	dueDate: string | null;
 	startDate: string | null;
 	labels: string[];

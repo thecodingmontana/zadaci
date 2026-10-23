@@ -18,7 +18,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { createContext, useContext, useEffect, useState } from "react";
 import { ProgBar, projectColor } from "#/components/projects/bits";
-import { Av } from "#/components/q/av";
 import {
 	Menu,
 	MenuContent,
@@ -32,9 +31,10 @@ import { priority } from "#/lib/tasks";
 import { cn } from "#/lib/utils";
 import { type Group, groupTasks, planDrop } from "#/lib/view-engine";
 import { Due, Lbl, PrIcon } from "./bits";
+import { assigneeLabel, Faces, useAssignees } from "./cells";
 import { useTaskView } from "./context";
 import { BulkBar } from "./list-view";
-import { AssigneePick, DatePick, PriorityPick } from "./pick";
+import { AssigneesPick, DatePick, PriorityPick } from "./pick";
 import { TaskMenu } from "./task-menu";
 
 // The Board view (reference views/board.js): one column per status, cards you drag
@@ -393,13 +393,13 @@ function Card({
 	showProject?: boolean;
 	overlay?: boolean;
 }) {
-	const { update, openTask, canEdit, member, project, members } = useTaskView();
+	const { update, openTask, canEdit, project, members } = useTaskView();
 	const { selected, toggle } = useContext(Selection);
 	const editable = canEdit(t.projectId) && !overlay;
 	const isSelected = selected.has(t.id);
 	const done = t.status === "completed";
 	const p = project(t.projectId);
-	const m = member(t.assigneeId);
+	const people = useAssignees(t.assigneeIds);
 	const pct = t.subtaskCount
 		? Math.round((t.subtaskDone / t.subtaskCount) * 100)
 		: 0;
@@ -551,31 +551,24 @@ function Card({
 					</span>
 				)}
 				{editable ? (
-					<AssigneePick
-						value={t.assigneeId}
+					<AssigneesPick
+						value={t.assigneeIds}
 						people={members}
-						onPick={(id) => update(t, { assigneeId: id })}
+						onChange={(ids) => update(t, { assigneeIds: ids })}
 					>
 						<button
 							type="button"
 							className="m"
 							style={{ marginLeft: "auto" }}
-							aria-label="Assignee"
+							aria-label={`Assignees: ${assigneeLabel(people)}`}
 							onClick={stop}
 						>
-							{m ? (
-								<Av name={m.name} image={m.image} className="sm" />
-							) : (
-								<span
-									className="av sm"
-									style={{ "--c": "var(--q-gray)" } as React.CSSProperties}
-								/>
-							)}
+							<Faces people={people} />
 						</button>
-					</AssigneePick>
+					</AssigneesPick>
 				) : (
 					<span className="m" style={{ marginLeft: "auto" }}>
-						{m ? <Av name={m.name} image={m.image} className="sm" /> : null}
+						{people.length > 0 && <Faces people={people} />}
 					</span>
 				)}
 			</div>

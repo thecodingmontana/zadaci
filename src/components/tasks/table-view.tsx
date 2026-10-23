@@ -22,9 +22,10 @@ import {
 	type ViewState,
 } from "#/lib/view-engine";
 import { Due, Lbl, PrPill, StPill } from "./bits";
+import { assigneeLabel, Faces } from "./cells";
 import { useTaskView } from "./context";
 import {
-	AssigneePick,
+	AssigneesPick,
 	DatePick,
 	MultiPick,
 	PickList,
@@ -459,30 +460,23 @@ function Cell({
 				</PickCell>
 			);
 		case "assignee": {
-			const m = member(t.assigneeId);
+			const people = t.assigneeIds.flatMap((id) => member(id) ?? []);
 			return (
 				<PickCell
 					editable={editable}
 					picker={(tr) => (
-						<AssigneePick
-							value={t.assigneeId}
+						<AssigneesPick
+							value={t.assigneeIds}
 							people={members}
-							onPick={(id) => update(t, { assigneeId: id })}
+							onChange={(ids) => update(t, { assigneeIds: ids })}
 						>
 							{tr}
-						</AssigneePick>
+						</AssigneesPick>
 					)}
 				>
-					{m ? (
-						<Av name={m.name} image={m.image} className="sm" />
-					) : (
-						<span
-							className="av sm"
-							style={{ "--c": "var(--q-gray)" } as React.CSSProperties}
-						/>
-					)}
-					<span className={cn("trunc", !m && "faint")}>
-						{m?.name ?? "Unassigned"}
+					<Faces people={people} />
+					<span className={cn("trunc", !people.length && "faint")}>
+						{assigneeLabel(people)}
 					</span>
 				</PickCell>
 			);

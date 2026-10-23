@@ -125,16 +125,22 @@ export function TaskMenu({
 								</MenuSubTrigger>
 								<MenuSubContent width={220}>
 									<MenuItem
-										checked={!t.assigneeId}
-										onSelect={() => update(t, { assigneeId: null })}
+										checked={!t.assigneeIds.length}
+										onSelect={() => update(t, { assigneeIds: [] })}
 									>
 										Unassigned
 									</MenuItem>
 									{members.map((m) => (
 										<MenuItem
 											key={m.id}
-											checked={t.assigneeId === m.id}
-											onSelect={() => update(t, { assigneeId: m.id })}
+											checked={t.assigneeIds.includes(m.id)}
+											onSelect={() =>
+												update(t, {
+													assigneeIds: t.assigneeIds.includes(m.id)
+														? t.assigneeIds.filter((id) => id !== m.id)
+														: [...t.assigneeIds, m.id],
+												})
+											}
 										>
 											<Av name={m.name} image={m.image} className="sm" />
 											{m.isMe ? `${m.name} (you)` : m.name}

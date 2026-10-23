@@ -7,7 +7,6 @@ import {
 	useState,
 } from "react";
 import { projectColor } from "#/components/projects/bits";
-import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";
 import { useModKey } from "#/components/shell/command-menu";
 import { SHELL, TASKS, type TaskItem } from "#/graphql/operations";
@@ -18,9 +17,10 @@ import { fmtDay } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { Lbl, PrPill, StPill } from "./bits";
+import { assigneeLabel, Faces } from "./cells";
 import { TASK_REFETCH, TaskViewProvider, useTaskView } from "./context";
 import {
-	AssigneePick,
+	AssigneesPick,
 	DatePick,
 	MultiPick,
 	PickList,
@@ -134,7 +134,10 @@ function TaskModal({
 				? prefill.projectId
 				: (writable[0]?.id ?? ""),
 		status: prefill.status ?? "todo",
-		assigneeId: prefill.assigneeId === undefined ? meId : prefill.assigneeId,
+		assigneeIds: (prefill.assigneeId === undefined
+			? [meId]
+			: [prefill.assigneeId]
+		).filter((id): id is string => !!id),
 		priority: prefill.priority ?? "medium",
 		dueDate: prefill.dueDate ?? null,
 		startDate: null as string | null,
@@ -151,7 +154,7 @@ function TaskModal({
 	const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
 		setForm((f) => ({ ...f, [k]: v }));
 	const p = project(form.projectId);
-	const m = member(form.assigneeId);
+	const people = form.assigneeIds.flatMap((id) => member(id) ?? []);
 
 	async function submit(event?: FormEvent) {
 		event?.preventDefault();
@@ -172,7 +175,7 @@ function TaskModal({
 					? toHtml(form.description.trim())
 					: null,
 				status: form.status,
-				assigneeId: form.assigneeId,
+				assigneeIds: form.assigneeIds,
 				priority: form.priority,
 				dueDate: form.dueDate,
 				startDate: start,
@@ -337,27 +340,20 @@ function TaskModal({
 					<StatusPick value={form.status} onPick={(s) => set("status", s)}>
 						{chip("Status", <StPill status={form.status} />)}
 					</StatusPick>
-					<AssigneePick
-						value={form.assigneeId}
+					<AssigneesPick
+						value={form.assigneeIds}
 						people={members}
-						onPick={(id) => set("assigneeId", id)}
+						onChange={(ids) => set("assigneeIds", ids)}
 					>
 						{chip(
-							"Assignee",
+							"Assignees",
 							<>
-								{m ? (
-									<Av name={m.name} image={m.image} className="sm" />
-								) : (
-									<span
-										className="av sm"
-										style={{ "--c": "var(--q-gray)" } as React.CSSProperties}
-									/>
-								)}
-								{m?.name ?? "Assignee"}
+								<Faces people={people} />
+								{people.length ? assigneeLabel(people) : "Assignee"}
 							</>,
-							!m,
+							!people.length,
 						)}
-					</AssigneePick>
+					</AssigneesPick>
 					<PriorityPick
 						value={form.priority}
 						onPick={(v) => set("priority", v)}

@@ -1,5 +1,5 @@
 import { projectColor } from "#/components/projects/bits";
-import { Av } from "#/components/q/av";
+import { AvStack } from "#/components/q/av";
 import type { TaskItem } from "#/graphql/operations";
 import { LABELS, priority, taskStatus } from "#/lib/tasks";
 import { relDay } from "#/lib/time";
@@ -8,7 +8,7 @@ import { isOverdue } from "#/lib/view-engine";
 import { Lbl, PrPill, StPill } from "./bits";
 import { useTaskView } from "./context";
 import {
-	AssigneePick,
+	AssigneesPick,
 	DatePick,
 	MultiPick,
 	PriorityPick,
@@ -75,34 +75,64 @@ export function CellPrio({ t }: { t: TaskItem }) {
 	);
 }
 
+/** The members behind these ids (unknown ones left out). */
+export function useAssignees(ids: string[]) {
+	const { member } = useTaskView();
+	return ids.flatMap((id) => {
+		const m = member(id);
+		return m ? [m] : [];
+	});
+}
+
+/** "Amina", "Amina, Brian" or "Amina +2". */
+export const assigneeLabel = (people: { name: string }[]) =>
+	!people.length
+		? "Unassigned"
+		: people.length === 1
+			? (people[0]?.name ?? "")
+			: people.length === 2
+				? `${people[0]?.name}, ${people[1]?.name}`
+				: `${people[0]?.name} +${people.length - 1}`;
+
+/** Everyone's avatar side by side, or the grey empty circle. */
+export function Faces({
+	people,
+	max = 3,
+}: {
+	people: { id: string; name: string; image: string | null }[];
+	max?: number;
+}) {
+	return people.length ? (
+		<AvStack people={people} max={max} />
+	) : (
+		<span
+			className="av sm"
+			style={{ "--c": "var(--q-gray)" } as React.CSSProperties}
+		/>
+	);
+}
+
 export function CellAssignee({ t }: { t: TaskItem }) {
-	const { update, canEdit, member, members } = useTaskView();
-	const m = member(t.assigneeId);
+	const { update, canEdit, members } = useTaskView();
+	const people = useAssignees(t.assigneeIds);
 	const body = (
 		<>
-			{m ? (
-				<Av name={m.name} image={m.image} className="sm" />
-			) : (
-				<span
-					className="av sm"
-					style={{ "--c": "var(--q-gray)" } as React.CSSProperties}
-				/>
-			)}
-			<span className="trunc">{m ? m.name : "Unassigned"}</span>
+			<Faces people={people} />
+			<span className="trunc">{assigneeLabel(people)}</span>
 		</>
 	);
-	if (!canEdit(t.projectId))
-		return <Static className={m ? undefined : "empty"}>{body}</Static>;
+	const empty = people.length ? undefined : "empty";
+	if (!canEdit(t.projectId)) return <Static className={empty}>{body}</Static>;
 	return (
-		<AssigneePick
-			value={t.assigneeId}
+		<AssigneesPick
+			value={t.assigneeIds}
 			people={members}
-			onPick={(id) => update(t, { assigneeId: id })}
+			onChange={(ids) => update(t, { assigneeIds: ids })}
 		>
-			<Pill label="Assignee" className={m ? undefined : "empty"}>
+			<Pill label="Assignees" className={empty}>
 				{body}
 			</Pill>
-		</AssigneePick>
+		</AssigneesPick>
 	);
 }
 

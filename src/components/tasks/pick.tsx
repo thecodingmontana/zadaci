@@ -284,6 +284,55 @@ export function AssigneePick({
 	);
 }
 
+/** Pick several people: each click adds or removes one; "Unassigned" clears them all. */
+export function AssigneesPick({
+	value,
+	people,
+	onChange,
+	children,
+}: {
+	value: string[];
+	people: Person[];
+	onChange: (memberIds: string[]) => void;
+	children: ReactNode;
+}) {
+	return (
+		<MultiPick
+			search="Assign to…"
+			onToggle={(id) =>
+				onChange(
+					!id
+						? []
+						: value.includes(id)
+							? value.filter((v) => v !== id)
+							: [...value, id],
+				)
+			}
+			items={[
+				{
+					id: "",
+					name: "Unassigned",
+					icon: (
+						<span
+							className="av sm"
+							style={{ "--c": "var(--q-gray)" } as React.CSSProperties}
+						/>
+					),
+					on: !value.length,
+				},
+				...people.map((m) => ({
+					id: m.id,
+					name: m.isMe ? `${m.name} (you)` : m.name,
+					icon: <Av name={m.name} image={m.image} className="sm" />,
+					on: value.includes(m.id),
+				})),
+			]}
+		>
+			{children}
+		</MultiPick>
+	);
+}
+
 export function ProjectPick({
 	value,
 	projects,
