@@ -10,7 +10,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 - **Projects** with board, list, table, calendar, timeline, files and activity views, saved views, statuses, leads and private or workspace-wide sharing.
 - **Tasks** with subtasks, assignees, priorities, labels, due and start dates, estimates, dependencies, repeating tasks, comments with @mentions and reactions, attachments, favorites and bulk edits.
 - **My Tasks, Inbox and Notifications**, plus a workspace activity feed and a command menu (`Ctrl/⌘ K`).
-- **Assistant** (`Ctrl/⌘ J` or the sparkle in the top bar): a side drawer with one saved chat per workspace that you can clear. Ask it what's due, or tell it to create, update, assign, move, tag, comment, plan projects, edit notes or save bookmarks. It works only through your own permissions, shows each step it takes ("Thinking… Worked for 7s") with the items it found, lists the tasks, projects and notes it touched so you can open them, and asks before deleting, archiving or changing more than 3 tasks. Type `@` to point it at a project, task or note. It sticks to work in the workspace and politely declines anything else. Runs on free OpenRouter models, rotating between them when one is busy.
+- **Assistant** (`Ctrl/⌘ J` or the sparkle in the top bar): a side drawer with one saved chat per workspace that you can clear. Ask it what's due, or tell it to create, update, assign, move, tag, comment, plan projects, edit notes or save bookmarks. It works only through your own permissions, shows each step it takes ("Thinking… Worked for 7s") with the items it found, lists the tasks, projects and notes it touched so you can open them, and asks before deleting, archiving or changing more than 3 tasks. Type `@` to point it at a project, task or note. It sticks to work in the workspace and politely declines anything else. Runs on shared free OpenRouter models (2 messages a day per person), rotating between them when one is busy. In **Settings → AI assistant** people connect their own Claude, ChatGPT, Gemini or OpenRouter key, pick a model, and use it as much as they like; keys are checked with the provider, encrypted and tied to their account, and never shown again.
 - **Reminders and digests:** due-soon and overdue reminders, a morning email digest at the hour you choose in your own time zone, and web push notifications on desktop and phone.
 - **Time tracking** on tasks, **public read-only share links** for projects and notes, and **import and export** of your data.
 - **Notes**, Notion-style:
@@ -35,7 +35,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 | Editor | Tiptap 3, Shiki, Novel-style global drag handle |
 | UI | Tailwind CSS 4, Radix UI, Motion, Iconify icons (Solar, Hugeicons, Logos) |
 | Files and email | Cloudinary (signed uploads), Resend with React Email, Web Push |
-| AI | TanStack AI with OpenRouter free models, AI persistence in Postgres |
+| AI | TanStack AI with OpenRouter free models, or people's own Claude, OpenAI, Gemini or OpenRouter keys; AI persistence in Postgres |
 | Quality | Biome, TypeScript, Node's built-in test runner |
 
 ## Getting started
@@ -67,7 +67,8 @@ pnpm dev                     # http://localhost:3000
 | `AI_MODEL` | no | Pin one model id and turn rotation off. |
 | `AI_MODEL_PREFERRED` | no | Comma-separated model name fragments to try first, e.g. `nemotron,gemma`. |
 | `AI_ROTATION_PROBE` | no | `true` sends a tiny test request to the top models when the ranking refreshes (uses free quota). |
-| `AI_DAILY_LIMIT` | no | Messages each person may send the assistant per day (default 30). |
+| `AI_DAILY_LIMIT` | no | Free messages a day for people without their own AI key (default 2). |
+| `AI_KEYS_SECRET` | with the assistant | Encrypts people's own AI keys (AES-256-GCM). Keep it out of the database and don't change it once keys are saved. Make one with `openssl rand -base64 48`. |
 | `APP_URL` | no | Address sent to OpenRouter as the referrer. Defaults to the site address. |
 
 ## Scripts

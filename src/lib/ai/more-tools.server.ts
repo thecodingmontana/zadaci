@@ -121,8 +121,7 @@ export const timer = toolDefinition({
 		taskId: ID.optional().describe("needed to start"),
 	}),
 }).server<AiContext>(async ({ action, taskId }, { context }) => {
-	if (action === "start" && !taskId)
-		return { error: "Say which task to time" };
+	if (action === "start" && !taskId) return { error: "Say which task to time" };
 	const res =
 		action === "start"
 			? await run(

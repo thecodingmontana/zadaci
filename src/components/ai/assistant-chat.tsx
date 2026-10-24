@@ -1,8 +1,10 @@
 import { useQuery } from "@apollo/client/react";
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
+import { Link } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { SHELL, TASKS } from "#/graphql/operations";
+import { AI_STATUS, SHELL, TASKS } from "#/graphql/operations";
 import { APPROVAL_TOOLS, MAX_MESSAGE } from "#/lib/ai/approval-tools";
+import { providerOf } from "#/lib/ai/providers";
 import { PRIORITIES, taskStatus } from "#/lib/tasks";
 import { copy } from "#/lib/toast";
 import {
@@ -33,6 +35,7 @@ export function AssistantChat({
 }) {
 	const [text, setText] = useState("");
 	const list = useRef<HTMLDivElement>(null);
+	const { data: ai, refetch: refetchAi } = useQuery(AI_STATUS);
 	const {
 		messages,
 		sendMessage,
@@ -49,6 +52,9 @@ export function AssistantChat({
 		persistence: true,
 		forwardedProps: { slug },
 		tools: APPROVAL_TOOLS,
+		// the free allowance shown under the box counts down after each answer
+		onFinish: () => void refetchAi(),
+		onError: () => void refetchAi(),
 	});
 	// keep the newest words in view while the answer streams
 	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll on every new chunk
@@ -57,6 +63,9 @@ export function AssistantChat({
 	}, [messages]);
 
 	const openItem = useOpenItem(slug);
+	const own = ai?.aiStatus.keys.find((k) => k.active);
+	const free =
+		ai && !own ? Math.max(0, ai.aiStatus.limit - ai.aiStatus.used) : null;
 	const box = useRef<HTMLTextAreaElement>(null);
 	// what's typed after "@" (null when no mention is being written)
 	const [mention, setMention] = useState<string | null>(null);
@@ -258,13 +267,24 @@ export function AssistantChat({
 				{error && (
 					<div className="ai-error" role="alert">
 						<span>{error.message || "The assistant couldn't answer."}</span>
-						<button
-							type="button"
-							className="btn btn-secondary btn-sm"
-							onClick={() => void reload()}
-						>
-							Try again
-						</button>
+						{/free messages|daily limit|API key/i.test(error.message) ? (
+							<Link
+								to="/w/$slug/settings"
+								params={{ slug }}
+								search={{ sec: "ai" }}
+								className="btn btn-secondary btn-sm"
+							>
+								Connect a key
+							</Link>
+						) : (
+							<button
+								type="button"
+								className="btn btn-secondary btn-sm"
+								onClick={() => void reload()}
+							>
+								Try again
+							</button>
+						)}
 					</div>
 				)}
 			</div>
@@ -362,7 +382,23 @@ export function AssistantChat({
 				</div>
 			</form>
 			<p className="faint ai-note">
-				Free AI models may log prompts. Don't share anything sensitive.
+				{own ? (
+					<>Using your {providerOf(own.provider)?.label} key.</>
+				) : (
+					<>
+						{free === null
+							? ""
+							: `${free} of ${ai?.aiStatus.limit} free messages left today. `}
+						<Link
+							to="/w/$slug/settings"
+							params={{ slug }}
+							search={{ sec: "ai" }}
+						>
+							Use your own AI key
+						</Link>{" "}
+						for more. Free models may log prompts.
+					</>
+				)}
 			</p>
 		</div>
 	);

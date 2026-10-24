@@ -1961,3 +1961,55 @@ export const DELETE_AI_CONVERSATION: TypedDocumentNode<
 		deleteAiConversation(slug: $slug, id: $id)
 	}
 `;
+
+export type AiKey = {
+	provider: string;
+	hint: string;
+	model: string;
+	active: boolean;
+};
+export type AiStatus = { keys: AiKey[]; used: number; limit: number };
+
+const AI_STATUS_FIELDS = "keys { provider hint model active } used limit";
+
+export const AI_STATUS: TypedDocumentNode<{ aiStatus: AiStatus }> = gql`
+	query AiStatus {
+		aiStatus { ${AI_STATUS_FIELDS} }
+	}
+`;
+
+export const SET_AI_KEY: TypedDocumentNode<
+	{ setAiKey: AiStatus },
+	{ provider: string; key: string; model?: string | null }
+> = gql`
+	mutation SetAiKey($provider: String!, $key: String!, $model: String) {
+		setAiKey(provider: $provider, key: $key, model: $model) { ${AI_STATUS_FIELDS} }
+	}
+`;
+
+export const USE_AI_KEY: TypedDocumentNode<
+	{ useAiKey: AiStatus },
+	{ provider: string | null }
+> = gql`
+	mutation UseAiKey($provider: String) {
+		useAiKey(provider: $provider) { ${AI_STATUS_FIELDS} }
+	}
+`;
+
+export const SET_AI_MODEL: TypedDocumentNode<
+	{ setAiModel: AiStatus },
+	{ provider: string; model: string }
+> = gql`
+	mutation SetAiModel($provider: String!, $model: String!) {
+		setAiModel(provider: $provider, model: $model) { ${AI_STATUS_FIELDS} }
+	}
+`;
+
+export const REMOVE_AI_KEY: TypedDocumentNode<
+	{ removeAiKey: AiStatus },
+	{ provider: string }
+> = gql`
+	mutation RemoveAiKey($provider: String!) {
+		removeAiKey(provider: $provider) { ${AI_STATUS_FIELDS} }
+	}
+`;

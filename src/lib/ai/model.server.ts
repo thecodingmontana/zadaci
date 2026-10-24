@@ -1,3 +1,6 @@
+import { createAnthropicChat } from "@tanstack/ai-anthropic";
+import { createGeminiChat } from "@tanstack/ai-gemini";
+import { createOpenaiChat } from "@tanstack/ai-openai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { SITE_URL } from "#/lib/seo";
 
@@ -36,4 +39,26 @@ export function adapterFor(
 			modelOptions: { models: fallbacks as ModelId[] },
 		}),
 	});
+}
+
+/**
+ * A chat adapter for a person's own Claude, ChatGPT or Gemini key. The model ids come from our
+ * own list (providers.ts), so they're passed through as each adapter's model type.
+ */
+export function ownAdapter(
+	provider: "anthropic" | "openai" | "gemini",
+	model: string,
+	key: string,
+) {
+	if (provider === "anthropic")
+		return createAnthropicChat(
+			model as Parameters<typeof createAnthropicChat>[0],
+			key,
+		);
+	if (provider === "openai")
+		return createOpenaiChat(
+			model as Parameters<typeof createOpenaiChat>[0],
+			key,
+		);
+	return createGeminiChat(model as Parameters<typeof createGeminiChat>[0], key);
 }

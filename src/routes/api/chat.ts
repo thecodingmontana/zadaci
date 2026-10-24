@@ -4,21 +4,23 @@ import {
 	maxIterations,
 	toServerSentEventsResponse,
 } from "@tanstack/ai";
+import { scrubSecrets } from "@tanstack/ai/byok";
 import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
 import { createFileRoute } from "@tanstack/react-router";
-import { eq } from "drizzle-orm";
-import { db, tables } from "#/db";
 import { findWorkspaces } from "#/graphql/schema.server";
 import { MAX_MESSAGE } from "#/lib/ai/approval-tools";
+import { type ActiveKey, activeKey } from "#/lib/ai/keys.server";
 import {
 	dailyLimit,
 	lastUserText,
 	refundMessage,
 	takeMessage,
+	userClock,
 } from "#/lib/ai/limits.server";
-import { adapterFor, aiKey } from "#/lib/ai/model.server";
+import { adapterFor, aiKey, ownAdapter } from "#/lib/ai/model.server";
 import { MORE_TOOLS } from "#/lib/ai/more-tools.server";
 import { assistantThread, systemPrompt } from "#/lib/ai/prompt";
+import { providerOf } from "#/lib/ai/providers";
 import { type Chunk, giveUp, rotate, runError } from "#/lib/ai/rotation";
 import {
 	candidates,
@@ -29,7 +31,6 @@ import { chatStore, threadOwner } from "#/lib/ai/store.server";
 import { READ_TOOLS } from "#/lib/ai/tools.server";
 import { WRITE_TOOLS } from "#/lib/ai/write-tools.server";
 import { auth } from "#/lib/auth";
-import { localClock } from "#/lib/daily.server";
 import { drainEmails } from "#/lib/email.server";
 
 // The assistant: streams the model's answer for the signed-in person, inside one workspace.
@@ -44,6 +45,28 @@ const sseError = (message: string, code: string) =>
 			yield runError(message, code);
 		})() as Parameters<typeof toServerSentEventsResponse>[0],
 	);
+
+// when it's the person's own key that failed, say so, and where to fix it
+/** When it's the person's own key that failed, say so and where to fix it, never echoing the key. */
+const ownKeyError = (chunk: Chunk, own: ActiveKey) => {
+	if (chunk.type !== "RUN_ERROR") return chunk;
+	const label = providerOf(own.provider)?.label ?? "Your AI provider";
+	if (chunk.code === "auth" || chunk.code === "billing")
+		return runError(
+			`${label} didn't accept your API key, or the account has no credit. Check it in Settings → AI assistant.`,
+			String(chunk.code),
+		);
+	if (chunk.code === "account_limit" || chunk.code === "rate_limit")
+		return runError(
+			`Your ${label} key has hit its limit for now. Try again later, or add credit with ${label}.`,
+			String(chunk.code),
+		);
+	return {
+		...chunk,
+		message: scrubSecrets(String(chunk.message ?? ""), [own.key]),
+		rawEvent: undefined,
+	};
+};
 
 export const Route = createFileRoute("/api/chat")({
 	server: {
@@ -67,19 +90,17 @@ export const Route = createFileRoute("/api/chat")({
 			POST: async ({ request }) => {
 				const session = await auth.api.getSession({ headers: request.headers });
 				if (!session) return json(401, "Sign in to use the assistant");
-				if (!aiKey()) return json(503, "The assistant isn't set up yet");
+				// the person's own key (any provider), when they've chosen one
+				const own = await activeKey(session.user.id);
+				if (!aiKey() && !own)
+					return json(503, "The assistant isn't set up yet");
 				const params = await chatParamsFromRequest(request);
 				const slug = String(
 					(params.forwardedProps as { slug?: unknown } | undefined)?.slug ?? "",
 				);
 				const [workspace] = await findWorkspaces(session.user.id, slug);
 				if (!workspace) return json(404, "Workspace not found");
-				const [me] = await db
-					.select({ prefs: tables.user.preferences })
-					.from(tables.user)
-					.where(eq(tables.user.id, session.user.id));
-				const prefs = (me?.prefs ?? {}) as { tz?: string; autoTz?: string };
-				const timeZone = prefs.tz || prefs.autoTz || "UTC";
+				const { timeZone, today } = await userClock(session.user.id);
 				// one chat per person per workspace, whatever thread the browser names
 				const threadId = assistantThread(workspace.id, session.user.id);
 				const text = lastUserText(params.messages);
@@ -88,15 +109,22 @@ export const Route = createFileRoute("/api/chat")({
 						`Messages can be up to ${MAX_MESSAGE} characters. Try a shorter one.`,
 						"too_long",
 					);
-				const today = localClock(timeZone, new Date()).day;
 				// approving a change continues the last message, so it isn't counted again
-				const counted = text !== null && !params.resume;
+				// only the shared key is limited; your own key is yours to spend
+				const counted = !own && text !== null && !params.resume;
 				if (counted && !(await takeMessage(session.user.id, today)))
 					return sseError(
-						`You've sent ${dailyLimit()} messages to the assistant today, the daily limit. It resets tomorrow.`,
+						`You've used today's ${dailyLimit()} free messages. Add your own OpenRouter key in Settings → AI assistant to keep going, or come back tomorrow.`,
 						"daily_limit",
 					);
-				const models = await candidates();
+				// Claude, ChatGPT and Gemini keys use the model the person picked; OpenRouter (theirs or
+				// the shared one) rotates free models unless they named one
+				const viaRouter = !own || own.provider === "openrouter";
+				const models = !viaRouter
+					? [own.model]
+					: own?.model
+						? [own.model]
+						: await candidates(!!own);
 				// the model answering right now (the router reports the one it really used)
 				let model: string | null = null;
 				const persistence = {
@@ -115,7 +143,10 @@ export const Route = createFileRoute("/api/chat")({
 					model = first;
 					try {
 						for await (const chunk of chat({
-							adapter: adapterFor(first, fallbacks),
+							adapter:
+								own && own.provider !== "openrouter"
+									? ownAdapter(own.provider, first, own.key)
+									: adapterFor(first, fallbacks, own?.key ?? aiKey()),
 							messages: params.messages,
 							threadId,
 							runId: params.runId,
@@ -158,14 +189,17 @@ export const Route = createFileRoute("/api/chat")({
 				let answered = false;
 				const stream = (async function* () {
 					if (models)
-						yield* rotate(models, {
+						for await (const chunk of rotate(models, {
 							start,
-							onFailure: recordFailure,
+							// cooldowns and stats are about OpenRouter's free models only
+							onFailure: (m, f) =>
+								viaRouter ? recordFailure(m, f, !!own) : undefined,
 							onSuccess: (m, info) => {
 								answered = true;
-								return recordSuccess(m, info);
+								return viaRouter ? recordSuccess(m, info) : undefined;
 							},
-						});
+						}))
+							yield own ? ownKeyError(chunk, own) : chunk;
 					else yield giveUp("account_limit");
 					// a message no model answered doesn't use up the day's allowance
 					if (counted && !answered) await refundMessage(session.user.id, today);

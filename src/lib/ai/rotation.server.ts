@@ -101,7 +101,11 @@ async function probe(ranked: string[]) {
  * The models to try for one message, best first, without those cooling down. Null when the
  * whole account is out of free requests.
  */
-export async function candidates(): Promise<string[] | null> {
+/**
+ * With their own key (ownKey) a person isn't held back by the shared account's daily limit; the
+ * per-model cooldowns still apply, since a busy model is busy for everyone.
+ */
+export async function candidates(ownKey = false): Promise<string[] | null> {
 	const pinned = pinnedModel();
 	if (pinned) return [pinned];
 	const rows = await db.select().from(tables.ai_model);
@@ -111,7 +115,7 @@ export async function candidates(): Promise<string[] | null> {
 			.filter((r) => r.cooldown_until && r.cooldown_until.getTime() > now)
 			.map((r) => r.id),
 	);
-	if (cooling.has(ACCOUNT_ROW)) return null;
+	if (cooling.has(ACCOUNT_ROW) && !ownKey) return null;
 	const ranked = rows
 		.filter((r) => r.rank !== null && r.id !== ACCOUNT_ROW)
 		.sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
@@ -137,7 +141,13 @@ export async function candidates(): Promise<string[] | null> {
 	return [...ready, FREE_ROUTER];
 }
 
-export async function recordFailure(model: string, failure: Failure) {
+export async function recordFailure(
+	model: string,
+	failure: Failure,
+	ownKey = false,
+) {
+	// a person's own key running out says nothing about the shared account
+	if (ownKey && failure.kind === "account_limit") return;
 	if (failure.kind === "auth" || failure.kind === "billing") {
 		// a key or credit problem: never retried; the message stays in the logs only
 		console.error(

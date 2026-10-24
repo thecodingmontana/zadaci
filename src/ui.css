@@ -5315,3 +5315,159 @@ fieldset.ai-approve {
   margin: 0;
   min-width: 0;
 }
+
+/* ---- Settings → AI assistant: provider cards and the connect dialog ---- */
+.aik-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+.aik {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--q-border);
+  border-radius: var(--q-r);
+  background: var(--q-surface);
+  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+.aik.on {
+  border-color: var(--q-accent-line);
+  box-shadow: 0 0 0 3px var(--q-accent-soft);
+}
+.aik-logo {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 10px;
+  border: 1px solid var(--q-border);
+  background: var(--q-surface-2);
+}
+.aik-txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.aik-txt b {
+  font-weight: 500;
+}
+.aik-txt .faint {
+  font-size: var(--q-fs-sm);
+}
+.aik-badge {
+  font-size: var(--q-fs-xs);
+  font-weight: 500;
+  color: var(--q-accent);
+  background: var(--q-accent-soft);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.aik-note {
+  display: flex;
+  gap: 6px;
+  font-size: 12.5px;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+.aik-note > span {
+  flex: none;
+  margin-top: 2px;
+}
+.aik-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.aik-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--q-fs-sm);
+}
+.aik-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.aik-n {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--q-surface-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+.aik-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aik-lbl {
+  font-size: var(--q-fs-sm);
+  font-weight: 500;
+}
+.aik-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 12px;
+  border: 1px solid var(--q-border);
+  border-radius: var(--q-r-sm);
+  background: var(--q-surface);
+}
+.aik-input:focus-within {
+  border-color: var(--q-accent);
+  box-shadow: 0 0 0 3px var(--q-accent-soft);
+}
+.aik-input.bad {
+  border-color: var(--q-red);
+}
+.aik-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-family: var(--q-mono, ui-monospace, monospace);
+  font-size: 13px;
+  color: inherit;
+  padding: 6px 0;
+}
+.aik-hint {
+  font-size: var(--q-fs-xs);
+}
+.aik-hint.bad {
+  color: var(--q-red);
+}
+.aik-models {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.aik-model {
+  padding: 6px 12px;
+  border: 1px solid var(--q-border);
+  border-radius: var(--q-r-sm);
+  font-size: var(--q-fs-sm);
+}
+.aik-model:hover {
+  background: var(--q-surface-2);
+}
+.aik-model.on {
+  border-color: var(--q-accent);
+  background: var(--q-accent-soft);
+  color: var(--q-accent);
+}

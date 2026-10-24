@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@apollo/client/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Fragment } from "react";
 import { z } from "zod";
+import { AiSection } from "#/components/settings/ai-section";
 import {
 	BookmarksSection,
 	CollectionsSection,
@@ -56,6 +57,7 @@ const SECTIONS = [
 	"notif-assign",
 	"profile",
 	"preferences",
+	"ai",
 	"shortcuts",
 	"passkeys",
 	"sessions",
@@ -99,6 +101,7 @@ const SET_NAV: [string, [Section, string, string][]][] = [
 		[
 			["profile", "Profile", "icon-[solar--user-linear]"],
 			["preferences", "Preferences", "icon-[solar--tuning-2-linear]"],
+			["ai", "AI assistant", "icon-[hugeicons--ai-magic]"],
 			["shortcuts", "Keyboard shortcuts", "icon-[solar--keyboard-linear]"],
 		],
 	],
@@ -187,6 +190,7 @@ function Settings() {
 					{sec === "preferences" && (
 						<PreferencesSection {...props} title={title} />
 					)}
+					{sec === "ai" && <AiSection title={title} />}
 					{sec === "shortcuts" && <ShortcutsSection title={title} />}
 					{sec === "passkeys" && <PasskeysSection title={title} />}
 					{sec === "sessions" && <SessionsSection title={title} />}

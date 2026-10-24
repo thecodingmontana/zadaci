@@ -34,6 +34,12 @@ const ACCOUNT_LEVEL = new Set([
 	"unsubscribePush",
 	"testPush",
 	"expandMapLink",
+	// your own AI keys and free allowance: personal, not workspace data
+	"aiStatus",
+	"setAiKey",
+	"useAiKey",
+	"setAiModel",
+	"removeAiKey",
 ]);
 
 function value(type: GraphQLInputType, slug: string, name: string): unknown {

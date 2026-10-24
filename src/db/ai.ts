@@ -1,4 +1,5 @@
 import {
+	boolean,
 	index,
 	integer,
 	jsonb,
@@ -109,4 +110,25 @@ export const ai_usage = pgTable(
 		count: integer("count").notNull().default(0),
 	},
 	(table) => [primaryKey({ columns: [table.user_id, table.day] })],
+);
+
+// People's own AI keys (bring your own key), one per provider, encrypted with a server secret
+// bound to the person and provider. The browser only ever sees a key's last characters (hint).
+export const ai_user_key = pgTable(
+	"ai_user_key",
+	{
+		user_id: varchar("user_id", { length: 16 })
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		// openrouter | anthropic | openai | gemini
+		provider: varchar("provider", { length: 24 }).notNull(),
+		cipher: text("cipher").notNull(),
+		hint: varchar("hint", { length: 8 }).notNull(),
+		// the model to use with this key ("" = the provider's default)
+		model: varchar("model", { length: 120 }).notNull().default(""),
+		// the key the assistant uses now (one per person)
+		active: boolean("active").notNull().default(false),
+		...timestamps,
+	},
+	(table) => [primaryKey({ columns: [table.user_id, table.provider] })],
 );

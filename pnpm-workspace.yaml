@@ -5,6 +5,9 @@ skills:
   dirs:
     - .claude/skills
 minimumReleaseAgeExclude:
+  - '@tanstack/ai-anthropic@0.23.0'
+  - '@tanstack/ai-gemini@0.38.2'
+  - '@tanstack/ai-openai@0.31.0'
   - '@tanstack/db-ivm@0.2.0'
   - '@tanstack/db@0.14.0'
   - '@tanstack/query-db-collection@1.4.4'
@@ -20,6 +23,8 @@ minimumReleaseAgeExclude:
 permissions:
   '@apollo/client':
     skills: true
+  '@openrouter/sdk':
+    build: true
   '@tanstack/devtools-event-client':
     skills: true
   '@tanstack/devtools-vite':

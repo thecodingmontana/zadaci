@@ -1,12 +1,36 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db, tables } from "#/db";
+import { localClock } from "#/lib/daily.server";
 
-// Per-person limits, so one person can't use up the account's free requests for everyone.
+// Per-person limits on the shared key, so one person can't use up the account's free requests
+// for everyone. People who add their own OpenRouter key aren't limited here.
 
 export const dailyLimit = () => {
 	const n = Number.parseInt(process.env.AI_DAILY_LIMIT ?? "", 10);
-	return Number.isFinite(n) && n > 0 ? n : 30;
+	return Number.isFinite(n) && n > 0 ? n : 2;
 };
+
+/** The person's time zone and today's date in it, for daily limits and the assistant's prompt. */
+export async function userClock(userId: string) {
+	const [me] = await db
+		.select({ prefs: tables.user.preferences })
+		.from(tables.user)
+		.where(eq(tables.user.id, userId));
+	const prefs = (me?.prefs ?? {}) as { tz?: string; autoTz?: string };
+	const timeZone = prefs.tz || prefs.autoTz || "UTC";
+	return { timeZone, today: localClock(timeZone, new Date()).day };
+}
+
+/** Messages used today on the shared key. */
+export async function usedToday(userId: string, day: string) {
+	const [row] = await db
+		.select({ count: tables.ai_usage.count })
+		.from(tables.ai_usage)
+		.where(
+			and(eq(tables.ai_usage.user_id, userId), eq(tables.ai_usage.day, day)),
+		);
+	return row?.count ?? 0;
+}
 
 /** Counts one message for today; false when the person has reached the daily limit. */
 export async function takeMessage(userId: string, day: string) {
