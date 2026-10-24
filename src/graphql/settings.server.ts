@@ -4,6 +4,7 @@ import { GraphQLError, GraphQLScalarType } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { USER_ROLE } from "#/db/enums";
+import { deleteAccount, deletionPreview } from "#/lib/account.server";
 import { isDicebearUrl } from "#/lib/dicebear";
 import { sendInviteEmails } from "#/lib/email.server";
 import { requireEnv } from "#/lib/env";
@@ -88,7 +89,21 @@ export const settingsTypeDefs = /* GraphQL */ `
 		preferences: JSON!
 	}
 
+	"what deleting your account would do"
+	type AccountDeletion {
+		"workspaces you own with other people: hand them over first"
+		blockers: [String!]!
+		"workspaces where you're the only member: deleted with your account"
+		solo: [String!]!
+	}
+
+	extend type Query {
+		accountDeletion: AccountDeletion!
+	}
+
 	extend type Mutation {
+		"erases your account; type your email to confirm"
+		deleteMyAccount(email: String!): Boolean!
 		updatePreferences(patch: JSON!): JSON!
 		updateWorkspace(slug: String!, input: WorkspaceInput!): Workspace!
 		deleteWorkspace(slug: String!): Boolean!
@@ -315,7 +330,31 @@ export const settingsResolvers = {
 			return row?.n ?? 0;
 		},
 	},
+	Query: {
+		accountDeletion: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+			const { blockers, solo } = await deletionPreview(requireUser(ctx).id);
+			return {
+				blockers: blockers.map((b) => b.name),
+				solo: solo.map((w) => w.name),
+			};
+		},
+	},
 	Mutation: {
+		deleteMyAccount: async (
+			_: unknown,
+			args: { email: string },
+			ctx: GraphQLContext,
+		) => {
+			const user = requireUser(ctx);
+			if (args.email.trim().toLowerCase() !== user.email.toLowerCase())
+				badInput("Type your email exactly to confirm");
+			try {
+				await deleteAccount(user.id);
+			} catch (error) {
+				badInput((error as Error).message);
+			}
+			return true;
+		},
 		updatePreferences: async (
 			_: unknown,
 			args: { patch: unknown },

@@ -40,6 +40,9 @@ const ACCOUNT_LEVEL = new Set([
 	"useAiKey",
 	"setAiModel",
 	"removeAiKey",
+	// your own account: deleting it and what that would do
+	"accountDeletion",
+	"deleteMyAccount",
 ]);
 
 function value(type: GraphQLInputType, slug: string, name: string): unknown {

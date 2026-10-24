@@ -2013,3 +2013,23 @@ export const REMOVE_AI_KEY: TypedDocumentNode<
 		removeAiKey(provider: $provider) { ${AI_STATUS_FIELDS} }
 	}
 `;
+
+export const ACCOUNT_DELETION: TypedDocumentNode<{
+	accountDeletion: { blockers: string[]; solo: string[] };
+}> = gql`
+	query AccountDeletion {
+		accountDeletion {
+			blockers
+			solo
+		}
+	}
+`;
+
+export const DELETE_MY_ACCOUNT: TypedDocumentNode<
+	{ deleteMyAccount: boolean },
+	{ email: string }
+> = gql`
+	mutation DeleteMyAccount($email: String!) {
+		deleteMyAccount(email: $email)
+	}
+`;

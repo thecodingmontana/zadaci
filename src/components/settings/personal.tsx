@@ -1,9 +1,14 @@
-import { useMutation } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { useRouter } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { Av } from "#/components/q/av";
+import { ConfirmModal } from "#/components/q/confirm";
 import { SHORTCUTS, useModKey } from "#/components/shell/command-menu";
-import { UPDATE_PREFERENCES } from "#/graphql/operations";
+import {
+	ACCOUNT_DELETION,
+	DELETE_MY_ACCOUNT,
+	UPDATE_PREFERENCES,
+} from "#/graphql/operations";
 import { authClient } from "#/lib/auth-client";
 import {
 	AVATAR_COLORS,
@@ -335,6 +340,90 @@ export function ShortcutsSection({ title }: { title: string }) {
 					))}
 				</SBlock>
 			))}
+		</>
+	);
+}
+
+/** Download everything that's yours, or delete your account (it explains what happens first). */
+export function DataSection({ me, title }: SectionProps) {
+	const { data } = useQuery(ACCOUNT_DELETION, { fetchPolicy: "network-only" });
+	const [confirm, setConfirm] = useState(false);
+	const [remove] = useMutation(DELETE_MY_ACCOUNT);
+	const blockers = data?.accountDeletion.blockers ?? [];
+	const solo = data?.accountDeletion.solo ?? [];
+	return (
+		<>
+			<SettingsHeader
+				title={title}
+				lead="Take a copy of your data, or delete your account."
+			/>
+			<SRow
+				t="Download my data"
+				d="Your profile, workspaces, assigned tasks, comments, notes, bookmarks and assistant chats, as one JSON file."
+			>
+				<a
+					className="btn btn-secondary btn-sm"
+					href="/api/account/export"
+					download
+				>
+					<span
+						className="icon-[solar--download-minimalistic-linear] size-3.5"
+						aria-hidden="true"
+					/>
+					Download
+				</a>
+			</SRow>
+			<SRow
+				t="Delete account"
+				d={
+					blockers.length
+						? `You own ${blockers.map((b) => `“${b}”`).join(", ")} with other people. Make someone else the owner in that workspace's settings, or delete it, first.`
+						: "Removes your name, email, photo, sign-ins, private notes and bookmarks, and AI keys and chats. Work you shared stays with your team as “Deleted user”."
+				}
+			>
+				<button
+					type="button"
+					className="btn btn-danger btn-sm"
+					disabled={blockers.length > 0}
+					onClick={() => setConfirm(true)}
+				>
+					Delete account
+				</button>
+			</SRow>
+			<ConfirmModal
+				open={confirm}
+				onOpenChange={setConfirm}
+				title="Delete your account?"
+				body={
+					<>
+						This can't be undone. You'll leave every workspace and be signed
+						out.
+						{solo.length > 0 && (
+							<>
+								{" "}
+								These workspaces have no one else in them and will be deleted
+								too: {solo.map((w) => `“${w}”`).join(", ")}.
+							</>
+						)}{" "}
+						Type your email to confirm.
+					</>
+				}
+				ok="Delete my account"
+				danger
+				icon="icon-[solar--trash-bin-minimalistic-linear]"
+				typeName={me.email}
+				onConfirm={async () => {
+					try {
+						await remove({ variables: { email: me.email } });
+						await authClient.signOut().catch(() => {});
+						window.location.assign("/");
+					} catch (e) {
+						toast.error("Couldn't delete the account", {
+							desc: (e as Error).message,
+						});
+					}
+				}}
+			/>
 		</>
 	);
 }

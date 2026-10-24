@@ -15,6 +15,7 @@ import {
 	WorkspaceSection,
 } from "#/components/settings/general";
 import {
+	DataSection,
 	NotificationsSection,
 	PreferencesSection,
 	ProfileSection,
@@ -58,6 +59,7 @@ const SECTIONS = [
 	"profile",
 	"preferences",
 	"ai",
+	"data",
 	"shortcuts",
 	"passkeys",
 	"sessions",
@@ -102,6 +104,7 @@ const SET_NAV: [string, [Section, string, string][]][] = [
 			["profile", "Profile", "icon-[solar--user-linear]"],
 			["preferences", "Preferences", "icon-[solar--tuning-2-linear]"],
 			["ai", "AI assistant", "icon-[hugeicons--ai-magic]"],
+			["data", "Your data", "icon-[solar--database-linear]"],
 			["shortcuts", "Keyboard shortcuts", "icon-[solar--keyboard-linear]"],
 		],
 	],
@@ -191,6 +194,7 @@ function Settings() {
 						<PreferencesSection {...props} title={title} />
 					)}
 					{sec === "ai" && <AiSection title={title} />}
+					{sec === "data" && <DataSection {...props} title={title} />}
 					{sec === "shortcuts" && <ShortcutsSection title={title} />}
 					{sec === "passkeys" && <PasskeysSection title={title} />}
 					{sec === "sessions" && <SessionsSection title={title} />}
