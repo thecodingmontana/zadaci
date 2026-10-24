@@ -53,7 +53,7 @@ const ownKeyError = (chunk: Chunk, own: ActiveKey) => {
 	const label = providerOf(own.provider)?.label ?? "Your AI provider";
 	if (chunk.code === "auth" || chunk.code === "billing")
 		return runError(
-			`${label} didn't accept your API key, or the account has no credit. Check it in Settings → AI assistant.`,
+			`${label} didn't accept your API key, or the account has no credit. Check it in Settings → Zad.`,
 			String(chunk.code),
 		);
 	if (chunk.code === "account_limit" || chunk.code === "rate_limit")
@@ -74,7 +74,7 @@ export const Route = createFileRoute("/api/chat")({
 			// a saved conversation, for the person who owns it
 			GET: async ({ request }) => {
 				const session = await auth.api.getSession({ headers: request.headers });
-				if (!session) return json(401, "Sign in to use the assistant");
+				if (!session) return json(401, "Sign in to use Zad");
 				const store = chatStore({
 					userId: session.user.id,
 					workspaceId: "",
@@ -89,11 +89,10 @@ export const Route = createFileRoute("/api/chat")({
 			},
 			POST: async ({ request }) => {
 				const session = await auth.api.getSession({ headers: request.headers });
-				if (!session) return json(401, "Sign in to use the assistant");
+				if (!session) return json(401, "Sign in to use Zad");
 				// the person's own key (any provider), when they've chosen one
 				const own = await activeKey(session.user.id);
-				if (!aiKey() && !own)
-					return json(503, "The assistant isn't set up yet");
+				if (!aiKey() && !own) return json(503, "Zad isn't set up yet");
 				const params = await chatParamsFromRequest(request);
 				const slug = String(
 					(params.forwardedProps as { slug?: unknown } | undefined)?.slug ?? "",
@@ -114,7 +113,7 @@ export const Route = createFileRoute("/api/chat")({
 				const counted = !own && text !== null && !params.resume;
 				if (counted && !(await takeMessage(session.user.id, today)))
 					return sseError(
-						`You've used today's ${dailyLimit()} free messages. Add your own OpenRouter key in Settings → AI assistant to keep going, or come back tomorrow.`,
+						`You've used today's ${dailyLimit()} free messages. Add your own key in Settings → Zad to keep going, or come back tomorrow.`,
 						"daily_limit",
 					);
 				// Claude, ChatGPT and Gemini keys use the model the person picked; OpenRouter (theirs or

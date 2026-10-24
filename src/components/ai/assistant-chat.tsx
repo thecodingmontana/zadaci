@@ -4,7 +4,6 @@ import { Link } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { AI_STATUS, SHELL, TASKS } from "#/graphql/operations";
 import { APPROVAL_TOOLS, MAX_MESSAGE } from "#/lib/ai/approval-tools";
-import { providerOf } from "#/lib/ai/providers";
 import { PRIORITIES, taskStatus } from "#/lib/tasks";
 import { copy } from "#/lib/toast";
 import {
@@ -21,8 +20,10 @@ import {
 // The assistant's chat: your messages, its streamed answers, and the work behind each one.
 
 const SUGGESTIONS = [
-	"What's due this week?",
 	"Plan my week",
+	"What's due this week?",
+	"What's overdue?",
+	"How are my projects doing?",
 	"Add a task to send the invoice on Friday",
 ];
 
@@ -144,10 +145,10 @@ export function AssistantChat({
 			<div className="ai-msgs" ref={list} aria-live="polite">
 				{!messages.length && (
 					<div className="ai-empty">
-						<h2>How can I help?</h2>
+						<h2>Hi, I'm Zad</h2>
 						<p className="faint">
-							Ask about your tasks, notes and bookmarks, or tell me what to
-							change.
+							Ask about your tasks, projects, notes and bookmarks, or tell me
+							what to change.
 						</p>
 						<div className="ai-sugg">
 							{SUGGESTIONS.map((s) => (
@@ -188,7 +189,6 @@ export function AssistantChat({
 					);
 					const live = isLoading && last;
 					const time = timing.current.get(m.id);
-					const model = m.metadata?.tanstack?.model;
 					return (
 						<div key={m.id} className="ai-msg bot">
 							{calls.length > 0 && (
@@ -237,11 +237,6 @@ export function AssistantChat({
 											/>
 										</button>
 									)}
-									{model && (
-										<span className="ai-model faint">
-											{String(model).replace(/:free$/, "")}
-										</span>
-									)}
 								</div>
 							)}
 						</div>
@@ -266,7 +261,7 @@ export function AssistantChat({
 				)}
 				{error && (
 					<div className="ai-error" role="alert">
-						<span>{error.message || "The assistant couldn't answer."}</span>
+						<span>{error.message || "Zad couldn't answer. Try again."}</span>
 						{/free messages|daily limit|API key/i.test(error.message) ? (
 							<Link
 								to="/w/$slug/settings"
@@ -317,8 +312,8 @@ export function AssistantChat({
 					value={text}
 					rows={2}
 					maxLength={MAX_MESSAGE}
-					placeholder="Ask, or type @ to mention a project, task or note…"
-					aria-label="Message the assistant"
+					placeholder="Ask Zad, or type @ to mention a project, task or note…"
+					aria-label="Message Zad"
 					onChange={(e) => typed(e.target.value, e.target.selectionStart)}
 					onKeyDown={(e) => {
 						if (e.key === "Escape" && mention !== null) {
@@ -382,9 +377,7 @@ export function AssistantChat({
 				</div>
 			</form>
 			<p className="faint ai-note">
-				{own ? (
-					<>Using your {providerOf(own.provider)?.label} key.</>
-				) : (
+				{!own && (
 					<>
 						{free === null
 							? ""
@@ -394,9 +387,9 @@ export function AssistantChat({
 							params={{ slug }}
 							search={{ sec: "ai" }}
 						>
-							Use your own AI key
+							Add your own key
 						</Link>{" "}
-						for more. Free models may log prompts.
+						for more.
 					</>
 				)}
 			</p>
@@ -453,10 +446,7 @@ function Approval({
 						args.addTags?.length && `Add tags: ${args.addTags.join(", ")}`,
 					].filter((l): l is string => !!l);
 	return (
-		<fieldset
-			className="ai-approve"
-			aria-label="Approve the assistant's change"
-		>
+		<fieldset className="ai-approve" aria-label="Approve Zad's change">
 			<div className="ai-approve-h">
 				<span
 					className="icon-[solar--shield-warning-linear] size-4"

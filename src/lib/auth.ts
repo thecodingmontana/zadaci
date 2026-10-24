@@ -4,14 +4,19 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createAuthMiddleware } from "better-auth/api";
 import { deleteSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
-import { twoFactor } from "better-auth/plugins";
+import { magicLink, twoFactor } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { eq } from "drizzle-orm";
+import { createElement } from "react";
 import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
+import MagicLinkEmail from "#/emails/magic-link";
+import { sendEmail } from "#/lib/email.server";
 import { requireEnv } from "#/lib/env";
+import { SITE_URL } from "#/lib/seo";
 
 const TWO_FACTOR_COOKIE_MAX_AGE = 600;
+const MAGIC_LINK_MINUTES = 10;
 
 /** Second-step methods a user has set up: an authenticator app (TOTP) and/or passkeys. */
 export async function secondFactors(user: {
@@ -43,6 +48,27 @@ export const auth = betterAuth({
 			},
 		},
 	},
+	databaseHooks: {
+		user: {
+			create: {
+				// email-link sign-ups come without a name: start from the email ("amina.k@…" → "Amina K")
+				before: async (user) => ({
+					data: {
+						...user,
+						name:
+							user.name?.trim() ||
+							user.email
+								.split("@")[0]
+								.split(/[._+-]+/)
+								.filter(Boolean)
+								.map((w) => w[0].toUpperCase() + w.slice(1))
+								.join(" ") ||
+							"New member",
+					},
+				}),
+			},
+		},
+	},
 	socialProviders: {
 		google: {
 			clientId: requireEnv("GOOGLE_CLIENT_ID"),
@@ -52,9 +78,14 @@ export const auth = betterAuth({
 		},
 	},
 	hooks: {
-		// better-auth only challenges 2FA after credential sign-in; mirror its hook for the Google callback.
+		// better-auth only challenges 2FA after credential sign-in; mirror its hook for the Google
+		// callback and for signing in from an emailed link, so neither skips the second step.
 		after: createAuthMiddleware(async (ctx) => {
-			if (!ctx.path.startsWith("/callback/")) return;
+			if (
+				!ctx.path.startsWith("/callback/") &&
+				ctx.path !== "/magic-link/verify"
+			)
+				return;
 			const data = ctx.context.newSession;
 			if (!data) return;
 			const methods = await secondFactors(data.user);
@@ -96,6 +127,32 @@ export const auth = betterAuth({
 			twoFactorCookieMaxAge: TWO_FACTOR_COOKIE_MAX_AGE,
 		}),
 		passkey({ rpName: "Zadaci" }),
+		// "Email me a sign-in link": a single-use link, stored hashed, valid for 10 minutes
+		magicLink({
+			expiresIn: MAGIC_LINK_MINUTES * 60,
+			storeToken: "hashed",
+			sendMagicLink: async ({ email, url }) => {
+				const sent = await sendEmail(
+					email,
+					"Your Zadaci sign-in link",
+					createElement(MagicLinkEmail, {
+						link: url,
+						baseUrl: SITE_URL,
+						minutes: MAGIC_LINK_MINUTES,
+					}),
+				);
+				if (sent) return;
+				// local development without Resend: the link goes to the terminal instead
+				if (
+					!process.env.RESEND_API_KEY &&
+					process.env.NODE_ENV !== "production"
+				)
+					return console.info(`[auth] sign-in link for ${email}: ${url}`);
+				throw new Error(
+					"Couldn't send the sign-in email. Try again in a moment.",
+				);
+			},
+		}),
 		tanstackStartCookies(), // must stay last
 	],
 });

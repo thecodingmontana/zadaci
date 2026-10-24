@@ -127,7 +127,7 @@ export const SHORTCUTS: [string, [string, string[]][]][] = [
 			["Keyboard shortcuts", ["?"]],
 			["Toggle sidebar", ["["]],
 			["Toggle dark mode", ["mod", "Shift", "L"]],
-			["Open the assistant", ["mod", "J"]],
+			["Open Zad", ["mod", "J"]],
 			["Close panel or dialog", ["Esc"]],
 			["Undo the last task change", ["mod", "Z"]],
 		],

@@ -109,14 +109,14 @@ export function AssistantPanel({
 					full && "full",
 					leaving && "leaving",
 				)}
-				aria-label="Assistant"
+				aria-label="Zad"
 			>
 				<div className="drawer-h">
 					<span
 						className="icon-[hugeicons--ai-magic] size-4"
 						aria-hidden="true"
 					/>
-					<b style={{ marginLeft: 4 }}>Assistant</b>
+					<b style={{ marginLeft: 4 }}>Zad</b>
 					<span className="sp" />
 					<button
 						type="button"
@@ -165,7 +165,7 @@ export function AssistantPanel({
 					open={clearing}
 					onOpenChange={setClearing}
 					title="Clear the chat history?"
-					body="Every message in this chat is deleted. Changes the assistant made to your work stay."
+					body="Every message in this chat is deleted. Changes Zad made to your work stay."
 					ok="Clear history"
 					danger
 					icon="icon-[solar--eraser-linear]"

@@ -138,10 +138,10 @@ export const runError = (message: string, code: string): Chunk => ({
 export const giveUp = (kind: FailureKind | "all_failed"): Chunk =>
 	runError(
 		kind === "account_limit"
-			? "The free AI limit for today is reached. It resets within a day; try again tomorrow."
+			? "Zad has reached today's limit. It resets within a day; try again tomorrow."
 			: kind === "auth" || kind === "billing"
-				? "The assistant is unavailable right now. Please try again later."
-				: "The AI models are busy or failing right now. Please try again in a few minutes.",
+				? "Zad is unavailable right now. Please try again later."
+				: "Zad is busy right now. Please try again in a few minutes.",
 		kind,
 	);
 

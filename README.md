@@ -21,7 +21,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
   - **Covers:** from a colour gallery, an upload, a link or Unsplash.
   - **Saving:** autosave that never overwrites someone else's newer edit.
 - **Bookmarks:** paste a link and its title, description and image fill in. File it in collections (shared with the workspace, private, or linked to a project), tag it, star or archive it, and filter by type (article, document, video), tag or search in a grid or list.
-- **Sign-in** with Google or a passkey. Optional two-step verification with an authenticator app.
+- **Sign-in** with Google, an emailed sign-in link (single use, expires in 10 minutes) or a passkey. Optional two-step verification with an authenticator app, which every sign-in method respects.
 - **Settings** for appearance (light, dark, accent, density, motion), language, date and time, notifications, profile, sessions and security.
 - **Pictures** for your profile and workspace: upload one (the server squares and compresses it to WebP with sharp before it goes to Cloudinary), or **Choose avatar** from generated avatars or Unsplash photos. Attachments: images up to 5 MB, videos 20 MB, other files 25 MB.
 - Light and dark themes, responsive layout with a mobile bottom nav.
@@ -33,7 +33,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 | App | [TanStack Start](https://tanstack.com/start) (React 19, TanStack Router), Vite, Nitro |
 | API | GraphQL Yoga, Apollo Client 4, request limits with graphql-armor |
 | Data | PostgreSQL (Supabase), Drizzle ORM and drizzle-kit migrations |
-| Auth | Better Auth (Google, passkeys, TOTP two-step) |
+| Auth | Better Auth (Google, email sign-in links, passkeys, TOTP two-step) |
 | Editor | Tiptap 3, Shiki, Novel-style global drag handle |
 | UI | Tailwind CSS 4, Radix UI, Motion, Iconify icons (Solar, Hugeicons, Logos) |
 | Files and email | Cloudinary (signed uploads), Resend with React Email, Web Push |
@@ -60,7 +60,7 @@ pnpm dev                     # http://localhost:3000
 | `BETTER_AUTH_SECRET` | yes | A long random string for signing sessions. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | yes | Google OAuth app for sign-in. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | yes | For attachments, logos, covers and note images. |
-| `RESEND_API_KEY` | no | Sends invite emails. Leave empty to skip sending. |
+| `RESEND_API_KEY` | no | Sends invite, notification and sign-in-link emails. Leave empty to skip sending; in development the sign-in link is printed in the terminal instead. |
 | `VITE_SITE_URL` | no | Public address for canonical links, the sitemap and emails. Defaults to `https://zadaci.vercel.app`. |
 | `UNSPLASH_ACCESS_KEY` | no | Turns on the Unsplash tab in image pickers. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | no | Web push notifications. Generate with `npx web-push generate-vapid-keys`. |

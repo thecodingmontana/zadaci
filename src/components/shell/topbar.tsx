@@ -143,8 +143,8 @@ export function Topbar({
 			<button
 				type="button"
 				className={cn("ibtn", assistant.open && "on")}
-				data-tip={`Assistant (${mod}J)`}
-				aria-label="Assistant"
+				data-tip={`Zad (${mod}J)`}
+				aria-label="Zad"
 				aria-pressed={assistant.open}
 				// pressing the toggle closes the panel once, instead of closing and reopening it
 				data-keep-drawer

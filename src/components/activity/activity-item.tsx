@@ -27,7 +27,7 @@ export function ActivityItem({
 				{a.via === "assistant" && (
 					<span className="via" title="Done by the assistant for this person">
 						{" "}
-						via assistant
+						via Zad
 					</span>
 				)}{" "}
 				<span className="muted">{a.verb}</span>{" "}

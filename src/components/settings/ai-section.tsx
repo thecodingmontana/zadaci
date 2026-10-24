@@ -52,7 +52,7 @@ export function AiSection({ title }: { title: string }) {
 		<>
 			<SettingsHeader
 				title={title}
-				lead={`The assistant runs on shared free AI models, ${limit} messages a day. Connect your own Claude, ChatGPT, Gemini or OpenRouter key to use it as much as you like, with the model you choose.`}
+				lead={`Zad, your assistant, gives you ${limit} free messages a day. Connect your own Claude, ChatGPT, Gemini or OpenRouter key to use it as much as you like, with the model you choose.`}
 			/>
 			<div className="aik-list">
 				<div className={cn("aik", !active && "on")}>
@@ -252,9 +252,7 @@ function ConnectDialog({
 		setErr("");
 		try {
 			await save({ provider: provider.id, key: key.trim(), model });
-			toast.success(
-				`${shortName(provider)} connected; the assistant uses it now`,
-			);
+			toast.success(`${shortName(provider)} connected; Zad uses it now`);
 			onClose();
 		} catch (e) {
 			setErr((e as Error).message);
@@ -395,7 +393,7 @@ function ConnectDialog({
 						aria-hidden="true"
 					/>
 					Encrypted before it's stored and never shown again. Your provider
-					bills you for what the assistant uses.
+					bills you for what Zad uses.
 				</p>
 			</form>
 		</Modal>

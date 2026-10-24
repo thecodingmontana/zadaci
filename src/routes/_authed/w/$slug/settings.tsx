@@ -103,7 +103,7 @@ const SET_NAV: [string, [Section, string, string][]][] = [
 		[
 			["profile", "Profile", "icon-[solar--user-linear]"],
 			["preferences", "Preferences", "icon-[solar--tuning-2-linear]"],
-			["ai", "AI assistant", "icon-[hugeicons--ai-magic]"],
+			["ai", "Zad", "icon-[hugeicons--ai-magic]"],
 			["data", "Your data", "icon-[solar--database-linear]"],
 			["shortcuts", "Keyboard shortcuts", "icon-[solar--keyboard-linear]"],
 		],
