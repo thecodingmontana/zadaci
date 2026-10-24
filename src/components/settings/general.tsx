@@ -2,7 +2,6 @@ import { useMutation } from "@apollo/client/react";
 import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { ConfirmModal } from "#/components/q/confirm";
-import { Modal } from "#/components/q/modal";
 import { WsLogo } from "#/components/q/ws-logo";
 import {
 	DELETE_WORKSPACE,
@@ -10,14 +9,12 @@ import {
 	type SettingsData,
 	UPDATE_PREFERENCES,
 	UPDATE_WORKSPACE,
-	WORKSPACE_LOGO_UPLOAD,
 } from "#/graphql/operations";
 import {
 	type Appearance,
 	setAppearance,
 	useAppearance,
 } from "#/lib/appearance";
-import { randomAvatars } from "#/lib/dicebear";
 import { can } from "#/lib/permissions";
 import {
 	DATE_FMTS,
@@ -29,6 +26,7 @@ import {
 } from "#/lib/preferences";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { AvatarPicker, RemovablePicture, uploadPicture } from "./picture";
 import { SBlock, Select, SettingsHeader, SRow, Swatches, Toggle } from "./ui";
 
 export type SectionProps = {
@@ -37,8 +35,6 @@ export type SectionProps = {
 	workspace: NonNullable<SettingsData["workspace"]>;
 	title: string;
 };
-
-const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 
 /** Saves part of the signed-in user's preferences and confirms with a toast. */
 export function usePrefs() {
@@ -74,7 +70,6 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 		refetch,
 	);
 	const [deleteWorkspace] = useMutation(DELETE_WORKSPACE);
-	const [signUpload] = useMutation(WORKSPACE_LOGO_UPLOAD);
 	const [setImage] = useMutation(SET_WORKSPACE_IMAGE, refetch);
 
 	async function save(event: FormEvent) {
@@ -110,33 +105,10 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 	}
 
 	async function upload(file: File) {
-		if (!file.type.startsWith("image/"))
-			return toast.error("Choose an image file");
-		if (file.size > MAX_LOGO_BYTES)
-			return toast.error("Images must be 5 MB or smaller");
 		setUploading(true);
 		try {
-			const { data } = await signUpload({ variables: { slug } });
-			if (!data) throw new Error("No upload signature");
-			const s = data.workspaceLogoUpload;
-			const form = new FormData();
-			form.append("file", file);
-			form.append("api_key", s.apiKey);
-			form.append("timestamp", String(s.timestamp));
-			form.append("signature", s.signature);
-			form.append("folder", s.folder);
-			form.append("public_id", s.publicId);
-			form.append("overwrite", "true");
-			form.append("invalidate", "true");
-			form.append("allowed_formats", "png,jpg,jpeg,webp,gif");
-			const res = await fetch(s.url, { method: "POST", body: form });
-			const body = (await res.json()) as {
-				secure_url?: string;
-				error?: { message: string };
-			};
-			if (!res.ok || !body.secure_url)
-				throw new Error(body.error?.message ?? "Upload failed");
-			await setImage({ variables: { slug, imageUrl: body.secure_url } });
+			const url = await uploadPicture(file, "workspace", slug);
+			await setImage({ variables: { slug, imageUrl: url } });
 			toast.success("Workspace icon updated");
 		} catch (error) {
 			toast.error("Couldn't upload that image", {
@@ -157,7 +129,26 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 			<form onSubmit={save}>
 				<SBlock first>
 					<div className="row" style={{ gap: 14, marginBottom: 18 }}>
-						<WsLogo workspace={workspace} px={52} />
+						<RemovablePicture
+							label="Remove workspace image"
+							onRemove={
+								canAdmin && workspace.imageUrl
+									? () =>
+											void toast
+												.promise(
+													setImage({ variables: { slug, imageUrl: null } }),
+													{
+														loading: "Removing workspace image…",
+														success: "Workspace image removed",
+														error: "Couldn't remove the image",
+													},
+												)
+												.catch(() => {})
+									: undefined
+							}
+						>
+							<WsLogo workspace={workspace} px={52} />
+						</RemovablePicture>
 						<div>
 							<div className="label" style={{ marginBottom: 6 }}>
 								Workspace icon
@@ -217,33 +208,11 @@ export function WorkspaceSection({ slug, workspace, title }: SectionProps) {
 											onClick={() => setPicking(true)}
 										>
 											<span
-												className="icon-[solar--magic-stick-2-linear] size-[13px]"
+												className="icon-[solar--user-circle-linear] size-[13px]"
 												aria-hidden="true"
 											/>
-											Generate avatar
+											Choose avatar
 										</button>
-										{workspace.imageUrl && (
-											<button
-												type="button"
-												className="btn btn-ghost btn-sm"
-												onClick={() => {
-													toast
-														.promise(
-															setImage({
-																variables: { slug, imageUrl: null },
-															}),
-															{
-																loading: "Removing workspace image…",
-																success: "Workspace image removed",
-																error: "Couldn't remove the image",
-															},
-														)
-														.catch(() => {});
-												}}
-											>
-												Remove
-											</button>
-										)}
 									</>
 								)}
 							</div>
@@ -686,84 +655,5 @@ export function DateTimeSection({ me, title }: SectionProps) {
 				/>
 			</SRow>
 		</>
-	);
-}
-
-function AvatarPicker({
-	open,
-	onOpenChange,
-	onPick,
-}: {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	onPick: (url: string) => Promise<void>;
-}) {
-	const [options, setOptions] = useState<{ style: string; url: string }[]>([]);
-	const [saving, setSaving] = useState<string | null>(null);
-	// New random set each time the picker opens (client-only, so no hydration mismatch).
-	useEffect(() => {
-		if (open) setOptions(randomAvatars(12));
-	}, [open]);
-
-	return (
-		<Modal
-			busy={!!saving}
-			open={open}
-			onOpenChange={onOpenChange}
-			title="Choose an avatar"
-			sub="Random avatars in different styles. Shuffle for more."
-			footer={
-				<>
-					<button
-						type="button"
-						className="btn btn-ghost"
-						onClick={() => setOptions(randomAvatars(12))}
-					>
-						<span
-							className="icon-[solar--shuffle-linear] size-3.5"
-							aria-hidden="true"
-						/>
-						Shuffle
-					</button>
-					<span className="sp" />
-					<button
-						type="button"
-						className="btn btn-secondary"
-						onClick={() => onOpenChange(false)}
-					>
-						Cancel
-					</button>
-				</>
-			}
-		>
-			<div className="modal-b">
-				<div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6">
-					{options.map((o, i) => (
-						<button
-							key={o.url}
-							type="button"
-							className={cn(
-								"grid aspect-square place-items-center rounded-(--q-r-lg) border border-(--q-border) bg-(--q-surface-2) p-1.5 transition-[border-color,box-shadow] hover:border-(--q-accent) focus-visible:shadow-[0_0_0_3px_var(--q-accent-soft)]",
-								saving === o.url && "is-loading",
-							)}
-							aria-label={`Avatar ${i + 1}, ${o.style.replace(/-/g, " ")} style`}
-							disabled={!!saving}
-							onClick={async () => {
-								setSaving(o.url);
-								await onPick(o.url);
-								setSaving(null);
-							}}
-						>
-							<img
-								src={o.url}
-								alt=""
-								className="size-full rounded-(--q-r)"
-								loading="lazy"
-							/>
-						</button>
-					))}
-				</div>
-			</div>
-		</Modal>
 	);
 }

@@ -4,7 +4,15 @@ import { ADD_ATTACHMENT, ATTACHMENT_UPLOAD } from "#/graphql/operations";
 // Uploads one file straight to Cloudinary with a signed request, then records it on the
 // task, or on the project when there is no task.
 
-export const MAX_UPLOAD = 25 * 1024 * 1024;
+const MB = 1024 * 1024;
+
+/** The biggest file allowed: images 5 MB, videos 20 MB, anything else 25 MB. */
+export const maxUpload = (type: string) =>
+	type.startsWith("image/")
+		? 5 * MB
+		: type.startsWith("video/")
+			? 20 * MB
+			: 25 * MB;
 
 export async function uploadFile(
 	client: ApolloClient,
@@ -13,7 +21,11 @@ export async function uploadFile(
 	file: File,
 	onProgress?: (pct: number) => void,
 ) {
-	if (file.size > MAX_UPLOAD) throw new Error(`${file.name} is over 25 MB`);
+	const max = maxUpload(file.type);
+	if (file.size > max)
+		throw new Error(
+			`${file.name} is over ${max / MB} MB, the limit for this kind of file`,
+		);
 	const { data } = await client.mutate({
 		mutation: ATTACHMENT_UPLOAD,
 		variables: { slug, ...target },

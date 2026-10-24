@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { useRouter } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { Av } from "#/components/q/av";
 import { ConfirmModal } from "#/components/q/confirm";
 import { SHORTCUTS, useModKey } from "#/components/shell/command-menu";
@@ -20,6 +20,7 @@ import {
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { type SectionProps, usePrefs } from "./general";
+import { AvatarPicker, RemovablePicture, uploadPicture } from "./picture";
 import { PushDevice } from "./push-device";
 import { SBlock, Select, SettingsHeader, SRow, Swatches, Toggle } from "./ui";
 
@@ -172,6 +173,36 @@ export function ProfileSection({ me, title }: SectionProps) {
 		}
 	}
 
+	const fileRef = useRef<HTMLInputElement>(null);
+	const [uploading, setUploading] = useState(false);
+	const [picking, setPicking] = useState(false);
+	/** Saves your picture (null removes it); the app shows your initials and colour instead. */
+	const setPicture = (image: string | null) =>
+		toast
+			.promise(
+				(async () => {
+					const { error } = await authClient.updateUser({ image });
+					if (error) throw new Error(error.message);
+					await router.invalidate();
+				})(),
+				{
+					loading: image ? "Saving your picture…" : "Removing your picture…",
+					success: image ? "Picture updated" : "Picture removed",
+					error: (e) => (e as Error).message,
+				},
+			)
+			.catch(() => {});
+	const uploadOwn = async (file: File) => {
+		setUploading(true);
+		try {
+			await setPicture(await uploadPicture(file, "avatar"));
+		} catch (e) {
+			toast.error("Couldn't upload that image", { desc: (e as Error).message });
+		} finally {
+			setUploading(false);
+			if (fileRef.current) fileRef.current.value = "";
+		}
+	};
 	return (
 		<>
 			<SettingsHeader
@@ -184,13 +215,57 @@ export function ProfileSection({ me, title }: SectionProps) {
 				style={{ gap: 16, maxWidth: 440 }}
 			>
 				<div className="row" style={{ gap: 14 }}>
-					<Av
-						name={me.name}
-						image={me.image}
-						color={p.avatarColor}
-						className="xl"
-					/>
+					<RemovablePicture
+						label="Remove your picture"
+						onRemove={me.image ? () => void setPicture(null) : undefined}
+					>
+						<Av
+							name={me.name}
+							image={me.image}
+							color={p.avatarColor}
+							className="xl"
+						/>
+					</RemovablePicture>
 					<div>
+						<div className="row" style={{ gap: 8, marginBottom: 12 }}>
+							<input
+								ref={fileRef}
+								type="file"
+								accept="image/png,image/jpeg,image/webp,image/gif"
+								className="sr"
+								aria-label="Upload your picture"
+								onChange={(e) => {
+									const file = e.target.files?.[0];
+									if (file) void uploadOwn(file);
+								}}
+							/>
+							<button
+								type="button"
+								className={cn(
+									"btn btn-secondary btn-sm",
+									uploading && "is-loading",
+								)}
+								onClick={() => fileRef.current?.click()}
+								disabled={uploading}
+							>
+								<span
+									className="icon-[solar--gallery-add-linear] size-[13px]"
+									aria-hidden="true"
+								/>
+								Upload image
+							</button>
+							<button
+								type="button"
+								className="btn btn-secondary btn-sm"
+								onClick={() => setPicking(true)}
+							>
+								<span
+									className="icon-[solar--user-circle-linear] size-[13px]"
+									aria-hidden="true"
+								/>
+								Choose avatar
+							</button>
+						</div>
 						<div className="label" style={{ marginBottom: 6 }}>
 							Avatar color
 						</div>
@@ -272,6 +347,14 @@ export function ProfileSection({ me, title }: SectionProps) {
 					</button>
 				</div>
 			</form>
+			<AvatarPicker
+				open={picking}
+				onOpenChange={setPicking}
+				onPick={async (url) => {
+					await setPicture(url);
+					setPicking(false);
+				}}
+			/>
 		</>
 	);
 }

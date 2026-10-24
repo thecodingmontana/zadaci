@@ -23,6 +23,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 - **Bookmarks:** paste a link and its title, description and image fill in. File it in collections (shared with the workspace, private, or linked to a project), tag it, star or archive it, and filter by type (article, document, video), tag or search in a grid or list.
 - **Sign-in** with Google or a passkey. Optional two-step verification with an authenticator app.
 - **Settings** for appearance (light, dark, accent, density, motion), language, date and time, notifications, profile, sessions and security.
+- **Pictures** for your profile and workspace: upload one (the server squares and compresses it to WebP with sharp before it goes to Cloudinary), or **Choose avatar** from generated avatars or Unsplash photos. Attachments: images up to 5 MB, videos 20 MB, other files 25 MB.
 - Light and dark themes, responsive layout with a mobile bottom nav.
 
 ## Tech stack

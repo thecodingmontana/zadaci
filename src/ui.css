@@ -5471,3 +5471,31 @@ fieldset.ai-approve {
   background: var(--q-accent-soft);
   color: var(--q-accent);
 }
+
+/* a removable profile or workspace picture: rose × on its top-right corner */
+.pic-wrap {
+  position: relative;
+  flex: none;
+}
+.pic-x {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--q-rose, #f43f5e);
+  box-shadow: 0 0 0 2px var(--q-surface);
+  transition: transform 120ms ease-out, background-color 120ms ease-out;
+}
+.pic-x:hover {
+  background: #e11d48;
+  transform: scale(1.08);
+}
+.pic-x:focus-visible {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 2px;
+}

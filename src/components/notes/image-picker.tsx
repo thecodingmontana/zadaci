@@ -172,7 +172,7 @@ function LinkPane({ onPick }: { onPick: (url: string) => void }) {
 	);
 }
 
-function UnsplashPane({
+export function UnsplashPane({
 	onPick,
 }: {
 	onPick: (url: string, alt?: string) => void;

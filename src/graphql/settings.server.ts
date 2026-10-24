@@ -512,11 +512,13 @@ export const settingsResolvers = {
 				args.slug,
 				"workspaceSettings",
 			);
-			// Only accept images we signed for this workspace, or a generated DiceBear avatar.
+			// Only accept images we uploaded for this workspace, a generated DiceBear avatar, or an
+			// Unsplash photo picked in "Choose avatar".
 			const allowed = `https://res.cloudinary.com/${cloudinary().cloud}/image/upload/`;
 			if (
 				args.imageUrl !== null &&
 				!isDicebearUrl(args.imageUrl) &&
+				!args.imageUrl.startsWith("https://images.unsplash.com/") &&
 				!(
 					args.imageUrl.startsWith(allowed) &&
 					args.imageUrl.includes(`/zadaci/workspaces/${workspace.id}.`)

@@ -176,8 +176,8 @@ export function FilesView({
 									aria-hidden="true"
 								/>
 								<span>
-									Drop files here or <span className="link">browse</span> — up
-									to 25 MB each
+									Drop files here or <span className="link">browse</span> —
+									images up to 5 MB, videos 20 MB, other files 25 MB
 								</span>
 							</>,
 							"dropzone",

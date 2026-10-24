@@ -27,6 +27,7 @@ import { Route as ApiAccountExportRouteImport } from './routes/api/account/expor
 import { Route as ApiAiModelsRouteImport } from './routes/api/ai/models'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronDailyRouteImport } from './routes/api/cron/daily'
+import { Route as ApiUploadImageRouteImport } from './routes/api/upload/image'
 import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor/index'
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
 import { Route as AuthedWSlugSplatRouteImport } from './routes/_authed/w/$slug/$'
@@ -137,6 +138,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 const ApiCronDailyRoute = ApiCronDailyRouteImport.update({
   id: '/api/cron/daily',
   path: '/api/cron/daily',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUploadImageRoute = ApiUploadImageRouteImport.update({
+  id: '/api/upload/image',
+  path: '/api/upload/image',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthTwoFactorIndexRoute = AuthTwoFactorIndexRouteImport.update({
@@ -269,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/api/ai/models': typeof ApiAiModelsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
+  '/api/upload/image': typeof ApiUploadImageRoute
   '/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -309,6 +316,7 @@ export interface FileRoutesByTo {
   '/api/ai/models': typeof ApiAiModelsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
+  '/api/upload/image': typeof ApiUploadImageRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -352,6 +360,7 @@ export interface FileRoutesById {
   '/api/ai/models': typeof ApiAiModelsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
+  '/api/upload/image': typeof ApiUploadImageRoute
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -395,6 +404,7 @@ export interface FileRouteTypes {
     | '/api/ai/models'
     | '/api/auth/$'
     | '/api/cron/daily'
+    | '/api/upload/image'
     | '/workspace/'
     | '/auth/two-factor/'
     | '/w/$slug/$'
@@ -435,6 +445,7 @@ export interface FileRouteTypes {
     | '/api/ai/models'
     | '/api/auth/$'
     | '/api/cron/daily'
+    | '/api/upload/image'
     | '/workspace'
     | '/auth/two-factor'
     | '/w/$slug/$'
@@ -477,6 +488,7 @@ export interface FileRouteTypes {
     | '/api/ai/models'
     | '/api/auth/$'
     | '/api/cron/daily'
+    | '/api/upload/image'
     | '/_authed/workspace/'
     | '/auth/two-factor/'
     | '/_authed/w/$slug/$'
@@ -516,6 +528,7 @@ export interface RootRouteChildren {
   ApiAiModelsRoute: typeof ApiAiModelsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronDailyRoute: typeof ApiCronDailyRoute
+  ApiUploadImageRoute: typeof ApiUploadImageRoute
   AuthTwoFactorIndexRoute: typeof AuthTwoFactorIndexRoute
 }
 
@@ -645,6 +658,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cron/daily'
       fullPath: '/api/cron/daily'
       preLoaderRoute: typeof ApiCronDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/upload/image': {
+      id: '/api/upload/image'
+      path: '/api/upload/image'
+      fullPath: '/api/upload/image'
+      preLoaderRoute: typeof ApiUploadImageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/two-factor/': {
@@ -889,6 +909,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiModelsRoute: ApiAiModelsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronDailyRoute: ApiCronDailyRoute,
+  ApiUploadImageRoute: ApiUploadImageRoute,
   AuthTwoFactorIndexRoute: AuthTwoFactorIndexRoute,
 }
 export const routeTree = rootRouteImport
