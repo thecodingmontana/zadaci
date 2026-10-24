@@ -17,6 +17,7 @@ import {
 	takeMessage,
 } from "#/lib/ai/limits.server";
 import { adapterFor, aiKey } from "#/lib/ai/model.server";
+import { MORE_TOOLS } from "#/lib/ai/more-tools.server";
 import { assistantThread, systemPrompt } from "#/lib/ai/prompt";
 import { type Chunk, giveUp, rotate, runError } from "#/lib/ai/rotation";
 import {
@@ -128,7 +129,7 @@ export const Route = createFileRoute("/api/chat")({
 									timeZone,
 								}),
 							],
-							tools: [...READ_TOOLS, ...WRITE_TOOLS],
+							tools: [...READ_TOOLS, ...WRITE_TOOLS, ...MORE_TOOLS],
 							// tools run as this person, in this workspace
 							context: {
 								user: session.user,

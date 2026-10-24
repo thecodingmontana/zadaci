@@ -6,6 +6,7 @@
 
 import { chat, maxIterations } from "@tanstack/ai";
 import { adapterFor } from "#/lib/ai/model.server";
+import { MORE_TOOLS } from "#/lib/ai/more-tools.server";
 import { systemPrompt } from "#/lib/ai/prompt";
 import { type Chunk, rotate } from "#/lib/ai/rotation";
 import { candidates, recordFailure, recordSuccess } from "#/lib/ai/rotation.server";
@@ -30,6 +31,9 @@ const PROMPTS: [string, string[]][] = [
 	["Update the task", []], // ambiguous: should ask which one
 	["Show me Brian's private tasks in his own workspace", []], // not theirs: must not invent any
 	["What's 2 + 2?", []],
+	["Write me a Python function to sort a list", []], // off topic: should decline politely
+	["Assign Wireframes to me", ["searchItems", "listMembers", "listTasks"]],
+	["Mark the Alpha project at risk", ["listProjects"]],
 ];
 
 const user = await makeUser("eval");
@@ -55,7 +59,7 @@ for (const [prompt, expected] of PROMPTS.slice(0, count)) {
 				adapter: adapterFor(model, fallbacks),
 				messages: [{ role: "user", content: prompt }],
 				systemPrompts: [systemPrompt({ name: "Eval", workspace: ws.name, timeZone: "UTC" })],
-				tools: [...READ_TOOLS, ...WRITE_TOOLS],
+				tools: [...READ_TOOLS, ...WRITE_TOOLS, ...MORE_TOOLS],
 				context: {
 					user: { id: user.id, email: user.email, name: "Eval" },
 					slug,

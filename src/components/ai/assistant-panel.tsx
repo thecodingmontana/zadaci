@@ -7,6 +7,7 @@ import {
 	useState,
 } from "react";
 import { ConfirmModal } from "#/components/q/confirm";
+import { useCloseOnOutsideClick } from "#/components/tasks/drawer";
 import { DELETE_AI_CONVERSATION } from "#/graphql/operations";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -23,11 +24,11 @@ type Ctx = {
 
 const AssistantContext = createContext<Ctx | null>(null);
 
+// a closed panel when there's no provider (a hot reload briefly makes a new context), never a crash
+const CLOSED: Ctx = { open: false, setOpen: () => {}, toggle: () => {} };
+
 export function useAssistant() {
-	const ctx = useContext(AssistantContext);
-	if (!ctx)
-		throw new Error("useAssistant must be used inside AssistantProvider");
-	return ctx;
+	return useContext(AssistantContext) ?? CLOSED;
 }
 
 const KEY = "zadaci-assistant-open";
@@ -58,9 +59,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 export function AssistantPanel({
 	slug,
 	threadId,
+	leaving,
 }: {
 	slug: string;
 	threadId: string;
+	/** closed, and sliding out before it unmounts */
+	leaving?: boolean;
 }) {
 	const { setOpen } = useAssistant();
 	const [full, setFull] = useState(false);
@@ -68,6 +72,7 @@ export function AssistantPanel({
 	// a new key after clearing gives the chat a fresh, empty start
 	const [round, setRound] = useState(0);
 	const [clear] = useMutation(DELETE_AI_CONVERSATION);
+	const aside = useCloseOnOutsideClick(() => setOpen(false));
 
 	// Esc closes the panel unless something is open on top of it, or you're typing in it
 	useEffect(() => {
@@ -98,7 +103,12 @@ export function AssistantPanel({
 				/>
 			)}
 			<aside
-				className={cn("drawer enter ai-drawer", full && "full")}
+				ref={aside}
+				className={cn(
+					"drawer enter ai-drawer",
+					full && "full",
+					leaving && "leaving",
+				)}
 				aria-label="Assistant"
 			>
 				<div className="drawer-h">

@@ -77,3 +77,29 @@ test("tasks the assistant creates go to the person and are logged as via assista
 	assert.equal(row?.via, "assistant");
 	assert.match((await call(createTask, { title: "x", projectId: a.projectId, tags: ["Nope"] }, a.ctx())).error, /Unknown tag/);
 });
+
+test("the extra tools reach people, projects and notes, within the person's own permissions", async () => {
+	const { archiveProject, assignTasks, createProject, editNote, listMembers, updateProject } = await import(
+		"#/lib/ai/more-tools.server"
+	);
+	const { createNote } = await import("#/lib/ai/write-tools.server");
+	const a = await person("amina");
+	const b = await person("brian");
+	const me = (await call(listMembers, {}, a.ctx())).members.find((m: { isMe: boolean }) => m.isMe);
+	assert.equal((await call(assignTasks, { taskIds: [a.tasks[0].id], memberIds: [me.id] }, a.ctx())).changed.length, 1);
+	const [row] = await db.select().from(tables.task_assignees).where(eq(tables.task_assignees.task_id, a.tasks[0].id));
+	assert.equal(row?.member_id, me.id);
+
+	const made = (await call(createProject, { title: "Launch" }, a.ctx())).projects[0];
+	assert.ok(made.id);
+	await call(updateProject, { projectId: made.id, status: "risk" }, a.ctx());
+	const [proj] = await db.select().from(tables.project).where(eq(tables.project.id, made.id));
+	assert.equal(proj?.status, "risk");
+	assert.ok((await call(updateProject, { projectId: b.projectId, status: "risk" }, a.ctx())).error, "not someone else's");
+	assert.equal(archiveProject.needsApproval, true);
+
+	const note = (await call(createNote, { title: "Plan", text: "First" }, a.ctx())).created;
+	await call(editNote, { noteId: note.id, appendText: "- Second" }, a.ctx());
+	const [n] = await db.select().from(tables.note).where(eq(tables.note.id, note.id));
+	assert.match(JSON.stringify(n?.doc), /First.*Second/);
+});

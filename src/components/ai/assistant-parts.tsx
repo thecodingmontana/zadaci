@@ -96,6 +96,19 @@ const STEP: Record<string, [string, string]> = {
 	addComment: ["Adding a comment", "Added a comment"],
 	createNote: ["Writing a note", "Wrote a note"],
 	deleteTasks: ["Deleting tasks", "Deleted tasks"],
+	listMembers: ["Looking at people", "Looked at people"],
+	assignTasks: ["Assigning tasks", "Assigned tasks"],
+	addSubtask: ["Adding a subtask", "Added a subtask"],
+	restoreTasks: ["Restoring tasks", "Restored tasks"],
+	duplicateTask: ["Copying a task", "Copied a task"],
+	timer: ["Updating the timer", "Updated the timer"],
+	createProject: ["Creating a project", "Created a project"],
+	updateProject: ["Updating a project", "Updated a project"],
+	archiveProject: ["Archiving a project", "Archived a project"],
+	addMilestone: ["Adding a milestone", "Added a milestone"],
+	editNote: ["Editing a note", "Edited a note"],
+	commentOnNote: ["Commenting on a note", "Commented on a note"],
+	saveBookmark: ["Saving a bookmark", "Saved a bookmark"],
 };
 
 function stepLabel(call: ToolCall, done: boolean) {

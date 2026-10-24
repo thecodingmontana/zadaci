@@ -48,11 +48,14 @@ export function TaskDrawer({
 	taskId,
 	onClose,
 	onOpen,
+	leaving,
 }: {
 	slug: string;
 	taskId: string;
 	onClose: () => void;
 	onOpen: (id: string) => void;
+	/** closed, and sliding out before it unmounts */
+	leaving?: boolean;
 }) {
 	const { data, loading } = useQuery(TASK_DETAIL, {
 		variables: { slug, id: taskId },
@@ -72,6 +75,8 @@ export function TaskDrawer({
 		navigate({ to: "/w/$slug/tasks", params: { slug } });
 	}, [loading, workspace, task, navigate, slug, onClose]);
 
+	const aside = useCloseOnOutsideClick(onClose);
+
 	// Esc closes the drawer unless a picker or menu is open on top of it
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -88,10 +93,14 @@ export function TaskDrawer({
 			{full && (
 				// biome-ignore lint/a11y/noStaticElementInteractions: the scrim is a mouse shortcut; Esc and the close button also close
 				// biome-ignore lint/a11y/useKeyWithClickEvents: same as above
-				<div className="drawer-scrim full enter" onClick={onClose} />
+				<div
+					className={cn("drawer-scrim full enter", leaving && "leaving")}
+					onClick={onClose}
+				/>
 			)}
 			<aside
-				className={cn("drawer enter", full && "full")}
+				ref={aside}
+				className={cn("drawer enter", full && "full", leaving && "leaving")}
 				role="dialog"
 				aria-modal={full}
 				aria-labelledby="d-h"
@@ -1161,4 +1170,27 @@ function DrawerSkeleton() {
 			</div>
 		</div>
 	);
+}
+
+// what a click can land on without closing a drawer: other drawers (a task opened from the
+// assistant), and menus, pickers, dialogs and toasts that open on top of it
+const KEEP_OPEN =
+	"aside.drawer, .pop, [role=dialog], [role=menu], [role=listbox], [data-radix-popper-content-wrapper], [data-keep-drawer], .toast, ol[data-sonner-toaster]";
+
+/** Closes a drawer when you press anywhere outside it, like clicking off a modal. */
+export function useCloseOnOutsideClick(onClose: () => void) {
+	const ref = useRef<HTMLElement>(null);
+	const close = useRef(onClose);
+	close.current = onClose;
+	useEffect(() => {
+		const onDown = (e: PointerEvent) => {
+			const el = e.target as Element | null;
+			if (!el?.isConnected || ref.current?.contains(el)) return;
+			if (el.closest(KEEP_OPEN)) return;
+			close.current();
+		};
+		document.addEventListener("pointerdown", onDown);
+		return () => document.removeEventListener("pointerdown", onDown);
+	}, []);
+	return ref;
 }

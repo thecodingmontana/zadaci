@@ -146,6 +146,8 @@ export function Topbar({
 				data-tip={`Assistant (${mod}J)`}
 				aria-label="Assistant"
 				aria-pressed={assistant.open}
+				// pressing the toggle closes the panel once, instead of closing and reopening it
+				data-keep-drawer
 				onClick={assistant.toggle}
 			>
 				<span

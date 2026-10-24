@@ -1427,6 +1427,38 @@ kbd,
 .modal-f .sp {
   flex: 1;
 }
+/* closing: Radix keeps a modal mounted while data-state="closed" animates, so it eases out too */
+.scrim[data-state="closed"] {
+  animation: fadeOut 0.16s ease both;
+}
+.modal-wrap:has(> .modal[data-state="closed"]) {
+  animation: modalOut 0.16s var(--q-ease) both;
+}
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes modalOut {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+/* drawers slide back out the way they came in */
+.drawer.leaving {
+  animation: drawerOut 0.2s var(--q-ease) both;
+  pointer-events: none;
+}
+.drawer-scrim.leaving {
+  animation: fadeOut 0.2s ease both;
+}
+@keyframes drawerOut {
+  to {
+    transform: translateX(48px);
+    opacity: 0;
+  }
+}
 @keyframes modalIn {
   from {
     opacity: 0;
@@ -2735,6 +2767,7 @@ fieldset.field {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .modal-wrap,
   .modal,
 .drawer,
 .pop,

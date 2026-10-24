@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client/react";
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { TASKS } from "#/graphql/operations";
+import { SHELL, TASKS } from "#/graphql/operations";
 import { APPROVAL_TOOLS, MAX_MESSAGE } from "#/lib/ai/approval-tools";
 import { PRIORITIES, taskStatus } from "#/lib/tasks";
 import { copy } from "#/lib/toast";
@@ -370,6 +370,7 @@ export function AssistantChat({
 
 type ApprovalArgs = {
 	taskIds?: string[];
+	projectId?: string;
 	status?: string;
 	priority?: string;
 	dueDate?: string | null;
@@ -390,21 +391,31 @@ function Approval({
 	busy: boolean;
 	onAnswer: (approved: boolean) => void;
 }) {
-	const { data } = useQuery(TASKS, { variables: { slug } });
+	const { data } = useQuery(TASKS, {
+		variables: { slug },
+		skip: tool === "archiveProject",
+	});
+	const project = useQuery(SHELL, {
+		variables: { slug },
+		fetchPolicy: "cache-only",
+	}).data?.workspace?.projects.find((p) => p.id === args.projectId);
 	const names = new Map(
 		(data?.workspace?.tasks ?? []).map((t) => [t.id, `${t.key} ${t.name}`]),
 	);
 	const ids = args.taskIds ?? [];
 	const lines =
-		tool === "deleteTasks"
-			? ["Delete these tasks (you can restore them later)"]
-			: [
-					args.status && `Status → ${taskStatus(args.status).name}`,
-					args.priority &&
-						`Priority → ${PRIORITIES.find((p) => p.id === args.priority)?.name ?? args.priority}`,
-					args.dueDate !== undefined && `Due date → ${args.dueDate ?? "none"}`,
-					args.addTags?.length && `Add tags: ${args.addTags.join(", ")}`,
-				].filter((l): l is string => !!l);
+		tool === "archiveProject"
+			? ["It leaves the sidebar; you can bring it back from Archive."]
+			: tool === "deleteTasks"
+				? ["Delete these tasks (you can restore them later)"]
+				: [
+						args.status && `Status → ${taskStatus(args.status).name}`,
+						args.priority &&
+							`Priority → ${PRIORITIES.find((p) => p.id === args.priority)?.name ?? args.priority}`,
+						args.dueDate !== undefined &&
+							`Due date → ${args.dueDate ?? "none"}`,
+						args.addTags?.length && `Add tags: ${args.addTags.join(", ")}`,
+					].filter((l): l is string => !!l);
 	return (
 		<fieldset
 			className="ai-approve"
@@ -415,8 +426,9 @@ function Approval({
 					className="icon-[solar--shield-warning-linear] size-4"
 					aria-hidden="true"
 				/>
-				{tool === "deleteTasks" ? "Delete" : "Change"} {ids.length}{" "}
-				{ids.length === 1 ? "task" : "tasks"}?
+				{tool === "archiveProject"
+					? `Archive “${project?.title ?? "this project"}”?`
+					: `${tool === "deleteTasks" ? "Delete" : "Change"} ${ids.length} ${ids.length === 1 ? "task" : "tasks"}?`}
 			</div>
 			<ul>
 				{lines.map((l) => (

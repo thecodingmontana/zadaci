@@ -5,7 +5,7 @@ import {
 	Outlet,
 	useRouter,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
 	AssistantPanel,
@@ -113,6 +113,9 @@ function ShellLayout() {
 		myTasks: counts?.myOpenTasks ?? 0,
 		archive: counts?.archivedCount ?? 0,
 	};
+	// closed drawers stay a moment to slide out
+	const drawerTask = useLeaving(task ?? null);
+	const panel = useLeaving(assistant.open || null);
 	const workspace = data.workspace;
 	if (!workspace) return null;
 
@@ -165,19 +168,21 @@ function ShellLayout() {
 							<div className="content" id="main-content" tabIndex={-1}>
 								<Outlet />
 							</div>
-							{task && (
+							{drawerTask.shown && (
 								<TaskDrawer
-									key={task}
+									key={drawerTask.shown}
 									slug={slug}
-									taskId={task}
+									taskId={drawerTask.shown}
+									leaving={drawerTask.leaving}
 									onClose={() => setTask(undefined)}
 									onOpen={(id) => setTask(id)}
 								/>
 							)}
 						</main>
-						{assistant.open && (
+						{panel.shown && (
 							<AssistantPanel
 								slug={slug}
+								leaving={panel.leaving}
 								threadId={assistantThread(workspace.id, user.id)}
 							/>
 						)}
@@ -189,6 +194,20 @@ function ShellLayout() {
 			<SyncTimeZone />
 		</TooltipProvider>
 	);
+}
+
+/** The last value for a short while after it goes away, so a closing drawer can animate out. */
+function useLeaving<T>(value: T | null, ms = 200) {
+	const [shown, setShown] = useState(value);
+	useEffect(() => {
+		if (value !== null) return setShown(value);
+		const id = setTimeout(() => setShown(null), ms);
+		return () => clearTimeout(id);
+	}, [value, ms]);
+	return {
+		shown: value ?? shown,
+		leaving: value === null && shown !== null,
+	};
 }
 
 /** Saves this browser's time zone once per change, so emails on "Automatic" arrive on local time. */

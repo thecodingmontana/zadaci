@@ -54,4 +54,16 @@ export const deleteTasksTool = toolDefinition({
 	needsApproval: true,
 });
 
-export const APPROVAL_TOOLS = [bulkUpdateTasksTool, deleteTasksTool] as const;
+export const archiveProjectTool = toolDefinition({
+	name: "archiveProject",
+	description:
+		"Archive a project (it leaves the sidebar; it can be brought back from Archive). The user approves it first.",
+	inputSchema: z.object({ projectId: ID }),
+	needsApproval: true,
+});
+
+export const APPROVAL_TOOLS = [
+	bulkUpdateTasksTool,
+	deleteTasksTool,
+	archiveProjectTool,
+] as const;

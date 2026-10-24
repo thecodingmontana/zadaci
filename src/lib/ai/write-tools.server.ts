@@ -17,7 +17,7 @@ import { type AiContext, run } from "./gql.server";
 // Deleting, and changing more than 3 tasks at once, wait for the person to approve.
 
 /** Tag names to label ids; unknown names come back as an error the model can fix. */
-function tagIds(names: string[] | undefined) {
+export function tagIds(names: string[] | undefined) {
 	const ids: string[] = [];
 	for (const name of names ?? []) {
 		const hit = LABELS.find(
@@ -66,7 +66,7 @@ const UPDATE = `mutation($slug: String!, $id: ID!, $patch: TaskPatch!) { updateT
 export const FREE_EDITS = 3;
 
 /** Applies one patch (plus tag changes) to each task; returns what changed and what failed. */
-async function patchTasks(
+export async function patchTasks(
 	ctx: AiContext,
 	taskIds: string[],
 	patch: Record<string, unknown>,
@@ -245,7 +245,7 @@ export const addComment = toolDefinition({
 });
 
 /** Plain text as a page: one paragraph per line, "- " lines as a bulleted list. */
-function textToDoc(text: string) {
+export function textToDoc(text: string) {
 	const content: object[] = [];
 	let list: object[] | null = null;
 	for (const raw of text.split("\n")) {
