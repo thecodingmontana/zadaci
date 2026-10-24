@@ -203,7 +203,7 @@ export function RemovablePicture({
 					onClick={onRemove}
 				>
 					<span
-						className="icon-[solar--close-small-linear] size-3.5"
+						className="icon-[hugeicons--cancel-01] size-3"
 						aria-hidden="true"
 					/>
 				</button>
