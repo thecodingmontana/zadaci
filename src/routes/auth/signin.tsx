@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { AuthShell } from "#/components/auth/auth-shell";
@@ -89,6 +89,30 @@ function SignIn() {
 					aria-hidden="true"
 				/>
 				Add an authenticator app or passkey in Settings for extra security.
+			</p>
+			<p className="text-center text-xs text-muted-foreground">
+				By continuing, you agree to our{" "}
+				<Link
+					to="/terms"
+					className="underline underline-offset-2 hover:text-foreground"
+				>
+					Terms of Service
+				</Link>{" "}
+				and{" "}
+				<Link
+					to="/privacy"
+					className="underline underline-offset-2 hover:text-foreground"
+				>
+					Privacy Policy
+				</Link>
+				.
+			</p>
+			<p className="text-center text-sm text-muted-foreground">
+				New here?{" "}
+				<span className="text-foreground">
+					Continue with Google above — your account is created automatically,
+					then we'll set up your workspace.
+				</span>
 			</p>
 		</AuthShell>
 	);

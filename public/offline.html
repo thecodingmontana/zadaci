@@ -1,14 +1,49 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Offline · Zadaci</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#fbfaf8">
+<title>You're offline · Zadaci</title>
 <style>
-:root{--bg:#faf9f7;--ink:#1b1a17;--mute:#8a867e;--acc:#F97452}
-@media (prefers-color-scheme:dark){:root{--bg:#161513;--ink:#ecebe8;--mute:#9a968e}}
-body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif;padding:16px;text-align:center}
-img{width:56px;height:56px;border-radius:14px}h1{font-size:22px;margin:18px 0 6px}p{color:var(--mute);margin:0 0 20px}
-button{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:10px 18px;font:inherit;cursor:pointer}
-</style></head><body><main>
-<img src="/android-chrome-192x192.png" alt="Zadaci">
-<h1>You're offline</h1><p>Zadaci needs a connection. Your work is saved; try again when you're back online.</p>
-<button type="button" onclick="location.reload()">Try again</button>
-</main></body></html>
+/* the same look as the app's error page (components/states.tsx), self-contained so it works offline */
+:root{--bg:#fbfaf8;--surface:#fff;--text:#1d1c1a;--text-2:#57544e;--text-3:#6b6760;--border:#dad7d0;--accent:#ea5a32;
+  --font:"Bricolage Grotesque",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#1a1a19;--surface:#1d1d1c;--text:#eceae5;--text-2:#b5b2ab;--text-3:#9a968f;--border:#3a3936;--accent:#f9845f}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:grid;place-items:center;padding:40px 20px;background:var(--bg);color:var(--text);font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+.box{max-width:420px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.logo{width:40px;height:40px;margin-bottom:6px}
+.code{font-family:var(--mono);font-size:12px;color:var(--text-3);letter-spacing:.08em}
+h1{font-size:19px;margin:0;font-weight:600;letter-spacing:-.015em}
+p{color:var(--text-2);margin:0 0 12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 11px;border-radius:6px;font:500 12.5px var(--font);border:1px solid transparent;cursor:pointer;text-decoration:none}
+.btn-secondary{background:var(--surface);border-color:var(--border);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:inset 0 -1px 0 rgba(0,0,0,.12)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn svg{width:14px;height:14px}
+</style>
+</head>
+<body>
+<main class="box">
+<svg class="logo" viewBox="0 0 371 372" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M75.9737 0.169922C146.679 1.21297 217.624 2.21979 288.809 3.18887C291.631 3.1783 294.147 2.67565 296.357 1.67939C335.463 9.84111 359.364 33.49 368.057 72.6246C370.534 142.003 371.038 211.439 369.566 280.932C365.394 333.91 336.966 363.847 284.281 370.746C217.864 371.752 151.447 371.752 85.0305 370.746C33.7311 367.247 5.80584 339.826 1.25477 288.479C0.248409 217.534 0.248409 146.589 1.25477 75.6436C7.26399 31.647 32.1703 6.48858 75.9737 0.169922Z" fill="#F97452"/><path fill-rule="evenodd" clip-rule="evenodd" d="M95.5969 63.5672C160.003 63.3151 224.408 63.5672 288.809 64.3219C293.844 68.3658 294.598 73.1448 291.074 78.6619C282.519 89.2283 273.967 99.7946 265.413 110.361C231.333 141.522 198.125 173.724 165.787 206.967C157.633 215.369 150.336 224.426 143.9 234.138C153.467 235.357 163.027 236.615 172.58 237.911C182.213 241.293 191.773 244.311 201.26 246.968C219.273 219.274 239.65 193.361 262.394 169.23C267.677 161.935 272.96 154.638 278.243 147.343C283.421 146.65 287.949 148.16 291.828 151.871C298.369 158.412 304.911 164.954 311.452 171.495C275.848 212.626 243.142 255.898 213.336 301.309C211.324 302.316 209.31 302.316 207.298 301.309C162.316 283.241 116.025 278.964 68.4264 288.479C66.8128 276.456 66.5607 264.38 67.6717 252.251C72.2001 246.213 76.7285 240.176 81.2569 234.138C119.291 195.601 156.777 156.607 193.713 117.154C173.216 114.207 152.587 112.948 131.824 113.38C113.084 113.371 94.4663 114.125 75.9738 115.644C74.5005 112.403 74.7526 109.132 76.7285 105.832C82.626 91.5272 88.9145 77.4378 95.5969 63.5672Z" fill="#FBF8F6"/></svg>
+<span class="code">OFFLINE</span>
+<h1>You're offline.</h1>
+<p>Zadaci needs a connection to load this page. Your data is safe — try again when you're back online.</p>
+<div class="row">
+<a class="btn btn-secondary" href="/">Go to Home</a>
+<button class="btn btn-primary" type="button" onclick="location.reload()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4.5h-4.5"/></svg>
+Try again
+</button>
+</div>
+</main>
+<script>
+// back online: reload on its own
+addEventListener("online", () => location.reload());
+</script>
+</body>
+</html>

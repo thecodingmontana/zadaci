@@ -1,11 +1,20 @@
 // Zadaci's service worker: an offline page for navigations, plus push notifications that open
 // their link when tapped (see src/lib/push.server.ts). Nothing else is cached.
 const OFFLINE = "/offline.html";
+// bump when offline.html changes, so browsers fetch the new page
+const CACHE = "zadaci-offline-v2";
 self.addEventListener("install", (event) => {
-	event.waitUntil(caches.open("zadaci-offline-v1").then((c) => c.add(OFFLINE)));
+	event.waitUntil(caches.open(CACHE).then((c) => c.add(OFFLINE)));
 	self.skipWaiting();
 });
-self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("activate", (event) =>
+	event.waitUntil(
+		caches
+			.keys()
+			.then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+			.then(() => self.clients.claim()),
+	),
+);
 self.addEventListener("fetch", (event) => {
 	if (event.request.mode !== "navigate") return;
 	event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE)));

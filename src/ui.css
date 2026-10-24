@@ -5499,3 +5499,35 @@ fieldset.ai-approve {
   outline: 2px solid var(--q-accent);
   outline-offset: 2px;
 }
+
+/* Terms and Privacy (components/legal.tsx): plain reading text */
+.legal {
+  max-width: 680px;
+  line-height: 1.65;
+}
+.legal h2 {
+  font-size: var(--q-fs-md);
+  font-weight: 600;
+  margin: 26px 0 6px;
+}
+.legal p {
+  margin: 0 0 12px;
+  color: var(--q-text-2);
+}
+.legal ul {
+  margin: 0 0 12px 20px;
+  padding: 0;
+  color: var(--q-text-2);
+}
+.legal li {
+  margin-bottom: 6px;
+}
+.legal b {
+  color: var(--q-text);
+  font-weight: 500;
+}
+.legal a {
+  color: var(--q-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

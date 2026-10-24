@@ -28,8 +28,7 @@ export const Route = createFileRoute("/api/upload/image")({
 				if (!(file instanceof File)) return fail(400, "Choose an image");
 				if (!file.type.startsWith("image/"))
 					return fail(400, "That file isn't an image");
-				if (file.size > MAX_IMAGE)
-					return fail(400, "Images can be up to 5 MB");
+				if (file.size > MAX_IMAGE) return fail(400, "Images can be up to 5 MB");
 
 				// where it goes: your own picture, or a workspace you're allowed to edit
 				let folder = "zadaci/avatars";
