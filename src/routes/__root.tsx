@@ -58,6 +58,14 @@ export const Route =
 					rel: "stylesheet",
 					href: appCss,
 				},
+				// the main font, self-hosted (see styles.css), fetched early so text doesn't swap
+				{
+					rel: "preload",
+					href: "/fonts/bricolage-grotesque.woff2",
+					as: "font",
+					type: "font/woff2",
+					crossOrigin: "anonymous",
+				},
 				{ rel: "icon", href: "/favicon.ico", sizes: "any" },
 				{
 					rel: "icon",

@@ -2,9 +2,11 @@
 // their link when tapped (see src/lib/push.server.ts). Nothing else is cached.
 const OFFLINE = "/offline.html";
 // bump when offline.html changes, so browsers fetch the new page
-const CACHE = "zadaci-offline-v2";
+const CACHE = "zadaci-offline-v3";
+// the offline page and the fonts it uses
+const OFFLINE_FILES = [OFFLINE, "/fonts/bricolage-grotesque.woff2", "/fonts/ibm-plex-mono-400.woff2"];
 self.addEventListener("install", (event) => {
-	event.waitUntil(caches.open(CACHE).then((c) => c.add(OFFLINE)));
+	event.waitUntil(caches.open(CACHE).then((c) => c.addAll(OFFLINE_FILES)));
 	self.skipWaiting();
 });
 self.addEventListener("activate", (event) =>
@@ -16,6 +18,11 @@ self.addEventListener("activate", (event) =>
 	),
 );
 self.addEventListener("fetch", (event) => {
+	// offline, the cached fonts still load for the offline page
+	if (event.request.destination === "font" && OFFLINE_FILES.includes(new URL(event.request.url).pathname)) {
+		event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+		return;
+	}
 	if (event.request.mode !== "navigate") return;
 	event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE)));
 });
