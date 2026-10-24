@@ -9,7 +9,6 @@ export const relations = defineRelations(schema, (r) => ({
 		passkeys: r.many.passkey(),
 		owned_workspaces: r.many.workspace(),
 		workspaces: r.many.workspace_members(),
-		created_channels: r.many.channel(),
 		user_status: r.one.user_status(),
 	},
 	workspace: {
@@ -19,10 +18,8 @@ export const relations = defineRelations(schema, (r) => ({
 		}),
 		members: r.many.workspace_members(),
 		projects: r.many.project(),
-		channels: r.many.channel(),
 		teams: r.many.team(),
 		tags: r.many.tag(),
-		conversations: r.many.conversation(),
 		notes: r.many.note(),
 	},
 	workspace_members: {
@@ -37,20 +34,8 @@ export const relations = defineRelations(schema, (r) => ({
 		tasks: r.many.task_assignees(),
 		activities: r.many.tasks_activity(),
 		project_memberships: r.many.project_members(),
-		channel_memberships: r.many.channel_members(),
-		messages: r.many.message(),
 		comments: r.many.comment(),
 		team_memberships: r.many.team_members(),
-		direct_messages: r.many.direct_message(),
-		conversations_initiated: r.many.conversation({
-			from: r.workspace_members.id,
-			to: r.conversation.member_one_id,
-		}),
-		conversations_received: r.many.conversation({
-			from: r.workspace_members.id,
-			to: r.conversation.member_two_id,
-		}),
-		dm_receipts: r.many.direct_message_receipt(),
 	},
 	project: {
 		workspace: r.one.workspace({
@@ -109,64 +94,6 @@ export const relations = defineRelations(schema, (r) => ({
 		}),
 		member: r.one.workspace_members({
 			from: r.tasks_activity.changed_by,
-			to: r.workspace_members.id,
-		}),
-	},
-	channel: {
-		workspace: r.one.workspace({
-			from: r.channel.workspace_id,
-			to: r.workspace.id,
-		}),
-		created_by_user: r.one.user({
-			from: r.channel.created_by,
-			to: r.user.id,
-		}),
-		members: r.many.channel_members(),
-		messages: r.many.message(),
-	},
-	channel_members: {
-		channel: r.one.channel({
-			from: r.channel_members.channel_id,
-			to: r.channel.id,
-		}),
-		member: r.one.workspace_members({
-			from: r.channel_members.member_id,
-			to: r.workspace_members.id,
-		}),
-	},
-	message: {
-		channel: r.one.channel({
-			from: r.message.channel_id,
-			to: r.channel.id,
-		}),
-		author: r.one.workspace_members({
-			from: r.message.author_id,
-			to: r.workspace_members.id,
-		}),
-		references: r.many.message_reference(),
-		receipts: r.many.message_receipt(),
-		parent_message: r.one.message({
-			from: r.message.parent_message_id,
-			to: r.message.id,
-		}),
-		replies: r.many.message({
-			from: r.message.id,
-			to: r.message.parent_message_id,
-		}),
-	},
-	message_reference: {
-		message: r.one.message({
-			from: r.message_reference.message_id,
-			to: r.message.id,
-		}),
-	},
-	message_receipt: {
-		message: r.one.message({
-			from: r.message_receipt.message_id,
-			to: r.message.id,
-		}),
-		member: r.one.workspace_members({
-			from: r.message_receipt.member_id,
 			to: r.workspace_members.id,
 		}),
 	},
@@ -242,42 +169,6 @@ export const relations = defineRelations(schema, (r) => ({
 		user: r.one.user({
 			from: r.user_status.user_id,
 			to: r.user.id,
-		}),
-	},
-	conversation: {
-		workspace: r.one.workspace({
-			from: r.conversation.workspace_id,
-			to: r.workspace.id,
-		}),
-		member_one: r.one.workspace_members({
-			from: r.conversation.member_one_id,
-			to: r.workspace_members.id,
-		}),
-		member_two: r.one.workspace_members({
-			from: r.conversation.member_two_id,
-			to: r.workspace_members.id,
-		}),
-		messages: r.many.direct_message(),
-	},
-	direct_message: {
-		conversation: r.one.conversation({
-			from: r.direct_message.conversation_id,
-			to: r.conversation.id,
-		}),
-		author: r.one.workspace_members({
-			from: r.direct_message.author_id,
-			to: r.workspace_members.id,
-		}),
-		receipts: r.many.direct_message_receipt(),
-	},
-	direct_message_receipt: {
-		direct_message: r.one.direct_message({
-			from: r.direct_message_receipt.direct_message_id,
-			to: r.direct_message.id,
-		}),
-		member: r.one.workspace_members({
-			from: r.direct_message_receipt.member_id,
-			to: r.workspace_members.id,
 		}),
 	},
 	note: {

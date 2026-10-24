@@ -40,11 +40,6 @@ export enum PRIORITY {
 	URGENT = "urgent",
 }
 
-export enum CHANNEL_TYPE {
-	PUBLIC = "public",
-	PRIVATE = "private",
-}
-
 export enum USER_STATUS {
 	AVAILABLE = "available",
 	BUSY = "busy",
@@ -59,10 +54,6 @@ export const priority_enum = pgEnum("priority", enumToPgEnum(PRIORITY));
 export const project_status_enum = pgEnum(
 	"project_status",
 	enumToPgEnum(PROJECT_STATUS),
-);
-export const channel_type_enum = pgEnum(
-	"channel_type",
-	enumToPgEnum(CHANNEL_TYPE),
 );
 export const user_status_enum = pgEnum(
 	"user_status",

@@ -16,7 +16,7 @@ import { GraphQLError } from "graphql";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
 import { db, tables } from "#/db";
-import { CHANNEL_TYPE, PROJECT_STATUS, STATUS, USER_ROLE } from "#/db/enums";
+import { PROJECT_STATUS, STATUS, USER_ROLE } from "#/db/enums";
 import { sendInviteEmails } from "#/lib/email.server";
 import {
 	EMAIL_RE,
@@ -605,20 +605,6 @@ const resolvers = {
 							eq(tables.workspace_invite_request.status, "PENDING"),
 						),
 					);
-				const [general] = await tx
-					.select({ id: tables.channel.id })
-					.from(tables.channel)
-					.where(
-						and(
-							eq(tables.channel.workspace_id, workspace.id),
-							eq(tables.channel.name, "general"),
-						),
-					)
-					.limit(1);
-				if (general)
-					await tx
-						.insert(tables.channel_members)
-						.values({ channel_id: general.id, member_id: member.id });
 				await logActivity(tx, {
 					workspace_id: workspace.id,
 					actor_id: user.id,
@@ -684,20 +670,6 @@ const resolvers = {
 						})
 						.returning();
 					if (!member) throw new Error("Member insert returned nothing");
-
-					const [general] = await tx
-						.insert(tables.channel)
-						.values({
-							workspace_id: workspace.id,
-							name: "general",
-							type: CHANNEL_TYPE.PUBLIC,
-							created_by: user.id,
-						})
-						.returning();
-					if (!general) throw new Error("Channel insert returned nothing");
-					await tx
-						.insert(tables.channel_members)
-						.values({ channel_id: general.id, member_id: member.id });
 
 					const [project] = await tx
 						.insert(tables.project)
