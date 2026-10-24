@@ -83,13 +83,6 @@ function SignIn() {
 				<hr className="grow" />
 			</div>
 			<PasskeySignInButton />
-			<p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
-				<span
-					className="icon-[solar--shield-keyhole-bold] size-4 shrink-0"
-					aria-hidden="true"
-				/>
-				Add an authenticator app or passkey in Settings for extra security.
-			</p>
 			<p className="text-center text-xs text-muted-foreground">
 				By continuing, you agree to our{" "}
 				<Link
