@@ -3,13 +3,11 @@ import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useModKey } from "#/components/shell/command-menu";
 import { TASKS } from "#/graphql/operations";
-import { APPROVAL_TOOLS } from "#/lib/ai/approval-tools";
+import { APPROVAL_TOOLS, MAX_MESSAGE } from "#/lib/ai/approval-tools";
 import { PRIORITIES, taskStatus } from "#/lib/tasks";
 import { cn } from "#/lib/utils";
 
 // The assistant's chat: your messages, its streamed answers, and what it did with tools.
-
-export const MAX_MESSAGE = 2000;
 
 /** What each tool call reads as in the chat. */
 const TOOL_LABEL: Record<string, string> = {

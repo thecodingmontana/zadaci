@@ -1,9 +1,7 @@
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db, tables } from "#/db";
 
 // Per-person limits, so one person can't use up the account's free requests for everyone.
-
-export const MAX_MESSAGE = 2000;
 
 export const dailyLimit = () => {
 	const n = Number.parseInt(process.env.AI_DAILY_LIMIT ?? "", 10);
@@ -24,6 +22,16 @@ export async function takeMessage(userId: string, day: string) {
 		})
 		.returning({ count: tables.ai_usage.count });
 	return rows.length > 0;
+}
+
+/** Gives back a message that got no answer (every model failed, or the account was out). */
+export async function refundMessage(userId: string, day: string) {
+	await db
+		.update(tables.ai_usage)
+		.set({ count: sql`greatest(${tables.ai_usage.count} - 1, 0)` })
+		.where(
+			and(eq(tables.ai_usage.user_id, userId), eq(tables.ai_usage.day, day)),
+		);
 }
 
 /** The text of the newest message, whatever shape the browser sent it in. */

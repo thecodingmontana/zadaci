@@ -4,6 +4,7 @@ import { aiKey, FREE_ROUTER, pinnedModel } from "./model.server";
 import {
 	COOLDOWN_MS,
 	classify,
+	DAILY_LIMIT,
 	type Failure,
 	type ModelInfo,
 	rankModels,
@@ -17,6 +18,9 @@ const RANK_TTL_MS = 6 * 3_600_000;
 // the account-wide free limit is kept as a row of its own
 export const ACCOUNT_ROW = "*account*";
 const MAX_PROBES = 5;
+const DISCOVERY_RETRY_MS = 5 * 60_000;
+// per server instance, which is enough: each one backs off on its own
+let discoveryFailedAt = 0;
 const PROBE_PASSES = 2;
 
 const preferred = () =>
@@ -117,15 +121,17 @@ export async function candidates(): Promise<string[] | null> {
 			(r) => r.ranked_at && now - r.ranked_at.getTime() < RANK_TTL_MS,
 		);
 	let ids = ranked.map((r) => r.id);
-	if (!fresh) {
+	// after a failed discovery, wait a while before trying again so messages don't each wait
+	if (!fresh && now - discoveryFailedAt > DISCOVERY_RETRY_MS) {
 		try {
 			ids = await discover();
 		} catch (error) {
+			discoveryFailedAt = now;
 			console.error("[ai] model discovery failed:", String(error));
-			// keep the last ranking; with none, the preferred ids (if set)
-			if (!ids.length) ids = preferred().filter((p) => p.includes("/"));
 		}
 	}
+	// no ranking yet: the preferred ids (if set)
+	if (!ids.length) ids = preferred().filter((p) => p.includes("/"));
 	// OpenRouter's own free router is always the last resort, even while it's cooling down
 	const ready = ids.filter((id) => id !== FREE_ROUTER && !cooling.has(id));
 	return [...ready, FREE_ROUTER];
@@ -142,11 +148,16 @@ export async function recordFailure(model: string, failure: Failure) {
 	}
 	const account = failure.kind === "account_limit";
 	const id = account ? ACCOUNT_ROW : model;
-	const until = account
-		? nextUtcMidnight()
-		: new Date(
-				Date.now() + (COOLDOWN_MS[failure.kind] ?? COOLDOWN_MS.server ?? 0),
-			);
+	// the real daily cap lasts until midnight UTC; busy models on every try only pause briefly
+	const until =
+		account && DAILY_LIMIT.test(failure.message)
+			? nextUtcMidnight()
+			: new Date(
+					Date.now() +
+						(account
+							? (COOLDOWN_MS.rate_limit ?? 0)
+							: (COOLDOWN_MS[failure.kind] ?? COOLDOWN_MS.server ?? 0)),
+				);
 	console.warn(
 		`[ai] ${model} failed (${failure.kind}); skipped until ${until.toISOString()}`,
 	);

@@ -81,7 +81,16 @@ test("429s on two different models in a row count as the account limit", async (
 		c: [text("x"), done],
 	});
 	assert.deepEqual(r.tried, ["a", "b"]);
-	assert.equal(r.out.at(-1)?.code, "account_limit");
+	assert.equal(
+		r.out.at(-1)?.code,
+		"rate_limit",
+		"the person is told the models are busy, not out for the day",
+	);
+	assert.deepEqual(
+		r.failures.at(-1),
+		["b", "account_limit"],
+		"the account pauses for everyone",
+	);
 });
 
 test("a failure after text has streamed doesn't switch models mid-answer", async () => {

@@ -1,4 +1,5 @@
 import { render } from "@react-email/components";
+import { waitUntil } from "@vercel/functions";
 import { inArray } from "drizzle-orm";
 import { createElement, type ReactElement } from "react";
 import { Resend } from "resend";
@@ -117,11 +118,10 @@ const pending: Promise<unknown>[] = [];
 /** Sends the queued emails and pushes; called at the end of each API request, capped so they can't hang it. */
 export async function drainEmails(limitMs = 3000) {
 	if (!pending.length) return;
-	const batch = pending.splice(0);
-	await Promise.race([
-		Promise.allSettled(batch),
-		new Promise((r) => setTimeout(r, limitMs)),
-	]);
+	const all = Promise.allSettled(pending.splice(0));
+	// on Vercel, sends still going after the cap finish after the response instead of being dropped
+	waitUntil(all);
+	await Promise.race([all, new Promise((r) => setTimeout(r, limitMs))]);
 }
 
 type NotificationRow = {

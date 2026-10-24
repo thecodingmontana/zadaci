@@ -64,6 +64,9 @@ export const COOLDOWN_MS: Partial<Record<FailureKind, number>> = {
 /** Kinds where trying another model can't help. */
 export const STOPS: FailureKind[] = ["account_limit", "auth", "billing"];
 
+/** OpenRouter's words for the account's daily cap on free models ("free-models-per-day"). */
+export const DAILY_LIMIT = /free-models-per-day|per[- ]day|daily limit/i;
+
 type ErrorLike = {
 	code?: unknown;
 	message?: unknown;
@@ -82,8 +85,7 @@ export function classify(error: ErrorLike): Failure {
 			: (/\b(40[0-9]|429|5\d\d)\b/.exec(text)?.[1] ?? 0),
 	);
 	// OpenRouter's daily cap on free models is account wide ("free-models-per-day")
-	if (/free-models-per-day|per[- ]day|daily limit/i.test(text))
-		return { kind: "account_limit", message };
+	if (DAILY_LIMIT.test(text)) return { kind: "account_limit", message };
 	// a 403 about one model ("only available on agentic harnesses") isn't a key problem
 	if (
 		status === 401 ||
@@ -211,7 +213,7 @@ export async function* rotate(
 					kind: "account_limit",
 					message: "Rate limited on two models in a row",
 				});
-				yield giveUp("account_limit");
+				yield giveUp("rate_limit");
 				return;
 			}
 			lastRateLimited = model;

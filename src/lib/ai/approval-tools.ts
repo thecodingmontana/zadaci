@@ -1,5 +1,9 @@
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod";
+
+/** The longest message the assistant takes, checked in the browser and on the server. */
+export const MAX_MESSAGE = 2000;
+
 import { LABELS, PRIORITIES, TASK_STATUSES } from "#/lib/tasks";
 
 // The assistant's tools that wait for the person's approval. Only the definitions live here
