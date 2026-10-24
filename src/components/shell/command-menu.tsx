@@ -11,6 +11,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useAssistant } from "#/components/ai/assistant-panel";
 import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";
@@ -194,6 +195,7 @@ export function CommandMenuProvider({
 		setMnav(false);
 		setShortcuts(true);
 	};
+	const assistant = useAssistant();
 	const toggleDark = () =>
 		setAppearance({ theme: isDark() ? "light" : "dark" });
 
@@ -207,7 +209,7 @@ export function CommandMenuProvider({
 			}
 			if (modKey && !e.shiftKey && e.key.toLowerCase() === "j") {
 				e.preventDefault();
-				go("assistant");
+				assistant.toggle();
 				return;
 			}
 			if (modKey && e.shiftKey && e.key.toLowerCase() === "l") {

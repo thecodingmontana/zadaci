@@ -7,6 +7,11 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { z } from "zod";
+import {
+	AssistantPanel,
+	AssistantProvider,
+	useAssistant,
+} from "#/components/ai/assistant-panel";
 import { AppSidebar, SidebarSkeleton } from "#/components/shell/app-sidebar";
 import { CommandMenuProvider } from "#/components/shell/command-menu";
 import { ShellProvider, useShell } from "#/components/shell/shell-state";
@@ -19,6 +24,7 @@ import {
 	SHELL,
 	UPDATE_PREFERENCES,
 } from "#/graphql/operations";
+import { assistantThread } from "#/lib/ai/prompt";
 import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
 import { getSidebarOpen } from "#/lib/session";
@@ -72,7 +78,9 @@ function WorkspaceShell() {
 	const { sidebarOpen } = Route.useLoaderData();
 	return (
 		<ShellProvider defaultCollapsed={!sidebarOpen}>
-			<ShellLayout />
+			<AssistantProvider>
+				<ShellLayout />
+			</AssistantProvider>
 		</ShellProvider>
 	);
 }
@@ -82,6 +90,7 @@ function ShellLayout() {
 	const { slug } = Route.useParams();
 	const { user } = Route.useRouteContext();
 	const { collapsed, mnav, setMnav } = useShell();
+	const assistant = useAssistant();
 	const { data } = useSuspenseQuery(SHELL, { variables: { slug } });
 	const { task } = Route.useSearch();
 	const router = useRouter();
@@ -166,6 +175,12 @@ function ShellLayout() {
 								/>
 							)}
 						</main>
+						{assistant.open && (
+							<AssistantPanel
+								slug={slug}
+								threadId={assistantThread(workspace.id, user.id)}
+							/>
+						)}
 						<BottomNav slug={slug} unread={unread.inbox} />
 					</div>
 				</CommandMenuProvider>

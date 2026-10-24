@@ -32,8 +32,8 @@ test("saved chats come back for their owner only, with the model that answered",
 	await theirs.saveThread(thread, [{ role: "user", content: "overwrite!" }]);
 	assert.equal((await mine.loadThread(thread)).length, 2, "and can't be overwritten");
 
-	const list = (await gql(amina, `query($s: String!) { aiConversations(slug: $s) { id title } }`, { s: slug })).data?.aiConversations;
-	assert.deepEqual(list, [{ id: thread, title: "What's due this week?" }]);
+	await gql(brian, `mutation($s: String!, $id: ID!) { deleteAiConversation(slug: $s, id: $id) }`, { s: slug, id: thread });
+	assert.equal((await mine.loadThread(thread)).length, 2, "someone else can't clear it");
 	await gql(amina, `mutation($s: String!, $id: ID!) { deleteAiConversation(slug: $s, id: $id) }`, { s: slug, id: thread });
-	assert.deepEqual(await mine.loadThread(thread), [], "deleting removes it");
+	assert.deepEqual(await mine.loadThread(thread), [], "clearing the history removes it");
 });

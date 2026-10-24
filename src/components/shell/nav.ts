@@ -59,11 +59,6 @@ export const WORKSPACE_NAV: NavItem[] = [
 		label: "Activity",
 		icon: "icon-[hugeicons--activity-01]",
 	},
-	{
-		path: "assistant",
-		label: "Assistant",
-		icon: "icon-[hugeicons--ai-magic]",
-	},
 ];
 
 export const ARCHIVE_NAV: NavItem = {

@@ -17,7 +17,7 @@ import {
 	takeMessage,
 } from "#/lib/ai/limits.server";
 import { adapterFor, aiKey } from "#/lib/ai/model.server";
-import { systemPrompt } from "#/lib/ai/prompt";
+import { assistantThread, systemPrompt } from "#/lib/ai/prompt";
 import { type Chunk, giveUp, rotate, runError } from "#/lib/ai/rotation";
 import {
 	candidates,
@@ -79,11 +79,8 @@ export const Route = createFileRoute("/api/chat")({
 					.where(eq(tables.user.id, session.user.id));
 				const prefs = (me?.prefs ?? {}) as { tz?: string; autoTz?: string };
 				const timeZone = prefs.tz || prefs.autoTz || "UTC";
-				const owner = params.threadId
-					? await threadOwner(params.threadId)
-					: null;
-				if (owner && owner !== session.user.id)
-					return json(404, "Conversation not found");
+				// one chat per person per workspace, whatever thread the browser names
+				const threadId = assistantThread(workspace.id, session.user.id);
 				const text = lastUserText(params.messages);
 				if (text && text.length > MAX_MESSAGE)
 					return sseError(
@@ -119,7 +116,7 @@ export const Route = createFileRoute("/api/chat")({
 						for await (const chunk of chat({
 							adapter: adapterFor(first, fallbacks),
 							messages: params.messages,
-							threadId: params.threadId,
+							threadId,
 							runId: params.runId,
 							// an approval answer resumes the paused run from the history the browser sends back
 							parentRunId: params.parentRunId,

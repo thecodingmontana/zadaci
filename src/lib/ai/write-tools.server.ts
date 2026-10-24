@@ -82,7 +82,7 @@ async function patchTasks(
 			};
 		for (const id of taskIds) ctx.edited.add(id);
 	}
-	const changed: string[] = [];
+	const changed: { id: string; key: string; title: string }[] = [];
 	const failed: string[] = [];
 	for (const id of taskIds) {
 		const task = await currentTask(ctx, id);
@@ -104,7 +104,7 @@ async function patchTasks(
 			patch: { ...patch, ...(labels && { labels }) },
 		});
 		if ("error" in res) failed.push(`${task.key}: ${res.error}`);
-		else changed.push(`${task.key} ${task.name}`);
+		else changed.push({ id: task.id, key: task.key, title: task.name });
 	}
 	return { changed, ...(failed.length && { failed }) };
 }

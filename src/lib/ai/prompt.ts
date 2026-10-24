@@ -21,5 +21,12 @@ export function systemPrompt(opts: {
 		"Search or list before acting when you don't already have an item's id. Never invent ids, names or results.",
 		"If a request is ambiguous (for example which task, or which project), ask one short question instead of guessing.",
 		"After making changes, say in one line what you changed.",
+		'The user can mention items as @[name](task:ID), @[name](project:ID) or @[name](note:ID): use that ID directly, no search needed.',
+		"The app already shows the tasks, projects and notes your tools return as a clickable list under your answer, so don't repeat them one by one: summarise (for example \"3 tasks are overdue, the oldest is ALP-2\").",
+		"You can do anything the user is allowed to do in this workspace, and nothing more; if a tool says they can't, tell them plainly.",
 	].join("\n");
 }
+
+/** One chat per person per workspace, so the assistant panel always opens the same conversation. */
+export const assistantThread = (workspaceId: string, userId: string) =>
+	`${workspaceId}-${userId}`;

@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Fragment, useState } from "react";
+import { useAssistant } from "#/components/ai/assistant-panel";
 import { noteTitle } from "#/components/notes/notes-tree";
 import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { Av } from "#/components/q/av";
@@ -92,6 +93,7 @@ export function Topbar({
 	const { setMnav } = useShell();
 	const { openPalette } = useCommandMenu();
 	const mod = useModKey();
+	const assistant = useAssistant();
 
 	return (
 		<header className="topbar">
@@ -137,6 +139,19 @@ export function Topbar({
 				/>
 				<span className="lbltxt">Search or jump to…</span>
 				<span className="kbd">{mod}K</span>
+			</button>
+			<button
+				type="button"
+				className={cn("ibtn", assistant.open && "on")}
+				data-tip={`Assistant (${mod}J)`}
+				aria-label="Assistant"
+				aria-pressed={assistant.open}
+				onClick={assistant.toggle}
+			>
+				<span
+					className="icon-[hugeicons--ai-magic] size-4"
+					aria-hidden="true"
+				/>
 			</button>
 			<Link
 				to="/w/$slug/$"

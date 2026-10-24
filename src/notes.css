@@ -916,7 +916,9 @@ button.code-lang:hover {
 	color: var(--q-text);
 	text-decoration: none;
 	font-size: var(--q-fs);
-	transition: background-color 120ms ease-out, border-color 120ms ease-out;
+	transition:
+		background-color 120ms ease-out,
+		border-color 120ms ease-out;
 }
 a.item-embed:hover {
 	background: var(--q-surface-2);
@@ -958,7 +960,9 @@ a.item-embed:hover {
 	color: var(--q-text);
 	text-decoration: none;
 	overflow: hidden;
-	transition: background-color 120ms ease-out, border-color 120ms ease-out;
+	transition:
+		background-color 120ms ease-out,
+		border-color 120ms ease-out;
 }
 .link-card:hover {
 	background: var(--q-surface-2);
