@@ -71,7 +71,7 @@ function SignIn() {
 					onBack={() => setWithEmail(false)}
 				/>
 			) : (
-				<>
+				<div className="flex flex-col gap-2">
 					<Button
 						variant="outline"
 						size="lg"
@@ -106,7 +106,7 @@ function SignIn() {
 						Continue with email
 					</Button>
 					<PasskeySignInButton />
-				</>
+				</div>
 			)}
 			<p className="text-center text-xs text-muted-foreground">
 				By continuing, you agree to our{" "}

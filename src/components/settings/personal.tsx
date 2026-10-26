@@ -355,6 +355,7 @@ export function ProfileSection({ me, title }: SectionProps) {
 					setPicking(false);
 				}}
 			/>
+			<YourData me={me} />
 		</>
 	);
 }
@@ -428,18 +429,14 @@ export function ShortcutsSection({ title }: { title: string }) {
 }
 
 /** Download everything that's yours, or delete your account (it explains what happens first). */
-export function DataSection({ me, title }: SectionProps) {
+function YourData({ me }: Pick<SectionProps, "me">) {
 	const { data } = useQuery(ACCOUNT_DELETION, { fetchPolicy: "network-only" });
 	const [confirm, setConfirm] = useState(false);
 	const [remove] = useMutation(DELETE_MY_ACCOUNT);
 	const blockers = data?.accountDeletion.blockers ?? [];
 	const solo = data?.accountDeletion.solo ?? [];
 	return (
-		<>
-			<SettingsHeader
-				title={title}
-				lead="Take a copy of your data, or delete your account."
-			/>
+		<SBlock title="Your data">
 			<SRow
 				t="Download my data"
 				d="Your profile, workspaces, assigned tasks, comments, notes, bookmarks and assistant chats, as one JSON file."
@@ -507,6 +504,6 @@ export function DataSection({ me, title }: SectionProps) {
 					}
 				}}
 			/>
-		</>
+		</SBlock>
 	);
 }

@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client/react";
+import { useApolloClient, useQuery } from "@apollo/client/react";
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 import { Link } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useRef, useState } from "react";
@@ -37,6 +37,7 @@ export function AssistantChat({
 	const [text, setText] = useState("");
 	const list = useRef<HTMLDivElement>(null);
 	const { data: ai, refetch: refetchAi } = useQuery(AI_STATUS);
+	const client = useApolloClient();
 	const {
 		messages,
 		sendMessage,
@@ -53,8 +54,9 @@ export function AssistantChat({
 		persistence: true,
 		forwardedProps: { slug },
 		tools: APPROVAL_TOOLS,
-		// the free allowance shown under the box counts down after each answer
-		onFinish: () => void refetchAi(),
+		// an answer may have changed anything (a deleted project, new tasks): refresh what's on screen,
+		// which also counts down the free allowance shown under the box
+		onFinish: () => void client.refetchQueries({ include: "active" }),
 		onError: () => void refetchAi(),
 	});
 	// keep the newest words in view while the answer streams
