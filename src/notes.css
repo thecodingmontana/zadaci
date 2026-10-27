@@ -216,7 +216,8 @@
 	border-radius: 2px;
 	padding: 0 1px;
 }
-.note-body .tiptap p.is-editor-empty:first-child::before {
+.note-body .tiptap p.is-editor-empty:first-child::before,
+.note-body .tiptap.ProseMirror-focused > p.is-empty::before {
 	content: attr(data-placeholder);
 	float: left;
 	height: 0;
@@ -469,11 +470,30 @@
 	color: var(--q-text);
 }
 
+/* tapping under the page continues it; the + only shows where the hover handle can't */
+.note-tail {
+	min-height: 80px;
+	padding-top: 6px;
+	cursor: text;
+}
+.note-tail-add {
+	display: none;
+	align-items: center;
+	gap: 6px;
+	margin-left: -8px;
+	padding: 6px 8px;
+	border-radius: var(--q-r-sm);
+	color: var(--q-text-3);
+}
+
 /* touch screens have no hover: keep the cover and add buttons visible */
 @media (hover: none) {
 	.cover-acts,
 	.note-adds {
 		opacity: 1;
+	}
+	.note-tail-add {
+		display: inline-flex;
 	}
 }
 @media (max-width: 900px) {

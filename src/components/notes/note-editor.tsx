@@ -174,7 +174,7 @@ export function NoteEditor({
 			TaskList,
 			TaskItem.configure({ nested: true }),
 			Placeholder.configure({
-				placeholder: "Write something, or press / for blocks",
+				placeholder: "Write something, or type / for blocks",
 			}),
 			SlashCommands,
 			CodeBlock,
@@ -342,8 +342,47 @@ export function NoteEditor({
 					</div>
 				)}
 				<EditorContent editor={editor} className="note-body" />
+				{editor && editable && <NoteTail editor={editor} />}
 			</div>
 		</>
+	);
+}
+
+/**
+ * The space under the page: a tap there continues on a new line at the end, so a page ending in
+ * an image or table can still grow. Touch screens never see the hover handle, so it also holds
+ * the + that opens the / menu.
+ */
+function NoteTail({ editor }: { editor: Editor }) {
+	const newLine = (slash: boolean) => {
+		const { doc } = editor.state;
+		const last = doc.lastChild;
+		const chain = editor.chain();
+		if (last?.type.name !== "paragraph" || last.content.size > 0)
+			chain.insertContentAt(doc.content.size, { type: "paragraph" });
+		chain.focus("end");
+		if (slash) chain.insertContent("/");
+		chain.run();
+	};
+	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: a pointer shortcut; the button and Enter in the text do the same
+		// biome-ignore lint/a11y/useKeyWithClickEvents: same as above
+		<div
+			className="note-tail"
+			onClick={(e) => e.target === e.currentTarget && newLine(false)}
+		>
+			<button
+				type="button"
+				className="note-tail-add"
+				onClick={() => newLine(true)}
+			>
+				<span
+					className="icon-[hugeicons--plus-sign] size-4"
+					aria-hidden="true"
+				/>
+				Add a block
+			</button>
+		</div>
 	);
 }
 
