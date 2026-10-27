@@ -1,6 +1,6 @@
 import type { ModelMessage } from "@tanstack/ai";
 import { defineMessageStore } from "@tanstack/ai-persistence";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 
 // Where the assistant's chats are saved: TanStack AI's persistence middleware hands us the
@@ -13,6 +13,28 @@ export async function threadOwner(threadId: string) {
 		.from(tables.ai_conversation)
 		.where(eq(tables.ai_conversation.id, threadId));
 	return row?.userId ?? null;
+}
+
+/**
+ * Whether this person's saved chat is paused on Zad's tool calls, waiting for their approval:
+ * only then is a "resume" request really an answer, not a new message to count.
+ */
+export async function awaitingApproval(threadId: string, userId: string) {
+	if ((await threadOwner(threadId)) !== userId) return false;
+	const [last] = await db
+		.select({
+			role: tables.ai_message.role,
+			toolCalls: tables.ai_message.tool_calls,
+		})
+		.from(tables.ai_message)
+		.where(eq(tables.ai_message.conversation_id, threadId))
+		.orderBy(desc(tables.ai_message.position))
+		.limit(1);
+	return (
+		last?.role === "assistant" &&
+		Array.isArray(last.toolCalls) &&
+		last.toolCalls.length > 0
+	);
 }
 
 const titleOf = (messages: ModelMessage[]) => {

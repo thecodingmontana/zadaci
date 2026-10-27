@@ -27,7 +27,11 @@ import {
 	recordFailure,
 	recordSuccess,
 } from "#/lib/ai/rotation.server";
-import { chatStore, threadOwner } from "#/lib/ai/store.server";
+import {
+	awaitingApproval,
+	chatStore,
+	threadOwner,
+} from "#/lib/ai/store.server";
 import { READ_TOOLS } from "#/lib/ai/tools.server";
 import { WRITE_TOOLS } from "#/lib/ai/write-tools.server";
 import { auth } from "#/lib/auth";
@@ -118,8 +122,12 @@ export const Route = createFileRoute("/api/chat")({
 						"too_long",
 					);
 				// every request counts except an approval answer, which continues the last message;
-				// only the shared key is limited, your own key is yours to spend
-				const counted = !own && !params.resume;
+				// the browser only claims that, so it's free only while the saved chat really waits on one.
+				// Only the shared key is limited, your own key is yours to spend
+				const answering =
+					!!params.resume?.length &&
+					(await awaitingApproval(threadId, session.user.id));
+				const counted = !own && !answering;
 				if (counted && !(await takeMessage(session.user.id, today)))
 					return sseError(
 						`You've used today's ${dailyLimit()} free messages. Add your own key in Settings → Zad to keep going, or come back tomorrow.`,

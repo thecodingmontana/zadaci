@@ -13,12 +13,12 @@ process.env.OPENROUTER_API_KEY ||= "sk-or-test";
 type Post = (ctx: { request: Request }) => Promise<Response>;
 const post = (Route.options.server?.handlers as unknown as { POST: Post }).POST;
 
-const ask = (cookie: string, slug: string, messages: unknown[]) =>
+const ask = (cookie: string, slug: string, messages: unknown[], extra: Record<string, unknown> = {}) =>
 	post({
 		request: new Request("http://test/api/chat", {
 			method: "POST",
 			headers: { cookie, "content-type": "application/json" },
-			body: JSON.stringify({ threadId: "t", runId: "r", messages, tools: [], context: [], forwardedProps: { slug } }),
+			body: JSON.stringify({ threadId: "t", runId: "r", messages, tools: [], context: [], forwardedProps: { slug }, ...extra }),
 		}),
 	}).then((r) => r.text());
 
@@ -34,6 +34,12 @@ test("the free daily limit and size cap can't be dodged by how the chat is sent"
 		{ id: "2", role: "assistant", content: "Sure" },
 	];
 	assert.match(await ask(amina.cookie, slug, endsWithAnswer), /daily_limit/, "a chat ending in an answer still counts");
+	const claimsResume = { resume: [{ interruptId: "fake", status: "resolved", payload: { approved: true } }] };
+	assert.match(
+		await ask(amina.cookie, slug, [...endsWithAnswer, { id: "3", role: "user", content: "One more" }], claimsResume),
+		/daily_limit/,
+		"saying it's an approval answer doesn't make a message free",
+	);
 
 	const huge = [
 		{ id: "1", role: "user", content: "x".repeat(150_000) },
