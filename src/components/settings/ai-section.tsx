@@ -42,7 +42,10 @@ const shortName = (p: Provider) => p.label.replace(/ \(.*\)$/, "");
 export function AiSection({ title }: { title: string }) {
 	const { data } = useQuery(AI_STATUS);
 	const status = data?.aiStatus;
-	const [useKey] = useSave<{ provider: string | null }>(USE_AI_KEY, "useAiKey");
+	const [switchKey] = useSave<{ provider: string | null }>(
+		USE_AI_KEY,
+		"useAiKey",
+	);
 	const [connecting, setConnecting] = useState<Provider | null>(null);
 	const active = status?.keys.find((k) => k.active);
 	const limit = status?.limit ?? 2;
@@ -75,7 +78,9 @@ export function AiSection({ title }: { title: string }) {
 							type="button"
 							className="btn btn-secondary btn-sm"
 							onClick={() =>
-								void useKey({ provider: null }).catch(fail("Couldn't switch"))
+								void switchKey({ provider: null }).catch(
+									fail("Couldn't switch"),
+								)
 							}
 						>
 							Use this
@@ -89,7 +94,7 @@ export function AiSection({ title }: { title: string }) {
 						saved={status?.keys.find((k) => k.provider === p.id)}
 						onConnect={() => setConnecting(p)}
 						onUse={() =>
-							void useKey({ provider: p.id }).catch(fail("Couldn't switch"))
+							void switchKey({ provider: p.id }).catch(fail("Couldn't switch"))
 						}
 					/>
 				))}

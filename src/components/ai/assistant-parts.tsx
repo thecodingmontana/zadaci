@@ -277,7 +277,9 @@ export function ItemList({
 	const seen = new Set<string>();
 	const unique = items.filter((i) => {
 		const k = `${i.kind}-${i.id}`;
-		return seen.has(k) ? false : (seen.add(k), true);
+		if (seen.has(k)) return false;
+		seen.add(k);
+		return true;
 	});
 	if (!unique.length) return null;
 	return (

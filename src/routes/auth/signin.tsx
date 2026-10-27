@@ -165,6 +165,7 @@ function MagicLinkForm({ next, onBack }: { next: string; onBack: () => void }) {
 
 	if (sentTo)
 		return (
+			// biome-ignore lint/a11y/useSemanticElements: <output> may only hold inline content; this box has paragraphs and buttons
 			<div className="rounded-lg border p-4 text-center text-sm" role="status">
 				<span
 					className="icon-[solar--letter-opened-linear] mx-auto mb-2 block size-6 text-primary"

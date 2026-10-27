@@ -406,8 +406,8 @@ export function TimelineView({
 						{rows.map((r, i) => {
 							const y = i * ROW;
 							if (r.type === "g")
-								// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
 								return (
+									// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
 									<div key={i} className="tl-rowbg g" style={{ top: y }} />
 								);
 							if (r.type === "ms")

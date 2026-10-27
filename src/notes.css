@@ -602,8 +602,8 @@
 }
 
 /* ---- media and advanced blocks ---- */
-.note-body .tiptap div[data-youtube-video] iframe,
-.note-body .tiptap .note-embed > iframe {
+.note-body .tiptap .note-embed > iframe,
+.note-body .tiptap div[data-youtube-video] iframe {
 	display: block;
 	width: 100%;
 	height: auto;
@@ -746,6 +746,7 @@
 	gap: 8px;
 	font-size: var(--q-fs-sm);
 }
+/* biome-ignore lint/style/noDescendingSpecificity: the insert dialog is outside the editor, so the list rule never reaches it */
 .insert-media .insert-link p {
 	margin: 0;
 }
@@ -797,6 +798,7 @@
 .unsplash-item button:hover img {
 	transform: scale(1.04);
 }
+/* biome-ignore lint/style/noDescendingSpecificity: the photo picker is outside the editor, so the link rule never reaches it */
 .unsplash-item a {
 	font-size: 11px;
 	color: var(--q-text-3);
@@ -823,6 +825,7 @@
 .note-body .tiptap .code-wrap > pre {
 	margin: 0;
 	padding: 14px 16px 16px;
+	/* biome-ignore lint/complexity/noImportantStyles: Shiki puts its background in an inline style */
 	background: transparent !important;
 	border-radius: 0;
 	overflow-x: auto;
@@ -882,6 +885,7 @@ button.code-lang:hover {
 }
 /* Shiki writes both themes' colours; dark mode uses the dark ones */
 .dark .note-body .tiptap .code-wrap pre span {
+	/* biome-ignore lint/complexity/noImportantStyles: Shiki puts its colours in inline styles */
 	color: var(--shiki-dark) !important;
 }
 @media (hover: none) {

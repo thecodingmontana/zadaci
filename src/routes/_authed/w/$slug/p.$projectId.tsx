@@ -115,6 +115,14 @@ function ProjectPage() {
 			}),
 	});
 	const [update] = useMutation(UPDATE_PROJECT, refetch);
+	// on a phone the tab strip scrolls: keep the open view's tab in sight
+	const tabsRef = useRef<HTMLElement>(null);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: runs again whenever the open tab changes
+	useEffect(() => {
+		tabsRef.current
+			?.querySelector('[aria-current="page"]')
+			?.scrollIntoView({ block: "nearest", inline: "nearest" });
+	}, [tab]);
 	const workspace = data.workspace;
 	const project = workspace?.project;
 	if (!workspace || !project) return <NoAccess slug={slug} />;
@@ -124,13 +132,6 @@ function ProjectPage() {
 	const savedView = project.savedViews.find((v) => tab === `v:${v.id}`);
 	const activity = feed?.workspace?.activity ?? [];
 
-	// on a phone the tab strip scrolls: keep the open view's tab in sight
-	const tabsRef = useRef<HTMLElement>(null);
-	useEffect(() => {
-		tabsRef.current
-			?.querySelector('[aria-current="page"]')
-			?.scrollIntoView({ block: "nearest", inline: "nearest" });
-	}, [tab]);
 	return (
 		<div className="page flush">
 			<div className="proj-h">
