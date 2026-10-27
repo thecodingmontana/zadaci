@@ -45,6 +45,8 @@ const ACCOUNT_LEVEL = new Set([
 	"deleteMyAccount",
 	// where to listen for live updates: the public Supabase address and key, no workspace data
 	"realtime",
+	"invitePreview",
+	"declineInvite",
 ]);
 
 function value(type: GraphQLInputType, slug: string, name: string): unknown {

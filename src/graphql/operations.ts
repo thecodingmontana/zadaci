@@ -107,6 +107,46 @@ export const JOIN_WORKSPACE: TypedDocumentNode<
 	}
 `;
 
+export type InvitePreview = {
+	workspace: string;
+	imageUrl: string | null;
+	color: string | null;
+	members: number;
+	inviter: string | null;
+	role: string;
+	email: string | null;
+	forYou: boolean;
+	joinedSlug: string | null;
+};
+
+export const INVITE_PREVIEW: TypedDocumentNode<
+	{ invitePreview: InvitePreview | null },
+	{ code: string }
+> = gql`
+	query InvitePreview($code: String!) {
+		invitePreview(code: $code) {
+			workspace
+			imageUrl
+			color
+			members
+			inviter
+			role
+			email
+			forYou
+			joinedSlug
+		}
+	}
+`;
+
+export const DECLINE_INVITE: TypedDocumentNode<
+	{ declineInvite: boolean },
+	{ code: string }
+> = gql`
+	mutation DeclineInvite($code: String!) {
+		declineInvite(code: $code)
+	}
+`;
+
 export type ShellProject = {
 	id: string;
 	title: string;

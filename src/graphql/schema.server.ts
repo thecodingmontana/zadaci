@@ -1,6 +1,7 @@
 import {
 	and,
 	asc,
+	count,
 	desc,
 	eq,
 	getTableColumns,
@@ -42,6 +43,46 @@ const openInvite = () =>
 		isNull(tables.workspace_invite_request.deleted_at),
 		gt(tables.workspace_invite_request.expires_at, new Date()),
 	);
+
+/** What a join link points at: the workspace's shared code, or one open emailed invite by its id. */
+async function findInvite(code: string) {
+	const value = code.trim();
+	const [byCode] = await db
+		.select()
+		.from(tables.workspace)
+		.where(
+			and(
+				eq(tables.workspace.invite_code, value.toUpperCase()),
+				isNull(tables.workspace.deleted_at),
+			),
+		)
+		.limit(1);
+	if (byCode) return { workspace: byCode, invite: null };
+	const [byInvite] = await db
+		.select({
+			workspace: tables.workspace,
+			invite: {
+				id: tables.workspace_invite_request.id,
+				email: tables.workspace_invite_request.email,
+				role: tables.workspace_invite_request.role,
+				invitedBy: tables.workspace_invite_request.invited_by,
+			},
+		})
+		.from(tables.workspace_invite_request)
+		.innerJoin(
+			tables.workspace,
+			eq(tables.workspace.id, tables.workspace_invite_request.workspace_id),
+		)
+		.where(
+			and(
+				eq(tables.workspace_invite_request.id, value),
+				openInvite(),
+				isNull(tables.workspace.deleted_at),
+			),
+		)
+		.limit(1);
+	return byInvite ?? null;
+}
 
 export type GraphQLContext = {
 	user: { id: string; email: string; name: string } | null;
@@ -161,11 +202,31 @@ const typeDefs = /* GraphQL */ `
 		workspace(slug: String!): Workspace
 		slugAvailable(slug: String!): Boolean!
 		search(slug: String!, q: String!): SearchResults!
+		"what a join link leads to, shown before you accept or decline; null when it no longer works"
+		invitePreview(code: String!): InvitePreview
+	}
+
+	type InvitePreview {
+		workspace: String!
+		imageUrl: String
+		color: String
+		members: Int!
+		"who sent an emailed invite (null for the workspace's shared link)"
+		inviter: String
+		role: String!
+		"the address an emailed invite went to"
+		email: String
+		"false when the invite was emailed to a different address than yours"
+		forYou: Boolean!
+		"set when you're already in the workspace"
+		joinedSlug: String
 	}
 
 	type Mutation {
 		completeOnboarding(input: OnboardingInput!): Workspace!
 		joinWorkspace(code: String!): Workspace!
+		"turns an emailed invite down so it can't be used; the shared link just isn't followed"
+		declineInvite(code: String!): Boolean!
 	}
 `;
 
@@ -487,55 +548,98 @@ const resolvers = {
 				.limit(1);
 			return !taken;
 		},
+		invitePreview: async (
+			_: unknown,
+			args: { code: string },
+			ctx: GraphQLContext,
+		) => {
+			const user = requireUser(ctx);
+			const found = await findInvite(args.code);
+			if (!found) return null;
+			const { workspace, invite } = found;
+			const [[members], [inviter], [joined]] = await Promise.all([
+				db
+					.select({ n: count() })
+					.from(tables.workspace_members)
+					.where(
+						and(
+							eq(tables.workspace_members.workspace_id, workspace.id),
+							isNull(tables.workspace_members.deleted_at),
+						),
+					),
+				invite?.invitedBy
+					? db
+							.select({ name: tables.user.name })
+							.from(tables.user)
+							.where(eq(tables.user.id, invite.invitedBy))
+					: [],
+				findWorkspaces(user.id, workspace.slug),
+			]);
+			return {
+				workspace: workspace.name,
+				imageUrl: workspace.image_url,
+				color: workspace.color,
+				members: members?.n ?? 0,
+				inviter: inviter?.name ?? null,
+				role: invite?.role ?? USER_ROLE.MEMBER,
+				email: invite?.email ?? null,
+				forYou: !invite || invite.email === user.email.toLowerCase(),
+				joinedSlug: joined?.slug ?? null,
+			};
+		},
 	},
 	Mutation: {
+		declineInvite: async (
+			_: unknown,
+			args: { code: string },
+			ctx: GraphQLContext,
+		) => {
+			const user = requireUser(ctx);
+			const found = await findInvite(args.code);
+			// the shared link, or an invite that's already used or gone: nothing to turn down
+			if (!found?.invite) return true;
+			const { workspace, invite } = found;
+			if (invite.email !== user.email.toLowerCase())
+				badInput(
+					`This invite was sent to ${invite.email}. Sign in with that address to answer it.`,
+				);
+			const [declined] = await db
+				.update(tables.workspace_invite_request)
+				.set({ status: "DECLINED" })
+				.where(
+					and(
+						eq(tables.workspace_invite_request.id, invite.id),
+						eq(tables.workspace_invite_request.status, "PENDING"),
+					),
+				)
+				.returning({ id: tables.workspace_invite_request.id });
+			// whoever sent it hears back, so they don't wait on someone who said no
+			if (declined && invite.invitedBy)
+				await notify(db, [
+					{
+						user_id: invite.invitedBy,
+						workspace_id: workspace.id,
+						actor_id: user.id,
+						type: "update",
+						text: `declined your invite to ${workspace.name}`,
+					},
+				]);
+			return true;
+		},
 		joinWorkspace: async (
 			_: unknown,
 			args: { code: string },
 			ctx: GraphQLContext,
 		) => {
 			const user = requireUser(ctx);
-			const code = args.code.trim();
 			// The workspace link (only admins see it) or one emailed invite, by its id
-			const [byCode] = await db
-				.select()
-				.from(tables.workspace)
-				.where(
-					and(
-						eq(tables.workspace.invite_code, code.toUpperCase()),
-						isNull(tables.workspace.deleted_at),
-					),
-				)
-				.limit(1);
-			const [byInvite] = byCode
-				? []
-				: await db
-						.select({
-							workspace: tables.workspace,
-							email: tables.workspace_invite_request.email,
-						})
-						.from(tables.workspace_invite_request)
-						.innerJoin(
-							tables.workspace,
-							eq(
-								tables.workspace.id,
-								tables.workspace_invite_request.workspace_id,
-							),
-						)
-						.where(
-							and(
-								eq(tables.workspace_invite_request.id, code),
-								openInvite(),
-								isNull(tables.workspace.deleted_at),
-							),
-						)
-						.limit(1);
-			const workspace = byCode ?? byInvite?.workspace;
-			if (!workspace)
+			const found = await findInvite(args.code);
+			if (!found)
 				badInput("This invite link isn't valid anymore. Ask for a new one.");
-			if (byInvite && byInvite.email !== user.email.toLowerCase())
+			const { workspace, invite } = found;
+			if (invite && invite.email !== user.email.toLowerCase())
 				badInput(
-					`This invite was sent to ${byInvite.email}. Sign in with that address to accept it.`,
+					`This invite was sent to ${invite.email}. Sign in with that address to accept it.`,
 				);
 
 			const [existing] = await findWorkspaces(user.id, workspace.slug);

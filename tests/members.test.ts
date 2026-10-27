@@ -152,3 +152,34 @@ test("invite emails share one daily budget per person, so a new workspace doesn'
 		await db.delete(tables.rateLimit).where(eq(tables.rateLimit.key, key));
 	}
 });
+
+const PREVIEW = `query($c: String!) { invitePreview(code: $c) { workspace inviter role email forYou joinedSlug members } }`;
+
+test("an invite link shows the workspace first; declining turns the invite down for good and tells the sender", async () => {
+	const owner = await makeUser("owner");
+	const pat = await makeUser("pat");
+	const stranger = await makeUser("stranger");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	const sent = await gql(owner, `mutation($s: String!, $e: [String!]!) { inviteMembers(slug: $s, emails: $e, role: "member") { id } }`, { s: slug, e: [pat.email] });
+	const id = sent.data?.inviteMembers[0].id;
+
+	const seen = (await gql(pat, PREVIEW, { c: id })).data?.invitePreview;
+	assert.deepEqual(
+		{ forYou: seen.forYou, inviter: seen.inviter, role: seen.role, email: seen.email, joinedSlug: seen.joinedSlug, members: seen.members },
+		{ forYou: true, inviter: "owner", role: "member", email: pat.email, joinedSlug: null, members: 1 },
+	);
+	// opening it doesn't join anyone
+	assert.equal((await gql(pat, `query($s: String!) { workspace(slug: $s) { id } }`, { s: slug })).data?.workspace, null);
+	assert.equal((await gql(stranger, PREVIEW, { c: id })).data?.invitePreview.forYou, false);
+	assert.match((await gql(stranger, `mutation($c: String!) { declineInvite(code: $c) }`, { c: id })).errors?.[0]?.message ?? "", /sent to/);
+
+	assert.equal((await gql(pat, `mutation($c: String!) { declineInvite(code: $c) }`, { c: id })).data?.declineInvite, true);
+	assert.equal((await gql(pat, PREVIEW, { c: id })).data?.invitePreview, null, "a declined invite no longer opens");
+	assert.match((await join(pat, id)).errors?.[0]?.message ?? "", /isn't valid anymore/);
+	const notes = await db.select({ text: tables.notification.text }).from(tables.notification).where(eq(tables.notification.user_id, owner.id));
+	assert.ok(notes.some((n) => n.text.startsWith("declined your invite")), "the sender hears back");
+
+	// the shared link previews too, and someone already in sees where to go
+	assert.equal((await gql(stranger, PREVIEW, { c: inviteCode })).data?.invitePreview.forYou, true);
+	assert.equal((await gql(owner, PREVIEW, { c: inviteCode })).data?.invitePreview.joinedSlug, slug);
+});
