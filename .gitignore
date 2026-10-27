@@ -13,3 +13,6 @@ __unconfig*
 todos.json
 .vercel
 .env*
+
+# local MCP servers
+.mcp.json
