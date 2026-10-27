@@ -8,6 +8,9 @@ import { REALTIME_CONFIG } from "#/graphql/operations";
 // page current without a reload.
 
 const SETTLE_MS = 400;
+// anyone holding the public key can post to the channel, so however many messages arrive,
+// a page refreshes at most this often
+const MIN_GAP_MS = 3000;
 
 export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 	const client = useApolloClient();
@@ -19,14 +22,19 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 			params: { apikey: config.anonKey },
 		});
 		let timer: ReturnType<typeof setTimeout> | undefined;
+		let last = 0;
 		const channel = realtime
 			.channel(`ws:${workspaceId}`)
 			.on("broadcast", { event: "changed" }, () => {
-				// a burst of changes (a bulk edit) becomes one refresh
-				clearTimeout(timer);
+				// a refresh already on its way covers this change too (a bulk edit becomes one)
+				if (timer) return;
 				timer = setTimeout(
-					() => void client.refetchQueries({ include: "active" }),
-					SETTLE_MS,
+					() => {
+						timer = undefined;
+						last = Date.now();
+						void client.refetchQueries({ include: "active" });
+					},
+					Math.max(SETTLE_MS, last + MIN_GAP_MS - Date.now()),
 				);
 			})
 			.subscribe();
