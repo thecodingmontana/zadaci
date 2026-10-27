@@ -28,6 +28,7 @@ import {
 } from "#/lib/onboarding";
 import { can, projectRight } from "#/lib/permissions";
 import { makeKey } from "#/lib/projects";
+import { announceChange } from "#/lib/realtime.server";
 import { snippet } from "#/lib/search";
 import { adminUserIds, logActivity, notify } from "./activity.server";
 import { visibleBookmarks } from "./bookmarks.server";
@@ -540,7 +541,7 @@ const resolvers = {
 			const [existing] = await findWorkspaces(user.id, workspace.slug);
 			if (existing) return existing;
 
-			return db.transaction(async (tx) => {
+			const joined = await db.transaction(async (tx) => {
 				// An emailed invite decides their role and team; the bare link makes a member.
 				const [invite] = await tx
 					.select({
@@ -627,6 +628,10 @@ const resolvers = {
 				);
 				return { ...workspace, role: member.role };
 			});
+			// the join names a code, not the workspace, so tell its open pages here: the new person
+			// appears in member lists and pickers without a reload
+			announceChange(workspace.slug);
+			return joined;
 		},
 		completeOnboarding: async (
 			_: unknown,
