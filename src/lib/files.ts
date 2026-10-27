@@ -65,3 +65,20 @@ export function isUploadUrl(url: string, cloud: string, folder: string) {
 		`^/${escapeRe(cloud)}/(image|video|raw)/upload/(v\\d+/)?${escapeRe(folder)}/[a-z0-9]+(\\.[A-Za-z0-9]+)?$`,
 	).test(u.pathname);
 }
+
+const MB = 1024 * 1024;
+
+/** The biggest upload of each kind Cloudinary stores: images 5 MB, videos 20 MB, other files 25 MB. */
+export const MAX_BYTES = {
+	image: 5 * MB,
+	video: 20 * MB,
+	raw: 25 * MB,
+} as const;
+
+/** The limit for a file of this type (checked in the browser, and again on the server). */
+export const maxUpload = (type: string) =>
+	type.startsWith("image/")
+		? MAX_BYTES.image
+		: type.startsWith("video/")
+			? MAX_BYTES.video
+			: MAX_BYTES.raw;

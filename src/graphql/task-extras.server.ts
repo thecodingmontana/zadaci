@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
 import { db, tables } from "#/db";
-import { isUploadUrl } from "#/lib/files";
+import { isUploadUrl, MAX_BYTES } from "#/lib/files";
 import { hasRight } from "#/lib/permissions";
 import { taskKey } from "#/lib/tasks";
 import { logActivity, notify } from "./activity.server";
@@ -362,6 +362,46 @@ const FILTERS = z
 	)
 	.max(20);
 
+/**
+ * Cloudinary can't cap the size of a signed upload, so the file's real size is checked once it's
+ * there; one over the limit for its kind is deleted and not recorded.
+ * shortcut: a file uploaded but never recorded isn't checked; sweep the folders on a schedule if
+ * storage abuse ever shows up.
+ */
+async function checkUploadedSize(url: string) {
+	const { cloud, key, secret } = cloudinary();
+	const [, , kind, , ...rest] = new URL(url).pathname.split("/");
+	const resourceType = kind === "image" || kind === "video" ? kind : "raw";
+	const head = await fetch(url, { method: "HEAD" }).catch(() => null);
+	const bytes = Number(head?.headers.get("content-length") ?? Number.NaN);
+	if (head?.ok && bytes <= MAX_BYTES[resourceType]) return;
+	// the public id is the path after the version, without the extension (raw files keep it)
+	const path = rest.filter((p, i) => !(i === 0 && /^v\d+$/.test(p))).join("/");
+	const publicId =
+		resourceType === "raw" ? path : path.replace(/\.[^./]+$/, "");
+	const timestamp = Math.floor(Date.now() / 1000);
+	const form = new FormData();
+	form.set("public_id", publicId);
+	form.set("timestamp", String(timestamp));
+	form.set("api_key", key);
+	form.set(
+		"signature",
+		signCloudinary({ public_id: publicId, timestamp }, secret),
+	);
+	await fetch(
+		`https://api.cloudinary.com/v1_1/${cloud}/${resourceType}/destroy`,
+		{
+			method: "POST",
+			body: form,
+		},
+	).catch(() => {});
+	badInput(
+		head?.ok
+			? `That file is over ${MAX_BYTES[resourceType] / 1024 / 1024} MB, the limit for this kind of file`
+			: "Couldn't check that file. Try uploading it again.",
+	);
+}
+
 export const taskExtrasResolvers = {
 	Task: {
 		// shortcut: one query per task; only the task drawer asks for these, batch them before lists do
@@ -602,6 +642,7 @@ export const taskExtrasResolvers = {
 			// only files we signed a slot for: our Cloudinary account and this task or project folder
 			if (!isUploadUrl(args.url, cloud, target.folder))
 				badInput("That file didn't come from this upload");
+			await checkUploadedSize(args.url);
 			const name = z.string().trim().min(1).max(255).safeParse(args.name);
 			if (!name.success) badInput("The file needs a name");
 			const [row] = await db

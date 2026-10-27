@@ -1,18 +1,11 @@
 import type { ApolloClient } from "@apollo/client";
 import { ADD_ATTACHMENT, ATTACHMENT_UPLOAD } from "#/graphql/operations";
+import { maxUpload } from "#/lib/files";
+
+export { maxUpload };
 
 // Uploads one file straight to Cloudinary with a signed request, then records it on the
 // task, or on the project when there is no task.
-
-const MB = 1024 * 1024;
-
-/** The biggest file allowed: images 5 MB, videos 20 MB, anything else 25 MB. */
-export const maxUpload = (type: string) =>
-	type.startsWith("image/")
-		? 5 * MB
-		: type.startsWith("video/")
-			? 20 * MB
-			: 25 * MB;
 
 export async function uploadFile(
 	client: ApolloClient,
@@ -24,7 +17,7 @@ export async function uploadFile(
 	const max = maxUpload(file.type);
 	if (file.size > max)
 		throw new Error(
-			`${file.name} is over ${max / MB} MB, the limit for this kind of file`,
+			`${file.name} is over ${max / 1024 / 1024} MB, the limit for this kind of file`,
 		);
 	const { data } = await client.mutate({
 		mutation: ATTACHMENT_UPLOAD,
