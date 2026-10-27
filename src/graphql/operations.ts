@@ -2033,3 +2033,14 @@ export const DELETE_MY_ACCOUNT: TypedDocumentNode<
 		deleteMyAccount(email: $email)
 	}
 `;
+
+export const REALTIME_CONFIG: TypedDocumentNode<{
+	realtime: { url: string; anonKey: string } | null;
+}> = gql`
+	query RealtimeConfig {
+		realtime {
+			url
+			anonKey
+		}
+	}
+`;

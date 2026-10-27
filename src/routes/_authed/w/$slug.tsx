@@ -14,6 +14,7 @@ import {
 } from "#/components/ai/assistant-panel";
 import { AppSidebar, SidebarSkeleton } from "#/components/shell/app-sidebar";
 import { CommandMenuProvider } from "#/components/shell/command-menu";
+import { LiveUpdates } from "#/components/shell/live-updates";
 import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
 import { TaskDrawer } from "#/components/tasks/drawer";
@@ -192,6 +193,7 @@ function ShellLayout() {
 			</NewTaskProvider>
 			<DataTips />
 			<SyncTimeZone />
+			<LiveUpdates workspaceId={workspace.id} />
 		</TooltipProvider>
 	);
 }

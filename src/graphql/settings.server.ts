@@ -18,6 +18,7 @@ import {
 	WS_SETTINGS_DEFAULTS,
 	workspaceSettingsPatch,
 } from "#/lib/preferences";
+import { realtimeConfig } from "#/lib/realtime.server";
 import { logActivity, notify } from "./activity.server";
 import {
 	badInput,
@@ -97,8 +98,15 @@ export const settingsTypeDefs = /* GraphQL */ `
 		solo: [String!]!
 	}
 
+	"where the browser listens for live updates (Supabase Realtime); null when it isn't set up"
+	type RealtimeConfig {
+		url: String!
+		anonKey: String!
+	}
+
 	extend type Query {
 		accountDeletion: AccountDeletion!
+		realtime: RealtimeConfig
 	}
 
 	extend type Mutation {
@@ -331,6 +339,10 @@ export const settingsResolvers = {
 		},
 	},
 	Query: {
+		realtime: (_: unknown, __: unknown, ctx: GraphQLContext) => {
+			requireUser(ctx);
+			return realtimeConfig();
+		},
 		accountDeletion: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
 			const { blockers, solo } = await deletionPreview(requireUser(ctx).id);
 			return {

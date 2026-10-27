@@ -2,8 +2,14 @@ import { costLimitPlugin } from "@escape.tech/graphql-armor-cost-limit";
 import { maxAliasesPlugin } from "@escape.tech/graphql-armor-max-aliases";
 import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth";
 import { GraphQLError } from "graphql";
-import { createSchema, createYoga, useErrorHandler } from "graphql-yoga";
+import {
+	createSchema,
+	createYoga,
+	type Plugin,
+	useErrorHandler,
+} from "graphql-yoga";
 import { auth } from "#/lib/auth";
+import { announceChange, mutationSlugs } from "#/lib/realtime.server";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
 import { aiResolvers, aiTypeDefs } from "./ai.server";
 import { bookmarksResolvers, bookmarksTypeDefs } from "./bookmarks.server";
@@ -74,6 +80,24 @@ export const schema = createSchema<GraphQLContext>({
 export const isUnexpected = (error: GraphQLError) =>
 	!!error.originalError && !(error.originalError instanceof GraphQLError);
 
+// a change that went through: tell everyone with that workspace open to refresh
+const announceChanges: Plugin = {
+	onExecute({ args }) {
+		const slugs = mutationSlugs(
+			args.document,
+			args.variableValues as Record<string, unknown> | undefined,
+			args.operationName,
+		);
+		if (!slugs.length) return;
+		return {
+			onExecuteDone({ result }) {
+				if ("errors" in result && result.errors?.length) return;
+				for (const slug of slugs) announceChange(slug);
+			},
+		};
+	},
+};
+
 export const yoga = createYoga<object, GraphQLContext>({
 	schema,
 	plugins: [
@@ -90,6 +114,7 @@ export const yoga = createYoga<object, GraphQLContext>({
 						error.originalError?.stack ?? error.message,
 					);
 		}),
+		announceChanges,
 	],
 	graphqlEndpoint: "/api/graphql",
 	graphiql: process.env.NODE_ENV !== "production",

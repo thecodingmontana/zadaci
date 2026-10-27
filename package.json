@@ -67,6 +67,7 @@
     "@escape.tech/graphql-armor-max-depth": "2.4.2",
     "@floating-ui/dom": "^1.8.0",
     "@react-email/components": "^1.0.12",
+    "@supabase/realtime-js": "2.117.3",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/ai": "^0.71.0",
     "@tanstack/ai-anthropic": "0.23.0",

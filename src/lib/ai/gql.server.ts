@@ -1,5 +1,6 @@
 import { execute, parse } from "graphql";
 import { schema } from "#/graphql/yoga.server";
+import { announceChange, mutationSlugs } from "#/lib/realtime.server";
 import { asAssistant } from "./assistant-scope.server";
 
 // The assistant's tools read and write through the app's own GraphQL schema, as the signed-in
@@ -22,16 +23,21 @@ export async function run<T = Record<string, unknown>>(
 	query: string,
 	variables: Record<string, unknown> = {},
 ): Promise<{ data: T } | { error: string }> {
+	const document = parse(query);
+	const variableValues = { slug: ctx.slug, ...variables };
 	// anything this changes is logged as done "via assistant"
 	const result = await asAssistant(async () =>
 		execute({
 			schema,
-			document: parse(query),
-			variableValues: { slug: ctx.slug, ...variables },
+			document,
+			variableValues,
 			contextValue: { user: ctx.user },
 		}),
 	);
 	if (result.errors?.length)
 		return { error: result.errors.map((e) => e.message).join("; ") };
+	// Zad's changes reach everyone who has the workspace open, like changes made in the app
+	for (const slug of mutationSlugs(document, variableValues))
+		announceChange(slug);
 	return { data: result.data as T };
 }
