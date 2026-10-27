@@ -3,6 +3,7 @@ import { waitUntil } from "@vercel/functions";
 import { inArray } from "drizzle-orm";
 import { createElement, type ReactElement } from "react";
 import { Resend } from "resend";
+import { SUPPORT_EMAIL } from "#/components/shell/credits";
 import { db, tables } from "#/db";
 import NotificationEmail from "#/emails/notification";
 import WorkspaceInvite from "#/emails/workspace-invite";
@@ -22,6 +23,8 @@ export async function sendEmail(
 	to: string,
 	subject: string,
 	react: ReactElement,
+	/** for notification and digest emails: where to turn them off (mail apps show an Unsubscribe link) */
+	unsubscribeUrl?: string,
 ) {
 	if (!resend) {
 		console.info(
@@ -40,6 +43,11 @@ export async function sendEmail(
 			subject,
 			html,
 			text,
+			// replies reach a person, and mail apps can offer Unsubscribe; both help keep us out of spam
+			replyTo: SUPPORT_EMAIL,
+			...(unsubscribeUrl && {
+				headers: { "List-Unsubscribe": `<${unsubscribeUrl}>` },
+			}),
 		});
 		if (error) throw new Error(error.message);
 		return true;
@@ -213,6 +221,7 @@ export async function queueNotifications(rows: NotificationRow[]) {
 						settingsLink: `${appUrl}/w/${ws.slug}/settings?sec=notif-email`,
 						baseUrl: SITE_URL,
 					}),
+					`${appUrl}/w/${ws.slug}/settings?sec=notif-email`,
 				),
 			);
 	}

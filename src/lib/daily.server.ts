@@ -226,6 +226,7 @@ async function sendDigest(person: Person, since: Date, hour: number) {
 			settingsLink: `${appUrl}/w/${rows[0].slug}/settings?sec=notif-email`,
 			baseUrl: SITE_URL,
 		}),
+		`${appUrl}/w/${rows[0].slug}/settings?sec=notif-email`,
 	);
 	return true;
 }

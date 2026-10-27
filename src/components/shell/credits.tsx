@@ -2,7 +2,9 @@ import { Modal } from "#/components/q/modal";
 
 // Help & resources: who to contact, where the code lives, and who made it.
 
-export const SUPPORT_EMAIL = "thecodingmontana@gmail.com";
+import { SUPPORT_EMAIL } from "#/lib/seo";
+
+export { SUPPORT_EMAIL };
 export const REPO_URL = "https://github.com/thecodingmontana/zadaci";
 
 export const supportMailto = () =>

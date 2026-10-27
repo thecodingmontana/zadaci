@@ -19,3 +19,6 @@ export function wsTitle(
 		?.loaderData as { workspaceName?: string } | undefined;
 	return ws?.workspaceName ? `${page} - ${ws.workspaceName}` : page;
 }
+
+/** Where people reach a person: support links and the reply-to on every email. */
+export const SUPPORT_EMAIL = "thecodingmontana@gmail.com";
