@@ -1,7 +1,7 @@
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { deleteSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
 import { magicLink, twoFactor } from "better-auth/plugins";
@@ -11,11 +11,31 @@ import { createElement } from "react";
 import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
 import MagicLinkEmail from "#/emails/magic-link";
+import { isDicebearUrl } from "#/lib/dicebear";
 import { sendEmail } from "#/lib/email.server";
 import { requireEnv } from "#/lib/env";
 import { SITE_URL } from "#/lib/seo";
 
 const TWO_FACTOR_COOKIE_MAX_AGE = 600;
+
+/** Picture addresses we serve or trust: our Cloudinary, generated avatars, Unsplash, Google's photos. */
+export function isAllowedPicture(value: string) {
+	if (isDicebearUrl(value)) return true;
+	try {
+		const url = new URL(value);
+		if (url.protocol !== "https:") return false;
+		return (
+			(url.hostname === "res.cloudinary.com" &&
+				url.pathname.startsWith(
+					`/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/`,
+				)) ||
+			url.hostname === "images.unsplash.com" ||
+			url.hostname.endsWith(".googleusercontent.com")
+		);
+	} catch {
+		return false;
+	}
+}
 const MAGIC_LINK_MINUTES = 10;
 
 /** Second-step methods a user has set up: an authenticator app (TOTP) and/or passkeys. */
@@ -52,6 +72,19 @@ export const auth = betterAuth({
 	},
 	databaseHooks: {
 		user: {
+			update: {
+				// a picture can only come from places we trust, so a member can't point their avatar at
+				// a server that logs every teammate who sees it
+				before: async (user) => {
+					const image = (user as { image?: string | null }).image;
+					if (image && !isAllowedPicture(image))
+						throw new APIError("BAD_REQUEST", {
+							message:
+								"Choose a picture you uploaded, an avatar or an Unsplash photo",
+						});
+					return { data: user };
+				},
+			},
 			create: {
 				// email-link sign-ups come without a name: start from the email ("amina.k@…" → "Amina K")
 				before: async (user) => ({
