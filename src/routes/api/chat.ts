@@ -68,6 +68,9 @@ const ownKeyError = (chunk: Chunk, own: ActiveKey) => {
 	};
 };
 
+// the most a chat's history may weigh (about 30 long messages with their tool results)
+const MAX_HISTORY = 200_000;
+
 export const Route = createFileRoute("/api/chat")({
 	server: {
 		handlers: {
@@ -108,9 +111,15 @@ export const Route = createFileRoute("/api/chat")({
 						`Messages can be up to ${MAX_MESSAGE} characters. Try a shorter one.`,
 						"too_long",
 					);
-				// approving a change continues the last message, so it isn't counted again
-				// only the shared key is limited; your own key is yours to spend
-				const counted = !own && text !== null && !params.resume;
+				// the browser sends the whole chat; cap all of it, not just the newest message
+				if (JSON.stringify(params.messages).length > MAX_HISTORY)
+					return sseError(
+						"This chat is too long to continue. Clear the history and start again.",
+						"too_long",
+					);
+				// every request counts except an approval answer, which continues the last message;
+				// only the shared key is limited, your own key is yours to spend
+				const counted = !own && !params.resume;
 				if (counted && !(await takeMessage(session.user.id, today)))
 					return sseError(
 						`You've used today's ${dailyLimit()} free messages. Add your own key in Settings → Zad to keep going, or come back tomorrow.`,
