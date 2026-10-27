@@ -32,6 +32,7 @@ import { snippet } from "#/lib/search";
 import { adminUserIds, logActivity, notify } from "./activity.server";
 import { visibleBookmarks } from "./bookmarks.server";
 import { visible as visibleNotes } from "./notes.server";
+import { checkInviteBudget } from "./settings.server";
 
 /** A sent invite that can still be accepted (pending, not revoked, not expired). */
 const openInvite = () =>
@@ -645,6 +646,7 @@ const resolvers = {
 			const invites = input.invites.filter(
 				(email) => email !== user.email.toLowerCase(),
 			);
+			await checkInviteBudget(user.id, invites.length);
 			try {
 				const { sent, ...workspace } = await db.transaction(async (tx) => {
 					const [workspace] = await tx

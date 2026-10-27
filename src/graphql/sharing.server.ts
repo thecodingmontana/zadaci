@@ -340,6 +340,8 @@ export const sharingResolvers = {
 							gt(tables.workspace_invite_request.expires_at, new Date()),
 						),
 			);
+			// every call emails them again, new invite or not
+			await checkInviteBudget(user.id, 1);
 			const target = {
 				project_id: project.id,
 				project_permission: permission,
@@ -353,7 +355,6 @@ export const sharingResolvers = {
 					id: tables.workspace_invite_request.id,
 					role: tables.workspace_invite_request.role,
 				});
-			if (!updated) await checkInviteBudget(workspace.id, 1);
 			const [inserted] = updated
 				? [updated]
 				: await db

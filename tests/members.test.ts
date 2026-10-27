@@ -133,3 +133,22 @@ test("team lists carry their member and project counts", async () => {
 	const teams = (await gql(owner, `query($s: String!) { workspace(slug: $s) { teams { name memberCount projectCount } } }`, { s: slug })).data?.workspace.teams;
 	assert.deepEqual(teams, [{ name: "Design", memberCount: 1, projectCount: 0 }]);
 });
+
+test("invite emails share one daily budget per person, so a new workspace doesn't reset it", async () => {
+	const owner = await makeUser("owner");
+	const key = `invite-emails:${owner.id}`;
+	// 99 of the day's 100 already sent
+	await db.insert(tables.rateLimit).values({ id: key, key, count: 99, lastRequest: Date.now() });
+	const invite = (slug: string, emails: string[]) =>
+		gql(owner, `mutation($s: String!, $e: [String!]!) { inviteMembers(slug: $s, emails: $e, role: "member") { id } }`, { s: slug, e: emails });
+	const first = await makeWorkspace(owner);
+	const second = await makeWorkspace(owner);
+	try {
+		assert.match((await invite(first.slug, ["a1@example.com", "a2@example.com"])).errors?.[0]?.message ?? "", /invite emails a day/);
+		assert.match((await invite(second.slug, ["b1@example.com", "b2@example.com"])).errors?.[0]?.message ?? "", /invite emails a day/);
+		assert.equal((await invite(second.slug, ["b1@example.com"])).data?.inviteMembers.length, 1);
+		assert.match((await invite(first.slug, ["a1@example.com"])).errors?.[0]?.message ?? "", /invite emails a day/);
+	} finally {
+		await db.delete(tables.rateLimit).where(eq(tables.rateLimit.key, key));
+	}
+});

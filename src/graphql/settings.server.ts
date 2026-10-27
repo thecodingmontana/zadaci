@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, count, eq, gt, isNull, lt, ne } from "drizzle-orm";
+import { and, count, eq, isNull, lt, ne, sql } from "drizzle-orm";
 import { GraphQLError, GraphQLScalarType } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
@@ -159,26 +159,38 @@ export async function requireWorkspace(
 	return { user, workspace };
 }
 
-/** New invites a workspace may send in a day; they email outside people from our domain. */
-const DAILY_INVITES = 100;
+/**
+ * Invite emails one person may send in a day, across all their workspaces, new and resent:
+ * they go to outside addresses from our domain, so a fresh workspace mustn't reset the count.
+ */
+export const DAILY_INVITES = 100;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-export async function checkInviteBudget(workspaceId: string, adding: number) {
-	const [row] = await db
-		.select({ n: count() })
-		.from(tables.workspace_invite_request)
-		.where(
-			and(
-				eq(tables.workspace_invite_request.workspace_id, workspaceId),
-				gt(
-					tables.workspace_invite_request.created_at,
-					new Date(Date.now() - 24 * 60 * 60 * 1000),
-				),
-			),
-		);
-	if ((row?.n ?? 0) + adding > DAILY_INVITES)
+/** Takes `adding` invite emails from the person's daily budget, or refuses them all. */
+export async function checkInviteBudget(userId: string, adding: number) {
+	if (adding <= 0) return;
+	const refuse = () =>
 		badInput(
-			`A workspace can send up to ${DAILY_INVITES} invites a day. Try again tomorrow.`,
+			`You can send up to ${DAILY_INVITES} invite emails a day. Try again tomorrow.`,
 		);
+	if (adding > DAILY_INVITES) refuse();
+	const key = `invite-emails:${userId}`;
+	const now = Date.now();
+	const fresh = sql`${tables.rateLimit.lastRequest} < ${now - DAY_MS}`;
+	// one atomic statement, so requests at the same moment can't both slip under the cap
+	const [taken] = await db
+		.insert(tables.rateLimit)
+		.values({ id: key, key, count: adding, lastRequest: now })
+		.onConflictDoUpdate({
+			target: tables.rateLimit.key,
+			set: {
+				count: sql`case when ${fresh} then ${adding} else ${tables.rateLimit.count} + ${adding} end`,
+				lastRequest: sql`case when ${fresh} then ${now} else ${tables.rateLimit.lastRequest} end`,
+			},
+			setWhere: sql`${fresh} or ${tables.rateLimit.count} + ${adding} <= ${DAILY_INVITES}`,
+		})
+		.returning({ count: tables.rateLimit.count });
+	if (!taken) refuse();
 }
 
 export function parse<T>(schema: z.ZodType<T>, value: unknown): T {
@@ -601,7 +613,7 @@ export const settingsResolvers = {
 			for (const p of pending) taken.add(p.email.toLowerCase());
 			const fresh = emails.filter((e) => !taken.has(e));
 			if (!fresh.length) return [];
-			await checkInviteBudget(workspace.id, fresh.length);
+			await checkInviteBudget(user.id, fresh.length);
 			await logActivity(db, {
 				workspace_id: workspace.id,
 				actor_id: user.id,
@@ -667,6 +679,7 @@ export const settingsResolvers = {
 				badInput(
 					"Invite not found, or it was just sent. Try again in a minute.",
 				);
+			await checkInviteBudget(user.id, 1);
 			const [sent] = await sendInviteEmails(workspace, user.name, [invite]);
 			if (!sent) badInput("Couldn't send the email. Try again in a moment.");
 			return true;
