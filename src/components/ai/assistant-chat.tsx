@@ -19,6 +19,15 @@ import {
 
 // The assistant's chat: your messages, its streamed answers, and the work behind each one.
 
+// Zad's tools that only look things up; every other tool changes something
+const READ_ONLY = new Set([
+	"searchItems",
+	"listTasks",
+	"listProjects",
+	"getItem",
+	"listMembers",
+]);
+
 const SUGGESTIONS = [
 	"Plan my week",
 	"What's due this week?",
@@ -93,6 +102,26 @@ export function AssistantChat({
 		else if (!isLoading && t && t.seconds === undefined)
 			t.seconds = Math.max(1, Math.round((Date.now() - t.start) / 1000));
 	}
+
+	// each change Zad makes shows everywhere as it lands (sidebar, lists, open drawers), not only
+	// when the whole answer is done: count finished write steps and refresh what's on screen
+	const changes = messages.reduce(
+		(n, m) =>
+			n +
+			m.parts.filter(
+				(p) =>
+					p.type === "tool-call" &&
+					p.output !== undefined &&
+					!READ_ONLY.has(String(p.name)),
+			).length,
+		0,
+	);
+	const seenChanges = useRef(changes);
+	useEffect(() => {
+		if (changes <= seenChanges.current) return;
+		seenChanges.current = changes;
+		void client.refetchQueries({ include: "active" });
+	}, [changes, client]);
 
 	const typed = (value: string, caret: number) => {
 		setText(value);
