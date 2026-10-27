@@ -1,4 +1,5 @@
 import {
+	bigint,
 	boolean,
 	index,
 	integer,
@@ -161,4 +162,13 @@ export const user_status = pgTable("user_status", {
 		withTimezone: true,
 	}),
 	...timestamps,
+});
+
+// Better Auth's request counters (rateLimit storage "database"), shared by every server instance,
+// so limits like 5 sign-in emails a minute hold on Vercel's many instances.
+export const rateLimit = pgTable("rate_limit", {
+	id: text("id").primaryKey(),
+	key: text("key").notNull().unique(),
+	count: integer("count").notNull(),
+	lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 });

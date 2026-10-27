@@ -39,6 +39,8 @@ export const auth = betterAuth({
 	secret: requireEnv("BETTER_AUTH_SECRET"),
 	database: drizzleAdapter(db, { provider: "pg", schema: tables }),
 	advanced: { database: { generateId: () => generateNanoId() } },
+	// counted in Postgres, not each server's memory, so limits hold across Vercel instances
+	rateLimit: { enabled: true, storage: "database" },
 	user: {
 		additionalFields: {
 			whatsNewLastSeenVersion: {

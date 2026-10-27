@@ -53,3 +53,21 @@ test("a sign-in link signs in once, and never skips two-step verification", asyn
 	const again = await open(link);
 	assert.match(again.headers.get("location") ?? "", /error=/, "the same link can't be used twice");
 });
+
+test("sign-in emails are limited per address, counted in the database so it holds on every server", async () => {
+	const ip = `203.0.113.${Math.floor(Math.random() * 200) + 1}`;
+	const statuses: number[] = [];
+	for (let i = 0; i < 6; i++) {
+		const res = await auth.handler(
+			new Request("http://localhost:3000/api/auth/sign-in/magic-link", {
+				method: "POST",
+				headers: { "content-type": "application/json", origin: "http://localhost:3000", "x-forwarded-for": ip },
+				body: JSON.stringify({ email: `flood-${i}@test.zadaci`, callbackURL: "/workspace" }),
+			}),
+		);
+		statuses.push(res.status);
+	}
+	assert.equal(statuses.at(-1), 429, `the sixth request in a minute is refused (${statuses.join(",")})`);
+	const { db, tables } = await import("#/db");
+	assert.ok((await db.select().from(tables.rateLimit)).length > 0, "the count lives in Postgres");
+});
