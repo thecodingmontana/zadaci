@@ -77,13 +77,15 @@ export function ChatNav({
 
 	const me = people.find((p) => p.isMe);
 	const all = channels ?? [];
-	const general = all.filter((c) => c.general);
 	const favorites = all.filter((c) => c.favorite);
-	const open = all.filter(
+	// Favourites is a shortcut: a starred conversation is still in its own section too
+	const rest = all;
+	const general = rest.filter((c) => c.general);
+	const open = rest.filter(
 		(c) => c.kind === "channel" && !c.teamId && !c.general,
 	);
-	const teams = all.filter((c) => c.teamId);
-	const groupDms = all.filter((c) => c.kind === "dm" && c.people.length > 2);
+	const teams = rest.filter((c) => c.teamId);
+	const groupDms = rest.filter((c) => c.kind === "dm" && c.people.length > 2);
 	// you first, then everyone else by name
 	const everyone = [...people].sort(
 		(a, b) => Number(b.isMe) - Number(a.isMe) || a.name.localeCompare(b.name),
@@ -255,6 +257,7 @@ export function ChatNav({
 									{everyone.map((p) => {
 										const dm =
 											me && dmWith(all, p.isMe ? [me.id] : [me.id, p.id]);
+
 										if (dm) return row(dm);
 										return (
 											<button

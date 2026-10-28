@@ -22,7 +22,12 @@ import { TAB_ID } from "#/lib/tab";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { ChannelDetails } from "./chat-details";
-import { Composer, groupedWith, MessageRow } from "./chat-message";
+import {
+	Composer,
+	groupedWith,
+	MessageRow,
+	MessagesSkeleton,
+} from "./chat-message";
 import { ChatNav, titleOf } from "./chat-nav";
 import { ThreadPanel } from "./chat-thread";
 
@@ -474,6 +479,7 @@ function Conversation({
 					</button>
 				</header>
 				<div className="chat-msgs" ref={list}>
+					{!data && <MessagesSkeleton />}
 					{/* the start sits at the top only once there's nothing earlier to load */}
 					{data && !hasEarlier && <Welcome channel={channel} title={title} />}
 					{hasEarlier && (

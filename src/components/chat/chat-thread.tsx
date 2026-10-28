@@ -1,7 +1,12 @@
 import { useApolloClient, useQuery } from "@apollo/client/react";
 import { useEffect, useRef } from "react";
 import { CHAT_MESSAGES, type ChatMessage } from "#/graphql/chat-operations";
-import { Composer, groupedWith, MessageRow } from "./chat-message";
+import {
+	Composer,
+	groupedWith,
+	MessageRow,
+	MessagesSkeleton,
+} from "./chat-message";
 
 // A thread beside the conversation: the message it started from, its replies, and a box to reply.
 // New replies arrive through the conversation's live channel, which refetches this query too.
@@ -61,6 +66,7 @@ export function ThreadPanel({
 							: "No replies yet"}
 					</span>
 				</div>
+				{!data && <MessagesSkeleton />}
 				{replies.map((m, i) => (
 					<MessageRow
 						key={m.id}

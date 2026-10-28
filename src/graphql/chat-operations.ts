@@ -19,6 +19,13 @@ export type ChatChannel = {
 	teamId: string | null;
 	favorite: boolean;
 };
+export type ChatAttachment = {
+	url: string;
+	name: string;
+	size: number;
+	type: string;
+	seconds: number | null;
+};
 export type ChatMessage = {
 	id: string;
 	channelId: string;
@@ -32,6 +39,7 @@ export type ChatMessage = {
 	replyCount: number;
 	lastReplyAt: string | null;
 	pinned: boolean;
+	attachments: ChatAttachment[];
 };
 
 const CHANNEL = gql`
@@ -86,6 +94,13 @@ const MESSAGE = gql`
 		replyCount
 		lastReplyAt
 		pinned
+		attachments {
+			url
+			name
+			size
+			type
+			seconds
+		}
 		createdAt
 	}
 `;
@@ -177,19 +192,27 @@ export const OPEN_CHAT_DM: TypedDocumentNode<
 
 export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 	{ sendChatMessage: ChatMessage },
-	{ slug: string; channelId: string; body: string; parentId?: string }
+	{
+		slug: string;
+		channelId: string;
+		body: string;
+		parentId?: string;
+		attachments?: Omit<ChatAttachment, "seconds">[] & { seconds?: number }[];
+	}
 > = gql`
 	mutation SendChatMessage(
 		$slug: String!
 		$channelId: ID!
 		$body: String!
 		$parentId: ID
+		$attachments: [ChatAttachmentInput!]
 	) {
 		sendChatMessage(
 			slug: $slug
 			channelId: $channelId
 			body: $body
 			parentId: $parentId
+			attachments: $attachments
 		) {
 			...ChatMessageFields
 		}
@@ -299,6 +322,31 @@ export const CHAT_LINK_OPTIONS: TypedDocumentNode<
 				name
 				projectId
 			}
+		}
+	}
+`;
+
+export const CHAT_UPLOAD: TypedDocumentNode<
+	{
+		chatUpload: {
+			url: string;
+			apiKey: string;
+			timestamp: number;
+			signature: string;
+			publicId: string;
+			folder: string;
+		};
+	},
+	{ slug: string; channelId: string; file?: boolean }
+> = gql`
+	mutation ChatUpload($slug: String!, $channelId: ID!, $file: Boolean) {
+		chatUpload(slug: $slug, channelId: $channelId, file: $file) {
+			url
+			apiKey
+			timestamp
+			signature
+			publicId
+			folder
 		}
 	}
 `;

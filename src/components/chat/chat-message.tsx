@@ -14,6 +14,12 @@ import {
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import {
+	Attachments,
+	PendingFiles,
+	usePendingFiles,
+	VoiceNote,
+} from "./chat-files";
 
 // One chat message (with its reactions, thread link and actions) and the box you write in. Used
 // by the conversation and by a thread.
@@ -76,10 +82,13 @@ export function MessageRow({
 						)}
 					</div>
 				)}
-				<div className="chat-text">
-					{m.body}
-					{m.editedAt && <span className="faint chat-edited"> (edited)</span>}
-				</div>
+				{m.body && (
+					<div className="chat-text">
+						{m.body}
+						{m.editedAt && <span className="faint chat-edited"> (edited)</span>}
+					</div>
+				)}
+				<Attachments files={m.attachments} />
 				{m.reactions.length > 0 && (
 					<div className="reacts">
 						{m.reactions.map((r) => (
@@ -232,18 +241,27 @@ export function Composer({
 }) {
 	const [text, setText] = useState("");
 	const [send, { loading }] = useMutation(SEND_CHAT_MESSAGE);
+	const pending = usePendingFiles(slug, channelId);
+	const [dragging, setDragging] = useState(false);
+	const picker = useRef<HTMLInputElement>(null);
 	const [emoji, setEmoji] = useState(false);
 	const ref = useRef<HTMLTextAreaElement>(null);
 	const lastTyping = useRef(0);
 
+	const canSend =
+		(!!text.trim() || pending.ready.length > 0) &&
+		!pending.uploading &&
+		!loading;
 	const submit = async () => {
 		const body = text.trim();
-		if (!body || loading) return;
+		if (!canSend) return;
+		const attachments = pending.ready;
 		setText("");
 		try {
 			const { data } = await send({
-				variables: { slug, channelId, body, parentId },
+				variables: { slug, channelId, body, parentId, attachments },
 			});
+			pending.clear();
 			if (data) onSent(data.sendChatMessage);
 		} catch (e) {
 			setText(body);
@@ -253,7 +271,24 @@ export function Composer({
 	};
 
 	return (
-		<div className="chat-compose">
+		// files can be dropped on it or pasted into it, as well as picked with "Add file"
+		// biome-ignore lint/a11y/noStaticElementInteractions: a drop target; the Add file button does the same from the keyboard
+		<div
+			className={cn("chat-compose", dragging && "drop")}
+			onDragOver={(e) => {
+				if (!e.dataTransfer.types.includes("Files")) return;
+				e.preventDefault();
+				setDragging(true);
+			}}
+			onDragLeave={() => setDragging(false)}
+			onDrop={(e) => {
+				if (!e.dataTransfer.files.length) return;
+				e.preventDefault();
+				setDragging(false);
+				pending.add([...e.dataTransfer.files]);
+			}}
+		>
+			<PendingFiles files={pending.files} onRemove={pending.remove} />
 			<textarea
 				ref={ref}
 				rows={1}
@@ -269,6 +304,11 @@ export function Composer({
 						onTyping();
 					}
 				}}
+				onPaste={(e) => {
+					if (!e.clipboardData.files.length) return;
+					e.preventDefault();
+					pending.add([...e.clipboardData.files]);
+				}}
 				onKeyDown={(e) => {
 					if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
 						e.preventDefault();
@@ -277,7 +317,29 @@ export function Composer({
 				}}
 			/>
 			<div className="chat-compose-tools">
+				<input
+					ref={picker}
+					type="file"
+					multiple
+					hidden
+					onChange={(e) => {
+						pending.add([...(e.target.files ?? [])]);
+						e.target.value = "";
+					}}
+				/>
+				<button
+					type="button"
+					className="btn btn-secondary btn-sm"
+					onClick={() => picker.current?.click()}
+				>
+					<span
+						className="icon-[solar--paperclip-linear] size-4"
+						aria-hidden="true"
+					/>
+					<span className="chat-h-label">Add file</span>
+				</button>
 				<span className="sp" />
+				<VoiceNote onDone={(file, seconds) => pending.add([file], seconds)} />
 				<PickPopover
 					open={emoji}
 					onOpenChange={setEmoji}
@@ -310,7 +372,7 @@ export function Composer({
 					type="button"
 					className="chat-send"
 					data-tip="Send"
-					disabled={!text.trim() || loading}
+					disabled={!canSend}
 					onClick={() => void submit()}
 					aria-label="Send"
 				>
@@ -320,6 +382,37 @@ export function Composer({
 					/>
 				</button>
 			</div>
+		</div>
+	);
+}
+
+/** While a conversation's messages load: rows shaped like messages. */
+export function MessagesSkeleton() {
+	return (
+		<div className="chat-sk" aria-busy="true">
+			<output className="sr-only">Loading messages</output>
+			{[
+				[38, 72],
+				[30, 55],
+				[44, 84],
+				[34, 40],
+			].map(([name, line]) => (
+				<div key={`${name}-${line}`} className="chat-msg" aria-hidden="true">
+					<div className="chat-av">
+						<span
+							className="sk"
+							style={{ width: 28, height: 28, borderRadius: "50%" }}
+						/>
+					</div>
+					<div className="chat-body">
+						<span className="sk" style={{ width: `${name}%`, height: 11 }} />
+						<span
+							className="sk"
+							style={{ width: `${line}%`, height: 11, marginTop: 8 }}
+						/>
+					</div>
+				</div>
+			))}
 		</div>
 	);
 }
