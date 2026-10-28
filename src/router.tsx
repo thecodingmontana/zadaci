@@ -33,7 +33,12 @@ const graphqlFetch = createIsomorphicFn()
 
 export function getRouter() {
 	const apolloClient = new ApolloClient({
-		cache: new InMemoryCache(),
+		cache: new InMemoryCache({
+			// a reaction list is always sent whole: the new one replaces the old
+			typePolicies: {
+				ChatMessage: { fields: { reactions: { merge: false } } },
+			},
+		}),
 		link: new HttpLink({ uri: "/api/graphql", fetch: graphqlFetch() }),
 		// opening a page shows what's cached at once, then asks the server too. Reading the cache
 		// alone (cache-first) left phones waiting forever on data the server-rendered page was

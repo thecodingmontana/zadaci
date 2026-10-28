@@ -70,7 +70,7 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 }
 
 /** A token for Realtime's private channels (better-auth's jwt plugin); null when signed out. */
-async function realtimeToken() {
+export async function realtimeToken() {
 	const res = await fetch("/api/auth/token", { credentials: "same-origin" });
 	if (!res.ok) return null;
 	return ((await res.json()) as { token?: string }).token ?? null;

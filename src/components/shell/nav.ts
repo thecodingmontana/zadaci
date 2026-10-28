@@ -5,6 +5,7 @@ export type NavItem = { path: string; label: string; icon: string };
 export const MAIN_NAV: NavItem[] = [
 	{ path: "", label: "Home", icon: "icon-[solar--home-2-linear]" },
 	{ path: "inbox", label: "Inbox", icon: "icon-[solar--inbox-linear]" },
+	{ path: "chat", label: "Chat", icon: "icon-[solar--chat-round-dots-linear]" },
 	{
 		path: "my-tasks",
 		label: "My Tasks",
