@@ -1081,3 +1081,16 @@ a.item-embed:hover {
 		margin: -26px 0 0 -5px;
 	}
 }
+.note-body .tiptap .media-caption {
+	margin-top: 6px;
+	font-size: var(--q-fs-sm);
+	line-height: 1.5;
+	color: var(--q-text-3);
+	user-select: none;
+}
+.note-body .tiptap .media-caption[data-align="center"] {
+	text-align: center;
+}
+.note-body .tiptap .media-caption[data-align="right"] {
+	text-align: right;
+}

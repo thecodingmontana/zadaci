@@ -8,10 +8,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "#/lib/utils";
-import { MEDIA_TYPES, MIN_SIZE } from "./blocks";
+import { MAX_CAPTION, MEDIA_TYPES, MIN_SIZE } from "./blocks";
 
-// A small toolbar over the block you're on: images, videos and embeds get align, resize
-// handles and delete; every block can move up or down. Touch screens have no hover handle to
+// A small toolbar over the block you're on: images, videos and embeds get align, a caption,
+// resize handles and delete; every block can move up or down. Touch screens have no hover handle to
 // drag, so there the toolbar also follows the block you're typing in.
 
 const touchScreen = () =>
@@ -77,6 +77,7 @@ export function BlockToolbar({ editor }: { editor: Editor }) {
 				pos: b.pos,
 				type: b.node.type.name,
 				align: (b.node.attrs.align as string | null) ?? null,
+				caption: (b.node.attrs.caption as string | null) ?? "",
 				picked: e.state.selection instanceof NodeSelection,
 				first: b.pos === 0,
 				last: b.pos + b.node.nodeSize === e.state.doc.content.size,
@@ -84,6 +85,20 @@ export function BlockToolbar({ editor }: { editor: Editor }) {
 		},
 	});
 	const media = !!block && MEDIA_TYPES.includes(block.type);
+	// the caption input replaces the buttons until it's saved, for the block it was opened on
+	const [captionFor, setCaptionFor] = useState<number | null>(null);
+	const [caption, setCaption] = useState("");
+	const captioning = media && captionFor === block?.pos;
+	const saveCaption = () => {
+		if (block)
+			editor
+				.chain()
+				.focus()
+				.setNodeSelection(block.pos)
+				.updateAttributes(block.type, { caption: caption.trim() || null })
+				.run();
+		setCaptionFor(null);
+	};
 	const button = (
 		label: string,
 		icon: string,
@@ -134,43 +149,82 @@ export function BlockToolbar({ editor }: { editor: Editor }) {
 				}}
 				options={{ placement: "top-end", offset: 6 }}
 			>
-				{media && (
+				{captioning ? (
+					<form
+						className="row"
+						style={{ gap: 4 }}
+						onSubmit={(e) => {
+							e.preventDefault();
+							saveCaption();
+						}}
+					>
+						<input
+							className="input input-sm"
+							// biome-ignore lint/a11y/noAutofocus: the field opens because you asked to write a caption
+							autoFocus
+							aria-label="Caption"
+							placeholder="Write a caption"
+							maxLength={MAX_CAPTION}
+							value={caption}
+							onChange={(e) => setCaption(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Escape") setCaptionFor(null);
+							}}
+						/>
+						<button type="submit" className="btn btn-sm btn-primary">
+							Save
+						</button>
+					</form>
+				) : (
 					<>
-						{button(
-							"Align left",
-							"icon-[solar--align-left-linear]",
-							() => align(null),
-							!block?.align,
+						{media && (
+							<>
+								{button(
+									block?.caption ? "Edit caption" : "Add caption",
+									"icon-[solar--subtitles-linear]",
+									() => {
+										setCaption(block?.caption ?? "");
+										setCaptionFor(block?.pos ?? null);
+									},
+									!!block?.caption,
+								)}
+								{button(
+									"Align left",
+									"icon-[solar--align-left-linear]",
+									() => align(null),
+									!block?.align,
+								)}
+								{button(
+									"Align center",
+									"icon-[solar--align-horizontal-center-linear]",
+									() => align("center"),
+									block?.align === "center",
+								)}
+								{button(
+									"Align right",
+									"icon-[solar--align-right-linear]",
+									() => align("right"),
+									block?.align === "right",
+								)}
+								<span className="bsep" />
+							</>
 						)}
-						{button(
-							"Align center",
-							"icon-[solar--align-horizontal-center-linear]",
-							() => align("center"),
-							block?.align === "center",
-						)}
-						{button(
-							"Align right",
-							"icon-[solar--align-right-linear]",
-							() => align("right"),
-							block?.align === "right",
-						)}
-						<span className="bsep" />
+						{block &&
+							!block.first &&
+							button("Move up", "icon-[solar--arrow-up-linear]", () =>
+								moveBlock(editor, block.pos, -1),
+							)}
+						{block &&
+							!block.last &&
+							button("Move down", "icon-[solar--arrow-down-linear]", () =>
+								moveBlock(editor, block.pos, 1),
+							)}
+						{block?.picked &&
+							button("Delete", "icon-[solar--trash-bin-trash-linear]", () =>
+								editor.chain().focus().deleteSelection().run(),
+							)}
 					</>
 				)}
-				{block &&
-					!block.first &&
-					button("Move up", "icon-[solar--arrow-up-linear]", () =>
-						moveBlock(editor, block.pos, -1),
-					)}
-				{block &&
-					!block.last &&
-					button("Move down", "icon-[solar--arrow-down-linear]", () =>
-						moveBlock(editor, block.pos, 1),
-					)}
-				{block?.picked &&
-					button("Delete", "icon-[solar--trash-bin-trash-linear]", () =>
-						editor.chain().focus().deleteSelection().run(),
-					)}
 			</BubbleMenu>
 			{media && block?.picked && (
 				<ResizeHandles

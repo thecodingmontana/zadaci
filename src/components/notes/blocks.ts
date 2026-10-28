@@ -1,3 +1,5 @@
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { Extension, mergeAttributes, Node } from "@tiptap/react";
 import { isEmbedSrc } from "#/lib/note-embeds";
 
@@ -5,6 +7,7 @@ import { isEmbedSrc } from "#/lib/note-embeds";
 export const MEDIA_TYPES = ["image", "youtube", "embed"];
 /** The narrowest a media block gets, as a share of the page width. */
 export const MIN_SIZE = 20;
+export const MAX_CAPTION = 300;
 const ALIGNS = ["center", "right"];
 
 const validSize = (value: unknown) => {
@@ -13,7 +16,7 @@ const validSize = (value: unknown) => {
 };
 
 /**
- * Width (a share of the page, so a resized image fits a phone too) and alignment for media.
+ * Width (a share of the page, so a resized image fits a phone too), alignment and a caption for media.
  * Values come from saved pages anyone in the workspace can edit, so only numbers and known
  * words ever reach the style.
  */
@@ -43,8 +46,52 @@ export const MediaLayout = Extension.create({
 						renderHTML: (attrs) =>
 							ALIGNS.includes(attrs.align) ? { "data-align": attrs.align } : {},
 					},
+					caption: {
+						default: null,
+						parseHTML: (el) => el.getAttribute("data-caption"),
+						renderHTML: (attrs) =>
+							typeof attrs.caption === "string" && attrs.caption
+								? { "data-caption": attrs.caption.slice(0, MAX_CAPTION) }
+								: {},
+					},
 				},
 			},
+		];
+	},
+	// the caption shows under its block, as wide and aligned as the block (text only, never HTML)
+	addProseMirrorPlugins() {
+		return [
+			new Plugin({
+				key: new PluginKey("mediaCaptions"),
+				props: {
+					decorations: (state) => {
+						const widgets: Decoration[] = [];
+						state.doc.forEach((node, pos) => {
+							const { caption, size, align } = node.attrs;
+							if (!MEDIA_TYPES.includes(node.type.name)) return;
+							if (typeof caption !== "string" || !caption.trim()) return;
+							const text = caption.trim().slice(0, MAX_CAPTION);
+							widgets.push(
+								Decoration.widget(
+									pos + node.nodeSize,
+									() => {
+										const el = document.createElement("div");
+										el.className = "media-caption";
+										el.contentEditable = "false";
+										el.textContent = text;
+										const width = validSize(size);
+										if (width) el.style.width = `${width}%`;
+										if (ALIGNS.includes(align)) el.dataset.align = align;
+										return el;
+									},
+									{ side: -1, key: `${pos}|${text}|${size}|${align}` },
+								),
+							);
+						});
+						return DecorationSet.create(state.doc, widgets);
+					},
+				},
+			}),
 		];
 	},
 });
