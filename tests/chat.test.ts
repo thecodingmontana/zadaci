@@ -61,3 +61,38 @@ test("chat: open channels for the workspace, private ones and DMs only for their
 	const stranger = await makeUser("stranger");
 	assert.ok((await gql(stranger, MESSAGES, { s: slug, c: general.id })).errors?.length);
 });
+
+test("chat: everyone is in #general, and a channel's linked project or task only shows to those who can see it", async () => {
+	const owner = await makeUser("owner");
+	const guest = await makeUser("guest");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await gql(owner, `mutation($s: String!, $e: [String!]!) { inviteMembers(slug: $s, emails: $e, role: "guest") { id } }`, { s: slug, e: [guest.email] });
+	await join(guest, inviteCode);
+	const LIST = `query($s: String!) { workspace(slug: $s) { chatChannels { id name general people { name } link { kind id title } } } }`;
+	const list = async (u: TestUser) => (await gql(u, LIST, { s: slug })).data?.workspace.chatChannels as { id: string; name: string; general: boolean; people: unknown[]; link: { kind: string; title: string } | null }[];
+
+	// #general is made on first visit, once, with each visitor in it
+	const [first] = (await list(owner)).filter((c) => c.general);
+	assert.equal(first?.name, "general");
+	const seen = (await list(guest)).filter((c) => c.general);
+	assert.deepEqual(seen.map((c) => c.id), [first.id], "one #general per workspace");
+	assert.equal(seen[0].people.length, 2, "both are in it");
+	assert.match((await gql(owner, `mutation($s: String!) { createChatChannel(slug: $s, name: "General") { id } }`, { s: slug })).errors?.[0]?.message ?? "", /already exists/);
+
+	// link a channel to a project the guest isn't on, and another to one of its tasks
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id title } } }`, { s: slug })).data?.workspace.projects[0];
+	const CREATE = `mutation($s: String!, $n: String!, $p: ID, $t: ID) { createChatChannel(slug: $s, name: $n, projectId: $p, taskId: $t) { id link { kind title } } }`;
+	const about = (await gql(owner, CREATE, { s: slug, n: "launch", p: project.id })).data?.createChatChannel;
+	assert.deepEqual(about.link, { kind: "project", title: project.title });
+	const task = (await gql(owner, `mutation($s: String!, $i: TaskInput!) { createTask(slug: $s, input: $i) { id } }`, { s: slug, i: { projectId: project.id, title: "Ship it" } })).data?.createTask;
+	const onTask = (await gql(owner, CREATE, { s: slug, n: "ship-it", t: task.id })).data?.createChatChannel;
+	assert.deepEqual(onTask.link, { kind: "task", title: "Ship it" });
+	assert.match((await gql(owner, CREATE, { s: slug, n: "both", p: project.id, t: task.id })).errors?.[0]?.message ?? "", /not both/);
+
+	// the guest sees the open channels, but not what they're about
+	const guestView = await list(guest);
+	assert.equal(guestView.find((c) => c.id === about.id)?.link, null, "a hidden project's title stays hidden");
+	assert.equal(guestView.find((c) => c.id === onTask.id)?.link, null);
+	// and can't link what they can't see
+	assert.match((await gql(guest, CREATE, { s: slug, n: "peek", p: project.id })).errors?.[0]?.message ?? "", /not found/i);
+});

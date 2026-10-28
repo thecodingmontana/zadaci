@@ -15,8 +15,10 @@ import { db, tables } from "#/db";
 import { isEmoji } from "#/lib/emoji";
 import { announceChat } from "#/lib/realtime.server";
 import { notify } from "./activity.server";
-import { badInput, type GraphQLContext } from "./schema.server";
+import { requireProject } from "./projects.server";
+import { badInput, type GraphQLContext, projectScope } from "./schema.server";
 import { requireWorkspace } from "./settings.server";
+import { requireTask } from "./tasks.server";
 
 // Team chat: open and private channels plus direct messages, saved here and sent live over
 // Realtime (lib/realtime.server announceChat). Every read and write checks the person can see
@@ -39,9 +41,18 @@ export const chatTypeDefs = /* GraphQL */ `
 		image: String
 	}
 
+	"the project or task a channel is about"
+	type ChatLink {
+		kind: String!
+		id: ID!
+		title: String!
+	}
+
 	type ChatChannel {
 		id: ID!
 		kind: String!
+		"the workspace's #general, which everyone is in"
+		general: Boolean!
 		"a DM has none: it's named after its people"
 		name: String
 		topic: String
@@ -49,6 +60,10 @@ export const chatTypeDefs = /* GraphQL */ `
 		people: [ChatPerson!]!
 		unread: Int!
 		lastMessageAt: String
+		creator: ChatPerson
+		createdAt: String!
+		"null when there's none, or you can't see that project"
+		link: ChatLink
 	}
 
 	type ChatMessage {
@@ -78,6 +93,9 @@ export const chatTypeDefs = /* GraphQL */ `
 			topic: String
 			private: Boolean
 			memberIds: [ID!]
+			"link it to one project or one task"
+			projectId: ID
+			taskId: ID
 		): ChatChannel!
 		"finds or starts a DM with these members (and you)"
 		openChatDm(slug: String!, memberIds: [ID!]!): ChatChannel!
@@ -157,7 +175,7 @@ async function people(channelIds: string[]) {
 async function channelShape(channels: Channel[], ws: Workspace) {
 	const ids = channels.map((c) => c.id);
 	const me = ws.memberId ?? "";
-	const [members, unread] = await Promise.all([
+	const [members, unread, creators, links] = await Promise.all([
 		people(ids),
 		ids.length
 			? db
@@ -183,6 +201,8 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 					)
 					.groupBy(tables.chat_message.channel_id)
 			: [],
+		creatorsOf(channels),
+		linksOf(channels, ws),
 	]);
 	const unreadBy = new Map(unread.map((u) => [u.channelId, Number(u.n)]));
 	return channels.map((c) => ({
@@ -194,7 +214,124 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 		people: members.get(c.id) ?? [],
 		unread: unreadBy.get(c.id) ?? 0,
 		lastMessageAt: c.last_message_at?.toISOString() ?? null,
+		general: isGeneral(c),
+		creator: (c.created_by && creators.get(c.created_by)) || null,
+		createdAt: c.created_at.toISOString(),
+		link:
+			(c.project_id && links.get(c.project_id)) ||
+			(c.task_id && links.get(c.task_id)) ||
+			null,
 	}));
+}
+
+const isGeneral = (c: Channel) => c.kind === "channel" && c.name === "general";
+
+async function creatorsOf(channels: Channel[]) {
+	const ids = [
+		...new Set(channels.map((c) => c.created_by).filter((x) => x !== null)),
+	];
+	const rows = ids.length
+		? await db
+				.select({
+					id: tables.workspace_members.id,
+					name: tables.user.name,
+					image: tables.user.image,
+				})
+				.from(tables.workspace_members)
+				.innerJoin(
+					tables.user,
+					eq(tables.user.id, tables.workspace_members.user_id),
+				)
+				.where(inArray(tables.workspace_members.id, ids))
+		: [];
+	return new Map(rows.map((r) => [r.id, r]));
+}
+
+/** Linked projects and tasks, only the ones this member may see (a title can be private). */
+async function linksOf(channels: Channel[], ws: Workspace) {
+	const projectIds = channels.flatMap((c) => c.project_id ?? []);
+	const taskIds = channels.flatMap((c) => c.task_id ?? []);
+	const [projects, tasks] = await Promise.all([
+		projectIds.length
+			? db
+					.select({ id: tables.project.id, title: tables.project.title })
+					.from(tables.project)
+					.where(
+						and(
+							inArray(tables.project.id, projectIds),
+							eq(tables.project.workspace_id, ws.id),
+							isNull(tables.project.deleted_at),
+							projectScope(ws),
+						),
+					)
+			: [],
+		taskIds.length
+			? db
+					.select({ id: tables.task.id, title: tables.task.name })
+					.from(tables.task)
+					.innerJoin(
+						tables.project,
+						eq(tables.project.id, tables.task.project_id),
+					)
+					.where(
+						and(
+							inArray(tables.task.id, taskIds),
+							eq(tables.project.workspace_id, ws.id),
+							isNull(tables.task.deleted_at),
+							isNull(tables.project.deleted_at),
+							projectScope(ws),
+						),
+					)
+			: [],
+	]);
+	return new Map<string, { kind: string; id: string; title: string }>([
+		...projects.map((p) => [p.id, { kind: "project", ...p }] as const),
+		...tasks.map((t) => [t.id, { kind: "task", ...t }] as const),
+	]);
+}
+
+/** The workspace's #general, made on first use, with this member in it. */
+async function ensureGeneral(ws: Workspace, channels: Channel[]) {
+	if (!ws.memberId) return channels;
+	let general = channels.find(isGeneral);
+	if (!general) {
+		// two first visits at once: the unique index keeps one, and both read it back
+		await db
+			.insert(tables.chat_channel)
+			.values({
+				workspace_id: ws.id,
+				kind: "channel",
+				name: "general",
+				topic:
+					"Everyone in the workspace, for anything that isn't about one project.",
+			})
+			.onConflictDoNothing();
+		[general] = await db
+			.select()
+			.from(tables.chat_channel)
+			.where(
+				and(
+					eq(tables.chat_channel.workspace_id, ws.id),
+					eq(tables.chat_channel.kind, "channel"),
+					eq(tables.chat_channel.name, "general"),
+				),
+			);
+		if (!general) return channels;
+		// an archived #general stays out of the list
+		if (general.archived_at) return channels;
+		channels = [general, ...channels];
+	}
+	const [mine] = await db
+		.select({ id: tables.chat_member.id })
+		.from(tables.chat_member)
+		.where(
+			and(
+				eq(tables.chat_member.channel_id, general.id),
+				eq(tables.chat_member.member_id, ws.memberId),
+			),
+		);
+	if (!mine) await join(general.id, ws.memberId);
+	return channels;
 }
 
 async function messageShape(rows: Message[], ws: Workspace) {
@@ -371,7 +508,7 @@ export const chatResolvers = {
 				.from(tables.chat_channel)
 				.where(visible(w))
 				.orderBy(desc(tables.chat_channel.last_message_at));
-			return channelShape(rows, w);
+			return channelShape(await ensureGeneral(w, rows), w);
 		},
 	},
 	Query: {
@@ -411,6 +548,8 @@ export const chatResolvers = {
 				topic?: string | null;
 				private?: boolean | null;
 				memberIds?: string[] | null;
+				projectId?: string | null;
+				taskId?: string | null;
 			},
 			ctx: GraphQLContext,
 		) => {
@@ -422,6 +561,16 @@ export const chatResolvers = {
 				.replace(/[^a-z0-9_-]/g, "")
 				.slice(0, 80);
 			if (!name) badInput("Give the channel a name");
+			if (name === "general") badInput("#general already exists");
+			if (args.projectId && args.taskId)
+				badInput("Link it to a project or a task, not both");
+			// you can only link what you can see
+			const projectId = args.projectId
+				? (await requireProject(ctx, args.slug, args.projectId)).project.id
+				: null;
+			const taskId = args.taskId
+				? (await requireTask(ctx, args.slug, args.taskId)).task.id
+				: null;
 			const [channel] = await db
 				.insert(tables.chat_channel)
 				.values({
@@ -431,6 +580,8 @@ export const chatResolvers = {
 					topic: args.topic?.trim().slice(0, 250) || null,
 					private: !!args.private,
 					created_by: workspace.memberId,
+					project_id: projectId,
+					task_id: taskId,
 				})
 				.returning();
 			const ids = await sameWorkspace(workspace, [

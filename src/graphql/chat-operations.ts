@@ -12,6 +12,10 @@ export type ChatChannel = {
 	people: ChatPerson[];
 	unread: number;
 	lastMessageAt: string | null;
+	general: boolean;
+	creator: ChatPerson | null;
+	createdAt: string;
+	link: { kind: "project" | "task"; id: string; title: string } | null;
 };
 export type ChatMessage = {
 	id: string;
@@ -38,6 +42,18 @@ const CHANNEL = gql`
 		}
 		unread
 		lastMessageAt
+		general
+		creator {
+			id
+			name
+			image
+		}
+		createdAt
+		link {
+			kind
+			id
+			title
+		}
 	}
 `;
 const MESSAGE = gql`
@@ -91,19 +107,33 @@ export const CHAT_MESSAGES: TypedDocumentNode<
 
 export const CREATE_CHAT_CHANNEL: TypedDocumentNode<
 	{ createChatChannel: ChatChannel },
-	{ slug: string; name: string; private?: boolean; memberIds?: string[] }
+	{
+		slug: string;
+		name: string;
+		topic?: string;
+		private?: boolean;
+		memberIds?: string[];
+		projectId?: string;
+		taskId?: string;
+	}
 > = gql`
 	mutation CreateChatChannel(
 		$slug: String!
 		$name: String!
+		$topic: String
 		$private: Boolean
 		$memberIds: [ID!]
+		$projectId: ID
+		$taskId: ID
 	) {
 		createChatChannel(
 			slug: $slug
 			name: $name
+			topic: $topic
 			private: $private
 			memberIds: $memberIds
+			projectId: $projectId
+			taskId: $taskId
 		) {
 			...ChatChannelFields
 		}

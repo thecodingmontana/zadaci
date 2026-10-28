@@ -8,6 +8,7 @@ import {
 	uniqueIndex,
 	varchar,
 } from "drizzle-orm/pg-core";
+import { project, task } from "./project";
 import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
@@ -38,11 +39,25 @@ export const chat_channel = pgTable(
 			() => workspace_members.id,
 			{ onDelete: "set null" },
 		),
+		/** a channel about one project or one task (at most one of the two) */
+		project_id: varchar("project_id", { length: 16 }).references(
+			() => project.id,
+			{ onDelete: "set null" },
+		),
+		task_id: varchar("task_id", { length: 16 }).references(() => task.id, {
+			onDelete: "set null",
+		}),
 		last_message_at: when("last_message_at"),
 		archived_at: when("archived_at"),
 		...timestamps,
 	},
-	(t) => [index("chat_channel_workspace_idx").on(t.workspace_id)],
+	(t) => [
+		index("chat_channel_workspace_idx").on(t.workspace_id),
+		// every workspace has exactly one #general, which everyone joins
+		uniqueIndex("chat_channel_general_unique")
+			.on(t.workspace_id)
+			.where(sql`kind = 'channel' and name = 'general'`),
+	],
 );
 
 export const chat_member = pgTable(
