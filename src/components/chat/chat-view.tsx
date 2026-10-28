@@ -1,6 +1,8 @@
 import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useOpenItem } from "#/components/ai/assistant-parts";
+import { ItemPicker } from "#/components/notes/item-picker";
 import { Av } from "#/components/q/av";
 import { EmojiPicker } from "#/components/q/emoji-picker";
 import { Modal } from "#/components/q/modal";
@@ -22,130 +24,59 @@ import {
 import { NOTE_PEOPLE } from "#/graphql/note-operations";
 import { REALTIME_CONFIG } from "#/graphql/operations";
 import { TAB_ID } from "#/lib/tab";
+import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { ChatNav, titleOf } from "./chat-nav";
 
-// Team chat: the conversation list on the left, the open one on the right (one at a time on a
-// phone). New messages, typing and who's online arrive over Supabase Realtime; the messages
-// themselves always load through the API, which checks who may read them.
+// Team chat: the open conversation (the sidebar lists them all; chat-nav.tsx) and its details.
+// New messages, typing and who's online arrive over Supabase Realtime; the messages themselves
+// always load through the API, which checks who may read them.
 
 const TYPING_MS = 4000;
 const PAGE = 50;
 
-const titleOf = (c: ChatChannel, meName: string | undefined) =>
-	c.kind === "dm"
-		? c.people
-				.filter((p) => p.name !== meName)
-				.map((p) => p.name)
-				.join(", ") || "Just you"
-		: `#${c.name}`;
-
 export function ChatView({
 	slug,
 	channelId,
+	starting,
 }: {
 	slug: string;
+	/** none: #general */
 	channelId?: string;
+	/** the sidebar's "Add channel" or "New message" */
+	starting?: "channel" | "dm";
 }) {
+	const navigate = useNavigate();
 	const { data } = useQuery(CHAT_CHANNELS, { variables: { slug } });
 	const people =
 		useQuery(NOTE_PEOPLE, { variables: { slug } }).data?.workspace?.members ??
 		[];
 	const me = people.find((p) => p.isMe);
 	const channels = data?.workspace?.chatChannels ?? [];
-	const open = channels.find((c) => c.id === channelId);
-	const [starting, setStarting] = useState<"channel" | "dm" | null>(null);
+	const open = channelId
+		? channels.find((c) => c.id === channelId)
+		: channels.find((c) => c.general);
 
 	return (
-		<div className={cn("page flush chat", open && "has-open")}>
-			<aside className="chat-list" aria-label="Conversations">
-				<div className="chat-list-h">
-					<b>Chat</b>
-					<span className="sp" />
-					<button
-						type="button"
-						className="ibtn ibtn-sm"
-						aria-label="New channel"
-						data-tip="New channel"
-						onClick={() => setStarting("channel")}
-					>
-						<span
-							className="icon-[solar--hashtag-linear] size-4"
-							aria-hidden="true"
-						/>
-					</button>
-					<button
-						type="button"
-						className="ibtn ibtn-sm"
-						aria-label="New message"
-						data-tip="New message"
-						onClick={() => setStarting("dm")}
-					>
-						<span
-							className="icon-[solar--pen-new-square-linear] size-4"
-							aria-hidden="true"
-						/>
-					</button>
-				</div>
-				{(["channel", "dm"] as const).map((kind) => (
-					<div key={kind}>
-						<div className="mh">
-							{kind === "channel" ? "Channels" : "Direct messages"}
-						</div>
-						{channels
-							.filter((c) => c.kind === kind)
-							.map((c) => (
-								<Link
-									key={c.id}
-									to="/w/$slug/chat"
-									params={{ slug }}
-									search={{ c: c.id }}
-									className={cn(
-										"chat-item",
-										c.id === channelId && "on",
-										c.unread > 0 && "unread",
-									)}
-								>
-									<span
-										className={cn(
-											"size-4 shrink-0",
-											c.kind === "dm"
-												? "icon-[solar--chat-round-dots-linear]"
-												: c.private
-													? "icon-[solar--lock-keyhole-minimalistic-linear]"
-													: "icon-[solar--hashtag-linear]",
-										)}
-										aria-hidden="true"
-									/>
-									<span className="grow trunc">
-										{titleOf(c, me?.name).replace(/^#/, "")}
-									</span>
-									{c.unread > 0 && (
-										<span className="chat-badge">{c.unread}</span>
-									)}
-								</Link>
-							))}
-					</div>
-				))}
-				{!channels.length && data && (
-					<p className="faint chat-empty">
-						No conversations yet. Start a channel for the team, or message
-						someone.
-					</p>
-				)}
-			</aside>
+		<div className="page flush chat">
+			<ChatNav
+				slug={slug}
+				channels={data?.workspace?.chatChannels}
+				openId={open?.id}
+				meName={me?.name}
+			/>
 			{open ? (
 				<Conversation
 					key={open.id}
 					slug={slug}
 					channel={open}
-					workspaceId={data?.workspace?.id ?? ""}
 					title={titleOf(open, me?.name)}
 					meName={me?.name ?? ""}
 				/>
 			) : (
 				<section className="chat-main chat-blank faint">
-					Pick a conversation, or start one.
+					{data ? "This conversation isn't here any more." : ""}
 				</section>
 			)}
 			{starting && (
@@ -153,7 +84,13 @@ export function ChatView({
 					slug={slug}
 					kind={starting}
 					people={people.filter((p) => !p.isMe)}
-					onClose={() => setStarting(null)}
+					onClose={() =>
+						void navigate({
+							to: ".",
+							search: (prev) => ({ ...prev, new: undefined }),
+							replace: true,
+						})
+					}
 				/>
 			)}
 		</div>
@@ -163,13 +100,11 @@ export function ChatView({
 function Conversation({
 	slug,
 	channel,
-	workspaceId,
 	title,
 	meName,
 }: {
 	slug: string;
 	channel: ChatChannel;
-	workspaceId: string;
 	title: string;
 	meName: string;
 }) {
@@ -183,6 +118,7 @@ function Conversation({
 		refetchQueries: ["ChatChannels"],
 	});
 	const [typing, setTyping] = useState<Record<string, number>>({});
+	const [details, setDetails] = useState(false);
 	const [online, setOnline] = useState(0);
 	const say = useRef<(event: string, payload: object) => void>(() => {});
 	const list = useRef<HTMLDivElement>(null);
@@ -232,18 +168,11 @@ function Conversation({
 				.subscribe((status) => {
 					if (status === "SUBSCRIBED") void room.track({ name: meName });
 				});
-			// another conversation got a message: refresh the unread counts
-			const others = realtime
-				.channel(`ws:${workspaceId}`, { config: { private: config.private } })
-				.on("broadcast", { event: "chat" }, () =>
-					client.refetchQueries({ include: ["ChatChannels"] }),
-				)
-				.subscribe();
 			say.current = (event, payload) =>
 				void room.send({ type: "broadcast", event, payload });
 			stop = () => {
 				void realtime.removeChannel(room);
-				void realtime.removeChannel(others);
+
 				realtime.disconnect();
 			};
 		});
@@ -289,83 +218,255 @@ function Conversation({
 	const typers = Object.keys(typing);
 
 	return (
-		<section className="chat-main">
-			<header className="chat-h">
-				<Link
-					to="/w/$slug/chat"
-					params={{ slug }}
-					className="ibtn ibtn-sm chat-back"
-					aria-label="All conversations"
+		<>
+			<section className="chat-main">
+				<header className="chat-h">
+					<span className="chat-h-ic" aria-hidden="true">
+						<span
+							className={cn(
+								"size-4",
+								channel.kind === "dm"
+									? "icon-[solar--chat-round-dots-linear]"
+									: channel.private
+										? "icon-[solar--lock-keyhole-minimalistic-linear]"
+										: "icon-[solar--hashtag-linear]",
+							)}
+						/>
+					</span>
+					<b className="trunc">{title}</b>
+					<span className="sp" />
+					{online > 1 && (
+						<span className="faint chat-online">{online} here now</span>
+					)}
+					{channel.kind === "channel" && (
+						<button
+							type="button"
+							className={cn("btn btn-secondary btn-sm", details && "on")}
+							aria-pressed={details}
+							onClick={() => setDetails((d) => !d)}
+						>
+							<span
+								className="icon-[solar--info-circle-linear] size-4"
+								aria-hidden="true"
+							/>
+							Details
+						</button>
+					)}
+				</header>
+				<div className="chat-msgs" ref={list}>
+					{(data?.chatMessages.length ?? 0) >= PAGE && !noMore && (
+						<button
+							type="button"
+							className="btn btn-ghost btn-sm chat-older"
+							onClick={() => void loadOlder()}
+						>
+							Load earlier messages
+						</button>
+					)}
+					{data && !messages.length && (
+						<p className="faint chat-empty">No messages yet. Say hello.</p>
+					)}
+					{messages.map((m, i) => {
+						const prev = messages[i - 1];
+						return (
+							<MessageRow
+								key={m.id}
+								slug={slug}
+								message={m}
+								grouped={
+									!!prev &&
+									prev.author?.id === m.author?.id &&
+									Date.parse(m.createdAt) - Date.parse(prev.createdAt) <
+										5 * 60_000
+								}
+								onChange={() => void refetch()}
+							/>
+						);
+					})}
+				</div>
+				<div className="chat-typing faint" aria-live="polite">
+					{typers.length
+						? `${typers.join(", ")} ${typers.length > 1 ? "are" : "is"} typing…`
+						: ""}
+				</div>
+				<Composer
+					slug={slug}
+					channelId={channel.id}
+					placeholder="Write a message…"
+					onTyping={() => say.current("typing", { name: meName })}
+					onSent={(message) => {
+						client.cache.updateQuery(
+							{ query: CHAT_MESSAGES, variables },
+							(prev) => ({
+								chatMessages: [...(prev?.chatMessages ?? []), message],
+							}),
+						);
+						requestAnimationFrame(() => {
+							if (list.current)
+								list.current.scrollTop = list.current.scrollHeight;
+						});
+					}}
+				/>
+			</section>
+			{details && (
+				<ChannelDetails
+					slug={slug}
+					channel={channel}
+					onClose={() => setDetails(false)}
+				/>
+			)}
+		</>
+	);
+}
+
+function ChannelDetails({
+	slug,
+	channel,
+	onClose,
+}: {
+	slug: string;
+	channel: ChatChannel;
+	onClose: () => void;
+}) {
+	const openItem = useOpenItem(slug);
+	const [allUsers, setAllUsers] = useState(false);
+	const users = allUsers ? channel.people : channel.people.slice(0, 6);
+	const created = new Date(channel.createdAt).toLocaleDateString([], {
+		day: "numeric",
+		month: "long",
+		year: "numeric",
+	});
+	const link = channel.link;
+	return (
+		<aside className="chat-details" aria-label="Channel details">
+			<div className="chat-details-h">
+				<b>Details</b>
+				<span className="sp" />
+				<button
+					type="button"
+					className="ibtn ibtn-sm"
+					aria-label="Close details"
+					onClick={onClose}
 				>
 					<span
-						className="icon-[solar--arrow-left-linear] size-4"
+						className="icon-[solar--close-circle-linear] size-4"
 						aria-hidden="true"
 					/>
-				</Link>
-				<b className="trunc">{title}</b>
-				{channel.topic && (
-					<span className="faint trunc chat-topic">{channel.topic}</span>
-				)}
-				<span className="sp" />
-				{online > 1 && (
-					<span className="faint chat-online">{online} here now</span>
-				)}
-			</header>
-			<div className="chat-msgs" ref={list}>
-				{(data?.chatMessages.length ?? 0) >= PAGE && !noMore && (
-					<button
-						type="button"
-						className="btn btn-ghost btn-sm chat-older"
-						onClick={() => void loadOlder()}
-					>
-						Load earlier messages
-					</button>
-				)}
-				{data && !messages.length && (
-					<p className="faint chat-empty">No messages yet. Say hello.</p>
-				)}
-				{messages.map((m, i) => {
-					const prev = messages[i - 1];
-					return (
-						<MessageRow
-							key={m.id}
-							slug={slug}
-							message={m}
-							grouped={
-								!!prev &&
-								prev.author?.id === m.author?.id &&
-								Date.parse(m.createdAt) - Date.parse(prev.createdAt) <
-									5 * 60_000
-							}
-							onChange={() => void refetch()}
+				</button>
+			</div>
+			<h3 className="chat-details-t">Main info</h3>
+			<dl className="chat-info">
+				<div>
+					<dt>
+						<span
+							className="icon-[solar--user-linear] size-4"
+							aria-hidden="true"
 						/>
-					);
-				})}
+						Creator
+					</dt>
+					<dd>
+						{channel.creator ? (
+							<>
+								<Av name={channel.creator.name} image={channel.creator.image} />
+								<span className="trunc">{channel.creator.name}</span>
+							</>
+						) : (
+							"Zadaci"
+						)}
+					</dd>
+				</div>
+				<div>
+					<dt>
+						<span
+							className="icon-[solar--calendar-linear] size-4"
+							aria-hidden="true"
+						/>
+						Created
+					</dt>
+					<dd>{created}</dd>
+				</div>
+				<div>
+					<dt>
+						<span
+							className={cn(
+								"size-4",
+								channel.private
+									? "icon-[solar--lock-keyhole-minimalistic-linear]"
+									: "icon-[solar--hashtag-linear]",
+							)}
+							aria-hidden="true"
+						/>
+						Access
+					</dt>
+					<dd>{channel.private ? "Members only" : "Everyone"}</dd>
+				</div>
+				{link && (
+					<div>
+						<dt>
+							<span
+								className={cn(
+									"size-4",
+									link.kind === "task"
+										? "icon-[solar--checklist-minimalistic-linear]"
+										: "icon-[solar--folder-linear]",
+								)}
+								aria-hidden="true"
+							/>
+							{link.kind === "task" ? "Task" : "Project"}
+						</dt>
+						<dd>
+							<button
+								type="button"
+								className="chat-link"
+								onClick={() =>
+									void openItem({
+										kind: link.kind,
+										id: link.id,
+										label: link.title,
+									})
+								}
+							>
+								<span className="trunc">{link.title}</span>
+								<span
+									className="icon-[solar--alt-arrow-right-linear] size-4"
+									aria-hidden="true"
+								/>
+							</button>
+						</dd>
+					</div>
+				)}
+			</dl>
+			{channel.topic && (
+				<>
+					<h3 className="chat-details-t">Topic</h3>
+					<p className="chat-details-topic">{channel.topic}</p>
+				</>
+			)}
+			<h3 className="chat-details-t">
+				Users <span className="chat-count">{channel.people.length}</span>
+			</h3>
+			<div className="chat-users">
+				{users.map((p) => (
+					<div key={p.id} className="chat-user">
+						<Av name={p.name} image={p.image} className="chat-user-av" />
+						<span className="trunc">{p.name}</span>
+					</div>
+				))}
 			</div>
-			<div className="chat-typing faint" aria-live="polite">
-				{typers.length
-					? `${typers.join(", ")} ${typers.length > 1 ? "are" : "is"} typing…`
-					: ""}
-			</div>
-			<Composer
-				slug={slug}
-				channelId={channel.id}
-				placeholder={`Message ${title}`}
-				onTyping={() => say.current("typing", { name: meName })}
-				onSent={(message) => {
-					client.cache.updateQuery(
-						{ query: CHAT_MESSAGES, variables },
-						(prev) => ({
-							chatMessages: [...(prev?.chatMessages ?? []), message],
-						}),
-					);
-					requestAnimationFrame(() => {
-						if (list.current)
-							list.current.scrollTop = list.current.scrollHeight;
-					});
-				}}
-			/>
-		</section>
+			{channel.people.length > 6 && (
+				<button
+					type="button"
+					className="btn btn-secondary btn-sm chat-all"
+					onClick={() => setAllUsers((a) => !a)}
+				>
+					<span
+						className="icon-[solar--users-group-rounded-linear] size-4"
+						aria-hidden="true"
+					/>
+					{allUsers ? "Show fewer" : "Show all users"}
+				</button>
+			)}
+		</aside>
 	);
 }
 
@@ -391,10 +492,7 @@ function MessageRow({
 			fail("Couldn't react"),
 		);
 	const author = m.author?.name ?? "Deleted user";
-	const time = new Date(m.createdAt).toLocaleTimeString([], {
-		hour: "numeric",
-		minute: "2-digit",
-	});
+	const time = ago(m.createdAt);
 
 	return (
 		<div className={cn("chat-msg", grouped && "grouped")}>
@@ -560,46 +658,50 @@ function Composer({
 					}
 				}}
 			/>
-			<PickPopover
-				open={emoji}
-				onOpenChange={setEmoji}
-				width={300}
-				align="end"
-				trigger={
-					<button
-						type="button"
-						className="ibtn ibtn-sm"
-						aria-label="Add an emoji"
-						data-tip="Emoji"
-					>
-						<span
-							className="icon-[solar--smile-circle-linear] size-4"
-							aria-hidden="true"
-						/>
-					</button>
-				}
-			>
-				<EmojiPicker
-					onPick={(e) => {
-						const at = ref.current?.selectionStart ?? text.length;
-						setText(text.slice(0, at) + e + text.slice(at));
-						setEmoji(false);
-						requestAnimationFrame(() => ref.current?.focus());
-					}}
-				/>
-			</PickPopover>
-			<button
-				type="button"
-				className="btn btn-primary btn-sm"
-				disabled={!text.trim() || loading}
-				onClick={() => void submit()}
-				aria-label="Send"
-			>
-				<span
-					className="icon-[solar--plain-linear] size-4"
-					aria-hidden="true"
-				/>
-			</button>
+			<div className="chat-compose-tools">
+				<span className="sp" />
+				<PickPopover
+					open={emoji}
+					onOpenChange={setEmoji}
+					width={300}
+					align="end"
+					trigger={
+						<button
+							type="button"
+							className="ibtn ibtn-sm"
+							aria-label="Add an emoji"
+							data-tip="Emoji"
+						>
+							<span
+								className="icon-[solar--smile-circle-linear] size-4"
+								aria-hidden="true"
+							/>
+						</button>
+					}
+				>
+					<EmojiPicker
+						onPick={(e) => {
+							const at = ref.current?.selectionStart ?? text.length;
+							setText(text.slice(0, at) + e + text.slice(at));
+							setEmoji(false);
+							requestAnimationFrame(() => ref.current?.focus());
+						}}
+					/>
+				</PickPopover>
+				<button
+					type="button"
+					className="chat-send"
+					data-tip="Send"
+					disabled={!text.trim() || loading}
+					onClick={() => void submit()}
+					aria-label="Send"
+				>
+					<span
+						className="icon-[solar--arrow-up-linear] size-4"
+						aria-hidden="true"
+					/>
+				</button>
+			</div>
 		</div>
 	);
 }
@@ -619,6 +721,9 @@ function StartDialog({
 	const [name, setName] = useState("");
 	const [isPrivate, setPrivate] = useState(false);
 	const [picked, setPicked] = useState<string[]>([]);
+	const [topic, setTopic] = useState("");
+	const [linkKind, setLinkKind] = useState<"none" | "project" | "task">("none");
+	const [link, setLink] = useState<{ id: string; name: string } | null>(null);
 	const [create, creating] = useMutation(CREATE_CHAT_CHANNEL, {
 		refetchQueries: ["ChatChannels"],
 	});
@@ -636,8 +741,11 @@ function StartDialog({
 								variables: {
 									slug,
 									name,
+									topic: topic.trim() || undefined,
 									private: isPrivate,
 									memberIds: picked,
+									projectId: linkKind === "project" ? link?.id : undefined,
+									taskId: linkKind === "task" ? link?.id : undefined,
 								},
 							})
 						).data?.createChatChannel.id
@@ -697,6 +805,76 @@ function StartDialog({
 							maxLength={80}
 							onChange={(e) => setName(e.target.value)}
 						/>
+						<input
+							className="input"
+							placeholder="What it's for (optional)"
+							aria-label="Topic"
+							value={topic}
+							maxLength={250}
+							onChange={(e) => setTopic(e.target.value)}
+						/>
+						<div className="chat-linkto">
+							<span className="faint">Link to</span>
+							<div className="seg">
+								{(["none", "project", "task"] as const).map((k) => (
+									<button
+										key={k}
+										type="button"
+										aria-pressed={linkKind === k}
+										className={cn(linkKind === k && "on")}
+										onClick={() => {
+											setLinkKind(k);
+											setLink(null);
+										}}
+									>
+										{k === "none"
+											? "Nothing"
+											: k === "project"
+												? "A project"
+												: "A task"}
+									</button>
+								))}
+							</div>
+						</div>
+						{linkKind !== "none" &&
+							(link ? (
+								<div className="chat-linked">
+									<span
+										className={cn(
+											"size-4",
+											linkKind === "task"
+												? "icon-[solar--checklist-minimalistic-linear]"
+												: "icon-[solar--folder-linear]",
+										)}
+										aria-hidden="true"
+									/>
+									<span className="grow trunc">{link.name}</span>
+									<button
+										type="button"
+										className="ibtn ibtn-xs"
+										aria-label="Pick another"
+										onClick={() => setLink(null)}
+									>
+										<span
+											className="icon-[solar--close-circle-linear] size-4"
+											aria-hidden="true"
+										/>
+									</button>
+								</div>
+							) : (
+								<ItemPicker
+									slug={slug}
+									kind={linkKind}
+									placeholder={
+										linkKind === "task" ? "Find a task…" : "Find a project…"
+									}
+									hint="Or paste its link."
+									onPick={(id, pickedName) => {
+										setLink({ id, name: pickedName });
+										if (!name.trim()) setName(pickedName);
+									}}
+								/>
+							))}
 						<label className="row chat-check">
 							<input
 								type="checkbox"

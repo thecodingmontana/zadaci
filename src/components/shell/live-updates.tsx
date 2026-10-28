@@ -49,6 +49,11 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 						Math.max(SETTLE_MS, last + MIN_GAP_MS - Date.now()),
 					);
 				})
+				// a chat message somewhere: the sidebar's unread counts (the open conversation listens itself)
+				.on("broadcast", { event: "chat" }, (message) => {
+					if (message.payload?.from !== TAB_ID)
+						void client.refetchQueries({ include: ["ChatChannels"] });
+				})
 				// back after the connection dropped (a sleeping laptop, a phone offline): catch up once
 				.subscribe((status) => {
 					if (status !== "SUBSCRIBED") return;

@@ -19,7 +19,7 @@ export function ItemPicker({
 	kind: "task" | "bookmark" | "project";
 	placeholder: string;
 	hint: string;
-	onPick: (id: string) => void;
+	onPick: (id: string, name: string) => void;
 }) {
 	const [q, setQ] = useState("");
 	const [debounced, setDebounced] = useState("");
@@ -97,7 +97,7 @@ export function ItemPicker({
 				onKeyDown={(e) => {
 					if (e.key === "Enter" && items[0]) {
 						e.preventDefault();
-						onPick(items[0].id);
+						onPick(items[0].id, items[0].name);
 					}
 				}}
 			/>
@@ -109,7 +109,7 @@ export function ItemPicker({
 						role="option"
 						aria-selected={false}
 						className="mi"
-						onClick={() => onPick(it.id)}
+						onClick={() => onPick(it.id, it.name)}
 					>
 						{it.icon}
 						<span className="trunc">{it.name}</span>
