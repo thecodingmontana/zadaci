@@ -15,6 +15,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as DotwellKnownOpenidConfigurationRouteImport } from './routes/[.]well-known/openid-configuration'
 import { Route as AuthedOnboardingRouteImport } from './routes/_authed/onboarding'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
@@ -82,6 +83,12 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOpenidConfigurationRoute =
+  DotwellKnownOpenidConfigurationRouteImport.update({
+    id: '/.well-known/openid-configuration',
+    path: '/.well-known/openid-configuration',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthedOnboardingRoute = AuthedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -276,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -320,6 +328,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -365,6 +374,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/_authed/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -411,6 +421,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/.well-known/openid-configuration'
     | '/onboarding'
     | '/api/chat'
     | '/api/client-error'
@@ -455,6 +466,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/.well-known/openid-configuration'
     | '/onboarding'
     | '/api/chat'
     | '/api/client-error'
@@ -499,6 +511,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/.well-known/openid-configuration'
     | '/_authed/onboarding'
     | '/api/chat'
     | '/api/client-error'
@@ -545,6 +558,7 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  DotwellKnownOpenidConfigurationRoute: typeof DotwellKnownOpenidConfigurationRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiGraphqlRoute: typeof ApiGraphqlRoute
@@ -600,6 +614,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/openid-configuration': {
+      id: '/.well-known/openid-configuration'
+      path: '/.well-known/openid-configuration'
+      fullPath: '/.well-known/openid-configuration'
+      preLoaderRoute: typeof DotwellKnownOpenidConfigurationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed/onboarding': {
@@ -942,6 +963,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  DotwellKnownOpenidConfigurationRoute: DotwellKnownOpenidConfigurationRoute,
   ApiChatRoute: ApiChatRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
   ApiGraphqlRoute: ApiGraphqlRoute,

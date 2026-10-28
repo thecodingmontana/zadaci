@@ -13,12 +13,21 @@ const url = () => {
 	return value?.startsWith("https://") ? value : undefined;
 };
 const key = () => process.env.SUPABASE_ANON_KEY;
+/**
+ * Private channels: browsers join with a signed-in token and Supabase checks membership
+ * (migration realtime_private_channels). Turned on with REALTIME_PRIVATE=1 once Supabase trusts
+ * Zadaci's tokens; the server then sends with the secret key, which never leaves the server.
+ */
+const secretKey = () =>
+	process.env.REALTIME_PRIVATE === "1"
+		? process.env.SUPABASE_SECRET_KEY?.trim() || undefined
+		: undefined;
 
 /** The settings the browser needs to listen (null when Supabase isn't set up). */
 export const realtimeConfig = () => {
 	const u = url();
 	const k = key();
-	return u && k ? { url: u, anonKey: k } : null;
+	return u && k ? { url: u, anonKey: k, private: !!secretKey() } : null;
 };
 
 /**
@@ -36,8 +45,8 @@ export function announceChange(slug: string, from?: string | null) {
 		await fetch(`${url()}/realtime/v1/api/broadcast`, {
 			method: "POST",
 			headers: {
-				apikey: key() as string,
-				authorization: `Bearer ${key()}`,
+				apikey: secretKey() ?? (key() as string),
+				authorization: `Bearer ${secretKey() ?? key()}`,
 				"content-type": "application/json",
 			},
 			body: JSON.stringify({
@@ -46,6 +55,7 @@ export function announceChange(slug: string, from?: string | null) {
 						topic: `ws:${ws.id}`,
 						event: "changed",
 						payload: from ? { from } : {},
+						private: !!secretKey(),
 					},
 				],
 			}),

@@ -172,3 +172,18 @@ export const rateLimit = pgTable("rate_limit", {
 	count: integer("count").notNull(),
 	lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 });
+
+// Better Auth's signing keys (jwt plugin): tokens for Supabase Realtime's private channels are
+// signed with them, and Supabase checks them against /api/auth/jwks. Private keys are encrypted.
+export const jwks = pgTable("jwks", {
+	id: text("id").primaryKey(),
+	publicKey: text("public_key").notNull(),
+	privateKey: text("private_key").notNull(),
+	createdAt: timestamp("created_at", {
+		mode: "date",
+		withTimezone: true,
+	}).notNull(),
+	expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }),
+	alg: text("alg"),
+	crv: text("crv"),
+});

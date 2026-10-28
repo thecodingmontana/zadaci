@@ -4,7 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { deleteSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
-import { magicLink, twoFactor } from "better-auth/plugins";
+import { jwt, magicLink, twoFactor } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { eq } from "drizzle-orm";
 import { createElement } from "react";
@@ -53,6 +53,12 @@ export async function secondFactors(user: {
 		...(key ? ["passkey"] : []),
 	];
 }
+
+/** Who signs the tokens Supabase Realtime trusts (its discovery document is at /.well-known). */
+export const AUTH_ISSUER = (process.env.BETTER_AUTH_URL ?? SITE_URL).replace(
+	/\/$/,
+	"",
+);
 
 export const auth = betterAuth({
 	appName: "Zadaci",
@@ -156,6 +162,18 @@ export const auth = betterAuth({
 		}),
 	},
 	plugins: [
+		// short-lived tokens for Supabase Realtime's private channels: only who you are and the
+		// role Supabase needs, signed with a key pair (Supabase reads the public half at /jwks)
+		jwt({
+			jwks: { keyPairConfig: { alg: "RS256", modulusLength: 2048 } },
+			jwt: {
+				issuer: AUTH_ISSUER,
+				audience: "authenticated",
+				expirationTime: "10m",
+				definePayload: () => ({ role: "authenticated" }),
+			},
+			disableSettingJwtHeader: true,
+		}),
 		twoFactor({
 			issuer: "Zadaci",
 			allowPasswordless: true, // Google-only accounts have no password

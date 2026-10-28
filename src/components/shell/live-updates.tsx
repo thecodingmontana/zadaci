@@ -25,12 +25,16 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 			if (gone) return;
 			const realtime = new RealtimeClient(`${config.url}/realtime/v1`, {
 				params: { apikey: config.anonKey },
+				// private channels: a short-lived signed-in token, fetched again as it runs out
+				...(config.private && { accessToken: realtimeToken }),
 			});
 			let timer: ReturnType<typeof setTimeout> | undefined;
 			let last = 0;
 			let connected = false;
 			const channel = realtime
-				.channel(`ws:${workspaceId}`)
+				.channel(`ws:${workspaceId}`, {
+					config: { private: config.private },
+				})
 				.on("broadcast", { event: "changed" }, (message) => {
 					// this tab made the change, so it's already on screen
 					if (message.payload?.from === TAB_ID) return;
@@ -63,4 +67,11 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 		};
 	}, [config, workspaceId, client]);
 	return null;
+}
+
+/** A token for Realtime's private channels (better-auth's jwt plugin); null when signed out. */
+async function realtimeToken() {
+	const res = await fetch("/api/auth/token", { credentials: "same-origin" });
+	if (!res.ok) return null;
+	return ((await res.json()) as { token?: string }).token ?? null;
 }

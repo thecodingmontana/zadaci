@@ -102,6 +102,8 @@ export const settingsTypeDefs = /* GraphQL */ `
 	type RealtimeConfig {
 		url: String!
 		anonKey: String!
+		"browsers join with a signed-in token, and Supabase checks they belong"
+		private: Boolean!
 	}
 
 	extend type Query {

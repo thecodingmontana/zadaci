@@ -2075,12 +2075,13 @@ export const DELETE_MY_ACCOUNT: TypedDocumentNode<
 `;
 
 export const REALTIME_CONFIG: TypedDocumentNode<{
-	realtime: { url: string; anonKey: string } | null;
+	realtime: { url: string; anonKey: string; private: boolean } | null;
 }> = gql`
 	query RealtimeConfig {
 		realtime {
 			url
 			anonKey
+			private
 		}
 	}
 `;
