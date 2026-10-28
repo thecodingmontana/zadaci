@@ -1,9 +1,11 @@
-import { useMutation } from "@apollo/client/react";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useRef, useState } from "react";
 import { Av } from "#/components/q/av";
+import { ConfirmModal } from "#/components/q/confirm";
 import { EmojiPicker } from "#/components/q/emoji-picker";
 import { PickPopover } from "#/components/tasks/pick";
 import {
+	CHAT_PINS,
 	type ChatMessage,
 	DELETE_CHAT_MESSAGE,
 	EDIT_CHAT_MESSAGE,
@@ -47,7 +49,23 @@ export function MessageRow({
 	const [react] = useMutation(REACT_TO_CHAT_MESSAGE);
 	const [edit] = useMutation(EDIT_CHAT_MESSAGE);
 	const [remove] = useMutation(DELETE_CHAT_MESSAGE);
-	const [pin] = useMutation(PIN_CHAT_MESSAGE, { refetchQueries: ["ChatPins"] });
+	const client = useApolloClient();
+	const [pin] = useMutation(PIN_CHAT_MESSAGE, {
+		refetchQueries: ["ChatPins", "ChatMessages"],
+	});
+	// one pinned message per conversation: pinning another asks first
+	const [replacing, setReplacing] = useState(false);
+	const pinIt = (pinned: boolean) =>
+		pin({ variables: { slug, id: m.id, pinned } }).catch(fail("Couldn't pin"));
+	const askPin = () => {
+		if (m.pinned) return void pinIt(false);
+		const current = client.readQuery({
+			query: CHAT_PINS,
+			variables: { slug, channelId: m.channelId },
+		})?.chatPins[0];
+		if (current && current.id !== m.id) setReplacing(true);
+		else void pinIt(true);
+	};
 	const [picking, setPicking] = useState(false);
 	const fail = (title: string) => (e: Error) =>
 		toast.error(title, { desc: e.message });
@@ -60,6 +78,7 @@ export function MessageRow({
 	return (
 		// tabIndex -1: a tap focuses the message, which shows its actions on a phone
 		<div
+			id={`m-${m.id}`}
 			className={cn("chat-msg", grouped && "grouped", m.pinned && "pinned")}
 			tabIndex={-1}
 		>
@@ -163,11 +182,7 @@ export function MessageRow({
 					className="ibtn ibtn-xs"
 					aria-label={m.pinned ? "Unpin" : "Pin"}
 					data-tip={m.pinned ? "Unpin" : "Pin"}
-					onClick={() =>
-						void pin({
-							variables: { slug, id: m.id, pinned: !m.pinned },
-						}).catch(fail("Couldn't pin"))
-					}
+					onClick={askPin}
 				>
 					<span
 						className={cn(
@@ -219,6 +234,15 @@ export function MessageRow({
 					</>
 				)}
 			</div>
+			<ConfirmModal
+				open={replacing}
+				onOpenChange={setReplacing}
+				title="Replace the pinned message?"
+				body="A conversation keeps one pinned message. This one will take the place of the one pinned now."
+				ok="Pin this instead"
+				icon="icon-[solar--pin-linear]"
+				onConfirm={() => pinIt(true)}
+			/>
 		</div>
 	);
 }
@@ -386,18 +410,30 @@ export function Composer({
 	);
 }
 
-/** While a conversation's messages load: rows shaped like messages. */
+// a screenful of message-shaped rows: [name width, first line, second line (0: none)]
+const SK_ROWS = [
+	[30, 62, 40],
+	[24, 78, 0],
+	[36, 54, 70],
+	[28, 84, 0],
+	[32, 46, 58],
+	[26, 70, 0],
+	[38, 58, 34],
+	[30, 80, 0],
+	[24, 52, 66],
+	[34, 74, 0],
+	[28, 60, 44],
+	[32, 68, 0],
+] as const;
+
+/** While messages load: rows shaped like messages, filling the conversation. */
 export function MessagesSkeleton() {
 	return (
 		<div className="chat-sk" aria-busy="true">
 			<output className="sr-only">Loading messages</output>
-			{[
-				[38, 72],
-				[30, 55],
-				[44, 84],
-				[34, 40],
-			].map(([name, line]) => (
-				<div key={`${name}-${line}`} className="chat-msg" aria-hidden="true">
+			{SK_ROWS.map(([name, line, more], i) => (
+				// biome-ignore lint/suspicious/noArrayIndexKey: a fixed list of placeholders
+				<div key={i} className="chat-msg" aria-hidden="true">
 					<div className="chat-av">
 						<span
 							className="sk"
@@ -410,6 +446,12 @@ export function MessagesSkeleton() {
 							className="sk"
 							style={{ width: `${line}%`, height: 11, marginTop: 8 }}
 						/>
+						{more > 0 && (
+							<span
+								className="sk"
+								style={{ width: `${more}%`, height: 11, marginTop: 6 }}
+							/>
+						)}
 					</div>
 				</div>
 			))}

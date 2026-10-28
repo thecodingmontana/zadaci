@@ -97,6 +97,8 @@ export const chat_member = pgTable(
 		last_read_at: when("last_read_at"),
 		/** shown under Favourites in this member's chat sidebar */
 		favorite: boolean("favorite").notNull().default(false),
+		/** pinned to the top of this member's chat sidebar (newest pin first) */
+		pinned_at: when("pinned_at"),
 		...timestamps,
 	},
 	(t) => [

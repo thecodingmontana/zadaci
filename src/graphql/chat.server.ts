@@ -15,6 +15,7 @@ import type { ChatAttachment } from "#/db/chat";
 import { generateNanoId } from "#/db/utils";
 import { isEmoji } from "#/lib/emoji";
 import { isUploadUrl } from "#/lib/files";
+import { can } from "#/lib/permissions";
 import { announceChat } from "#/lib/realtime.server";
 import { notify } from "./activity.server";
 import { requireProject } from "./projects.server";
@@ -79,6 +80,10 @@ export const chatTypeDefs = /* GraphQL */ `
 		teamId: ID
 		"in your Favourites"
 		favorite: Boolean!
+		"when you pinned it to the top of your chat sidebar"
+		pinnedAt: String
+		"you made it, or you're an admin (never #general, a team's channel or a DM)"
+		canDelete: Boolean!
 	}
 
 	type ChatAttachment {
@@ -154,7 +159,11 @@ export const chatTypeDefs = /* GraphQL */ `
 		): ChatMessage!
 		"a signed slot to upload a file into this conversation (file: anything but a picture)"
 		chatUpload(slug: String!, channelId: ID!, file: Boolean): CloudinaryUpload!
+		"a conversation has one pinned message: pinning another replaces it"
 		pinChatMessage(slug: String!, id: ID!, pinned: Boolean!): ChatMessage!
+		deleteChatChannel(slug: String!, channelId: ID!): Boolean!
+		"pin a conversation to the top of your own chat sidebar"
+		pinChatChannel(slug: String!, channelId: ID!, pinned: Boolean!): Boolean!
 		favoriteChatChannel(
 			slug: String!
 			channelId: ID!
@@ -321,6 +330,7 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 					.select({
 						channelId: tables.chat_member.channel_id,
 						favorite: tables.chat_member.favorite,
+						pinnedAt: tables.chat_member.pinned_at,
 					})
 					.from(tables.chat_member)
 					.where(
@@ -334,6 +344,7 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 	const favorites = new Set(
 		mine.filter((m) => m.favorite).map((m) => m.channelId),
 	);
+	const pins = new Map(mine.map((m) => [m.channelId, m.pinnedAt]));
 	const unreadBy = new Map(unread.map((u) => [u.channelId, Number(u.n)]));
 	return channels.map((c) => ({
 		id: c.id,
@@ -344,6 +355,8 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 		people: teams.get(c.id)?.people ?? members.get(c.id) ?? [],
 		teamId: c.team_id,
 		favorite: favorites.has(c.id),
+		pinnedAt: pins.get(c.id)?.toISOString() ?? null,
+		canDelete: canDelete(c, ws),
 		unread: unreadBy.get(c.id) ?? 0,
 		lastMessageAt: c.last_message_at?.toISOString() ?? null,
 		general: isGeneral(c),
@@ -356,7 +369,16 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 	}));
 }
 
-const isGeneral = (c: Channel) => c.kind === "channel" && c.name === "general";
+const isGeneral = (c: Channel) =>
+	c.kind === "channel" && !c.team_id && c.name === "general";
+
+/** Its maker or an admin may delete a channel; #general, team channels and DMs stay. */
+const canDelete = (c: Channel, ws: Workspace) =>
+	c.kind === "channel" &&
+	!isGeneral(c) &&
+	!c.team_id &&
+	(c.created_by === ws.memberId ||
+		can(ws.role, "manageAllContent", ws.settings));
 
 async function creatorsOf(channels: Channel[]) {
 	const ids = [
@@ -450,7 +472,8 @@ async function ensureTeamChannels(ws: Workspace) {
 			missing.map((t) => ({
 				workspace_id: ws.id,
 				kind: "channel",
-				name: channelName(t.name) || "team",
+				// stored as team-<name> so it can never be (or block) #general; it shows the team's name
+				name: `team-${channelName(t.name)}`.replace(/-$/, ""),
 				private: true,
 				team_id: t.id,
 			})),
@@ -1127,15 +1150,31 @@ export const chatResolvers = {
 				args.id,
 				false,
 			);
-			const [updated] = await db
-				.update(tables.chat_message)
-				.set(
-					args.pinned
-						? { pinned_at: new Date(), pinned_by: workspace.memberId }
-						: { pinned_at: null, pinned_by: null },
-				)
-				.where(eq(tables.chat_message.id, message.id))
-				.returning();
+			// one pin per conversation: the new one takes the old one's place
+			const updated = await db.transaction(async (tx) => {
+				if (args.pinned)
+					await tx
+						.update(tables.chat_message)
+						.set({ pinned_at: null, pinned_by: null })
+						.where(
+							and(
+								eq(tables.chat_message.channel_id, channel.id),
+								ne(tables.chat_message.id, message.id),
+								sql`${tables.chat_message.pinned_at} is not null`,
+							),
+						);
+				const [row] = await tx
+					.update(tables.chat_message)
+					.set(
+						args.pinned
+							? { pinned_at: new Date(), pinned_by: workspace.memberId }
+							: { pinned_at: null, pinned_by: null },
+					)
+					.where(eq(tables.chat_message.id, message.id))
+					.returning();
+				return row;
+			});
+			if (!updated) badInput("Message not found");
 			announceChat(
 				workspace.id,
 				channel.id,
@@ -1143,6 +1182,59 @@ export const chatResolvers = {
 				ctx.tab,
 			);
 			return (await messageShape([updated], workspace))[0];
+		},
+		deleteChatChannel: async (
+			_: unknown,
+			args: { slug: string; channelId: string },
+			ctx: GraphQLContext,
+		) => {
+			const { workspace, channel } = await requireChannel(
+				ctx,
+				args.slug,
+				args.channelId,
+			);
+			if (!canDelete(channel, workspace))
+				badInput(
+					isGeneral(channel) || channel.team_id || channel.kind === "dm"
+						? "This conversation can't be deleted"
+						: "Only the person who made this channel, or an admin, can delete it",
+				);
+			// archived: it leaves everyone's list, and its messages stop being readable
+			await db
+				.update(tables.chat_channel)
+				.set({ archived_at: new Date() })
+				.where(eq(tables.chat_channel.id, channel.id));
+			announceChat(
+				workspace.id,
+				channel.id,
+				{ type: "delete", id: channel.id },
+				ctx.tab,
+			);
+			return true;
+		},
+		pinChatChannel: async (
+			_: unknown,
+			args: { slug: string; channelId: string; pinned: boolean },
+			ctx: GraphQLContext,
+		) => {
+			const { workspace, channel } = await requireChannel(
+				ctx,
+				args.slug,
+				args.channelId,
+			);
+			const pinned_at = args.pinned ? new Date() : null;
+			await db
+				.insert(tables.chat_member)
+				.values({
+					channel_id: channel.id,
+					member_id: workspace.memberId ?? "",
+					pinned_at,
+				})
+				.onConflictDoUpdate({
+					target: [tables.chat_member.channel_id, tables.chat_member.member_id],
+					set: { pinned_at },
+				});
+			return true;
 		},
 		favoriteChatChannel: async (
 			_: unknown,

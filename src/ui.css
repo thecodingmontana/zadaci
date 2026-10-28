@@ -5673,9 +5673,7 @@ fieldset.ai-approve {
 .chat-add {
   color: var(--q-text-3);
 }
-.chat-pins-link {
-  margin-bottom: 12px;
-}
+
 .chat-hint {
   margin: 0;
   padding: 4px 8px 2px;
@@ -5687,6 +5685,20 @@ fieldset.ai-approve {
   height: 18px !important;
   font-size: 8px !important;
   flex-shrink: 0;
+}
+/* a conversation row: the link fills it, its ⋯ menu shows on hover (always on touch) */
+.sitem.chat-row {
+  padding-right: 4px;
+}
+.chat-row-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  text-align: left;
+  color: inherit;
 }
 .sitem.chat-unread {
   color: var(--q-text);
@@ -5743,6 +5755,45 @@ fieldset.ai-approve {
   color: var(--q-text-2);
   flex-shrink: 0;
   margin-right: 2px;
+}
+/* the conversation's pinned message, under its header */
+.chat-pinbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px var(--q-gutter);
+  border-bottom: 1px solid var(--q-divider);
+  background: color-mix(in srgb, #f5a524 7%, var(--q-surface));
+  font-size: var(--q-fs-sm);
+}
+.chat-pinbar-ic {
+  color: #c47f00;
+}
+.chat-pinbar-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  line-height: 1.35;
+}
+.chat-pinbar-msg > .trunc {
+  max-width: 100%;
+}
+.chat-pinbar-label {
+  font-size: var(--q-fs-2xs);
+  font-weight: 600;
+  color: #c47f00;
+}
+.chat-msg.flash {
+  animation: chat-flash 1.6s ease-out;
+}
+@keyframes chat-flash {
+  0%,
+  30% {
+    background: color-mix(in srgb, #f5a524 18%, transparent);
+  }
 }
 .chat-star {
   color: #f5a524;
@@ -6054,6 +6105,16 @@ fieldset.ai-approve {
   }
 }
 /* loading messages */
+/* placeholders fill the conversation from the bottom up, cut off at the top */
+.chat-sk {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  gap: 10px;
+}
+
 .chat-sk .chat-body {
   display: flex;
   flex-direction: column;
@@ -6243,6 +6304,11 @@ fieldset.ai-approve {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.chat-field-error {
+  margin: -6px 0 0;
+  font-size: var(--q-fs-xs);
+  color: var(--q-red);
 }
 .chat-check {
   gap: 8px;

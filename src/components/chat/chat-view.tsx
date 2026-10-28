@@ -9,12 +9,15 @@ import {
 	CHAT_CHANNELS,
 	CHAT_LINK_OPTIONS,
 	CHAT_MESSAGES,
+	CHAT_PINS,
 	type ChatChannel,
 	type ChatMessage,
 	CREATE_CHAT_CHANNEL,
 	FAVORITE_CHAT_CHANNEL,
 	MARK_CHAT_READ,
 	OPEN_CHAT_DM,
+	PIN_CHAT_CHANNEL,
+	PIN_CHAT_MESSAGE,
 } from "#/graphql/chat-operations";
 import { NOTE_PEOPLE } from "#/graphql/note-operations";
 import { REALTIME_CONFIG } from "#/graphql/operations";
@@ -28,7 +31,7 @@ import {
 	MessageRow,
 	MessagesSkeleton,
 } from "./chat-message";
-import { ChatNav, titleOf } from "./chat-nav";
+import { ChatNav, titleOf, type Via } from "./chat-nav";
 import { ThreadPanel } from "./chat-thread";
 
 // Team chat: its own sidebar of conversations (chat-nav.tsx; a drawer on a phone), the open
@@ -44,8 +47,11 @@ export function ChatView({
 	slug,
 	channelId,
 	starting,
+	via,
 }: {
 	slug: string;
+	/** which copy of it was clicked in the chat sidebar */
+	via?: Via;
 	/** none: the last one you had open, else #general */
 	channelId?: string;
 	/** "Add channel" was picked */
@@ -61,8 +67,7 @@ export function ChatView({
 	const me = people.find((p) => p.isMe);
 	const channels = data?.workspace?.chatChannels ?? [];
 	const [drawer, setDrawer] = useState(false);
-	// the sidebar's "Pinned": open the conversation's pins (a count, so asking twice works)
-	const [pinsAsked, setPinsAsked] = useState(0);
+
 	const [openDm] = useMutation(OPEN_CHAT_DM, {
 		refetchQueries: ["ChatChannels"],
 	});
@@ -92,9 +97,27 @@ export function ChatView({
 		}
 	}, [slug, openId]);
 
-	const talkTo = async (memberIds: string[]) => {
+	const [star] = useMutation(FAVORITE_CHAT_CHANNEL, {
+		refetchQueries: ["ChatChannels"],
+	});
+	const [pinTop] = useMutation(PIN_CHAT_CHANNEL, {
+		refetchQueries: ["ChatChannels"],
+	});
+	const talkTo = async (
+		memberIds: string[],
+		opts?: { favorite?: boolean; pin?: boolean },
+	) => {
 		try {
 			const { data: dm } = await openDm({ variables: { slug, memberIds } });
+			// from the ⋯ menu: just star or pin it, without opening it
+			if (dm && (opts?.favorite || opts?.pin)) {
+				const channelId = dm.openChatDm.id;
+				if (opts.favorite)
+					await star({ variables: { slug, channelId, favorite: true } });
+				if (opts.pin)
+					await pinTop({ variables: { slug, channelId, pinned: true } });
+				return;
+			}
 			if (dm)
 				void navigate({
 					to: "/w/$slug/chat",
@@ -115,9 +138,9 @@ export function ChatView({
 				channels={data?.workspace?.chatChannels}
 				people={people}
 				openId={openId}
+				via={via}
 				drawer={drawer}
-				onOpenDm={(ids) => void talkTo(ids)}
-				onPins={() => setPinsAsked((n) => n + 1)}
+				onOpenDm={(ids, opts) => void talkTo(ids, opts)}
 				onClose={() => setDrawer(false)}
 			/>
 			{open ? (
@@ -127,9 +150,11 @@ export function ChatView({
 					channel={open}
 					title={titleOf(open, me?.id)}
 					meName={me?.name ?? ""}
-					pinsAsked={pinsAsked}
 					onMenu={() => setDrawer(true)}
 				/>
+			) : // still finding the conversation: the whole of it as a placeholder
+			(!data && !error) || (data && !channelId && last === undefined) ? (
+				<ConversationSkeleton onMenu={() => setDrawer(true)} />
 			) : (
 				<section className="chat-main chat-blank faint">
 					<button
@@ -175,6 +200,69 @@ export function ChatView({
 				/>
 			)}
 		</div>
+	);
+}
+
+/** Before the conversation is known: its header, a screen of messages and the box, as placeholders. */
+function ConversationSkeleton({ onMenu }: { onMenu: () => void }) {
+	return (
+		<section className="chat-main" aria-busy="true">
+			<header className="chat-h">
+				<button
+					type="button"
+					className="ibtn ibtn-sm chat-menu"
+					aria-label="Conversations"
+					onClick={onMenu}
+				>
+					<span
+						className="icon-[solar--sidebar-minimalistic-linear] size-4"
+						aria-hidden="true"
+					/>
+				</button>
+				<span className="chat-h-ic" aria-hidden="true">
+					<span className="icon-[solar--hashtag-linear] size-4" />
+				</span>
+				<span
+					className="sk"
+					style={{ width: 120, height: 14 }}
+					aria-hidden="true"
+				/>
+			</header>
+			<div className="chat-msgs">
+				<MessagesSkeleton />
+			</div>
+			<div className="chat-typing" />
+			{/* the message box is the same everywhere: shown as is, waiting */}
+			<div className="chat-compose">
+				<textarea
+					rows={1}
+					disabled
+					placeholder="Write a message…"
+					aria-label="Message"
+				/>
+				<div className="chat-compose-tools">
+					<button type="button" className="btn btn-secondary btn-sm" disabled>
+						<span
+							className="icon-[solar--paperclip-linear] size-4"
+							aria-hidden="true"
+						/>
+						<span className="chat-h-label">Add file</span>
+					</button>
+					<span className="sp" />
+					<button
+						type="button"
+						className="chat-send"
+						disabled
+						aria-label="Send"
+					>
+						<span
+							className="icon-[solar--arrow-up-linear] size-4"
+							aria-hidden="true"
+						/>
+					</button>
+				</div>
+			</div>
+		</section>
 	);
 }
 
@@ -224,14 +312,13 @@ function Conversation({
 	channel,
 	title,
 	meName,
-	pinsAsked,
 	onMenu,
 }: {
 	slug: string;
 	channel: ChatChannel;
 	title: string;
 	meName: string;
-	pinsAsked: number;
+
 	onMenu: () => void;
 }) {
 	const client = useApolloClient();
@@ -251,9 +338,21 @@ function Conversation({
 	const [side, setSide] = useState<
 		"details" | "pins" | { thread: string } | null
 	>(null);
-	useEffect(() => {
-		if (pinsAsked) setSide("pins");
-	}, [pinsAsked]);
+	const pinned = useQuery(CHAT_PINS, { variables }).data?.chatPins[0];
+	const [unpin] = useMutation(PIN_CHAT_MESSAGE, {
+		refetchQueries: ["ChatPins", "ChatMessages"],
+	});
+	// the pinned bar: show the message (a reply opens its thread; one further back, the Pins tab)
+	const showPinned = () => {
+		if (!pinned) return;
+		const el = document.getElementById(`m-${pinned.id}`);
+		if (el) {
+			el.scrollIntoView({ block: "center", behavior: "smooth" });
+			el.classList.add("flash");
+			setTimeout(() => el.classList.remove("flash"), 1600);
+		} else if (pinned.parentId) setSide({ thread: pinned.parentId });
+		else setSide("pins");
+	};
 	const [online, setOnline] = useState(0);
 	const say = useRef<(event: string, payload: object) => void>(() => {});
 	const list = useRef<HTMLDivElement>(null);
@@ -467,17 +566,57 @@ function Conversation({
 					)}
 					<button
 						type="button"
-						className={cn("btn btn-secondary btn-sm", details && "on")}
+						className={cn("ibtn ibtn-sm", details && "on")}
 						aria-pressed={details}
+						aria-label="Details"
+						data-tip="Details"
 						onClick={() => setSide(details ? null : "details")}
 					>
+						{/* the sidebar icon, facing the panel it opens on the right */}
 						<span
-							className="icon-[solar--info-circle-linear] size-4"
+							className="icon-[solar--sidebar-minimalistic-linear] size-4 -scale-x-100"
 							aria-hidden="true"
 						/>
-						<span className="chat-h-label">Details</span>
 					</button>
 				</header>
+				{pinned && (
+					<div className="chat-pinbar">
+						<span
+							className="icon-[solar--pin-bold] size-4 shrink-0 chat-pinbar-ic"
+							aria-hidden="true"
+						/>
+						<button
+							type="button"
+							className="chat-pinbar-msg"
+							onClick={showPinned}
+						>
+							<span className="chat-pinbar-label">Pinned</span>
+							<span className="trunc">
+								<b>{pinned.author?.name ?? "Deleted user"}:</b>{" "}
+								{pinned.body ||
+									(pinned.attachments.length === 1
+										? pinned.attachments[0]?.name
+										: `${pinned.attachments.length} files`)}
+							</span>
+						</button>
+						<button
+							type="button"
+							className="ibtn ibtn-xs"
+							aria-label="Unpin"
+							data-tip="Unpin"
+							onClick={() =>
+								void unpin({
+									variables: { slug, id: pinned.id, pinned: false },
+								}).catch(() => toast.error("Couldn't unpin"))
+							}
+						>
+							<span
+								className="icon-[solar--close-circle-linear] size-4"
+								aria-hidden="true"
+							/>
+						</button>
+					</div>
+				)}
 				<div className="chat-msgs" ref={list}>
 					{!data && <MessagesSkeleton />}
 					{/* the start sits at the top only once there's nothing earlier to load */}
@@ -601,6 +740,13 @@ function StartDialog({
 	});
 	const busy = creating.loading;
 
+	// the server says the same (and slugs names the same way): there's only one #general
+	const taken =
+		name
+			.trim()
+			.toLowerCase()
+			.replace(/\s+/g, "-")
+			.replace(/[^a-z0-9_-]/g, "") === "general";
 	const go = async () => {
 		try {
 			const id = (
@@ -649,7 +795,7 @@ function StartDialog({
 					<button
 						type="button"
 						className="btn btn-primary btn-sm"
-						disabled={busy || !name.trim()}
+						disabled={busy || !name.trim() || taken}
 						onClick={() => void go()}
 					>
 						Create channel
@@ -663,10 +809,18 @@ function StartDialog({
 						className="input"
 						placeholder="Name, like design-reviews"
 						aria-label="Channel name"
+						aria-invalid={taken}
+						aria-describedby={taken ? "chat-name-taken" : undefined}
 						value={name}
 						maxLength={80}
 						onChange={(e) => setName(e.target.value)}
 					/>
+					{taken && (
+						<p id="chat-name-taken" className="chat-field-error">
+							#general is the workspace's channel for everyone. Pick another
+							name.
+						</p>
+					)}
 					<input
 						className="input"
 						placeholder="What it's for (optional)"

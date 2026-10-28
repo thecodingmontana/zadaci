@@ -199,3 +199,49 @@ test("chat: files come only from the conversation's own upload folder, and a fil
 		globalThis.fetch = realFetch;
 	}
 });
+
+test("chat: one pinned message per conversation, pinned conversations are yours, and only a channel's maker or an admin deletes it", async () => {
+	const owner = await makeUser("owner");
+	const pat = await makeUser("pat");
+	const sam = await makeUser("sam");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(pat, inviteCode);
+	await join(sam, inviteCode);
+	const LIST = `query($s: String!) { workspace(slug: $s) { members { id isMe } chatChannels { id name general teamId pinnedAt canDelete } } }`;
+	const ws = async (u: TestUser) => (await gql(u, LIST, { s: slug })).data?.workspace as { members: { id: string; isMe: boolean }[]; chatChannels: { id: string; name: string; general: boolean; teamId: string | null; pinnedAt: string | null; canDelete: boolean }[] };
+	const general = (await ws(owner)).chatChannels.find((c) => c.general);
+	assert.equal(general?.canDelete, false, "#general stays");
+
+	// pinning a second message replaces the first
+	const first = (await gql(pat, SEND, { s: slug, c: general?.id, b: "first" })).data?.sendChatMessage.id;
+	const second = (await gql(pat, SEND, { s: slug, c: general?.id, b: "second" })).data?.sendChatMessage.id;
+	const PIN = `mutation($s: String!, $id: ID!) { pinChatMessage(slug: $s, id: $id, pinned: true) { id } }`;
+	await gql(pat, PIN, { s: slug, id: first });
+	await gql(sam, PIN, { s: slug, id: second });
+	const pins = (await gql(owner, `query($s: String!, $c: ID!) { chatPins(slug: $s, channelId: $c) { id } }`, { s: slug, c: general?.id })).data?.chatPins;
+	assert.deepEqual(pins.map((m: { id: string }) => m.id), [second]);
+
+	// pinning a conversation to the top is yours alone
+	await gql(pat, `mutation($s: String!, $c: ID!) { pinChatChannel(slug: $s, channelId: $c, pinned: true) }`, { s: slug, c: general?.id });
+	assert.ok((await ws(pat)).chatChannels.find((c) => c.general)?.pinnedAt);
+	assert.equal((await ws(sam)).chatChannels.find((c) => c.general)?.pinnedAt, null);
+
+	// pat's channel: pat or the owner (an admin) may delete it, sam may not
+	const make = async () => (await gql(pat, `mutation($s: String!) { createChatChannel(slug: $s, name: "standup") { id canDelete } }`, { s: slug })).data?.createChatChannel;
+	const standup = await make();
+	assert.equal(standup.canDelete, true);
+	const DEL = `mutation($s: String!, $c: ID!) { deleteChatChannel(slug: $s, channelId: $c) }`;
+	assert.match((await gql(sam, DEL, { s: slug, c: standup.id })).errors?.[0]?.message ?? "", /Only the person who made this channel/);
+	assert.equal((await gql(owner, DEL, { s: slug, c: standup.id })).data?.deleteChatChannel, true);
+	assert.ok(!(await ws(pat)).chatChannels.some((c) => c.id === standup.id), "gone from the list");
+	assert.match((await gql(pat, `query($s: String!, $c: ID!) { chatMessages(slug: $s, channelId: $c) { id } }`, { s: slug, c: standup.id })).errors?.[0]?.message ?? "", /not found/);
+	assert.match((await gql(owner, DEL, { s: slug, c: general?.id })).errors?.[0]?.message ?? "", /can't be deleted/);
+
+	// a team called General gets its own channel, and #general is still the only #general
+	const patId = (await ws(pat)).members.find((m) => m.isMe)?.id;
+	await gql(owner, `mutation($s: String!, $i: TeamInput!) { createTeam(slug: $s, input: $i) { id } }`, { s: slug, i: { name: "General", icon: "icon-[solar--code-linear]", color: "teal", memberIds: [patId] } });
+	const patView = (await ws(pat)).chatChannels;
+	assert.equal(patView.filter((c) => c.general).length, 1);
+	assert.equal(patView.find((c) => c.teamId)?.name, "General", "shown with the team's name");
+	assert.equal(patView.find((c) => c.teamId)?.general, false);
+});

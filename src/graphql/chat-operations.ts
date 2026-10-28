@@ -18,6 +18,8 @@ export type ChatChannel = {
 	link: { kind: "project" | "task"; id: string; title: string } | null;
 	teamId: string | null;
 	favorite: boolean;
+	pinnedAt: string | null;
+	canDelete: boolean;
 };
 export type ChatAttachment = {
 	url: string;
@@ -70,6 +72,8 @@ const CHANNEL = gql`
 		}
 		teamId
 		favorite
+		pinnedAt
+		canDelete
 	}
 `;
 const MESSAGE = gql`
@@ -348,5 +352,23 @@ export const CHAT_UPLOAD: TypedDocumentNode<
 			publicId
 			folder
 		}
+	}
+`;
+
+export const DELETE_CHAT_CHANNEL: TypedDocumentNode<
+	{ deleteChatChannel: boolean },
+	{ slug: string; channelId: string }
+> = gql`
+	mutation DeleteChatChannel($slug: String!, $channelId: ID!) {
+		deleteChatChannel(slug: $slug, channelId: $channelId)
+	}
+`;
+
+export const PIN_CHAT_CHANNEL: TypedDocumentNode<
+	{ pinChatChannel: boolean },
+	{ slug: string; channelId: string; pinned: boolean }
+> = gql`
+	mutation PinChatChannel($slug: String!, $channelId: ID!, $pinned: Boolean!) {
+		pinChatChannel(slug: $slug, channelId: $channelId, pinned: $pinned)
 	}
 `;
