@@ -9,7 +9,7 @@ import {
 	useState,
 } from "react";
 import { cn } from "#/lib/utils";
-import { requestFile, requestInsert } from "./blocks";
+import { requestEmoji, requestFile, requestInsert } from "./blocks";
 
 // Notion-style "/" menu: type / in the body to pick a block, filter by typing, then
 // Enter or click. The typed "/query" is removed before the block is applied.
@@ -221,6 +221,17 @@ export const SLASH_COMMANDS: Command[] = [
 		hint: "Make writing stand out",
 		icon: "icon-[hugeicons--bulb]",
 		run: (c) => c.setNode("callout"),
+	},
+	{
+		group: "Advanced",
+		title: "Emoji",
+		alias: "emoji smiley icon reaction",
+		hint: "Pick an emoji, or type : and a name",
+		icon: "icon-[solar--smile-circle-linear]",
+		run: (c) => {
+			requestEmoji();
+			return c;
+		},
 	},
 	{
 		group: "Advanced",

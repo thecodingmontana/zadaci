@@ -190,6 +190,18 @@ test("subtasks, dependencies, mentions and reactions", async () => {
 		{ emoji: "👍", count: 1, mine: true },
 	]);
 	assert.deepEqual((await gql(member, REACT, { s: slug, id: c.data?.addComment.id })).data?.reactToComment.reactions, [], "toggles off");
+	// any single emoji works, but not words, and a comment collects at most 20 different ones
+	const reactWith = (emoji: string) =>
+		gql(member, `mutation($s: String!, $id: ID!, $e: String!) { reactToComment(slug: $s, id: $id, emoji: $e) { reactions { emoji } } }`, {
+			s: slug,
+			id: c.data?.addComment.id,
+			e: emoji,
+		});
+	assert.deepEqual((await reactWith("🦄")).data?.reactToComment.reactions, [{ emoji: "🦄" }]);
+	assert.match((await reactWith("lol")).errors?.[0]?.message ?? "", /Pick an emoji/);
+	const many = ["😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘", "🥰", "😗", "😙", "🥲", "😚"];
+	for (const e of many) await reactWith(e);
+	assert.match((await reactWith("🍕")).errors?.[0]?.message ?? "", /up to 20/);
 	assert.equal(
 		code(await gql(member, `mutation($s: String!, $id: ID!) { deleteComment(slug: $s, id: $id) }`, { s: slug, id: c.data?.addComment.id })),
 		"FORBIDDEN",

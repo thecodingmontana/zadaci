@@ -631,16 +631,49 @@
 	color: var(--q-text-3);
 	font-size: var(--q-fs-sm);
 }
+/* callout kinds (components/notes/blocks): a tint, border and icon in the kind's colour */
+.note-body .tiptap .callout,
+.callout-opt {
+	--cv: var(--nc-blue);
+}
+.note-body .tiptap [data-variant="tip"],
+[data-variant="tip"] > .callout-opt {
+	--cv: var(--nc-yellow);
+}
+.note-body .tiptap [data-variant="success"],
+[data-variant="success"] > .callout-opt {
+	--cv: var(--nc-green);
+}
+.note-body .tiptap [data-variant="warning"],
+[data-variant="warning"] > .callout-opt {
+	--cv: var(--nc-orange);
+}
+.note-body .tiptap [data-variant="danger"],
+[data-variant="danger"] > .callout-opt {
+	--cv: var(--nc-red);
+}
+.note-body .tiptap [data-variant="note"],
+[data-variant="note"] > .callout-opt {
+	--cv: var(--nc-gray);
+}
 .note-body .tiptap .callout {
 	display: flex;
 	gap: 10px;
 	padding: 12px 14px;
+	border: 1px solid color-mix(in srgb, var(--cv) 28%, transparent);
 	border-radius: var(--q-r-sm);
-	background: var(--q-surface-2);
+	background: color-mix(in srgb, var(--cv) 9%, transparent);
 }
 .note-body .tiptap .callout-icon {
 	flex-shrink: 0;
+	width: 18px;
+	height: 18px;
+	margin-top: 0.2em;
+	color: var(--cv);
 	user-select: none;
+}
+.callout-opt {
+	color: var(--cv);
 }
 .note-body .tiptap .callout-body {
 	flex: 1;
@@ -1153,7 +1186,8 @@ a.item-embed:hover {
 
 /* ---- text and background colours (names from components/notes/colors) ---- */
 .note-body,
-.swatches {
+.swatches,
+.callout-menu {
 	--nc-gray: #8b8a86;
 	--nc-brown: #9f6b53;
 	--nc-orange: #d9730d;
@@ -1165,7 +1199,8 @@ a.item-embed:hover {
 	--nc-red: #d44c47;
 }
 .dark .note-body,
-.dark .swatches {
+.dark .swatches,
+.dark .callout-menu {
 	--nc-gray: #9b9a97;
 	--nc-brown: #ba856f;
 	--nc-orange: #e88d3c;
@@ -1337,4 +1372,11 @@ a.item-embed:hover {
 	background: var(--q-surface-2);
 	font-size: 11px;
 	font-weight: 600;
+}
+.note-body .tiptap[contenteditable="true"] .callout-icon {
+	cursor: pointer;
+	border-radius: 4px;
+}
+.note-body .tiptap[contenteditable="true"] .callout-icon:hover {
+	background: color-mix(in srgb, var(--q-text) 8%, transparent);
 }

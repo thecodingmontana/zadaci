@@ -158,6 +158,9 @@ importers:
       drizzle-orm:
         specifier: 1.0.0-rc.4
         version: 1.0.0-rc.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
+      frimousse:
+        specifier: 0.4.0
+        version: 0.4.0(react@19.3.0)(typescript@6.0.3)
       graphql:
         specifier: ^16.10.0
         version: 16.14.2
@@ -4007,6 +4010,15 @@ packages:
       react:
         optional: true
       react-dom:
+        optional: true
+
+  frimousse@0.4.0:
+    resolution: {integrity: sha512-wA/1Xt9UTk51wYNpy+EvHKPUA4jdm4NuEFzSNNZxqT0Nxrj4RFwYByjRMuaq4qSLOco/ikDCpLKesB8W1w2q+Q==}
+    peerDependencies:
+      react: ^18 || ^19
+      typescript: '>=5.1.0'
+    peerDependenciesMeta:
+      typescript:
         optional: true
 
   fsevents@2.3.3:
@@ -8949,6 +8961,12 @@ snapshots:
     optionalDependencies:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
+
+  frimousse@0.4.0(react@19.3.0)(typescript@6.0.3):
+    dependencies:
+      react: 19.3.0
+    optionalDependencies:
+      typescript: 6.0.3
 
   fsevents@2.3.3:
     optional: true

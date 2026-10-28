@@ -48,10 +48,22 @@ import { randomGalleryCover } from "#/lib/note-covers";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { BlockToolbar, moveBlock } from "./block-toolbar";
-import { Callout, Embed, FILE_EVENT, MediaLayout, NoteFile } from "./blocks";
+import {
+	Callout,
+	EMOJI_EVENT,
+	Embed,
+	FILE_EVENT,
+	MediaLayout,
+	NoteFile,
+} from "./blocks";
 import { CodeBlock } from "./code-block";
 import { ColorHighlight, NOTE_COLORS, TextColor } from "./colors";
-import { EmojiSuggest, TableOfContents } from "./extras";
+import {
+	CalloutMenu,
+	EmojiSuggest,
+	NoteEmojiPopover,
+	TableOfContents,
+} from "./extras";
 import { InsertDialog } from "./insert-dialog";
 import { ItemEmbed, LinkCard } from "./item-embed";
 import { peopleMention } from "./mention";
@@ -270,6 +282,47 @@ export function NoteEditor({
 		editor?.setEditable(editable, false);
 		editorRef.current = editor;
 	}, [editor, editable]);
+	// the emoji picker at the cursor (the Emoji block), and a callout's kind from its icon
+	const [emojiAt, setEmojiAt] = useState<{
+		rect: DOMRect;
+		pick: (emoji: string) => void;
+	} | null>(null);
+	const [calloutAt, setCalloutAt] = useState<{
+		rect: DOMRect;
+		pos: number;
+		variant: string;
+	} | null>(null);
+	useEffect(() => {
+		if (!editor || !editable) return;
+		const atCursor = () => {
+			const { from } = editor.state.selection;
+			const c = editor.view.coordsAtPos(from);
+			setEmojiAt({
+				rect: new DOMRect(c.left, c.top, 0, c.bottom - c.top),
+				pick: (emoji) => editor.chain().focus().insertContent(emoji).run(),
+			});
+		};
+		const onCalloutIcon = (e: MouseEvent) => {
+			const icon = (e.target as Element | null)?.closest?.(".callout-icon");
+			const box = icon?.closest('[data-type="callout"]');
+			if (!icon || !box) return;
+			const pos = editor.view.posAtDOM(box, 0) - 1;
+			const node = editor.state.doc.nodeAt(pos);
+			if (node?.type.name !== "callout") return;
+			e.preventDefault();
+			setCalloutAt({
+				rect: icon.getBoundingClientRect(),
+				pos,
+				variant: node.attrs.variant,
+			});
+		};
+		window.addEventListener(EMOJI_EVENT, atCursor);
+		editor.view.dom.addEventListener("click", onCalloutIcon);
+		return () => {
+			window.removeEventListener(EMOJI_EVENT, atCursor);
+			editor.view.dom.removeEventListener("click", onCalloutIcon);
+		};
+	}, [editor, editable]);
 	const words =
 		useEditorState({
 			editor,
@@ -434,6 +487,29 @@ export function NoteEditor({
 				)}
 				<EditorContent editor={editor} className="note-body" />
 				{editor && editable && <NoteTail editor={editor} />}
+				{editor && calloutAt && (
+					<CalloutMenu
+						at={calloutAt.rect}
+						current={calloutAt.variant}
+						onPick={(variant) =>
+							editor.view.dispatch(
+								editor.state.tr.setNodeAttribute(
+									calloutAt.pos,
+									"variant",
+									variant,
+								),
+							)
+						}
+						onClose={() => setCalloutAt(null)}
+					/>
+				)}
+				{emojiAt && (
+					<NoteEmojiPopover
+						at={emojiAt.rect}
+						onPick={emojiAt.pick}
+						onClose={() => setEmojiAt(null)}
+					/>
+				)}
 				{editor && words > 0 && (
 					<p className="note-stats faint">
 						{words} {words === 1 ? "word" : "words"} ·{" "}

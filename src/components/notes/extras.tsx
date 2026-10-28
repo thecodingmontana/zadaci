@@ -9,8 +9,11 @@ import {
 	useEditorState,
 } from "@tiptap/react";
 import Suggestion, { type SuggestionProps } from "@tiptap/suggestion";
+import { Popover } from "radix-ui";
 import { forwardRef } from "react";
+import { EmojiPicker } from "#/components/q/emoji-picker";
 import { cn } from "#/lib/utils";
+import { CALLOUT_VARIANTS } from "./blocks";
 import { type ListHandle, popup, useListNav } from "./slash-menu";
 
 // Smaller note helpers: ":" to type an emoji, and a table of contents block.
@@ -145,5 +148,98 @@ function TocView({ editor }: NodeViewProps) {
 				</p>
 			)}
 		</NodeViewWrapper>
+	);
+}
+
+/** The emoji picker in a page, opened at the cursor or beside a callout's icon. */
+export function NoteEmojiPopover({
+	at,
+	onPick,
+	onClose,
+}: {
+	at: DOMRect;
+	onPick: (emoji: string) => void;
+	onClose: () => void;
+}) {
+	return (
+		<Popover.Root open onOpenChange={(open) => !open && onClose()}>
+			<Popover.Anchor
+				virtualRef={{ current: { getBoundingClientRect: () => at } }}
+			/>
+			<Popover.Portal>
+				<Popover.Content
+					className="pop enter"
+					side="bottom"
+					align="start"
+					sideOffset={6}
+					collisionPadding={8}
+					style={{ width: 300, zIndex: 80 }}
+				>
+					<EmojiPicker
+						onPick={(emoji) => {
+							onPick(emoji);
+							onClose();
+						}}
+					/>
+				</Popover.Content>
+			</Popover.Portal>
+		</Popover.Root>
+	);
+}
+
+/** Picks a callout's kind, opened from its icon. */
+export function CalloutMenu({
+	at,
+	current,
+	onPick,
+	onClose,
+}: {
+	at: DOMRect;
+	current: string;
+	onPick: (variant: string) => void;
+	onClose: () => void;
+}) {
+	return (
+		<Popover.Root open onOpenChange={(open) => !open && onClose()}>
+			<Popover.Anchor
+				virtualRef={{ current: { getBoundingClientRect: () => at } }}
+			/>
+			<Popover.Portal>
+				<Popover.Content
+					className="pop enter callout-menu"
+					side="bottom"
+					align="start"
+					sideOffset={6}
+					collisionPadding={8}
+					style={{ width: 180, zIndex: 80, padding: 4 }}
+				>
+					{CALLOUT_VARIANTS.map((v) => (
+						<button
+							key={v.id}
+							type="button"
+							className={cn("mi", v.id === current && "on")}
+							data-variant={v.id}
+							style={{ width: "100%" }}
+							onClick={() => {
+								onPick(v.id);
+								onClose();
+							}}
+						>
+							<span
+								className={cn(v.icon, "callout-opt size-4")}
+								aria-hidden="true"
+							/>
+							<span className="grow">{v.label}</span>
+							{v.id === current && (
+								<span
+									className="icon-[solar--check-read-linear] size-4"
+									aria-hidden="true"
+								/>
+							)}
+						</button>
+					))}
+				</Popover.Content>
+			</Popover.Portal>
+		</Popover.Root>
 	);
 }

@@ -1,10 +1,6 @@
-import type { ReactNode } from "react";
-import { Menu, MenuContent, MenuTrigger } from "./menu";
-
-const EMOJI =
-	"📄 📝 📌 📎 📚 📘 📗 📕 🗂️ 🗒️ 💡 🎯 🚀 ✅ ⭐ 🔥 🧭 🧪 🛠️ 🎨 📣 📈 💬 🗓️ 🔒 🌱 🏁 🧩 ❤️ 👋".split(
-		" ",
-	);
+import { type ReactNode, useState } from "react";
+import { PickPopover } from "#/components/tasks/pick";
+import { EmojiPicker } from "./emoji-picker";
 
 /** The emoji picker for an icon (a note page, a bookmark collection), opened from its trigger. */
 export function IconMenu({
@@ -18,30 +14,30 @@ export function IconMenu({
 	disabled?: boolean;
 	children: ReactNode;
 }) {
+	const [open, setOpen] = useState(false);
+	const pick = (value: string | null) => {
+		onPick(value);
+		setOpen(false);
+	};
+	if (disabled) return children;
 	return (
-		<Menu>
-			<MenuTrigger asChild disabled={disabled}>
-				{children}
-			</MenuTrigger>
-			<MenuContent width={236} align="start">
-				<div className="emoji-grid">
-					{EMOJI.map((e) => (
-						<button key={e} type="button" onClick={() => onPick(e)}>
-							{e}
-						</button>
-					))}
-				</div>
-				{icon && (
-					<button
-						type="button"
-						className="mi"
-						style={{ width: "100%" }}
-						onClick={() => onPick(null)}
-					>
-						Remove icon
-					</button>
-				)}
-			</MenuContent>
-		</Menu>
+		<PickPopover
+			trigger={children}
+			open={open}
+			onOpenChange={setOpen}
+			width={300}
+		>
+			<EmojiPicker onPick={pick} />
+			{icon && (
+				<button
+					type="button"
+					className="mi"
+					style={{ width: "100%" }}
+					onClick={() => pick(null)}
+				>
+					Remove icon
+				</button>
+			)}
+		</PickPopover>
 	);
 }

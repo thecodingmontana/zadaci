@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { z } from "zod";
 import { db, tables } from "#/db";
+import { isEmoji } from "#/lib/emoji";
 import { isUploadUrl, MAX_BYTES } from "#/lib/files";
 import { hasRight } from "#/lib/permissions";
 import { taskKey } from "#/lib/tasks";
@@ -130,7 +131,8 @@ export const taskExtrasTypeDefs = /* GraphQL */ `
 	}
 `;
 
-export const EMOJI = ["👍", "❤️", "🎉", "👀", "🚀", "😄", "🙏", "✅"];
+/** Different emoji one comment can collect, so reactions never pile data onto it. */
+const MAX_REACTIONS = 20;
 const fileId = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 16);
 
 export const commentRows = (where: ReturnType<typeof and>) =>
@@ -584,12 +586,22 @@ export const taskExtrasResolvers = {
 			args: { slug: string; id: string; emoji: string },
 			ctx: GraphQLContext,
 		) => {
-			if (!EMOJI.includes(args.emoji)) badInput("Pick one of the reactions");
+			if (!isEmoji(args.emoji)) badInput("Pick an emoji");
 			const { comment, workspace, user } = await requireComment(
 				ctx,
 				args.slug,
 				args.id,
 			);
+			const used = Object.entries(
+				(comment.reactions ?? {}) as Record<string, string[]>,
+			).filter(([, ids]) => ids.length > 0);
+			if (
+				!used.some(([emoji]) => emoji === args.emoji) &&
+				used.length >= MAX_REACTIONS
+			)
+				badInput(
+					`A comment can have up to ${MAX_REACTIONS} different reactions`,
+				);
 			const me = workspace.memberId ?? "";
 			const list = sql`coalesce(${tables.comment.reactions} -> ${args.emoji}::text, '[]'::jsonb)`;
 			// toggled in one statement, so two people reacting at once both count

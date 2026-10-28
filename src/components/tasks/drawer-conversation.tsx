@@ -2,6 +2,7 @@ import type { Reference } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
 import { Fragment, useRef, useState } from "react";
 import { Av } from "#/components/q/av";
+import { EmojiPicker } from "#/components/q/emoji-picker";
 import { useModKey } from "#/components/shell/command-menu";
 import {
 	type ActivityItem,
@@ -132,6 +133,7 @@ function CommentItem({
 	const [react] = useMutation(REACT_TO_COMMENT, {
 		refetchQueries: ["TaskDetail"],
 	});
+	const [reacting, setReacting] = useState(false);
 	// reactions stay quiet unless they fail: a toast per emoji click would be noise
 	const toggle = (emoji: string) =>
 		react({ variables: { slug, id: c.id, emoji } }).catch((error: Error) =>
@@ -190,6 +192,9 @@ function CommentItem({
 						</button>
 					))}
 					<PickPopover
+						open={reacting}
+						onOpenChange={setReacting}
+						width={300}
 						trigger={
 							<button
 								type="button"
@@ -204,19 +209,30 @@ function CommentItem({
 							</button>
 						}
 					>
-						<div className="row" style={{ gap: 2, padding: 4 }}>
+						{/* the usual ones a tap away, any emoji below */}
+						<div className="row" style={{ gap: 2, padding: "6px 6px 0" }}>
 							{EMOJI.map((e) => (
 								<button
 									key={e}
 									type="button"
 									className="ibtn"
 									aria-label={`React ${e}`}
-									onClick={() => toggle(e)}
+									onClick={() => {
+										toggle(e);
+										setReacting(false);
+									}}
 								>
 									{e}
 								</button>
 							))}
 						</div>
+						<EmojiPicker
+							autoFocus={false}
+							onPick={(e) => {
+								toggle(e);
+								setReacting(false);
+							}}
+						/>
 					</PickPopover>
 				</div>
 			</div>
@@ -235,6 +251,7 @@ function Composer({
 	const mod = useModKey();
 	const ref = useRef<HTMLTextAreaElement>(null);
 	const [text, setText] = useState("");
+	const [addingEmoji, setAddingEmoji] = useState(false);
 	const [mention, setMention] = useState<string | null>(null);
 	// the comment shows at once and the server's copy replaces it; feeds and counts refresh after
 	const [post, { loading }] = useMutation(ADD_COMMENT, {
@@ -366,6 +383,38 @@ function Composer({
 								aria-hidden="true"
 							/>
 						</button>
+						<PickPopover
+							open={addingEmoji}
+							onOpenChange={setAddingEmoji}
+							width={300}
+							trigger={
+								<button
+									type="button"
+									className="ibtn ibtn-xs"
+									data-tip="Add an emoji"
+									aria-label="Add an emoji"
+								>
+									<span
+										className="icon-[solar--smile-circle-linear] size-3.5"
+										aria-hidden="true"
+									/>
+								</button>
+							}
+						>
+							<EmojiPicker
+								onPick={(e) => {
+									// in at the cursor, which then sits after it
+									const el = ref.current;
+									const at = el?.selectionStart ?? text.length;
+									setText(text.slice(0, at) + e + text.slice(at));
+									setAddingEmoji(false);
+									requestAnimationFrame(() => {
+										el?.focus();
+										el?.setSelectionRange(at + e.length, at + e.length);
+									});
+								}}
+							/>
+						</PickPopover>
 						<span className="sp" />
 						<span className="faint hide-m" style={{ fontSize: 11 }}>
 							{mod}+Enter
