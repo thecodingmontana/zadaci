@@ -12,12 +12,14 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Youtube from "@tiptap/extension-youtube";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { useEffect } from "react";
 import "katex/dist/katex.min.css";
 import { Callout, Embed, MediaLayout, NoteFile } from "./blocks";
 import { CodeBlock } from "./code-block";
 import { ColorHighlight, TextColor } from "./colors";
 import { TableOfContents } from "./extras";
 import { ItemEmbed, LinkCard } from "./item-embed";
+import { watchMediaLoading } from "./media-loading";
 import { ReadOnlyMention } from "./mention";
 
 // A page shown read-only (public links): the editor's blocks without editing, the "/" menu
@@ -58,5 +60,10 @@ export function ReadOnlyDoc({ doc }: { doc: unknown }) {
 			LinkCard,
 		],
 	});
+	// pictures, videos and audio shimmer until they've loaded
+	useEffect(
+		() => (editor ? watchMediaLoading(editor.view.dom) : undefined),
+		[editor],
+	);
 	return <EditorContent editor={editor} className="note-body" />;
 }

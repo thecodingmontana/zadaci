@@ -37,8 +37,15 @@ export async function uploadToNote(
 // While a file uploads, a placeholder block holds its place in the page; it moves with edits
 // around it, and the uploaded block replaces it (or it just goes, if the upload fails).
 const uploads = new PluginKey<DecorationSet>("noteUploads");
+type UploadKind = "image" | "audio" | "file";
+// the skeleton's inner bars, shaped like what will land: a player, or a file card
+const PARTS: Record<UploadKind, string[]> = {
+	image: [],
+	audio: ["play", "track", "time"],
+	file: ["icon", "name", "size"],
+};
 type UploadMeta =
-	| { add: { id: object; pos: number; image: boolean; name: string } }
+	| { add: { id: object; pos: number; kind: UploadKind; name: string } }
 	| { remove: object };
 
 export const UploadPlaceholders = Extension.create({
@@ -53,20 +60,18 @@ export const UploadPlaceholders = Extension.create({
 						let next = set.map(tr.mapping, tr.doc);
 						const meta = tr.getMeta(uploads) as UploadMeta | undefined;
 						if (meta && "add" in meta) {
-							const { id, pos, image, name } = meta.add;
+							const { id, pos, kind, name } = meta.add;
 							const el = document.createElement("div");
-							el.className = `upload-sk ${image ? "image" : "file"}`;
+							el.className = `upload-sk ${kind}`;
 							el.setAttribute("aria-busy", "true");
 							// screen readers hear what's loading; on screen it's only the skeleton
 							el.setAttribute("aria-label", `Uploading ${name}`);
 							el.setAttribute("role", "status");
-							// a file card's shape: icon, name and size bars
-							if (!image)
-								for (const part of ["icon", "name", "size"]) {
-									const bar = document.createElement("span");
-									bar.className = `upload-sk-${part}`;
-									el.append(bar);
-								}
+							for (const part of PARTS[kind]) {
+								const bar = document.createElement("span");
+								bar.className = `upload-sk-${part}`;
+								el.append(bar);
+							}
 							next = next.add(tr.doc, [
 								Decoration.widget(pos, el, { id, side: -1 }),
 							]);
@@ -107,9 +112,14 @@ export function addFileToNote(
 ) {
 	const id = {};
 	const image = file.type.startsWith("image/");
+	const kind: UploadKind = image
+		? "image"
+		: file.type.startsWith("audio/")
+			? "audio"
+			: "file";
 	editor.view.dispatch(
 		editor.state.tr.setMeta(uploads, {
-			add: { id, pos: blockGap(editor.state, pos), image, name: file.name },
+			add: { id, pos: blockGap(editor.state, pos), kind, name: file.name },
 		}),
 	);
 	const done = () =>

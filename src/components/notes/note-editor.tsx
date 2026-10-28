@@ -66,6 +66,7 @@ import {
 } from "./extras";
 import { InsertDialog } from "./insert-dialog";
 import { ItemEmbed, LinkCard } from "./item-embed";
+import { watchMediaLoading } from "./media-loading";
 import { peopleMention } from "./mention";
 import { NoteActions } from "./note-actions";
 import { NoteCover } from "./note-cover";
@@ -335,6 +336,11 @@ export function NoteEditor({
 			selector: ({ editor: e }) =>
 				(e?.storage.characterCount?.words() as number | undefined) ?? 0,
 		}) ?? 0;
+	// pictures, videos and audio shimmer until they've loaded
+	useEffect(
+		() => (editor ? watchMediaLoading(editor.view.dom) : undefined),
+		[editor],
+	);
 	// the File and Audio blocks from the "/" menu
 	// biome-ignore lint/correctness/useExhaustiveDependencies: upload only closes over this page
 	useEffect(() => {

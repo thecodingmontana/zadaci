@@ -1396,14 +1396,22 @@ a.item-embed:hover {
 	height: 220px;
 	background: var(--q-surface-2);
 }
-.note-body .tiptap .upload-sk.file {
+.note-body .tiptap .upload-sk.file,
+.note-body .tiptap .upload-sk.audio {
 	height: 46px;
 	padding: 0 12px;
 	border: 1px solid var(--q-border);
 }
+.note-body .tiptap .upload-sk.audio {
+	height: 54px;
+	border-radius: 999px;
+}
 .upload-sk-icon,
 .upload-sk-name,
-.upload-sk-size {
+.upload-sk-size,
+.upload-sk-play,
+.upload-sk-track,
+.upload-sk-time {
 	height: 10px;
 	border-radius: 4px;
 	background: var(--q-surface-2);
@@ -1418,6 +1426,18 @@ a.item-embed:hover {
 .upload-sk-size {
 	width: 40px;
 	margin-left: auto;
+}
+.upload-sk-play {
+	width: 28px;
+	height: 28px;
+	border-radius: 999px;
+}
+.upload-sk-track {
+	flex: 1;
+	height: 6px;
+}
+.upload-sk-time {
+	width: 52px;
 }
 .note-body .tiptap .upload-sk::after {
 	content: "";
@@ -1441,6 +1461,42 @@ a.item-embed:hover {
 }
 @media (prefers-reduced-motion: reduce) {
 	.note-body .tiptap .upload-sk::after {
+		animation: none;
+	}
+}
+
+/* pictures, videos, embeds and audio shimmer until they've loaded (media-loading.ts) */
+.note-body .tiptap img:not([data-loaded]),
+.note-body .tiptap iframe:not([data-loaded]),
+.note-body .tiptap audio:not([data-loaded]) {
+	background:
+		linear-gradient(
+			100deg,
+			var(--q-surface-2) 30%,
+			color-mix(in srgb, var(--q-surface) 70%, var(--q-surface-2)) 50%,
+			var(--q-surface-2) 70%
+		)
+		0 0 / 200% 100%;
+	animation: media-shimmer 1.3s ease-in-out infinite;
+	border-radius: var(--q-r-sm);
+}
+/* a picture has no size of its own until it loads: hold a picture-shaped space */
+.note-body .tiptap img:not([data-loaded]) {
+	min-width: min(100%, 320px);
+	min-height: 180px;
+}
+@keyframes media-shimmer {
+	from {
+		background-position: 100% 0;
+	}
+	to {
+		background-position: -100% 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.note-body .tiptap img:not([data-loaded]),
+	.note-body .tiptap iframe:not([data-loaded]),
+	.note-body .tiptap audio:not([data-loaded]) {
 		animation: none;
 	}
 }
