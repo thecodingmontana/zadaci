@@ -21,7 +21,6 @@ export function EmojiPicker({
 				className="input input-sm emoji-search"
 				placeholder="Search emoji"
 				aria-label="Search emoji"
-				// biome-ignore lint/a11y/noAutofocus: the picker opens to search
 				autoFocus={autoFocus}
 			/>
 			<Picker.Viewport className="emoji-viewport">
