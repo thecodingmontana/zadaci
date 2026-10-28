@@ -11,7 +11,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useAssistant } from "#/components/ai/assistant-panel";
+import { useAssistant } from "#/components/ai/assistant-context";
 import { projectColor } from "#/components/projects/bits";
 import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";

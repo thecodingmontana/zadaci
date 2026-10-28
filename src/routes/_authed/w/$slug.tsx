@@ -5,19 +5,17 @@ import {
 	Outlet,
 	useRouter,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { z } from "zod";
 import {
-	AssistantPanel,
 	AssistantProvider,
 	useAssistant,
-} from "#/components/ai/assistant-panel";
+} from "#/components/ai/assistant-context";
 import { AppSidebar, SidebarSkeleton } from "#/components/shell/app-sidebar";
 import { CommandMenuProvider } from "#/components/shell/command-menu";
 import { LiveUpdates } from "#/components/shell/live-updates";
 import { ShellProvider, useShell } from "#/components/shell/shell-state";
 import { BottomNav, Topbar } from "#/components/shell/topbar";
-import { TaskDrawer } from "#/components/tasks/drawer";
 import { NewTaskProvider } from "#/components/tasks/new-task";
 import { DataTips, TooltipProvider } from "#/components/ui/tooltip";
 import {
@@ -30,6 +28,17 @@ import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
 import { getSidebarOpen } from "#/lib/session";
 import { cn } from "#/lib/utils";
+
+// The task drawer and Zad's panel load the first time they open, so a page (on a phone above
+// all) doesn't download and run them before its menu and search work.
+const TaskDrawer = lazy(() =>
+	import("#/components/tasks/drawer").then((m) => ({ default: m.TaskDrawer })),
+);
+const AssistantPanel = lazy(() =>
+	import("#/components/ai/assistant-panel").then((m) => ({
+		default: m.AssistantPanel,
+	})),
+);
 
 export const Route = createFileRoute("/_authed/w/$slug")({
 	// ?task=<id> opens the task drawer over any workspace page
@@ -170,22 +179,26 @@ function ShellLayout() {
 								<Outlet />
 							</div>
 							{drawerTask.shown && (
-								<TaskDrawer
-									key={drawerTask.shown}
-									slug={slug}
-									taskId={drawerTask.shown}
-									leaving={drawerTask.leaving}
-									onClose={() => setTask(undefined)}
-									onOpen={(id) => setTask(id)}
-								/>
+								<Suspense fallback={null}>
+									<TaskDrawer
+										key={drawerTask.shown}
+										slug={slug}
+										taskId={drawerTask.shown}
+										leaving={drawerTask.leaving}
+										onClose={() => setTask(undefined)}
+										onOpen={(id) => setTask(id)}
+									/>
+								</Suspense>
 							)}
 						</main>
 						{panel.shown && (
-							<AssistantPanel
-								slug={slug}
-								leaving={panel.leaving}
-								threadId={assistantThread(workspace.id, user.id)}
-							/>
+							<Suspense fallback={null}>
+								<AssistantPanel
+									slug={slug}
+									leaving={panel.leaving}
+									threadId={assistantThread(workspace.id, user.id)}
+								/>
+							</Suspense>
 						)}
 						<BottomNav slug={slug} unread={unread.inbox} />
 					</div>

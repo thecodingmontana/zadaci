@@ -1,60 +1,15 @@
 import { useMutation } from "@apollo/client/react";
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useEffect,
-	useState,
-} from "react";
+import { useEffect, useState } from "react";
 import { ConfirmModal } from "#/components/q/confirm";
 import { useCloseOnOutsideClick } from "#/components/tasks/drawer";
 import { DELETE_AI_CONVERSATION } from "#/graphql/operations";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { AssistantChat } from "./assistant-chat";
+import { useAssistant } from "./assistant-context";
 
 // The assistant lives in a side panel you can open from anywhere (the topbar button or ⌘/Ctrl+J).
 // Each person has one chat per workspace; it's kept until they clear it.
-
-type Ctx = {
-	open: boolean;
-	setOpen: (open: boolean) => void;
-	toggle: () => void;
-};
-
-const AssistantContext = createContext<Ctx | null>(null);
-
-// a closed panel when there's no provider (a hot reload briefly makes a new context), never a crash
-const CLOSED: Ctx = { open: false, setOpen: () => {}, toggle: () => {} };
-
-export function useAssistant() {
-	return useContext(AssistantContext) ?? CLOSED;
-}
-
-const KEY = "zadaci-assistant-open";
-
-export function AssistantProvider({ children }: { children: ReactNode }) {
-	const [open, setOpenState] = useState(false);
-	// reopens where you left it, after the first render so SSR and the browser agree
-	useEffect(() => {
-		try {
-			if (localStorage.getItem(KEY) === "1") setOpenState(true);
-		} catch {}
-	}, []);
-	const setOpen = (next: boolean) => {
-		setOpenState(next);
-		try {
-			localStorage.setItem(KEY, next ? "1" : "0");
-		} catch {}
-	};
-	return (
-		<AssistantContext.Provider
-			value={{ open, setOpen, toggle: () => setOpen(!open) }}
-		>
-			{children}
-		</AssistantContext.Provider>
-	);
-}
 
 export function AssistantPanel({
 	slug,

@@ -27,7 +27,21 @@ export function startPwa() {
 		offer = null;
 		emit();
 	});
+	// After a deploy, a tab (or the installed app) left open still runs the old code, whose
+	// files are gone: opening a page, the task panel or a modal would quietly do nothing. Load
+	// the new version instead, once a minute at most, so a real outage can't reload forever.
+	addEventListener("vite:preloadError", (e) => {
+		try {
+			const last = Number(sessionStorage.getItem(RELOADED) ?? 0);
+			if (Date.now() - last < 60_000) return;
+			sessionStorage.setItem(RELOADED, String(Date.now()));
+		} catch {}
+		e.preventDefault();
+		location.reload();
+	});
 }
+
+const RELOADED = "zadaci-reloaded-for-update";
 
 /** The install action while the browser allows it, otherwise null. */
 export function useInstall() {

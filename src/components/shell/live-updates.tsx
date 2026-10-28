@@ -1,5 +1,4 @@
 import { useApolloClient, useQuery } from "@apollo/client/react";
-import { RealtimeClient } from "@supabase/realtime-js";
 import { useEffect } from "react";
 import { REALTIME_CONFIG } from "#/graphql/operations";
 import { TAB_ID } from "#/lib/tab";
@@ -19,38 +18,48 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 		?.realtime;
 	useEffect(() => {
 		if (!config) return;
-		const realtime = new RealtimeClient(`${config.url}/realtime/v1`, {
-			params: { apikey: config.anonKey },
-		});
-		let timer: ReturnType<typeof setTimeout> | undefined;
-		let last = 0;
-		let connected = false;
-		const channel = realtime
-			.channel(`ws:${workspaceId}`)
-			.on("broadcast", { event: "changed" }, (message) => {
-				// this tab made the change, so it's already on screen
-				if (message.payload?.from === TAB_ID) return;
-				// a refresh already on its way covers this change too (a bulk edit becomes one)
-				if (timer) return;
-				timer = setTimeout(
-					() => {
-						timer = undefined;
-						last = Date.now();
-						void client.refetchQueries({ include: "active" });
-					},
-					Math.max(SETTLE_MS, last + MIN_GAP_MS - Date.now()),
-				);
-			})
-			// back after the connection dropped (a sleeping laptop, a phone offline): catch up once
-			.subscribe((status) => {
-				if (status !== "SUBSCRIBED") return;
-				if (connected) void client.refetchQueries({ include: "active" });
-				connected = true;
+		let stop: (() => void) | undefined;
+		let gone = false;
+		// the connection library loads once the page is up, not with it
+		void import("@supabase/realtime-js").then(({ RealtimeClient }) => {
+			if (gone) return;
+			const realtime = new RealtimeClient(`${config.url}/realtime/v1`, {
+				params: { apikey: config.anonKey },
 			});
+			let timer: ReturnType<typeof setTimeout> | undefined;
+			let last = 0;
+			let connected = false;
+			const channel = realtime
+				.channel(`ws:${workspaceId}`)
+				.on("broadcast", { event: "changed" }, (message) => {
+					// this tab made the change, so it's already on screen
+					if (message.payload?.from === TAB_ID) return;
+					// a refresh already on its way covers this change too (a bulk edit becomes one)
+					if (timer) return;
+					timer = setTimeout(
+						() => {
+							timer = undefined;
+							last = Date.now();
+							void client.refetchQueries({ include: "active" });
+						},
+						Math.max(SETTLE_MS, last + MIN_GAP_MS - Date.now()),
+					);
+				})
+				// back after the connection dropped (a sleeping laptop, a phone offline): catch up once
+				.subscribe((status) => {
+					if (status !== "SUBSCRIBED") return;
+					if (connected) void client.refetchQueries({ include: "active" });
+					connected = true;
+				});
+			stop = () => {
+				clearTimeout(timer);
+				void realtime.removeChannel(channel);
+				realtime.disconnect();
+			};
+		});
 		return () => {
-			clearTimeout(timer);
-			void realtime.removeChannel(channel);
-			realtime.disconnect();
+			gone = true;
+			stop?.();
 		};
 	}, [config, workspaceId, client]);
 	return null;

@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Fragment, useState } from "react";
-import { useAssistant } from "#/components/ai/assistant-panel";
+import { useAssistant } from "#/components/ai/assistant-context";
 import { noteTitle } from "#/components/notes/notes-tree";
 import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { Av } from "#/components/q/av";
