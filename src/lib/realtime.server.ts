@@ -42,7 +42,7 @@ export function announceChange(slug: string, from?: string | null) {
 			.from(tables.workspace)
 			.where(eq(tables.workspace.slug, slug));
 		if (!ws) return;
-		await fetch(`${url()}/realtime/v1/api/broadcast`, {
+		const res = await fetch(`${url()}/realtime/v1/api/broadcast`, {
 			method: "POST",
 			headers: {
 				apikey: secretKey() ?? (key() as string),
@@ -61,6 +61,8 @@ export function announceChange(slug: string, from?: string | null) {
 			}),
 			signal: AbortSignal.timeout(4000),
 		});
+		// a refused send (a wrong or missing key) would otherwise fail without a trace
+		if (!res.ok) throw new Error(`Supabase answered ${res.status}`);
 	})().catch((error) =>
 		console.warn("[realtime] couldn't announce a change:", String(error)),
 	);
