@@ -17,6 +17,8 @@ type Item = {
 	id: string;
 	body: string;
 	files: Draft[];
+	/** people picked from the @ list */
+	mentionIds: string[];
 	status: "sending" | "failed";
 	/** why it failed, in the server's words */
 	error?: string;
@@ -104,6 +106,7 @@ export function useOutbox({
 					body: item.body,
 					parentId,
 					attachments,
+					mentionIds: item.mentionIds,
 				},
 			});
 			if (!data) throw new Error("No reply from the server");
@@ -117,11 +120,12 @@ export function useOutbox({
 
 	return {
 		items,
-		send: (body: string, files: Draft[]) => {
+		send: (body: string, files: Draft[], mentionIds: string[] = []) => {
 			const item: Item = {
 				id: crypto.randomUUID(),
 				body,
 				files,
+				mentionIds,
 				status: "sending",
 				pct: 0,
 				uploaded: [],

@@ -42,6 +42,8 @@ export type ChatMessage = {
 	lastReplyAt: string | null;
 	pinned: boolean;
 	attachments: ChatAttachment[];
+	mentions: string[];
+	mentionsMe: boolean;
 };
 
 const CHANNEL = gql`
@@ -105,6 +107,8 @@ const MESSAGE = gql`
 			type
 			seconds
 		}
+		mentions
+		mentionsMe
 		createdAt
 	}
 `;
@@ -202,6 +206,7 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 		body: string;
 		parentId?: string;
 		attachments?: Omit<ChatAttachment, "seconds">[] & { seconds?: number }[];
+		mentionIds?: string[];
 	}
 > = gql`
 	mutation SendChatMessage(
@@ -210,6 +215,7 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 		$body: String!
 		$parentId: ID
 		$attachments: [ChatAttachmentInput!]
+		$mentionIds: [ID!]
 	) {
 		sendChatMessage(
 			slug: $slug
@@ -217,6 +223,7 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 			body: $body
 			parentId: $parentId
 			attachments: $attachments
+			mentionIds: $mentionIds
 		) {
 			...ChatMessageFields
 		}

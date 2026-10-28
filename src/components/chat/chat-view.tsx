@@ -26,8 +26,10 @@ import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { ChannelDetails } from "./chat-details";
 import {
+	ChatNamesContext,
 	Composer,
 	groupedWith,
+	type Mentionable,
 	MessageRow,
 	MessagesSkeleton,
 } from "./chat-message";
@@ -151,6 +153,7 @@ export function ChatView({
 					channel={open}
 					title={titleOf(open, me?.id)}
 					me={me}
+					everyone={people}
 					onMenu={() => setDrawer(true)}
 				/>
 			) : // still finding the conversation: the whole of it as a placeholder
@@ -313,16 +316,23 @@ function Conversation({
 	channel,
 	title,
 	me,
+	everyone,
 	onMenu,
 }: {
 	slug: string;
 	channel: ChatChannel;
 	title: string;
 	me: { id: string; name: string; image: string | null } | undefined;
-
+	/** the workspace's members */
+	everyone: Mentionable[];
 	onMenu: () => void;
 }) {
 	const client = useApolloClient();
+	// who can be @mentioned: everyone in an open channel, otherwise the people in it (not you)
+	const mentionable = (
+		channel.private || channel.teamId ? channel.people : everyone
+	).filter((p) => p.id !== me?.id);
+	const names = new Map(everyone.map((p) => [p.id, p.name]));
 	const meName = me?.name ?? "";
 	const dmFace =
 		channel.people.find((p) => p.id !== me?.id) ?? channel.people[0];
@@ -544,7 +554,7 @@ function Conversation({
 	const typers = Object.keys(typing);
 
 	return (
-		<>
+		<ChatNamesContext.Provider value={names}>
 			<section className="chat-main">
 				<header className="chat-h">
 					<button
@@ -697,8 +707,9 @@ function Conversation({
 								: `Message ${title}`
 					}
 					onTyping={() => say.current("typing", { name: meName })}
-					onSend={(body, files) => {
-						outbox.send(body, files);
+					people={mentionable}
+					onSend={(body, files, mentionIds) => {
+						outbox.send(body, files, mentionIds);
 						requestAnimationFrame(() => {
 							if (list.current)
 								list.current.scrollTop = list.current.scrollHeight;
@@ -721,11 +732,12 @@ function Conversation({
 					slug={slug}
 					parent={thread}
 					me={me}
+					people={mentionable}
 					onClose={() => setSide(null)}
 					onChange={() => void refetch()}
 				/>
 			)}
-		</>
+		</ChatNamesContext.Provider>
 	);
 }
 

@@ -5871,6 +5871,44 @@ fieldset.ai-approve {
 .chat-msg:hover {
   background: var(--q-surface-2);
 }
+/* @mentions: the name marked; a message that mentions you, marked down its side */
+.chat-at {
+  padding: 0 2px;
+  border-radius: 4px;
+  background: var(--q-accent-soft);
+  color: var(--q-accent);
+  font-weight: 550;
+}
+.chat-msg.mentions-me {
+  background: color-mix(in srgb, var(--q-accent) 6%, transparent);
+  box-shadow: inset 2px 0 0 var(--q-accent);
+}
+.chat-at-pop {
+  position: absolute;
+  left: 10px;
+  bottom: calc(100% + 6px);
+  z-index: 5;
+  width: 260px;
+  padding: 4px;
+  border: 1px solid var(--q-border);
+  border-radius: 10px;
+  background: var(--q-surface);
+  box-shadow: var(--q-shadow-pop);
+}
+.chat-at-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: var(--q-fs-sm);
+  text-align: left;
+}
+.chat-at-opt.on {
+  background: var(--q-surface-2);
+}
 .chat-msg.pinned {
   background: color-mix(in srgb, #f5a524 6%, transparent);
 }
@@ -5945,6 +5983,7 @@ fieldset.ai-approve {
   font-size: var(--q-fs-xs);
 }
 .chat-compose {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;

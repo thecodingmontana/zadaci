@@ -4,6 +4,7 @@ import { CHAT_MESSAGES, type ChatMessage } from "#/graphql/chat-operations";
 import {
 	Composer,
 	groupedWith,
+	type Mentionable,
 	MessageRow,
 	MessagesSkeleton,
 } from "./chat-message";
@@ -16,12 +17,15 @@ export function ThreadPanel({
 	slug,
 	parent,
 	me,
+	people,
 	onClose,
 	onChange,
 }: {
 	slug: string;
 	parent: ChatMessage;
 	me: { name: string; image: string | null } | undefined;
+	/** who can be @mentioned in it */
+	people: Mentionable[];
 	onClose: () => void;
 	/** a reply landed: the conversation's reply counts change */
 	onChange: () => void;
@@ -107,7 +111,10 @@ export function ThreadPanel({
 			</div>
 			<Composer
 				placeholder="Reply…"
-				onSend={(body, files) => outbox.send(body, files)}
+				people={people}
+				onSend={(body, files, mentionIds) =>
+					outbox.send(body, files, mentionIds)
+				}
 			/>
 		</aside>
 	);
