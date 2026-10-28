@@ -1385,21 +1385,39 @@ a.item-embed:hover {
 .note-body .tiptap .upload-sk {
 	position: relative;
 	display: flex;
-	align-items: flex-end;
+	align-items: center;
+	gap: 10px;
 	margin: 0.4em 0;
-	padding: 10px 12px;
 	overflow: hidden;
 	border-radius: var(--q-r-sm);
-	background: var(--q-surface-2);
 	user-select: none;
 }
 .note-body .tiptap .upload-sk.image {
 	height: 220px;
+	background: var(--q-surface-2);
 }
 .note-body .tiptap .upload-sk.file {
 	height: 46px;
-	align-items: center;
+	padding: 0 12px;
 	border: 1px solid var(--q-border);
+}
+.upload-sk-icon,
+.upload-sk-name,
+.upload-sk-size {
+	height: 10px;
+	border-radius: 4px;
+	background: var(--q-surface-2);
+}
+.upload-sk-icon {
+	width: 20px;
+	height: 20px;
+}
+.upload-sk-name {
+	width: 40%;
+}
+.upload-sk-size {
+	width: 40px;
+	margin-left: auto;
 }
 .note-body .tiptap .upload-sk::after {
 	content: "";
@@ -1412,12 +1430,6 @@ a.item-embed:hover {
 		transparent 70%
 	);
 	animation: upload-shimmer 1.3s ease-in-out infinite;
-}
-.upload-sk-name {
-	position: relative;
-	z-index: 1;
-	color: var(--q-text-3);
-	font-size: var(--q-fs-sm);
 }
 @keyframes upload-shimmer {
 	from {

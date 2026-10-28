@@ -57,10 +57,16 @@ export const UploadPlaceholders = Extension.create({
 							const el = document.createElement("div");
 							el.className = `upload-sk ${image ? "image" : "file"}`;
 							el.setAttribute("aria-busy", "true");
-							const label = document.createElement("span");
-							label.className = "upload-sk-name";
-							label.textContent = `Uploading ${name}…`;
-							el.append(label);
+							// screen readers hear what's loading; on screen it's only the skeleton
+							el.setAttribute("aria-label", `Uploading ${name}`);
+							el.setAttribute("role", "status");
+							// a file card's shape: icon, name and size bars
+							if (!image)
+								for (const part of ["icon", "name", "size"]) {
+									const bar = document.createElement("span");
+									bar.className = `upload-sk-${part}`;
+									el.append(bar);
+								}
 							next = next.add(tr.doc, [
 								Decoration.widget(pos, el, { id, side: -1 }),
 							]);
