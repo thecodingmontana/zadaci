@@ -888,9 +888,18 @@ button.code-lang:hover {
 	/* biome-ignore lint/complexity/noImportantStyles: Shiki puts its colours in inline styles */
 	color: var(--shiki-dark) !important;
 }
+/* touch screens can't hover: the bar is a header row above the code, never over it */
 @media (hover: none) {
 	.code-bar {
+		position: static;
+		justify-content: flex-end;
+		margin: 6px 6px 0;
+		background: none;
+		box-shadow: none;
 		opacity: 1;
+	}
+	.note-body .tiptap .code-wrap > pre {
+		padding-top: 6px;
 	}
 }
 .code-bar .code-lang:focus {
