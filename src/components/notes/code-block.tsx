@@ -4,6 +4,7 @@ import {
 	NodeViewWrapper,
 	ReactNodeViewRenderer,
 } from "@tiptap/react";
+import { useEffect, useState } from "react";
 import CodeBlockShiki from "tiptap-extension-code-block-shiki";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "#/components/q/menu";
 import { copy } from "#/lib/toast";
@@ -117,7 +118,10 @@ function CodeBlockView({ node, updateAttributes, editor }: NodeViewProps) {
 	const theme = themeOf(node.attrs.themes);
 
 	return (
-		<NodeViewWrapper className={cn("code-wrap", wrap && "wrap")}>
+		<NodeViewWrapper
+			className={cn("code-wrap", wrap && "wrap")}
+			style={useThemeBackground(theme)}
+		>
 			<div className="code-bar" contentEditable={false}>
 				{editor.isEditable ? (
 					<Menu>
@@ -247,3 +251,36 @@ export const CodeBlock = CodeBlockShiki.extend({
 	// the app switches themes with a "dark" class; notes.css swaps the token colours
 	themes: { light: DEFAULT_THEME.light, dark: DEFAULT_THEME.dark },
 });
+
+/** A chosen theme's own backgrounds, light and dark, read from Shiki (the default keeps the page's grey). */
+function useThemeBackground(theme: Theme) {
+	const [bg, setBg] = useState<{ light: string; dark: string } | null>(null);
+	useEffect(() => {
+		setBg(null);
+		if (theme.id === DEFAULT_THEME.id) return;
+		let current = true;
+		void import("shiki").then(async ({ bundledThemes }) => {
+			const read = async (name: keyof typeof bundledThemes) => {
+				const t = (await bundledThemes[name]()).default as {
+					bg?: string;
+					colors?: Record<string, string>;
+				};
+				return t.bg ?? t.colors?.["editor.background"] ?? null;
+			};
+			const [light, dark] = await Promise.all([
+				read(theme.light),
+				read(theme.dark),
+			]);
+			if (current && light && dark) setBg({ light, dark });
+		});
+		return () => {
+			current = false;
+		};
+	}, [theme]);
+	return bg
+		? ({
+				"--code-bg": bg.light,
+				"--code-bg-dark": bg.dark,
+			} as React.CSSProperties)
+		: undefined;
+}

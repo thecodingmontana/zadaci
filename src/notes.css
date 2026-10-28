@@ -819,7 +819,8 @@
 	position: relative;
 	margin: 0.6em 0;
 	border-radius: var(--q-r-md, 10px);
-	background: var(--q-surface-2);
+	/* a picked colour theme brings its own background (code-block.tsx) */
+	background: var(--code-bg, var(--q-surface-2));
 	border: 1px solid var(--q-border);
 }
 .note-body .tiptap .code-wrap > pre {
@@ -1301,4 +1302,7 @@ a.item-embed:hover {
 	padding: 8px;
 	overflow-x: auto;
 	text-align: center;
+}
+.dark .note-body .tiptap .code-wrap {
+	background: var(--code-bg-dark, var(--q-surface-2));
 }
