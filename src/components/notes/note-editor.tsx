@@ -12,6 +12,7 @@ import { TableKit } from "@tiptap/extension-table";
 import TextAlign from "@tiptap/extension-text-align";
 import Youtube from "@tiptap/extension-youtube";
 import { Placeholder } from "@tiptap/extensions";
+import { NodeSelection } from "@tiptap/pm/state";
 import {
 	type Editor,
 	EditorContent,
@@ -39,7 +40,8 @@ import {
 import { randomGalleryCover } from "#/lib/note-covers";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
-import { Callout, Embed } from "./blocks";
+import { BlockToolbar, moveBlock } from "./block-toolbar";
+import { Callout, Embed, MediaLayout } from "./blocks";
 import { CodeBlock } from "./code-block";
 import { InsertDialog } from "./insert-dialog";
 import { ItemEmbed, LinkCard } from "./item-embed";
@@ -186,6 +188,7 @@ export function NoteEditor({
 			DetailsContent,
 			Callout,
 			Embed,
+			MediaLayout,
 			ItemEmbed.configure({ slug }),
 			LinkCard,
 			GlobalDragHandle.configure({
@@ -321,6 +324,7 @@ export function NoteEditor({
 					}}
 				/>
 				{editor && editable && <SelectionMenu editor={editor} />}
+				{editor && editable && <BlockToolbar editor={editor} />}
 				{/* rendered before the editor starts: the drag-handle extension looks it up by id */}
 				{editable && <BlockHandle editor={editor} />}
 				{editor && editable && (
@@ -543,25 +547,6 @@ function BlockHandle({ editor }: { editor: Editor | null }) {
 	);
 }
 
-/** Swaps a top-level block with the one above (-1) or below (1). */
-export function moveBlock(editor: Editor, pos: number, dir: -1 | 1) {
-	const { doc, tr } = editor.state;
-	let offset = 0;
-	let index = -1;
-	for (let i = 0; i < doc.childCount; i++) {
-		if (offset === pos) index = i;
-		offset += doc.child(i).nodeSize;
-	}
-	const node = doc.maybeChild(index);
-	const other = doc.maybeChild(index + dir);
-	if (!node || !other) return;
-	const from = dir < 0 ? pos - other.nodeSize : pos;
-	const to = from + node.nodeSize + other.nodeSize;
-	editor.view.dispatch(
-		tr.replaceWith(from, to, dir < 0 ? [node, other] : [other, node]),
-	);
-}
-
 /** The toolbar over selected text: style, bold/italic/underline/strike, link, align, highlight. */
 function SelectionMenu({ editor }: { editor: Editor }) {
 	const [linking, setLinking] = useState(false);
@@ -608,6 +593,13 @@ function SelectionMenu({ editor }: { editor: Editor }) {
 			editor={editor}
 			options={{ placement: "top" }}
 			className="bmenu"
+			// selected text only: a picked image or card gets the block toolbar instead
+			shouldShow={({ editor: e, view, state }) =>
+				e.isEditable &&
+				view.hasFocus() &&
+				!state.selection.empty &&
+				!(state.selection instanceof NodeSelection)
+			}
 		>
 			{linking ? (
 				<form

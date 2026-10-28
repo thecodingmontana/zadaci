@@ -11,7 +11,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Youtube from "@tiptap/extension-youtube";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Callout, Embed } from "./blocks";
+import { Callout, Embed, MediaLayout } from "./blocks";
 import { CodeBlock } from "./code-block";
 import { ItemEmbed, LinkCard } from "./item-embed";
 
@@ -42,6 +42,7 @@ export function ReadOnlyDoc({ doc }: { doc: unknown }) {
 			DetailsContent,
 			Callout,
 			Embed,
+			MediaLayout,
 			ItemEmbed,
 			LinkCard,
 		],
