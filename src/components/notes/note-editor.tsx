@@ -5,6 +5,7 @@ import {
 	DetailsContent,
 	DetailsSummary,
 } from "@tiptap/extension-details";
+import FileHandler from "@tiptap/extension-file-handler";
 import Highlight from "@tiptap/extension-highlight";
 import Image from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
@@ -41,12 +42,13 @@ import { randomGalleryCover } from "#/lib/note-covers";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { BlockToolbar, moveBlock } from "./block-toolbar";
-import { Callout, Embed, MediaLayout } from "./blocks";
+import { Callout, Embed, FILE_EVENT, MediaLayout, NoteFile } from "./blocks";
 import { CodeBlock } from "./code-block";
 import { InsertDialog } from "./insert-dialog";
 import { ItemEmbed, LinkCard } from "./item-embed";
 import { NoteActions } from "./note-actions";
 import { NoteCover } from "./note-cover";
+import { addFileToNote, chooseFile, uploadToNote } from "./note-upload";
 import { SLASH_COMMANDS, SlashCommands } from "./slash-menu";
 
 // A note's page: emoji, title and a Tiptap body. Changes save on their own a moment after
@@ -157,6 +159,7 @@ export function NoteEditor({
 			),
 		});
 
+	const upload = (file: File) => uploadToNote(client, slug, note.id, file);
 	const editor = useEditor({
 		immediatelyRender: false,
 		editable,
@@ -189,6 +192,19 @@ export function NoteEditor({
 			Callout,
 			Embed,
 			MediaLayout,
+			NoteFile,
+			// files pasted or dropped onto the page upload into it
+			FileHandler.configure({
+				onPaste: (ed, files, html) => {
+					// pasted web content brings its own images
+					if (html) return;
+					for (const file of files)
+						void addFileToNote(ed, upload, file, ed.state.selection.anchor);
+				},
+				onDrop: (ed, files, pos) => {
+					for (const file of files) void addFileToNote(ed, upload, file, pos);
+				},
+			}),
 			ItemEmbed.configure({ slug }),
 			LinkCard,
 			GlobalDragHandle.configure({
@@ -201,6 +217,19 @@ export function NoteEditor({
 	});
 	useEffect(() => {
 		editor?.setEditable(editable);
+	}, [editor, editable]);
+	// the File and Audio blocks from the "/" menu
+	// biome-ignore lint/correctness/useExhaustiveDependencies: upload only closes over this page
+	useEffect(() => {
+		if (!editor || !editable) return;
+		const pick = (e: Event) => {
+			const kind = (e as CustomEvent<"file" | "audio">).detail;
+			chooseFile(kind === "audio" ? "audio/*" : "", (file) =>
+				addFileToNote(editor, upload, file, editor.state.selection.anchor),
+			);
+		};
+		window.addEventListener(FILE_EVENT, pick);
+		return () => window.removeEventListener(FILE_EVENT, pick);
 	}, [editor, editable]);
 
 	const setIconTo = (value: string | null) => {

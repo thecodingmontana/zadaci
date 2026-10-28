@@ -9,7 +9,7 @@ import {
 	useState,
 } from "react";
 import { cn } from "#/lib/utils";
-import { requestInsert } from "./blocks";
+import { requestFile, requestInsert } from "./blocks";
 
 // Notion-style "/" menu: type / in the body to pick a block, filter by typing, then
 // Enter or click. The typed "/query" is removed before the block is applied.
@@ -137,6 +137,28 @@ export const SLASH_COMMANDS: Command[] = [
 		icon: "icon-[hugeicons--link-square-02]",
 		run: (c) => {
 			requestInsert("embed");
+			return c;
+		},
+	},
+	{
+		group: "Media",
+		title: "File",
+		alias: "attachment pdf document upload",
+		hint: "Upload a file to open or download",
+		icon: "icon-[solar--file-text-linear]",
+		run: (c) => {
+			requestFile("file");
+			return c;
+		},
+	},
+	{
+		group: "Media",
+		title: "Audio",
+		alias: "sound music voice recording mp3",
+		hint: "Upload audio that plays here",
+		icon: "icon-[solar--music-note-2-linear]",
+		run: (c) => {
+			requestFile("audio");
 			return c;
 		},
 	},

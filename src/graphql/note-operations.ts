@@ -208,10 +208,10 @@ export const NOTE_COVER_UPLOAD: TypedDocumentNode<
 			folder: string;
 		};
 	},
-	{ slug: string; id: string }
+	{ slug: string; id: string; file?: boolean }
 > = gql`
-	mutation NoteCoverUpload($slug: String!, $id: ID!) {
-		noteCoverUpload(slug: $slug, id: $id) {
+	mutation NoteCoverUpload($slug: String!, $id: ID!, $file: Boolean) {
+		noteCoverUpload(slug: $slug, id: $id, file: $file) {
 			url
 			apiKey
 			timestamp

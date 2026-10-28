@@ -140,8 +140,8 @@ export const notesTypeDefs = /* GraphQL */ `
 			parentId: ID
 		): TaskComment!
 		resolveNoteComment(slug: String!, id: ID!, resolved: Boolean!): TaskComment!
-		"a signed slot for uploading this page's cover image"
-		noteCoverUpload(slug: String!, id: ID!): CloudinaryUpload!
+		"a signed slot for the page's pictures; file: true takes any file (attachments, audio)"
+		noteCoverUpload(slug: String!, id: ID!, file: Boolean): CloudinaryUpload!
 		"stars or unstars a page; returns whether it's now starred"
 		toggleNoteFavorite(slug: String!, id: ID!): Boolean!
 	}
@@ -922,18 +922,20 @@ export const notesResolvers = {
 
 		noteCoverUpload: async (
 			_: unknown,
-			args: { slug: string; id: string },
+			args: { slug: string; id: string; file?: boolean | null },
 			ctx: GraphQLContext,
 		) => {
 			const { note } = await requireNote(ctx, args.slug, args.id, "edit");
 			const { cloud, key, secret } = cloudinary();
+			// Cloudinary sorts any file into image, video (audio too) or raw by itself
+			const kind = args.file ? "auto" : "image";
 			const params = {
 				folder: coverFolder(note.id),
 				public_id: generateNanoId().toLowerCase(),
 				timestamp: Math.floor(Date.now() / 1000),
 			};
 			return {
-				url: `https://api.cloudinary.com/v1_1/${cloud}/image/upload`,
+				url: `https://api.cloudinary.com/v1_1/${cloud}/${kind}/upload`,
 				apiKey: key,
 				timestamp: params.timestamp,
 				signature: signCloudinary(params, secret),

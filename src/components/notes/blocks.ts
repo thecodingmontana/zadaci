@@ -190,3 +190,88 @@ export type InsertKind =
 export const INSERT_EVENT = "zadaci:note-insert";
 export const requestInsert = (kind: InsertKind) =>
 	window.dispatchEvent(new CustomEvent(INSERT_EVENT, { detail: kind }));
+
+/** The File and Audio blocks ask for a file; the editor listens for this. */
+export const FILE_EVENT = "zadaci:note-file";
+export const requestFile = (kind: "file" | "audio") =>
+	window.dispatchEvent(new CustomEvent(FILE_EVENT, { detail: kind }));
+
+const fileSize = (bytes: unknown) => {
+	const n = Number(bytes);
+	if (!(n > 0)) return "";
+	return n < 1024 * 1024
+		? `${Math.max(1, Math.round(n / 1024))} KB`
+		: `${(n / 1024 / 1024).toFixed(1)} MB`;
+};
+
+/**
+ * An uploaded file: audio plays in place, anything else is a card to open or download.
+ * Saved pages can be edited by hand, so only an https address is ever linked or played.
+ */
+export const NoteFile = Node.create({
+	name: "noteFile",
+	group: "block",
+	atom: true,
+	draggable: true,
+	addAttributes() {
+		return {
+			src: { default: null, parseHTML: (el) => el.getAttribute("data-src") },
+			name: {
+				default: "File",
+				parseHTML: (el) => el.getAttribute("data-name"),
+			},
+			bytes: {
+				default: null,
+				parseHTML: (el) => Number(el.getAttribute("data-bytes")) || null,
+			},
+			mime: { default: null, parseHTML: (el) => el.getAttribute("data-mime") },
+		};
+	},
+	parseHTML() {
+		return [{ tag: 'div[data-type="note-file"]' }];
+	},
+	renderHTML({ node }) {
+		const { src, name, bytes, mime } = node.attrs;
+		const safe =
+			typeof src === "string" && src.startsWith("https://") ? src : null;
+		const label = String(name || "File");
+		const box = {
+			"data-type": "note-file",
+			"data-src": safe ?? "",
+			"data-name": label,
+			"data-bytes": String(bytes ?? ""),
+			"data-mime": String(mime ?? ""),
+			class: "note-file",
+		};
+		if (!safe) return ["div", box, "This file can't be shown"];
+		if (String(mime).startsWith("audio/"))
+			return [
+				"div",
+				box,
+				["span", { class: "note-file-name" }, label],
+				["audio", { src: safe, controls: "true", preload: "metadata" }],
+			];
+		return [
+			"div",
+			box,
+			[
+				"a",
+				{
+					href: safe,
+					target: "_blank",
+					rel: "noopener noreferrer",
+					class: "note-file-link",
+				},
+				[
+					"span",
+					{
+						class: "icon-[solar--file-text-linear] size-5 note-file-icon",
+						"aria-hidden": "true",
+					},
+				],
+				["span", { class: "note-file-name" }, label],
+				["span", { class: "note-file-size" }, fileSize(bytes)],
+			],
+		];
+	},
+});

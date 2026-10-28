@@ -1,8 +1,6 @@
 import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import { type ReactNode, useEffect, useState } from "react";
-import { sendToCloudinary } from "#/components/tasks/upload";
 import {
-	NOTE_COVER_UPLOAD,
 	UNSPLASH,
 	UNSPLASH_ENABLED,
 	UNSPLASH_PICKED,
@@ -11,11 +9,11 @@ import {
 import { isImageSrc } from "#/lib/note-embeds";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { uploadToNote } from "./note-upload";
 
 // Every image picker in notes (covers, image blocks) offers the same sources: upload a file,
 // paste a link, or pick a photo from Unsplash. Covers add their colour gallery in front.
 
-const MAX_IMAGE = 10 * 1024 * 1024;
 type Tab = "gallery" | "upload" | "link" | "unsplash";
 
 export function ImagePicker({
@@ -96,17 +94,10 @@ function UploadPane({
 	const upload = async (file: File) => {
 		if (!file.type.startsWith("image/"))
 			return toast.error("Pick an image file");
-		if (file.size > MAX_IMAGE) return toast.error("Images can be up to 10 MB");
 		setBusy(true);
 		try {
 			// the page's upload slot (its covers and images share a folder)
-			const { data } = await client.mutate({
-				mutation: NOTE_COVER_UPLOAD,
-				variables: { slug, id: noteId },
-			});
-			if (!data) throw new Error("No upload slot");
-			const { secure_url } = await sendToCloudinary(data.noteCoverUpload, file);
-			onPick(secure_url, file.name);
+			onPick(await uploadToNote(client, slug, noteId, file), file.name);
 		} catch (error) {
 			toast.error("Couldn't upload the image", {
 				desc: (error as Error).message,
@@ -123,7 +114,7 @@ function UploadPane({
 				aria-hidden="true"
 			/>
 			<b>{busy ? "Uploading…" : "Choose an image"}</b>
-			<span className="faint">PNG, JPG, GIF or WebP, up to 10 MB</span>
+			<span className="faint">PNG, JPG, GIF or WebP, up to 5 MB</span>
 			<input
 				type="file"
 				accept="image/*"
