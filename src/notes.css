@@ -1306,3 +1306,13 @@ a.item-embed:hover {
 .dark .note-body .tiptap .code-wrap {
 	background: var(--code-bg-dark, var(--q-surface-2));
 }
+/* Shiki paints its light theme on the block's outer wrapper; the block draws its own background
+   (code-wrap above), so the wrapper's would show as a strip at the corners and edges */
+.note-body .tiptap .node-codeBlock {
+	/* biome-ignore lint/complexity/noImportantStyles: Shiki sets it as an inline style */
+	background: none !important;
+}
+.dark .note-body .tiptap .node-codeBlock {
+	/* biome-ignore lint/complexity/noImportantStyles: Shiki sets the light text colour inline */
+	color: var(--shiki-dark, inherit) !important;
+}
