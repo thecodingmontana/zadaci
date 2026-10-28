@@ -14,6 +14,7 @@ import { tabFrom } from "#/lib/tab";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
 import { aiResolvers, aiTypeDefs } from "./ai.server";
 import { bookmarksResolvers, bookmarksTypeDefs } from "./bookmarks.server";
+import { chatResolvers, chatTypeDefs } from "./chat.server";
 import { membersResolvers, membersTypeDefs } from "./members.server";
 import { notesResolvers, notesTypeDefs } from "./notes.server";
 import {
@@ -56,6 +57,7 @@ export const schema = createSchema<GraphQLContext>({
 		pushTypeDefs,
 		shareTypeDefs,
 		aiTypeDefs,
+		chatTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -74,6 +76,7 @@ export const schema = createSchema<GraphQLContext>({
 		pushResolvers,
 		shareResolvers,
 		aiResolvers,
+		chatResolvers,
 	],
 });
 

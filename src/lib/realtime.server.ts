@@ -69,6 +69,54 @@ export function announceChange(slug: string, from?: string | null) {
 	waitUntil(send);
 }
 
+/**
+ * A chat change: the conversation's open pages reload it, and everyone in the workspace gets a
+ * nudge to refresh their unread counts. Only ids travel, never what was written.
+ */
+export function announceChat(
+	workspaceId: string,
+	channelId: string,
+	payload: { type: string; id: string },
+	from?: string | null,
+) {
+	if (!url() || !key()) return;
+	const send = fetch(`${url()}/realtime/v1/api/broadcast`, {
+		method: "POST",
+		headers: {
+			apikey: secretKey() ?? (key() as string),
+			authorization: `Bearer ${secretKey() ?? key()}`,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({
+			messages: [
+				{
+					topic: `chat:${channelId}`,
+					event: "message",
+					payload: { ...payload, from },
+					private: !!secretKey(),
+				},
+				{
+					topic: `ws:${workspaceId}`,
+					event: "chat",
+					payload: { channelId, from },
+					private: !!secretKey(),
+				},
+			],
+		}),
+		signal: AbortSignal.timeout(4000),
+	})
+		.then((res) => {
+			if (!res.ok) throw new Error(`Supabase answered ${res.status}`);
+		})
+		.catch((error) =>
+			console.warn(
+				"[realtime] couldn't announce a chat change:",
+				String(error),
+			),
+		);
+	waitUntil(send);
+}
+
 /** The workspace a mutation changed: its fields' `slug` argument, as written or as a variable. */
 export function mutationSlugs(
 	document: DocumentNode,
@@ -80,6 +128,8 @@ export function mutationSlugs(
 	const slugs = new Set<string>();
 	for (const field of op.selectionSet.selections) {
 		if (field.kind !== Kind.FIELD) continue;
+		// chat sends its own, narrower updates (announceChat): a message mustn't reload every page
+		if (field.name.value.includes("Chat")) continue;
 		const arg = field.arguments?.find((a) => a.name.value === "slug")?.value;
 		const value =
 			arg?.kind === Kind.STRING
