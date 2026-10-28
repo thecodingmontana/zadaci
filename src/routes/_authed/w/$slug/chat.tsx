@@ -6,7 +6,7 @@ import { wsTitle } from "#/lib/seo";
 export const Route = createFileRoute("/_authed/w/$slug/chat")({
 	validateSearch: z.object({
 		c: z.string().max(16).optional(),
-		new: z.enum(["channel", "dm"]).optional(),
+		new: z.literal("channel").optional(),
 	}),
 	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Chat") }] }),
 	component: ChatPage,

@@ -16,6 +16,8 @@ export type ChatChannel = {
 	creator: ChatPerson | null;
 	createdAt: string;
 	link: { kind: "project" | "task"; id: string; title: string } | null;
+	teamId: string | null;
+	favorite: boolean;
 };
 export type ChatMessage = {
 	id: string;
@@ -26,6 +28,10 @@ export type ChatMessage = {
 	editedAt: string | null;
 	mine: boolean;
 	createdAt: string;
+	parentId: string | null;
+	replyCount: number;
+	lastReplyAt: string | null;
+	pinned: boolean;
 };
 
 const CHANNEL = gql`
@@ -54,6 +60,8 @@ const CHANNEL = gql`
 			id
 			title
 		}
+		teamId
+		favorite
 	}
 `;
 const MESSAGE = gql`
@@ -74,6 +82,10 @@ const MESSAGE = gql`
 		}
 		editedAt
 		mine
+		parentId
+		replyCount
+		lastReplyAt
+		pinned
 		createdAt
 	}
 `;
@@ -95,10 +107,20 @@ export const CHAT_CHANNELS: TypedDocumentNode<
 
 export const CHAT_MESSAGES: TypedDocumentNode<
 	{ chatMessages: ChatMessage[] },
-	{ slug: string; channelId: string; before?: string }
+	{ slug: string; channelId: string; before?: string; parentId?: string }
 > = gql`
-	query ChatMessages($slug: String!, $channelId: ID!, $before: String) {
-		chatMessages(slug: $slug, channelId: $channelId, before: $before) {
+	query ChatMessages(
+		$slug: String!
+		$channelId: ID!
+		$before: String
+		$parentId: ID
+	) {
+		chatMessages(
+			slug: $slug
+			channelId: $channelId
+			before: $before
+			parentId: $parentId
+		) {
 			...ChatMessageFields
 		}
 	}
@@ -155,10 +177,20 @@ export const OPEN_CHAT_DM: TypedDocumentNode<
 
 export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 	{ sendChatMessage: ChatMessage },
-	{ slug: string; channelId: string; body: string }
+	{ slug: string; channelId: string; body: string; parentId?: string }
 > = gql`
-	mutation SendChatMessage($slug: String!, $channelId: ID!, $body: String!) {
-		sendChatMessage(slug: $slug, channelId: $channelId, body: $body) {
+	mutation SendChatMessage(
+		$slug: String!
+		$channelId: ID!
+		$body: String!
+		$parentId: ID
+	) {
+		sendChatMessage(
+			slug: $slug
+			channelId: $channelId
+			body: $body
+			parentId: $parentId
+		) {
 			...ChatMessageFields
 		}
 	}
@@ -204,5 +236,42 @@ export const MARK_CHAT_READ: TypedDocumentNode<
 > = gql`
 	mutation MarkChatRead($slug: String!, $channelId: ID!) {
 		markChatRead(slug: $slug, channelId: $channelId)
+	}
+`;
+
+export const CHAT_PINS: TypedDocumentNode<
+	{ chatPins: ChatMessage[] },
+	{ slug: string; channelId: string }
+> = gql`
+	query ChatPins($slug: String!, $channelId: ID!) {
+		chatPins(slug: $slug, channelId: $channelId) {
+			...ChatMessageFields
+		}
+	}
+	${MESSAGE}
+`;
+
+export const PIN_CHAT_MESSAGE: TypedDocumentNode<
+	{ pinChatMessage: ChatMessage },
+	{ slug: string; id: string; pinned: boolean }
+> = gql`
+	mutation PinChatMessage($slug: String!, $id: ID!, $pinned: Boolean!) {
+		pinChatMessage(slug: $slug, id: $id, pinned: $pinned) {
+			...ChatMessageFields
+		}
+	}
+	${MESSAGE}
+`;
+
+export const FAVORITE_CHAT_CHANNEL: TypedDocumentNode<
+	{ favoriteChatChannel: boolean },
+	{ slug: string; channelId: string; favorite: boolean }
+> = gql`
+	mutation FavoriteChatChannel(
+		$slug: String!
+		$channelId: ID!
+		$favorite: Boolean!
+	) {
+		favoriteChatChannel(slug: $slug, channelId: $channelId, favorite: $favorite)
 	}
 `;
