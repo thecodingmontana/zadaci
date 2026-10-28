@@ -1367,6 +1367,10 @@ kbd,
 }
 
 /* modal + project dot */
+/* The wrap only positions the modal and never takes taps: Radix can keep it mounted after the
+   modal closes (its exit animation is cut short when the modal inside unmounts first), and an
+   invisible full-screen layer then swallowed every tap until a refresh. Taps around the modal
+   reach the scrim below, which closes it. */
 .modal-wrap {
   position: fixed;
   inset: 0;
@@ -1376,8 +1380,10 @@ kbd,
   justify-content: center;
   padding: 10vh 16px 16px;
   overflow-y: auto;
+  pointer-events: none;
 }
 .modal {
+  pointer-events: auto;
   width: 100%;
   max-width: 560px;
   background: var(--q-surface);
