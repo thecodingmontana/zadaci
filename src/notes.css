@@ -1149,3 +1149,97 @@ a.item-embed:hover {
 	outline-offset: 2px;
 	border-radius: var(--q-r-sm);
 }
+
+/* ---- text and background colours (names from components/notes/colors) ---- */
+.note-body,
+.swatches {
+	--nc-gray: #8b8a86;
+	--nc-brown: #9f6b53;
+	--nc-orange: #d9730d;
+	--nc-yellow: #c29022;
+	--nc-green: #448361;
+	--nc-blue: #337ea9;
+	--nc-purple: #9065b0;
+	--nc-pink: #c14c8a;
+	--nc-red: #d44c47;
+}
+.dark .note-body,
+.dark .swatches {
+	--nc-gray: #9b9a97;
+	--nc-brown: #ba856f;
+	--nc-orange: #e88d3c;
+	--nc-yellow: #d9b04a;
+	--nc-green: #5fa57e;
+	--nc-blue: #529cca;
+	--nc-purple: #a985c9;
+	--nc-pink: #d26ea6;
+	--nc-red: #e5675f;
+}
+.note-body [data-color="gray"],
+.swatches [data-color="gray"] {
+	--nc: var(--nc-gray);
+}
+.note-body [data-color="brown"],
+.swatches [data-color="brown"] {
+	--nc: var(--nc-brown);
+}
+.note-body [data-color="orange"],
+.swatches [data-color="orange"] {
+	--nc: var(--nc-orange);
+}
+.note-body [data-color="yellow"],
+.swatches [data-color="yellow"] {
+	--nc: var(--nc-yellow);
+}
+.note-body [data-color="green"],
+.swatches [data-color="green"] {
+	--nc: var(--nc-green);
+}
+.note-body [data-color="blue"],
+.swatches [data-color="blue"] {
+	--nc: var(--nc-blue);
+}
+.note-body [data-color="purple"],
+.swatches [data-color="purple"] {
+	--nc: var(--nc-purple);
+}
+.note-body [data-color="pink"],
+.swatches [data-color="pink"] {
+	--nc: var(--nc-pink);
+}
+.note-body [data-color="red"],
+.swatches [data-color="red"] {
+	--nc: var(--nc-red);
+}
+.note-body .tiptap span[data-color] {
+	color: var(--nc);
+}
+.note-body .tiptap mark[data-color] {
+	background: color-mix(in srgb, var(--nc) 22%, transparent);
+}
+.swatches {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 4px;
+	padding: 2px 8px 8px;
+}
+.swatch {
+	display: grid;
+	place-items: center;
+	height: 30px;
+	border: 1px solid var(--q-border);
+	border-radius: var(--q-r-sm);
+	font-weight: 600;
+	color: var(--nc, var(--q-text));
+}
+.swatch.bg {
+	color: var(--q-text);
+	background: color-mix(in srgb, var(--nc, transparent) 22%, transparent);
+}
+.swatch:hover {
+	border-color: var(--q-text-3);
+}
+.swatch.on {
+	box-shadow: 0 0 0 2px var(--q-accent);
+	border-color: transparent;
+}

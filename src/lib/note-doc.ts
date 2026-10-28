@@ -32,6 +32,7 @@ const NODES = new Set([
 	"detailsContent",
 	"itemEmbed",
 	"linkCard",
+	"noteFile",
 ]);
 /** a task or bookmark shown as a live card; the viewer's access is checked when it's shown */
 export const EMBED_KINDS = ["task", "bookmark", "project"] as const;
@@ -40,6 +41,11 @@ const SOURCES: Record<string, (src: unknown) => boolean> = {
 	image: isImageSrc,
 	youtube: isYoutubeSrc,
 	embed: isEmbedSrc,
+	// files and audio are only ever uploaded to our Cloudinary
+	noteFile: (src) =>
+		typeof src === "string" &&
+		src.length <= 2000 &&
+		/^https:\/\/res\.cloudinary\.com\/[^\s"'<>\\]+$/.test(src),
 };
 const MARKS = new Set([
 	"bold",
@@ -49,6 +55,7 @@ const MARKS = new Set([
 	"code",
 	"highlight",
 	"link",
+	"textStyle",
 ]);
 // blocks that end a line in the plain-text copy
 const LINES = new Set(["paragraph", "heading", "codeBlock", "hardBreak"]);
@@ -65,15 +72,26 @@ export type DocNode = {
 const scalar = (v: unknown) =>
 	v === null || ["string", "number", "boolean"].includes(typeof v);
 
-/** Plain attribute values only: scalars, or lists of numbers (table column widths). */
+// a code block's colour theme: a light and a dark Shiki theme name
+const THEME_NAME = /^[a-z0-9-]{1,40}$/;
+const themePair = (v: unknown) =>
+	!!v &&
+	typeof v === "object" &&
+	!Array.isArray(v) &&
+	Object.keys(v).length === 2 &&
+	THEME_NAME.test(String((v as { light?: unknown }).light)) &&
+	THEME_NAME.test(String((v as { dark?: unknown }).dark));
+
+/** Plain attribute values only: scalars, lists of numbers (table column widths) or a theme pair. */
 function plain(attrs: unknown): Record<string, unknown> | undefined {
 	if (attrs == null) return undefined;
 	if (typeof attrs !== "object" || Array.isArray(attrs))
 		throw new Error("Bad note content");
-	for (const v of Object.values(attrs))
+	for (const [k, v] of Object.entries(attrs))
 		if (
 			!scalar(v) &&
-			!(Array.isArray(v) && v.every((x) => typeof x === "number"))
+			!(Array.isArray(v) && v.every((x) => typeof x === "number")) &&
+			!(k === "themes" && themePair(v))
 		)
 			throw new Error("Bad note content");
 	return attrs as Record<string, unknown>;

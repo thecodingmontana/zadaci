@@ -81,3 +81,47 @@ test("images and embeds only keep addresses we allow", () => {
 		),
 	);
 });
+
+test("keeps colours, code themes and uploaded files, but only safe ones", () => {
+	const coloured = p(
+		t("hi", [
+			{ type: "textStyle", attrs: { color: "blue" } },
+			{ type: "highlight", attrs: { color: "yellow" } },
+		]),
+	);
+	const code = {
+		type: "codeBlock",
+		attrs: {
+			language: "ts",
+			themes: { light: "one-light", dark: "one-dark-pro" },
+		},
+		content: [t("x")],
+	};
+	const file = {
+		type: "noteFile",
+		attrs: {
+			src: "https://res.cloudinary.com/acme/raw/upload/a.pdf",
+			name: "a.pdf",
+		},
+	};
+	assert.doesNotThrow(() => checkDoc(doc(coloured, code, file)));
+	assert.throws(
+		() =>
+			checkDoc(
+				doc({
+					...code,
+					attrs: { themes: { light: "x;color:red", dark: "y" } },
+				}),
+			),
+		/Bad note content/,
+	);
+	assert.throws(
+		() => checkDoc(doc({ ...file, attrs: { src: "javascript:alert(1)" } })),
+		/can't be shown/,
+	);
+	assert.throws(
+		() =>
+			checkDoc(doc({ ...file, attrs: { src: "https://evil.example/a.pdf" } })),
+		/can't be shown/,
+	);
+});

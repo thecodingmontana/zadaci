@@ -6,11 +6,11 @@ import {
 	DetailsSummary,
 } from "@tiptap/extension-details";
 import FileHandler from "@tiptap/extension-file-handler";
-import Highlight from "@tiptap/extension-highlight";
 import Image from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TableKit } from "@tiptap/extension-table";
 import TextAlign from "@tiptap/extension-text-align";
+import { TextStyle } from "@tiptap/extension-text-style";
 import Youtube from "@tiptap/extension-youtube";
 import { Placeholder } from "@tiptap/extensions";
 import { NodeSelection } from "@tiptap/pm/state";
@@ -44,6 +44,7 @@ import { cn } from "#/lib/utils";
 import { BlockToolbar, moveBlock } from "./block-toolbar";
 import { Callout, Embed, FILE_EVENT, MediaLayout, NoteFile } from "./blocks";
 import { CodeBlock } from "./code-block";
+import { ColorHighlight, NOTE_COLORS, TextColor } from "./colors";
 import { InsertDialog } from "./insert-dialog";
 import { ItemEmbed, LinkCard } from "./item-embed";
 import { NoteActions } from "./note-actions";
@@ -175,7 +176,9 @@ export function NoteEditor({
 				dropcursor: { color: "var(--q-accent)", width: 3 },
 			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
-			Highlight,
+			TextStyle,
+			TextColor,
+			ColorHighlight,
 			TaskList,
 			TaskItem.configure({ nested: true }),
 			Placeholder.configure({
@@ -589,6 +592,10 @@ function SelectionMenu({ editor }: { editor: Editor }) {
 			strike: e.isActive("strike"),
 			code: e.isActive("code"),
 			highlight: e.isActive("highlight"),
+			textColor: (e.getAttributes("textStyle").color as string | null) ?? null,
+			bgColor: e.isActive("highlight")
+				? ((e.getAttributes("highlight").color as string | null) ?? "default")
+				: null,
 			link: e.isActive("link"),
 			h1: e.isActive("heading", { level: 1 }),
 			h2: e.isActive("heading", { level: 2 }),
@@ -737,12 +744,67 @@ function SelectionMenu({ editor }: { editor: Editor }) {
 					{btn("Code", "icon-[solar--code-linear]", on.code, () =>
 						chain().toggleCode().run(),
 					)}
-					{btn(
-						"Highlight",
-						"icon-[solar--pen-new-square-linear]",
-						on.highlight,
-						() => chain().toggleHighlight().run(),
-					)}
+					<Menu>
+						<MenuTrigger
+							className={cn(
+								"ibtn ibtn-sm",
+								(on.textColor || on.highlight) && "on",
+							)}
+							aria-label="Colour"
+							data-tip="Colour"
+							onMouseDown={(e) => e.preventDefault()}
+						>
+							<span
+								className="icon-[solar--pallete-2-linear] size-4"
+								aria-hidden="true"
+							/>
+						</MenuTrigger>
+						<MenuContent width={236} align="start">
+							<div className="mh">Text colour</div>
+							<div className="swatches">
+								<Swatch
+									label="Default"
+									on={!on.textColor}
+									onPick={() =>
+										chain()
+											.setMark("textStyle", { color: null })
+											.removeEmptyTextStyle()
+											.run()
+									}
+								/>
+								{NOTE_COLORS.map((c) => (
+									<Swatch
+										key={c}
+										color={c}
+										label={c}
+										on={on.textColor === c}
+										onPick={() =>
+											chain().setMark("textStyle", { color: c }).run()
+										}
+									/>
+								))}
+							</div>
+							<div className="mh">Background</div>
+							<div className="swatches">
+								<Swatch
+									label="None"
+									bg
+									on={!on.bgColor}
+									onPick={() => chain().unsetHighlight().run()}
+								/>
+								{NOTE_COLORS.map((c) => (
+									<Swatch
+										key={c}
+										color={c}
+										bg
+										label={c}
+										on={on.bgColor === c}
+										onPick={() => chain().setHighlight({ color: c }).run()}
+									/>
+								))}
+							</div>
+						</MenuContent>
+					</Menu>
 					{btn("Link", "icon-[solar--link-linear]", on.link, () => {
 						setHref(editor.getAttributes("link").href ?? "");
 						setLinking(true);
@@ -769,5 +831,36 @@ function SelectionMenu({ editor }: { editor: Editor }) {
 				</>
 			)}
 		</BubbleMenu>
+	);
+}
+
+/** One colour choice in the Colour menu: an "A" in that colour, or a filled square for backgrounds. */
+function Swatch({
+	color,
+	label,
+	bg = false,
+	on,
+	onPick,
+}: {
+	color?: string;
+	label: string;
+	bg?: boolean;
+	on: boolean;
+	onPick: () => void;
+}) {
+	const name = `${label[0]?.toUpperCase()}${label.slice(1)}`;
+	return (
+		<button
+			type="button"
+			className={cn("swatch", bg && "bg", on && "on")}
+			data-color={color}
+			aria-label={bg ? `${name} background` : `${name} text`}
+			aria-pressed={on}
+			data-tip={name}
+			onMouseDown={(e) => e.preventDefault()}
+			onClick={onPick}
+		>
+			A
+		</button>
 	);
 }
