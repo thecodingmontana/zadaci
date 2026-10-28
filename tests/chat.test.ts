@@ -23,7 +23,8 @@ test("chat: open channels for the workspace, private ones and DMs only for their
 	const general = (await gql(owner, `mutation($s: String!) { createChatChannel(slug: $s, name: "General Talk") { id name private } }`, { s: slug })).data?.createChatChannel;
 	assert.equal(general.name, "general-talk");
 	assert.ok((await channels(sam)).some((c) => c.id === general.id), "open channel is visible to the workspace");
-	const sent = (await gql(pat, SEND, { s: slug, c: general.id, b: "  Hi @owner  " })).data?.sendChatMessage;
+	const SEND_AT = `mutation($s: String!, $c: ID!, $b: String!, $m: [ID!]) { sendChatMessage(slug: $s, channelId: $c, body: $b, mentionIds: $m) { id body mine } }`;
+	const sent = (await gql(pat, SEND_AT, { s: slug, c: general.id, b: "  Hi @owner  ", m: [await memberId(owner)] })).data?.sendChatMessage;
 	assert.deepEqual({ body: sent.body, mine: sent.mine }, { body: "Hi @owner", mine: true });
 
 	// unread: the owner joined when creating it, so pat's message counts; reading clears it
@@ -244,4 +245,31 @@ test("chat: one pinned message per conversation, pinned conversations are yours,
 	assert.equal(patView.filter((c) => c.general).length, 1);
 	assert.equal(patView.find((c) => c.teamId)?.name, "General", "shown with the team's name");
 	assert.equal(patView.find((c) => c.teamId)?.general, false);
+});
+
+test("chat: @mentions reach exactly who was picked, even when two people share a name", async () => {
+	const owner = await makeUser("owner");
+	const samA = await makeUser("sam");
+	const samB = await makeUser("sam");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(samA, inviteCode);
+	await join(samB, inviteCode);
+	const idOf = async (u: TestUser) => (await gql(u, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug })).data?.workspace.members.find((m: { isMe: boolean }) => m.isMe).id as string;
+	const general = (await gql(owner, `query($s: String!) { workspace(slug: $s) { chatChannels { id general } } }`, { s: slug })).data?.workspace.chatChannels.find((c: { general: boolean }) => c.general).id;
+	const SEND_AT = `mutation($s: String!, $c: ID!, $b: String!, $m: [ID!]) { sendChatMessage(slug: $s, channelId: $c, body: $b, mentionIds: $m) { id mentions mentionsMe } }`;
+	const notes = async (u: TestUser) => ((await gql(u, `query($s: String!) { workspace(slug: $s) { notifications { text } } }`, { s: slug })).data?.workspace.notifications ?? []) as { text: string }[];
+
+	// both are "sam": only the one picked hears about it
+	const a = await idOf(samA);
+	const sent = (await gql(owner, SEND_AT, { s: slug, c: general, b: "@sam can you look?", m: [a] })).data?.sendChatMessage;
+	assert.deepEqual(sent.mentions, [a]);
+	assert.ok((await notes(samA)).some((n) => n.text === "mentioned you in #general"));
+	assert.ok(!(await notes(samB)).some((n) => n.text === "mentioned you in #general"), "the other sam isn't told");
+	const seen = (await gql(samA, `query($s: String!, $c: ID!) { chatMessages(slug: $s, channelId: $c) { id mentionsMe } }`, { s: slug, c: general })).data?.chatMessages.find((m: { id: string }) => m.id === sent.id);
+	assert.equal(seen.mentionsMe, true);
+
+	// a pick that's gone from the text, or someone who can't see a private channel, is dropped
+	assert.deepEqual((await gql(owner, SEND_AT, { s: slug, c: general, b: "never mind", m: [a] })).data?.sendChatMessage.mentions, []);
+	const secret = (await gql(owner, `mutation($s: String!) { createChatChannel(slug: $s, name: "leads", private: true) { id } }`, { s: slug })).data?.createChatChannel.id;
+	assert.deepEqual((await gql(owner, SEND_AT, { s: slug, c: secret, b: "@sam secret plans", m: [a] })).data?.sendChatMessage.mentions, []);
 });

@@ -115,6 +115,9 @@ export const chatTypeDefs = /* GraphQL */ `
 		"a reply in a thread: the message it answers"
 		parentId: ID
 		attachments: [ChatAttachment!]!
+		"members picked from the @ list"
+		mentions: [ID!]!
+		mentionsMe: Boolean!
 		replyCount: Int!
 		lastReplyAt: String
 		pinned: Boolean!
@@ -156,6 +159,8 @@ export const chatTypeDefs = /* GraphQL */ `
 			parentId: ID
 			"files uploaded with chatUpload"
 			attachments: [ChatAttachmentInput!]
+			"members picked from the @ list (their @Name must be in the text)"
+			mentionIds: [ID!]
 		): ChatMessage!
 		"a signed slot to upload a file into this conversation (file: anything but a picture)"
 		chatUpload(slug: String!, channelId: ID!, file: Boolean): CloudinaryUpload!
@@ -608,6 +613,8 @@ async function messageShape(rows: Message[], ws: Workspace) {
 			: null,
 		pinned: !!m.pinned_at,
 		attachments: m.attachments,
+		mentions: m.mentions,
+		mentionsMe: !!ws.memberId && m.mentions.includes(ws.memberId),
 	}));
 }
 
@@ -636,6 +643,35 @@ async function requireMessage(
 	if (ownOnly && message.author_id !== workspace.memberId)
 		badInput("You can only change your own messages");
 	return { workspace, channel, message };
+}
+
+/** Who a message may mention: members picked from the @ list who can see the conversation and
+ *  whose @Name is still in the text. */
+async function checkMentions(
+	ws: Workspace,
+	channel: Channel,
+	ids: string[],
+	text: string,
+) {
+	const wanted = [...new Set(ids)].slice(0, 50);
+	if (!wanted.length || !text) return [];
+	const seenBy = audience(channel);
+	const rows = await db
+		.select({ id: tables.workspace_members.id, name: tables.user.name })
+		.from(tables.workspace_members)
+		.innerJoin(
+			tables.user,
+			eq(tables.user.id, tables.workspace_members.user_id),
+		)
+		.where(
+			and(
+				eq(tables.workspace_members.workspace_id, ws.id),
+				inArray(tables.workspace_members.id, wanted),
+				isNull(tables.workspace_members.deleted_at),
+				seenBy ? inArray(tables.workspace_members.id, seenBy) : undefined,
+			),
+		);
+	return rows.filter((r) => text.includes(`@${r.name}`)).map((r) => r.id);
 }
 
 /** A message's files: only ones uploaded into this channel's folder, within the size limits. */
@@ -696,6 +732,7 @@ async function notifyChat(
 	actorId: string,
 	channel: Channel,
 	text: string,
+	mentionIds: string[],
 	parent?: Message,
 ) {
 	const seenBy = audience(channel);
@@ -719,7 +756,8 @@ async function notifyChat(
 			),
 		);
 	const others = members.filter((m) => m.userId !== actorId);
-	const mentioned = others.filter((m) => text.includes(`@${m.name}`));
+	// exactly the people picked from the @ list (two people can share a name)
+	const mentioned = others.filter((m) => mentionIds.includes(m.id));
 	let dmTo: typeof others = [];
 	if (channel.kind === "dm") {
 		// shortcut: a DM notifies once per 10-minute burst per sender, so a chat isn't a stream of emails
@@ -961,6 +999,7 @@ export const chatResolvers = {
 				body: string;
 				parentId?: string | null;
 				attachments?: ChatAttachment[] | null;
+				mentionIds?: string[] | null;
 			},
 			ctx: GraphQLContext,
 		) => {
@@ -972,6 +1011,12 @@ export const chatResolvers = {
 			const files = await checkFiles(channel.id, args.attachments ?? []);
 			// a file on its own is a message too
 			const text = files.length && !args.body.trim() ? "" : body(args.body);
+			const mentions = await checkMentions(
+				workspace,
+				channel,
+				args.mentionIds ?? [],
+				text,
+			);
 			const [recent] = await db
 				.select({ n: count() })
 				.from(tables.chat_message)
@@ -1006,6 +1051,7 @@ export const chatResolvers = {
 					parent_id: parent?.id ?? null,
 					body: text,
 					attachments: files,
+					mentions,
 				})
 				.returning();
 			await db
@@ -1028,6 +1074,7 @@ export const chatResolvers = {
 					(files.length === 1
 						? `Sent ${files[0]?.name}`
 						: `Sent ${files.length} files`),
+				mentions,
 				parent,
 			);
 			return shaped;

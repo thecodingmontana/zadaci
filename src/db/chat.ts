@@ -132,6 +132,11 @@ export const chat_message = pgTable(
 			.notNull()
 			.default(sql`'{}'::jsonb`),
 		edited_at: when("edited_at"),
+		/** member ids picked from the @ list (the text shows @Name; this says who was meant) */
+		mentions: jsonb("mentions")
+			.$type<string[]>()
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		/** files sent with it (uploaded to Cloudinary, in the channel's folder) */
 		attachments: jsonb("attachments")
 			.$type<ChatAttachment[]>()
