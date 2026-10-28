@@ -1,0 +1,93 @@
+import { sql } from "drizzle-orm";
+import {
+	boolean,
+	index,
+	jsonb,
+	text,
+	timestamp,
+	uniqueIndex,
+	varchar,
+} from "drizzle-orm/pg-core";
+import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
+import { workspace, workspace_members } from "./workspace";
+
+// Team chat: workspace channels (open to every member, or private to theirs) and direct
+// messages. Messages go out live over Supabase Realtime's private `chat:<channelId>` topics.
+// (Zad's own conversations are separate: see ai.ts.)
+
+const when = (name: string) =>
+	timestamp(name, { mode: "date", precision: 3, withTimezone: true });
+
+export const chat_channel = pgTable(
+	"chat_channel",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		workspace_id: varchar("workspace_id", { length: 16 })
+			.notNull()
+			.references(() => workspace.id, { onDelete: "cascade" }),
+		/** "channel" or "dm" */
+		kind: varchar("kind", { length: 10 }).notNull(),
+		/** null for direct messages, which are named after the people in them */
+		name: varchar("name", { length: 80 }),
+		topic: varchar("topic", { length: 250 }),
+		/** a private channel or a DM: only its members see it */
+		private: boolean("private").notNull().default(false),
+		created_by: varchar("created_by", { length: 16 }).references(
+			() => workspace_members.id,
+			{ onDelete: "set null" },
+		),
+		last_message_at: when("last_message_at"),
+		archived_at: when("archived_at"),
+		...timestamps,
+	},
+	(t) => [index("chat_channel_workspace_idx").on(t.workspace_id)],
+);
+
+export const chat_member = pgTable(
+	"chat_member",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		channel_id: varchar("channel_id", { length: 16 })
+			.notNull()
+			.references(() => chat_channel.id, { onDelete: "cascade" }),
+		member_id: varchar("member_id", { length: 16 })
+			.notNull()
+			.references(() => workspace_members.id, { onDelete: "cascade" }),
+		/** messages after this are unread */
+		last_read_at: when("last_read_at"),
+		...timestamps,
+	},
+	(t) => [
+		uniqueIndex("chat_member_unique").on(t.channel_id, t.member_id),
+		index("chat_member_member_idx").on(t.member_id),
+	],
+);
+
+export const chat_message = pgTable(
+	"chat_message",
+	{
+		id: varchar("id", { length: 16 })
+			.primaryKey()
+			.$defaultFn(() => generateNanoId()),
+		channel_id: varchar("channel_id", { length: 16 })
+			.notNull()
+			.references(() => chat_channel.id, { onDelete: "cascade" }),
+		author_id: varchar("author_id", { length: 16 }).references(
+			() => workspace_members.id,
+			{ onDelete: "set null" },
+		),
+		body: text("body").notNull(),
+		// emoji -> member ids who reacted (like comment reactions)
+		reactions: jsonb("reactions")
+			.$type<Record<string, string[]>>()
+			.notNull()
+			.default(sql`'{}'::jsonb`),
+		edited_at: when("edited_at"),
+		...syncable,
+	},
+	(t) => [index("chat_message_channel_idx").on(t.channel_id, t.created_at)],
+);
