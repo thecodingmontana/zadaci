@@ -53,6 +53,7 @@ export function sendToCloudinary(
 	params: UploadSlot,
 	file: File,
 	onProgress?: (pct: number) => void,
+	signal?: AbortSignal,
 ) {
 	const body = new FormData();
 	body.append("file", file);
@@ -73,6 +74,11 @@ export function sendToCloudinary(
 					? resolve(JSON.parse(xhr.responseText))
 					: reject(new Error("Upload failed"));
 			xhr.onerror = () => reject(new Error("Upload failed"));
+			// cancelled: stop sending, and nothing is added
+			xhr.onabort = () =>
+				reject(new DOMException("Upload cancelled", "AbortError"));
+			if (signal?.aborted) return xhr.onabort(new ProgressEvent("abort"));
+			signal?.addEventListener("abort", () => xhr.abort(), { once: true });
 			xhr.send(body);
 		},
 	);

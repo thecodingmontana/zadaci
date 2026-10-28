@@ -8,7 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "#/lib/utils";
-import { MAX_CAPTION, MEDIA_TYPES, MIN_SIZE } from "./blocks";
+import { CAPTION_TYPES, MAX_CAPTION, MEDIA_TYPES, MIN_SIZE } from "./blocks";
 
 // A small toolbar over the block you're on: images, videos and embeds get align, a caption,
 // resize handles and delete; every block can move up or down. Touch screens have no hover handle to
@@ -85,10 +85,11 @@ export function BlockToolbar({ editor }: { editor: Editor }) {
 		},
 	});
 	const media = !!block && MEDIA_TYPES.includes(block.type);
+	const captionable = !!block && CAPTION_TYPES.includes(block.type);
 	// the caption input replaces the buttons until it's saved, for the block it was opened on
 	const [captionFor, setCaptionFor] = useState<number | null>(null);
 	const [caption, setCaption] = useState("");
-	const captioning = media && captionFor === block?.pos;
+	const captioning = captionable && captionFor === block?.pos;
 	const saveCaption = () => {
 		if (block)
 			editor
@@ -177,17 +178,18 @@ export function BlockToolbar({ editor }: { editor: Editor }) {
 					</form>
 				) : (
 					<>
+						{captionable &&
+							button(
+								block?.caption ? "Edit caption" : "Add caption",
+								"icon-[solar--subtitles-linear]",
+								() => {
+									setCaption(block?.caption ?? "");
+									setCaptionFor(block?.pos ?? null);
+								},
+								!!block?.caption,
+							)}
 						{media && (
 							<>
-								{button(
-									block?.caption ? "Edit caption" : "Add caption",
-									"icon-[solar--subtitles-linear]",
-									() => {
-										setCaption(block?.caption ?? "");
-										setCaptionFor(block?.pos ?? null);
-									},
-									!!block?.caption,
-								)}
 								{button(
 									"Align left",
 									"icon-[solar--align-left-linear]",

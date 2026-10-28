@@ -23,6 +23,8 @@ export interface ToastInput {
 	duration?: number;
 	position?: ToastPosition;
 	action?: ToastAction;
+	/** runs when the person closes the toast (a pending one: they've given up on the work) */
+	onDismiss?: () => void;
 }
 
 export type ToastData = ToastInput & {
@@ -64,6 +66,7 @@ function push(input: ToastInput): number {
 }
 
 function dismiss(id: number) {
+	list.find((t) => t.id === id)?.onDismiss?.();
 	set(list.filter((t) => t.id !== id));
 }
 
@@ -105,6 +108,8 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
 			/** detail under a failure; the error's own message by default */
 			errorDesc?: string;
 			position?: ToastPosition;
+			/** closing the toast while it's still loading stops the work */
+			onCancel?: () => void;
 		},
 	): Promise<T> {
 		const id = push({
@@ -112,6 +117,7 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
 			type: "pending",
 			duration: 0,
 			position: msg.position,
+			onDismiss: msg.onCancel,
 		});
 		run
 			.then((v) =>
@@ -120,6 +126,7 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
 						typeof msg.success === "function" ? msg.success(v) : msg.success,
 					desc: msg.desc,
 					type: "success",
+					onDismiss: undefined,
 				}),
 			)
 			.catch((err) =>
@@ -127,6 +134,7 @@ export const toast = Object.assign((input: ToastInput) => push(input), {
 					title: typeof msg.error === "function" ? msg.error(err) : msg.error,
 					desc: msg.errorDesc ?? (err as Error)?.message ?? msg.desc,
 					type: "error",
+					onDismiss: undefined,
 				}),
 			);
 		// the caller can still await the action (and catch its failure)

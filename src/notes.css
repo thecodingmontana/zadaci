@@ -1138,45 +1138,57 @@ a.item-embed:hover {
 	text-align: right;
 }
 
-/* ---- uploaded files and audio ---- */
+/* ---- uploaded files and audio: a card with the name, type and size (audio plays below) ---- */
 .note-body .tiptap .note-file {
-	margin: 0.4em 0;
-	color: var(--q-text-3);
-	font-size: var(--q-fs-sm);
+	margin: 0.5em 0;
+	padding: 10px 12px;
+	border: 1px solid var(--q-border);
+	border-radius: var(--q-r-md, 10px);
+	background: var(--q-surface);
 }
-.note-body .tiptap .note-file-link {
+.note-body .tiptap .note-file-head {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	padding: 10px 12px;
-	border: 1px solid var(--q-border);
-	border-radius: var(--q-r-sm);
+	min-width: 0;
 	color: var(--q-text);
 	text-decoration: none;
 }
-.note-body .tiptap .note-file-link:hover {
-	background: var(--q-surface-2);
-}
 .note-body .tiptap .note-file-icon {
+	display: grid;
+	place-items: center;
 	flex: none;
-	color: var(--q-text-3);
+	width: 34px;
+	height: 34px;
+	border-radius: var(--q-r-sm);
+	background: color-mix(in srgb, var(--q-accent) 12%, transparent);
+	color: var(--q-accent);
 }
-.note-body .tiptap .note-file-link .note-file-name {
-	flex: 1;
+.note-body .tiptap .note-file-text {
+	display: flex;
+	flex-direction: column;
 	min-width: 0;
+	line-height: 1.35;
+}
+.note-body .tiptap .note-file-name {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-weight: 500;
+	font-weight: 600;
+	font-size: var(--q-fs-md, 14px);
 }
-.note-body .tiptap .note-file-size {
-	flex: none;
+.note-body .tiptap a.note-file-head:hover .note-file-name {
+	text-decoration: underline;
+}
+.note-body .tiptap .note-file-meta {
 	color: var(--q-text-3);
+	font-size: 12px;
 }
 .note-body .tiptap .note-file audio {
 	display: block;
 	width: 100%;
-	margin-top: 6px;
+	height: 40px;
+	margin-top: 10px;
 }
 .note-body .tiptap .note-file.ProseMirror-selectednode {
 	outline: 2px solid var(--q-accent);

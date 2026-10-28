@@ -186,7 +186,8 @@ export function NoteEditor({
 			),
 		});
 
-	const upload = (file: File) => uploadToNote(client, slug, note.id, file);
+	const upload = (file: File, signal?: AbortSignal) =>
+		uploadToNote(client, slug, note.id, file, signal);
 	// the "@" picker reads the latest list each time it opens
 	const people = useRef<NotePerson[]>([]);
 	people.current =

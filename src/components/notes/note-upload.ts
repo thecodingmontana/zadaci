@@ -19,6 +19,7 @@ export async function uploadToNote(
 	slug: string,
 	noteId: string,
 	file: File,
+	signal?: AbortSignal,
 ) {
 	const max = maxUpload(file.type);
 	if (file.size > max)
@@ -30,7 +31,12 @@ export async function uploadToNote(
 		variables: { slug, id: noteId, file: !file.type.startsWith("image/") },
 	});
 	if (!data) throw new Error("No upload slot");
-	const { secure_url } = await sendToCloudinary(data.noteCoverUpload, file);
+	const { secure_url } = await sendToCloudinary(
+		data.noteCoverUpload,
+		file,
+		undefined,
+		signal,
+	);
 	return secure_url as string;
 }
 
@@ -106,11 +112,13 @@ const blockGap = (state: EditorState, pos: number) => {
 /** Uploads a file and puts it in the page at `pos`, as an image or a file block. */
 export function addFileToNote(
 	editor: Editor,
-	upload: (file: File) => Promise<string>,
+	upload: (file: File, signal: AbortSignal) => Promise<string>,
 	file: File,
 	pos: number,
 ) {
 	const id = {};
+	// closing the "Uploading…" toast cancels the upload and takes the skeleton away
+	const cancel = new AbortController();
 	const image = file.type.startsWith("image/");
 	const kind: UploadKind = image
 		? "image"
@@ -126,10 +134,11 @@ export function addFileToNote(
 		editor.isDestroyed ||
 		editor.view.dispatch(editor.state.tr.setMeta(uploads, { remove: id }));
 	return toast
-		.promise(upload(file), {
+		.promise(upload(file, cancel.signal), {
 			loading: `Uploading ${file.name}…`,
 			success: `${file.name} added`,
 			error: `Couldn't upload ${file.name}`,
+			onCancel: () => cancel.abort(),
 		})
 		.then((src) => {
 			if (editor.isDestroyed) return;

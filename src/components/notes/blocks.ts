@@ -8,6 +8,8 @@ export const MEDIA_TYPES = ["image", "youtube", "embed"];
 /** The narrowest a media block gets, as a share of the page width. */
 export const MIN_SIZE = 20;
 export const MAX_CAPTION = 300;
+/** Blocks that can have a caption: media, plus uploaded files and audio. */
+export const CAPTION_TYPES = [...MEDIA_TYPES, "noteFile"];
 const ALIGNS = ["center", "right"];
 
 const validSize = (value: unknown) => {
@@ -46,6 +48,11 @@ export const MediaLayout = Extension.create({
 						renderHTML: (attrs) =>
 							ALIGNS.includes(attrs.align) ? { "data-align": attrs.align } : {},
 					},
+				},
+			},
+			{
+				types: CAPTION_TYPES,
+				attributes: {
 					caption: {
 						default: null,
 						parseHTML: (el) => el.getAttribute("data-caption"),
@@ -68,7 +75,7 @@ export const MediaLayout = Extension.create({
 						const widgets: Decoration[] = [];
 						state.doc.forEach((node, pos) => {
 							const { caption, size, align } = node.attrs;
-							if (!MEDIA_TYPES.includes(node.type.name)) return;
+							if (!CAPTION_TYPES.includes(node.type.name)) return;
 							if (typeof caption !== "string" || !caption.trim()) return;
 							const text = caption.trim().slice(0, MAX_CAPTION);
 							widgets.push(
@@ -259,48 +266,73 @@ export const NoteFile = Node.create({
 	parseHTML() {
 		return [{ tag: 'div[data-type="note-file"]' }];
 	},
-	renderHTML({ node }) {
+	renderHTML({ node, HTMLAttributes }) {
 		const { src, name, bytes, mime } = node.attrs;
 		const safe =
 			typeof src === "string" && src.startsWith("https://") ? src : null;
 		const label = String(name || "File");
-		const box = {
-			"data-type": "note-file",
-			"data-src": safe ?? "",
-			"data-name": label,
-			"data-bytes": String(bytes ?? ""),
-			"data-mime": String(mime ?? ""),
-			class: "note-file",
-		};
+		const audio = String(mime).startsWith("audio/");
+		// "Where Is The Love.mp3" shows as the title, with "MP3 · 3.8 MB" under it
+		const dot = label.lastIndexOf(".");
+		const title = dot > 0 ? label.slice(0, dot) : label;
+		const ext =
+			dot > 0
+				? label
+						.slice(dot + 1)
+						.toUpperCase()
+						.slice(0, 8)
+				: "";
+		const meta = [ext || (audio ? "Audio" : "File"), fileSize(bytes)]
+			.filter(Boolean)
+			.join(" · ");
+		const box = mergeAttributes(
+			{ "data-caption": HTMLAttributes["data-caption"] },
+			{
+				"data-type": "note-file",
+				"data-src": safe ?? "",
+				"data-name": label,
+				"data-bytes": String(bytes ?? ""),
+				"data-mime": String(mime ?? ""),
+				"data-kind": audio ? "audio" : "file",
+				class: "note-file",
+			},
+		);
 		if (!safe) return ["div", box, "This file can't be shown"];
-		if (String(mime).startsWith("audio/"))
+		const head = (tag: string, attrs: Record<string, string>) => [
+			tag,
+			{ class: "note-file-head", ...attrs },
+			[
+				"span",
+				{ class: "note-file-icon", "aria-hidden": "true" },
+				[
+					"span",
+					{
+						class: `size-[18px] ${audio ? "icon-[solar--music-note-2-bold]" : "icon-[solar--file-text-bold]"}`,
+					},
+				],
+			],
+			[
+				"span",
+				{ class: "note-file-text" },
+				["span", { class: "note-file-name", title: label }, title],
+				["span", { class: "note-file-meta" }, meta],
+			],
+		];
+		if (audio)
 			return [
 				"div",
 				box,
-				["span", { class: "note-file-name" }, label],
+				head("div", {}),
 				["audio", { src: safe, controls: "true", preload: "metadata" }],
 			];
 		return [
 			"div",
 			box,
-			[
-				"a",
-				{
-					href: safe,
-					target: "_blank",
-					rel: "noopener noreferrer",
-					class: "note-file-link",
-				},
-				[
-					"span",
-					{
-						class: "icon-[solar--file-text-linear] size-5 note-file-icon",
-						"aria-hidden": "true",
-					},
-				],
-				["span", { class: "note-file-name" }, label],
-				["span", { class: "note-file-size" }, fileSize(bytes)],
-			],
+			head("a", {
+				href: safe,
+				target: "_blank",
+				rel: "noopener noreferrer",
+			}),
 		];
 	},
 });
