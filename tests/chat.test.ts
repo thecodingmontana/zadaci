@@ -160,3 +160,42 @@ test("chat: a team's channel follows the team; notes to yourself; threads, pins 
 	assert.equal((await ws(pat)).chatChannels.find((c) => c.general)?.favorite, true);
 	assert.equal((await ws(sam)).chatChannels.find((c) => c.general)?.favorite, false);
 });
+
+test("chat: files come only from the conversation's own upload folder, and a file alone is a message", async () => {
+	const owner = await makeUser("owner");
+	const pat = await makeUser("pat");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(pat, inviteCode);
+	const cloud = process.env.CLOUDINARY_CLOUD_NAME;
+	const LIST = `query($s: String!) { workspace(slug: $s) { members { id isMe } chatChannels { id general } } }`;
+	const general = (await gql(owner, LIST, { s: slug })).data?.workspace.chatChannels.find((c: { general: boolean }) => c.general).id;
+	const secret = (await gql(owner, `mutation($s: String!) { createChatChannel(slug: $s, name: "leads", private: true) { id } }`, { s: slug })).data?.createChatChannel.id;
+	const SLOT = `mutation($s: String!, $c: ID!) { chatUpload(slug: $s, channelId: $c, file: true) { folder publicId } }`;
+	const SEND = `mutation($s: String!, $c: ID!, $b: String!, $a: [ChatAttachmentInput!]) { sendChatMessage(slug: $s, channelId: $c, body: $b, attachments: $a) { body attachments { name size type seconds } } }`;
+
+	// only people in the conversation get an upload slot, in its folder
+	assert.match((await gql(pat, SLOT, { s: slug, c: secret })).errors?.[0]?.message ?? "", /not found/);
+	const slot = (await gql(pat, SLOT, { s: slug, c: general })).data?.chatUpload;
+	assert.equal(slot.folder, `zadaci/chat/${general}`);
+
+	// stand in for Cloudinary: every uploaded file is 1 MB
+	const realFetch = globalThis.fetch;
+	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) =>
+		init?.method === "HEAD"
+			? new Response(null, { headers: { "content-length": String(1024 * 1024) } })
+			: realFetch(input, init)) as typeof fetch;
+	try {
+		const voice = { url: `https://res.cloudinary.com/${cloud}/video/upload/v1/${slot.folder}/${slot.publicId}.webm`, name: "Voice note", size: 1048576, type: "audio/webm", seconds: 7 };
+		const sent = (await gql(pat, SEND, { s: slug, c: general, b: "", a: [voice] })).data?.sendChatMessage;
+		assert.deepEqual(sent, { body: "", attachments: [{ name: "Voice note", size: 1048576, type: "audio/webm", seconds: 7 }] }, "a file alone is a message");
+
+		// a file from another conversation's folder, or anywhere else, is refused
+		const elsewhere = { ...voice, url: `https://res.cloudinary.com/${cloud}/video/upload/v1/zadaci/chat/${secret}/${slot.publicId}.webm` };
+		assert.match((await gql(pat, SEND, { s: slug, c: general, b: "look", a: [elsewhere] })).errors?.[0]?.message ?? "", /didn't come from this conversation/);
+		assert.match((await gql(pat, SEND, { s: slug, c: general, b: "look", a: [{ ...voice, url: "https://evil.example/x.webm" }] })).errors?.[0]?.message ?? "", /didn't come from this conversation/);
+		assert.match((await gql(pat, SEND, { s: slug, c: general, b: "", a: Array(11).fill(voice) })).errors?.[0]?.message ?? "", /up to 10 files/);
+		assert.match((await gql(pat, SEND, { s: slug, c: general, b: "  " })).errors?.[0]?.message ?? "", /Write a message/, "no text and no file: nothing to send");
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});

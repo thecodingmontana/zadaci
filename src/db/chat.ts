@@ -18,6 +18,17 @@ import { workspace, workspace_members } from "./workspace";
 // messages. Messages go out live over Supabase Realtime's private `chat:<channelId>` topics.
 // (Zad's own conversations are separate: see ai.ts.)
 
+export type ChatAttachment = {
+	url: string;
+	name: string;
+	/** bytes */
+	size: number;
+	/** its MIME type, e.g. image/png or audio/webm */
+	type: string;
+	/** a voice note's length in seconds */
+	seconds?: number;
+};
+
 const when = (name: string) =>
 	timestamp(name, { mode: "date", precision: 3, withTimezone: true });
 
@@ -119,6 +130,11 @@ export const chat_message = pgTable(
 			.notNull()
 			.default(sql`'{}'::jsonb`),
 		edited_at: when("edited_at"),
+		/** files sent with it (uploaded to Cloudinary, in the channel's folder) */
+		attachments: jsonb("attachments")
+			.$type<ChatAttachment[]>()
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		/** pinned to the channel's Pins */
 		pinned_at: when("pinned_at"),
 		pinned_by: varchar("pinned_by", { length: 16 }).references(

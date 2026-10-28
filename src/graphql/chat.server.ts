@@ -11,12 +11,20 @@ import {
 	sql,
 } from "drizzle-orm";
 import { db, tables } from "#/db";
+import type { ChatAttachment } from "#/db/chat";
+import { generateNanoId } from "#/db/utils";
 import { isEmoji } from "#/lib/emoji";
+import { isUploadUrl } from "#/lib/files";
 import { announceChat } from "#/lib/realtime.server";
 import { notify } from "./activity.server";
 import { requireProject } from "./projects.server";
 import { badInput, type GraphQLContext, projectScope } from "./schema.server";
-import { requireWorkspace } from "./settings.server";
+import {
+	cloudinary,
+	requireWorkspace,
+	signCloudinary,
+} from "./settings.server";
+import { checkUploadedSize } from "./task-extras.server";
 import { requireTask } from "./tasks.server";
 
 // Team chat: open and private channels plus direct messages, saved here and sent live over
@@ -27,6 +35,10 @@ const MAX_BODY = 4000;
 const PER_MINUTE = 30;
 const PAGE = 50;
 const MAX_REACTIONS = 20;
+const MAX_FILES = 10;
+
+/** Where a channel's files go in Cloudinary (and the only place a message's files may come from). */
+const chatFolder = (channelId: string) => `zadaci/chat/${channelId}`;
 
 type Workspace = Awaited<ReturnType<typeof requireWorkspace>>["workspace"];
 type Channel = typeof tables.chat_channel.$inferSelect;
@@ -69,6 +81,23 @@ export const chatTypeDefs = /* GraphQL */ `
 		favorite: Boolean!
 	}
 
+	type ChatAttachment {
+		url: String!
+		name: String!
+		size: Int!
+		type: String!
+		"a voice note's length"
+		seconds: Int
+	}
+
+	input ChatAttachmentInput {
+		url: String!
+		name: String!
+		size: Int!
+		type: String!
+		seconds: Int
+	}
+
 	type ChatMessage {
 		id: ID!
 		channelId: ID!
@@ -80,6 +109,7 @@ export const chatTypeDefs = /* GraphQL */ `
 		createdAt: String!
 		"a reply in a thread: the message it answers"
 		parentId: ID
+		attachments: [ChatAttachment!]!
 		replyCount: Int!
 		lastReplyAt: String
 		pinned: Boolean!
@@ -119,7 +149,11 @@ export const chatTypeDefs = /* GraphQL */ `
 			channelId: ID!
 			body: String!
 			parentId: ID
+			"files uploaded with chatUpload"
+			attachments: [ChatAttachmentInput!]
 		): ChatMessage!
+		"a signed slot to upload a file into this conversation (file: anything but a picture)"
+		chatUpload(slug: String!, channelId: ID!, file: Boolean): CloudinaryUpload!
 		pinChatMessage(slug: String!, id: ID!, pinned: Boolean!): ChatMessage!
 		favoriteChatChannel(
 			slug: String!
@@ -550,6 +584,7 @@ async function messageShape(rows: Message[], ws: Workspace) {
 			? new Date(repliesBy.get(m.id)?.last ?? "").toISOString()
 			: null,
 		pinned: !!m.pinned_at,
+		attachments: m.attachments,
 	}));
 }
 
@@ -578,6 +613,31 @@ async function requireMessage(
 	if (ownOnly && message.author_id !== workspace.memberId)
 		badInput("You can only change your own messages");
 	return { workspace, channel, message };
+}
+
+/** A message's files: only ones uploaded into this channel's folder, within the size limits. */
+async function checkFiles(channelId: string, files: ChatAttachment[]) {
+	if (files.length > MAX_FILES)
+		badInput(`Send up to ${MAX_FILES} files at a time`);
+	const { cloud } = cloudinary();
+	const checked: ChatAttachment[] = [];
+	for (const f of files) {
+		if (!isUploadUrl(f.url, cloud, chatFolder(channelId)))
+			badInput("That file didn't come from this conversation");
+		await checkUploadedSize(f.url);
+		const name = f.name.trim().slice(0, 255);
+		if (!name) badInput("A file needs a name");
+		checked.push({
+			url: f.url,
+			name,
+			size: Math.max(0, Math.min(Math.round(f.size), 2 ** 31 - 1)),
+			type: f.type.slice(0, 120),
+			...(f.seconds != null && {
+				seconds: Math.max(0, Math.min(Math.round(f.seconds), 3600)),
+			}),
+		});
+	}
+	return checked;
 }
 
 const body = (value: string) => {
@@ -877,6 +937,7 @@ export const chatResolvers = {
 				channelId: string;
 				body: string;
 				parentId?: string | null;
+				attachments?: ChatAttachment[] | null;
 			},
 			ctx: GraphQLContext,
 		) => {
@@ -885,7 +946,9 @@ export const chatResolvers = {
 				args.slug,
 				args.channelId,
 			);
-			const text = body(args.body);
+			const files = await checkFiles(channel.id, args.attachments ?? []);
+			// a file on its own is a message too
+			const text = files.length && !args.body.trim() ? "" : body(args.body);
 			const [recent] = await db
 				.select({ n: count() })
 				.from(tables.chat_message)
@@ -919,6 +982,7 @@ export const chatResolvers = {
 					author_id: workspace.memberId,
 					parent_id: parent?.id ?? null,
 					body: text,
+					attachments: files,
 				})
 				.returning();
 			await db
@@ -933,7 +997,16 @@ export const chatResolvers = {
 				{ type: "new", id: message.id },
 				ctx.tab,
 			);
-			await notifyChat(workspace, user.id, channel, text, parent);
+			await notifyChat(
+				workspace,
+				user.id,
+				channel,
+				text ||
+					(files.length === 1
+						? `Sent ${files[0]?.name}`
+						: `Sent ${files.length} files`),
+				parent,
+			);
 			return shaped;
 		},
 		editChatMessage: async (
@@ -1019,6 +1092,29 @@ export const chatResolvers = {
 				ctx.tab,
 			);
 			return (await messageShape([updated], workspace))[0];
+		},
+		chatUpload: async (
+			_: unknown,
+			args: { slug: string; channelId: string; file?: boolean | null },
+			ctx: GraphQLContext,
+		) => {
+			const { channel } = await requireChannel(ctx, args.slug, args.channelId);
+			const { cloud, key, secret } = cloudinary();
+			// Cloudinary sorts any file into image, video (audio too) or raw by itself
+			const kind = args.file ? "auto" : "image";
+			const params = {
+				folder: chatFolder(channel.id),
+				public_id: generateNanoId().toLowerCase(),
+				timestamp: Math.floor(Date.now() / 1000),
+			};
+			return {
+				url: `https://api.cloudinary.com/v1_1/${cloud}/${kind}/upload`,
+				apiKey: key,
+				timestamp: params.timestamp,
+				signature: signCloudinary(params, secret),
+				publicId: params.public_id,
+				folder: params.folder,
+			};
 		},
 		pinChatMessage: async (
 			_: unknown,

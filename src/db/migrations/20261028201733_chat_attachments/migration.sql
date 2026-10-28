@@ -1,0 +1,1 @@
+ALTER TABLE "app_chat_message" ADD COLUMN "attachments" jsonb DEFAULT '[]' NOT NULL;

@@ -370,7 +370,8 @@ const FILTERS = z
  * shortcut: a file uploaded but never recorded isn't checked; sweep the folders on a schedule if
  * storage abuse ever shows up.
  */
-async function checkUploadedSize(url: string) {
+/** A just-uploaded file over its size limit is deleted again and refused. */
+export async function checkUploadedSize(url: string) {
 	const { cloud, key, secret } = cloudinary();
 	const [, , kind, , ...rest] = new URL(url).pathname.split("/");
 	const resourceType = kind === "image" || kind === "video" ? kind : "raw";
