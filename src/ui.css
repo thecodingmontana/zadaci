@@ -6187,9 +6187,12 @@ fieldset.ai-approve {
   }
 }
 @media (max-width: 640px) {
-  /* the composer sits above the bottom tab bar (48px buttons + 8px padding + the home bar) */
+  /* chat is a full screen of its own: no bottom tab bar, the message box at the bottom edge */
+  body:has(.page.flush.chat) .bottomnav {
+    display: none;
+  }
   .page.flush.chat {
-    padding-bottom: calc(57px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 @media (prefers-reduced-motion: reduce) {

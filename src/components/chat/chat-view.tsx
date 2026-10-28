@@ -1,12 +1,13 @@
 import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ItemPicker } from "#/components/notes/item-picker";
 import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";
+import { Select } from "#/components/settings/ui";
 import { realtimeToken } from "#/components/shell/live-updates";
 import {
 	CHAT_CHANNELS,
+	CHAT_LINK_OPTIONS,
 	CHAT_MESSAGES,
 	type ChatChannel,
 	type ChatMessage,
@@ -572,6 +573,23 @@ function StartDialog({
 	const [topic, setTopic] = useState("");
 	const [linkKind, setLinkKind] = useState<"none" | "project" | "task">("none");
 	const [link, setLink] = useState<{ id: string; name: string } | null>(null);
+	const options = useQuery(CHAT_LINK_OPTIONS, {
+		variables: { slug },
+		skip: linkKind === "none",
+	}).data?.workspace;
+	const projectTitle = new Map(options?.projects.map((p) => [p.id, p.title]));
+	const choices =
+		linkKind === "task"
+			? (options?.tasks ?? []).map((t) => ({
+					id: t.id,
+					name: t.name,
+					label: `${t.name} · ${projectTitle.get(t.projectId) ?? ""}`,
+				}))
+			: (options?.projects ?? []).map((p) => ({
+					id: p.id,
+					name: p.title,
+					label: p.title,
+				}));
 	const [create, creating] = useMutation(CREATE_CHAT_CHANNEL, {
 		refetchQueries: ["ChatChannels"],
 	});
@@ -674,45 +692,23 @@ function StartDialog({
 							))}
 						</div>
 					</div>
-					{linkKind !== "none" &&
-						(link ? (
-							<div className="chat-linked">
-								<span
-									className={cn(
-										"size-4",
-										linkKind === "task"
-											? "icon-[solar--checklist-minimalistic-linear]"
-											: "icon-[solar--folder-linear]",
-									)}
-									aria-hidden="true"
-								/>
-								<span className="grow trunc">{link.name}</span>
-								<button
-									type="button"
-									className="ibtn ibtn-xs"
-									aria-label="Pick another"
-									onClick={() => setLink(null)}
-								>
-									<span
-										className="icon-[solar--close-circle-linear] size-4"
-										aria-hidden="true"
-									/>
-								</button>
-							</div>
-						) : (
-							<ItemPicker
-								slug={slug}
-								kind={linkKind}
-								placeholder={
-									linkKind === "task" ? "Find a task…" : "Find a project…"
-								}
-								hint="Or paste its link."
-								onPick={(id, pickedName) => {
-									setLink({ id, name: pickedName });
-									if (!name.trim()) setName(pickedName);
-								}}
-							/>
-						))}
+					{linkKind !== "none" && (
+						<Select
+							label={linkKind === "task" ? "Task" : "Project"}
+							className="w-full"
+							value={link?.id ?? ""}
+							options={[
+								["", linkKind === "task" ? "Pick a task" : "Pick a project"],
+								...choices.map((c) => [c.id, c.label] as const),
+							]}
+							onChange={(id) => {
+								const picked = choices.find((c) => c.id === id);
+								setLink(picked ? { id, name: picked.name } : null);
+								// a channel about it is named after it, unless you named it already
+								if (picked && !name.trim()) setName(picked.name);
+							}}
+						/>
+					)}
 					<label className="row chat-check">
 						<input
 							type="checkbox"

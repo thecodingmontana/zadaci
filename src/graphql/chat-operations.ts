@@ -275,3 +275,30 @@ export const FAVORITE_CHAT_CHANNEL: TypedDocumentNode<
 		favoriteChatChannel(slug: $slug, channelId: $channelId, favorite: $favorite)
 	}
 `;
+
+/** What a channel can be about: the projects and tasks you can see (names only). */
+export const CHAT_LINK_OPTIONS: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			projects: { id: string; title: string }[];
+			tasks: { id: string; name: string; projectId: string }[];
+		} | null;
+	},
+	{ slug: string }
+> = gql`
+	query ChatLinkOptions($slug: String!) {
+		workspace(slug: $slug) {
+			id
+			projects {
+				id
+				title
+			}
+			tasks {
+				id
+				name
+				projectId
+			}
+		}
+	}
+`;
