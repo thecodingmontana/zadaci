@@ -96,3 +96,67 @@ test("chat: everyone is in #general, and a channel's linked project or task only
 	// and can't link what they can't see
 	assert.match((await gql(guest, CREATE, { s: slug, n: "peek", p: project.id })).errors?.[0]?.message ?? "", /not found/i);
 });
+
+test("chat: a team's channel follows the team; notes to yourself; threads, pins and favourites", async () => {
+	const owner = await makeUser("owner");
+	const pat = await makeUser("pat");
+	const sam = await makeUser("sam");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(pat, inviteCode);
+	await join(sam, inviteCode);
+	const LIST = `query($s: String!) { workspace(slug: $s) { members { id isMe } chatChannels { id name general teamId favorite private people { id } } } }`;
+	const ws = async (u: TestUser) => (await gql(u, LIST, { s: slug })).data?.workspace as { members: { id: string; isMe: boolean }[]; chatChannels: { id: string; name: string; general: boolean; teamId: string | null; favorite: boolean; people: { id: string }[] }[] };
+	const meOf = async (u: TestUser) => (await ws(u)).members.find((m) => m.isMe)?.id ?? "";
+	const patId = await meOf(pat);
+
+	// a team gets its channel, named after it, for its members only
+	const TEAM = `mutation($s: String!, $i: TeamInput!) { createTeam(slug: $s, input: $i) { id } }`;
+	const teamInput = (memberIds: string[]) => ({ name: "Design Crew", icon: "icon-[solar--code-linear]", color: "teal", memberIds });
+	const teamId = (await gql(owner, TEAM, { s: slug, i: teamInput([patId]) })).data?.createTeam.id;
+	const teamChannel = (await ws(pat)).chatChannels.find((c) => c.teamId === teamId);
+	assert.equal(teamChannel?.name, "Design Crew");
+	assert.deepEqual(teamChannel?.people.map((p) => p.id), [patId]);
+	assert.ok(!(await ws(sam)).chatChannels.some((c) => c.teamId === teamId), "not on the team: not shown");
+	assert.ok((await gql(pat, SEND, { s: slug, c: teamChannel?.id, b: "team only" })).data?.sendChatMessage);
+	assert.match((await gql(sam, MESSAGES, { s: slug, c: teamChannel?.id })).errors?.[0]?.message ?? "", /not found/);
+	// leaving the team ends access at once
+	await gql(owner, `mutation($s: String!, $id: ID!, $i: TeamInput!) { updateTeam(slug: $s, id: $id, input: $i) { id } }`, { s: slug, id: teamId, i: teamInput([]) });
+	assert.ok(!(await ws(pat)).chatChannels.some((c) => c.teamId === teamId));
+	assert.match((await gql(pat, MESSAGES, { s: slug, c: teamChannel?.id })).errors?.[0]?.message ?? "", /not found/);
+
+	// notes to yourself: a DM with just you, the same one every time
+	const DM = `mutation($s: String!, $m: [ID!]!) { openChatDm(slug: $s, memberIds: $m) { id kind people { id } } }`;
+	const self = (await gql(owner, DM, { s: slug, m: [] })).data?.openChatDm;
+	assert.equal(self.kind, "dm");
+	assert.equal(self.people.length, 1);
+	assert.equal((await gql(owner, DM, { s: slug, m: [] })).data?.openChatDm.id, self.id);
+
+	// threads: replies stay out of the channel, counted on the message they answer
+	const general = (await ws(owner)).chatChannels.find((c) => c.general);
+	const top = (await gql(owner, SEND, { s: slug, c: general?.id, b: "Plan for Friday?" })).data?.sendChatMessage;
+	const REPLY = `mutation($s: String!, $c: ID!, $b: String!, $p: ID) { sendChatMessage(slug: $s, channelId: $c, body: $b, parentId: $p) { id parentId } }`;
+	const reply = (await gql(pat, REPLY, { s: slug, c: general?.id, b: "Ship it", p: top.id })).data?.sendChatMessage;
+	assert.equal(reply.parentId, top.id);
+	const THREADS = `query($s: String!, $c: ID!, $p: ID) { chatMessages(slug: $s, channelId: $c, parentId: $p) { id replyCount pinned } }`;
+	const main = (await gql(owner, THREADS, { s: slug, c: general?.id })).data?.chatMessages;
+	assert.deepEqual(main.map((m: { id: string }) => m.id), [top.id], "the reply isn't in the channel");
+	assert.equal(main[0].replyCount, 1);
+	assert.deepEqual((await gql(owner, THREADS, { s: slug, c: general?.id, p: top.id })).data?.chatMessages.map((m: { id: string }) => m.id), [reply.id]);
+	assert.match((await gql(pat, REPLY, { s: slug, c: general?.id, b: "deeper", p: reply.id })).errors?.[0]?.message ?? "", /isn't here/, "threads are one level deep");
+	const notes = (await gql(owner, `query($s: String!) { workspace(slug: $s) { notifications { text } } }`, { s: slug })).data?.workspace.notifications;
+	assert.ok(notes.some((n: { text: string }) => n.text === "replied to your message in #general"));
+
+	// pins: anyone in the channel pins; Pins lists them
+	const PIN = `mutation($s: String!, $id: ID!, $p: Boolean!) { pinChatMessage(slug: $s, id: $id, pinned: $p) { pinned } }`;
+	assert.equal((await gql(pat, PIN, { s: slug, id: top.id, p: true })).data?.pinChatMessage.pinned, true);
+	const PINS = `query($s: String!, $c: ID!) { chatPins(slug: $s, channelId: $c) { id } }`;
+	assert.deepEqual((await gql(sam, PINS, { s: slug, c: general?.id })).data?.chatPins.map((m: { id: string }) => m.id), [top.id]);
+	await gql(pat, PIN, { s: slug, id: top.id, p: false });
+	assert.deepEqual((await gql(sam, PINS, { s: slug, c: general?.id })).data?.chatPins, []);
+	assert.match((await gql(owner, PIN, { s: slug, id: (await gql(owner, `mutation($s: String!, $c: ID!) { sendChatMessage(slug: $s, channelId: $c, body: "private") { id } }`, { s: slug, c: teamChannel?.id })).data?.sendChatMessage?.id ?? "x", p: true })).errors?.[0]?.message ?? "", /not found/, "nothing in a channel you can't see");
+
+	// favourites are yours alone
+	await gql(pat, `mutation($s: String!, $c: ID!) { favoriteChatChannel(slug: $s, channelId: $c, favorite: true) }`, { s: slug, c: general?.id });
+	assert.equal((await ws(pat)).chatChannels.find((c) => c.general)?.favorite, true);
+	assert.equal((await ws(sam)).chatChannels.find((c) => c.general)?.favorite, false);
+});

@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+	type AnyPgColumn,
 	boolean,
 	index,
 	jsonb,
@@ -9,6 +10,7 @@ import {
 	varchar,
 } from "drizzle-orm/pg-core";
 import { project, task } from "./project";
+import { team } from "./team";
 import { generateNanoId, pgTable, syncable, timestamps } from "./utils";
 import { workspace, workspace_members } from "./workspace";
 
@@ -47,6 +49,10 @@ export const chat_channel = pgTable(
 		task_id: varchar("task_id", { length: 16 }).references(() => task.id, {
 			onDelete: "set null",
 		}),
+		/** a team's own channel: its members are the team's, and follow it */
+		team_id: varchar("team_id", { length: 16 }).references(() => team.id, {
+			onDelete: "cascade",
+		}),
 		last_message_at: when("last_message_at"),
 		archived_at: when("archived_at"),
 		...timestamps,
@@ -57,6 +63,10 @@ export const chat_channel = pgTable(
 		uniqueIndex("chat_channel_general_unique")
 			.on(t.workspace_id)
 			.where(sql`kind = 'channel' and name = 'general'`),
+		// one channel per team
+		uniqueIndex("chat_channel_team_unique")
+			.on(t.team_id)
+			.where(sql`team_id is not null`),
 	],
 );
 
@@ -74,6 +84,8 @@ export const chat_member = pgTable(
 			.references(() => workspace_members.id, { onDelete: "cascade" }),
 		/** messages after this are unread */
 		last_read_at: when("last_read_at"),
+		/** shown under Favourites in this member's chat sidebar */
+		favorite: boolean("favorite").notNull().default(false),
 		...timestamps,
 	},
 	(t) => [
@@ -95,6 +107,11 @@ export const chat_message = pgTable(
 			() => workspace_members.id,
 			{ onDelete: "set null" },
 		),
+		/** a reply in a thread: the message it answers (threads are one level deep) */
+		parent_id: varchar("parent_id", { length: 16 }).references(
+			(): AnyPgColumn => chat_message.id,
+			{ onDelete: "cascade" },
+		),
 		body: text("body").notNull(),
 		// emoji -> member ids who reacted (like comment reactions)
 		reactions: jsonb("reactions")
@@ -102,7 +119,16 @@ export const chat_message = pgTable(
 			.notNull()
 			.default(sql`'{}'::jsonb`),
 		edited_at: when("edited_at"),
+		/** pinned to the channel's Pins */
+		pinned_at: when("pinned_at"),
+		pinned_by: varchar("pinned_by", { length: 16 }).references(
+			() => workspace_members.id,
+			{ onDelete: "set null" },
+		),
 		...syncable,
 	},
-	(t) => [index("chat_message_channel_idx").on(t.channel_id, t.created_at)],
+	(t) => [
+		index("chat_message_channel_idx").on(t.channel_id, t.created_at),
+		index("chat_message_parent_idx").on(t.parent_id, t.created_at),
+	],
 );

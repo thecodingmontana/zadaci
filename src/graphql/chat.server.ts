@@ -8,7 +8,6 @@ import {
 	isNull,
 	lt,
 	ne,
-	or,
 	sql,
 } from "drizzle-orm";
 import { db, tables } from "#/db";
@@ -64,6 +63,10 @@ export const chatTypeDefs = /* GraphQL */ `
 		createdAt: String!
 		"null when there's none, or you can't see that project"
 		link: ChatLink
+		"a team's own channel: its people are the team's"
+		teamId: ID
+		"in your Favourites"
+		favorite: Boolean!
 	}
 
 	type ChatMessage {
@@ -75,6 +78,11 @@ export const chatTypeDefs = /* GraphQL */ `
 		editedAt: String
 		mine: Boolean!
 		createdAt: String!
+		"a reply in a thread: the message it answers"
+		parentId: ID
+		replyCount: Int!
+		lastReplyAt: String
+		pinned: Boolean!
 	}
 
 	extend type Workspace {
@@ -82,8 +90,14 @@ export const chatTypeDefs = /* GraphQL */ `
 	}
 
 	extend type Query {
-		"newest page first; before: an ISO time to load older messages"
-		chatMessages(slug: String!, channelId: ID!, before: String): [ChatMessage!]!
+		"newest page first; before: an ISO time to load older messages. parentId: that thread's replies"
+		chatMessages(
+			slug: String!
+			channelId: ID!
+			before: String
+			parentId: ID
+		): [ChatMessage!]!
+		chatPins(slug: String!, channelId: ID!): [ChatMessage!]!
 	}
 
 	extend type Mutation {
@@ -97,9 +111,21 @@ export const chatTypeDefs = /* GraphQL */ `
 			projectId: ID
 			taskId: ID
 		): ChatChannel!
-		"finds or starts a DM with these members (and you)"
+		"finds or starts a DM with these members and you (none: notes to yourself)"
 		openChatDm(slug: String!, memberIds: [ID!]!): ChatChannel!
-		sendChatMessage(slug: String!, channelId: ID!, body: String!): ChatMessage!
+		"parentId: reply in that message's thread"
+		sendChatMessage(
+			slug: String!
+			channelId: ID!
+			body: String!
+			parentId: ID
+		): ChatMessage!
+		pinChatMessage(slug: String!, id: ID!, pinned: Boolean!): ChatMessage!
+		favoriteChatChannel(
+			slug: String!
+			channelId: ID!
+			favorite: Boolean!
+		): Boolean!
 		editChatMessage(slug: String!, id: ID!, body: String!): ChatMessage!
 		deleteChatMessage(slug: String!, id: ID!): Boolean!
 		reactToChatMessage(slug: String!, id: ID!, emoji: String!): ChatMessage!
@@ -107,15 +133,21 @@ export const chatTypeDefs = /* GraphQL */ `
 	}
 `;
 
-/** Channels this member may see: open ones, and private ones and DMs they belong to. */
+/** Is this member on the channel's team now (a team channel follows the team, not chat_member). */
+const onTeam = (memberId: string) =>
+	sql`exists (select 1 from ${tables.team_members} join ${tables.team} on ${tables.team.id} = ${tables.team_members.team_id} and ${tables.team.deleted_at} is null where ${tables.team_members.team_id} = ${tables.chat_channel.team_id} and ${tables.team_members.member_id} = ${memberId} and ${tables.team_members.deleted_at} is null)`;
+
+/** Channels this member may see: a team's while on the team, open ones, and private ones and
+ *  DMs they belong to. (The same rule guards Realtime: zadaci_private.can_join.) */
 const visible = (ws: Workspace) =>
 	and(
 		eq(tables.chat_channel.workspace_id, ws.id),
 		isNull(tables.chat_channel.archived_at),
-		or(
-			eq(tables.chat_channel.private, false),
-			sql`exists (select 1 from ${tables.chat_member} where ${tables.chat_member.channel_id} = ${tables.chat_channel.id} and ${tables.chat_member.member_id} = ${ws.memberId ?? ""})`,
-		),
+		sql`case
+			when ${tables.chat_channel.team_id} is not null then ${onTeam(ws.memberId ?? "")}
+			when not ${tables.chat_channel.private} then true
+			else exists (select 1 from ${tables.chat_member} where ${tables.chat_member.channel_id} = ${tables.chat_channel.id} and ${tables.chat_member.member_id} = ${ws.memberId ?? ""})
+		end`,
 	);
 
 async function requireChannel(ctx: GraphQLContext, slug: string, id: string) {
@@ -172,10 +204,56 @@ async function people(channelIds: string[]) {
 	return by;
 }
 
+/** Team channels: the team's name and its current members, by channel id. */
+async function teamsOf(channels: Channel[]) {
+	const byTeam = new Map(
+		channels.flatMap((c) => (c.team_id ? [[c.team_id, c.id] as const] : [])),
+	);
+	const by = new Map<string, { name: string; people: Person[] }>();
+	if (!byTeam.size) return by;
+	const teamIds = [...byTeam.keys()];
+	const [teams, rows] = await Promise.all([
+		db
+			.select({ id: tables.team.id, name: tables.team.name })
+			.from(tables.team)
+			.where(inArray(tables.team.id, teamIds)),
+		db
+			.select({
+				teamId: tables.team_members.team_id,
+				id: tables.workspace_members.id,
+				name: tables.user.name,
+				image: tables.user.image,
+			})
+			.from(tables.team_members)
+			.innerJoin(
+				tables.workspace_members,
+				eq(tables.workspace_members.id, tables.team_members.member_id),
+			)
+			.innerJoin(
+				tables.user,
+				eq(tables.user.id, tables.workspace_members.user_id),
+			)
+			.where(
+				and(
+					inArray(tables.team_members.team_id, teamIds),
+					isNull(tables.team_members.deleted_at),
+					isNull(tables.workspace_members.deleted_at),
+				),
+			),
+	]);
+	for (const t of teams) {
+		const channelId = byTeam.get(t.id);
+		if (channelId) by.set(channelId, { name: t.name, people: [] });
+	}
+	for (const { teamId, ...p } of rows)
+		by.get(byTeam.get(teamId) ?? "")?.people.push(p);
+	return by;
+}
+
 async function channelShape(channels: Channel[], ws: Workspace) {
 	const ids = channels.map((c) => c.id);
 	const me = ws.memberId ?? "";
-	const [members, unread, creators, links] = await Promise.all([
+	const [members, unread, creators, links, teams, mine] = await Promise.all([
 		people(ids),
 		ids.length
 			? db
@@ -203,15 +281,35 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 			: [],
 		creatorsOf(channels),
 		linksOf(channels, ws),
+		teamsOf(channels),
+		ids.length
+			? db
+					.select({
+						channelId: tables.chat_member.channel_id,
+						favorite: tables.chat_member.favorite,
+					})
+					.from(tables.chat_member)
+					.where(
+						and(
+							inArray(tables.chat_member.channel_id, ids),
+							eq(tables.chat_member.member_id, me),
+						),
+					)
+			: [],
 	]);
+	const favorites = new Set(
+		mine.filter((m) => m.favorite).map((m) => m.channelId),
+	);
 	const unreadBy = new Map(unread.map((u) => [u.channelId, Number(u.n)]));
 	return channels.map((c) => ({
 		id: c.id,
 		kind: c.kind,
-		name: c.name,
+		name: teams.get(c.id)?.name ?? c.name,
 		topic: c.topic,
 		private: c.private,
-		people: members.get(c.id) ?? [],
+		people: teams.get(c.id)?.people ?? members.get(c.id) ?? [],
+		teamId: c.team_id,
+		favorite: favorites.has(c.id),
 		unread: unreadBy.get(c.id) ?? 0,
 		lastMessageAt: c.last_message_at?.toISOString() ?? null,
 		general: isGeneral(c),
@@ -290,6 +388,51 @@ async function linksOf(channels: Channel[], ws: Workspace) {
 	]);
 }
 
+/** This member's teams' channels, made on first use (one per team; the unique index keeps it so). */
+async function ensureTeamChannels(ws: Workspace) {
+	if (!ws.memberId) return;
+	const missing = await db
+		.select({ id: tables.team.id, name: tables.team.name })
+		.from(tables.team)
+		.innerJoin(
+			tables.team_members,
+			and(
+				eq(tables.team_members.team_id, tables.team.id),
+				eq(tables.team_members.member_id, ws.memberId),
+				isNull(tables.team_members.deleted_at),
+			),
+		)
+		.where(
+			and(
+				eq(tables.team.workspace_id, ws.id),
+				isNull(tables.team.deleted_at),
+				sql`not exists (select 1 from ${tables.chat_channel} where ${tables.chat_channel.team_id} = ${tables.team.id})`,
+			),
+		);
+	if (!missing.length) return;
+	await db
+		.insert(tables.chat_channel)
+		.values(
+			missing.map((t) => ({
+				workspace_id: ws.id,
+				kind: "channel",
+				name: channelName(t.name) || "team",
+				private: true,
+				team_id: t.id,
+			})),
+		)
+		.onConflictDoNothing();
+}
+
+/** Lowercase, dashes for spaces, nothing else odd: "Design Reviews" -> "design-reviews". */
+const channelName = (value: string) =>
+	value
+		.trim()
+		.toLowerCase()
+		.replace(/\s+/g, "-")
+		.replace(/[^a-z0-9_-]/g, "")
+		.slice(0, 80);
+
 /** The workspace's #general, made on first use, with this member in it. */
 async function ensureGeneral(ws: Workspace, channels: Channel[]) {
 	if (!ws.memberId) return channels;
@@ -321,16 +464,26 @@ async function ensureGeneral(ws: Workspace, channels: Channel[]) {
 		if (general.archived_at) return channels;
 		channels = [general, ...channels];
 	}
-	const [mine] = await db
-		.select({ id: tables.chat_member.id })
-		.from(tables.chat_member)
-		.where(
-			and(
-				eq(tables.chat_member.channel_id, general.id),
-				eq(tables.chat_member.member_id, ws.memberId),
-			),
-		);
-	if (!mine) await join(general.id, ws.memberId);
+	// #general and your teams' channels count unread from when you first saw them
+	const everyones = channels.filter((c) => isGeneral(c) || c.team_id);
+	const joined = new Set(
+		(
+			await db
+				.select({ id: tables.chat_member.channel_id })
+				.from(tables.chat_member)
+				.where(
+					and(
+						inArray(
+							tables.chat_member.channel_id,
+							everyones.map((c) => c.id),
+						),
+						eq(tables.chat_member.member_id, ws.memberId),
+					),
+				)
+		).map((r) => r.id),
+	);
+	for (const c of everyones)
+		if (!joined.has(c.id)) await join(c.id, ws.memberId);
 	return channels;
 }
 
@@ -357,6 +510,24 @@ async function messageShape(rows: Message[], ws: Workspace) {
 				.where(inArray(tables.workspace_members.id, ids))
 		: [];
 	const byId = new Map(authors.map((a) => [a.id, a]));
+	const parents = rows.filter((m) => !m.parent_id).map((m) => m.id);
+	const replies = parents.length
+		? await db
+				.select({
+					parentId: tables.chat_message.parent_id,
+					n: count(),
+					last: sql<string>`max(${tables.chat_message.created_at})`,
+				})
+				.from(tables.chat_message)
+				.where(
+					and(
+						inArray(tables.chat_message.parent_id, parents),
+						isNull(tables.chat_message.deleted_at),
+					),
+				)
+				.groupBy(tables.chat_message.parent_id)
+		: [];
+	const repliesBy = new Map(replies.map((r) => [r.parentId, r]));
 	return rows.map((m) => ({
 		id: m.id,
 		channelId: m.channel_id,
@@ -373,6 +544,12 @@ async function messageShape(rows: Message[], ws: Workspace) {
 		editedAt: m.edited_at?.toISOString() ?? null,
 		mine: m.author_id === ws.memberId,
 		createdAt: m.created_at.toISOString(),
+		parentId: m.parent_id,
+		replyCount: Number(repliesBy.get(m.id)?.n ?? 0),
+		lastReplyAt: repliesBy.get(m.id)?.last
+			? new Date(repliesBy.get(m.id)?.last ?? "").toISOString()
+			: null,
+		pinned: !!m.pinned_at,
 	}));
 }
 
@@ -411,15 +588,37 @@ const body = (value: string) => {
 	return text;
 };
 
-/** Mentioned people, and the rest of a DM, hear about a message. */
+/** Who can see a channel, as member ids (undefined: the whole workspace). */
+const audience = (channel: Channel) =>
+	channel.team_id
+		? db
+				.select({ id: tables.team_members.member_id })
+				.from(tables.team_members)
+				.where(
+					and(
+						eq(tables.team_members.team_id, channel.team_id),
+						isNull(tables.team_members.deleted_at),
+					),
+				)
+		: channel.private
+			? db
+					.select({ id: tables.chat_member.member_id })
+					.from(tables.chat_member)
+					.where(eq(tables.chat_member.channel_id, channel.id))
+			: undefined;
+
+/** Mentioned people, the rest of a DM, and whoever started a thread hear about a message. */
 async function notifyChat(
 	ws: Workspace,
 	actorId: string,
 	channel: Channel,
 	text: string,
+	parent?: Message,
 ) {
+	const seenBy = audience(channel);
 	const members = await db
 		.select({
+			id: tables.workspace_members.id,
 			userId: tables.workspace_members.user_id,
 			name: tables.user.name,
 		})
@@ -433,15 +632,7 @@ async function notifyChat(
 				eq(tables.workspace_members.workspace_id, ws.id),
 				isNull(tables.workspace_members.deleted_at),
 				// only people who can see the channel: the snippet quotes the message
-				channel.private
-					? inArray(
-							tables.workspace_members.id,
-							db
-								.select({ id: tables.chat_member.member_id })
-								.from(tables.chat_member)
-								.where(eq(tables.chat_member.channel_id, channel.id)),
-						)
-					: undefined,
+				seenBy ? inArray(tables.workspace_members.id, seenBy) : undefined,
 			),
 		);
 	const others = members.filter((m) => m.userId !== actorId);
@@ -462,6 +653,14 @@ async function notifyChat(
 		if ((recent?.n ?? 0) <= 1)
 			dmTo = others.filter((m) => !mentioned.includes(m));
 	}
+	const starter = parent
+		? others.find(
+				(m) =>
+					m.id === parent.author_id &&
+					!mentioned.includes(m) &&
+					!dmTo.includes(m),
+			)
+		: undefined;
 	const where = channel.kind === "dm" ? "a message" : `#${channel.name}`;
 	const base = {
 		workspace_id: ws.id,
@@ -480,6 +679,15 @@ async function notifyChat(
 			user_id: m.userId,
 			text: "sent you a message",
 		})),
+		...(starter
+			? [
+					{
+						...base,
+						user_id: starter.userId,
+						text: `replied to your message in ${where}`,
+					},
+				]
+			: []),
 	]);
 }
 
@@ -503,6 +711,7 @@ async function sameWorkspace(ws: Workspace, ids: string[]) {
 export const chatResolvers = {
 	Workspace: {
 		chatChannels: async (w: Workspace) => {
+			await ensureTeamChannels(w);
 			const rows = await db
 				.select()
 				.from(tables.chat_channel)
@@ -514,7 +723,12 @@ export const chatResolvers = {
 	Query: {
 		chatMessages: async (
 			_: unknown,
-			args: { slug: string; channelId: string; before?: string | null },
+			args: {
+				slug: string;
+				channelId: string;
+				before?: string | null;
+				parentId?: string | null;
+			},
 			ctx: GraphQLContext,
 		) => {
 			const { workspace, channel } = await requireChannel(
@@ -531,12 +745,40 @@ export const chatResolvers = {
 					and(
 						eq(tables.chat_message.channel_id, channel.id),
 						isNull(tables.chat_message.deleted_at),
+						// the channel shows threads' first messages; a thread, its replies
+						args.parentId
+							? eq(tables.chat_message.parent_id, args.parentId)
+							: isNull(tables.chat_message.parent_id),
 						before ? lt(tables.chat_message.created_at, before) : undefined,
 					),
 				)
 				.orderBy(desc(tables.chat_message.created_at))
 				.limit(PAGE);
 			return messageShape(rows.reverse(), workspace);
+		},
+		chatPins: async (
+			_: unknown,
+			args: { slug: string; channelId: string },
+			ctx: GraphQLContext,
+		) => {
+			const { workspace, channel } = await requireChannel(
+				ctx,
+				args.slug,
+				args.channelId,
+			);
+			const rows = await db
+				.select()
+				.from(tables.chat_message)
+				.where(
+					and(
+						eq(tables.chat_message.channel_id, channel.id),
+						isNull(tables.chat_message.deleted_at),
+						sql`${tables.chat_message.pinned_at} is not null`,
+					),
+				)
+				.orderBy(desc(tables.chat_message.pinned_at))
+				.limit(PAGE);
+			return messageShape(rows, workspace);
 		},
 	},
 	Mutation: {
@@ -554,12 +796,7 @@ export const chatResolvers = {
 			ctx: GraphQLContext,
 		) => {
 			const { workspace } = await requireWorkspace(ctx, args.slug);
-			const name = args.name
-				.trim()
-				.toLowerCase()
-				.replace(/\s+/g, "-")
-				.replace(/[^a-z0-9_-]/g, "")
-				.slice(0, 80);
+			const name = channelName(args.name);
 			if (!name) badInput("Give the channel a name");
 			if (name === "general") badInput("#general already exists");
 			if (args.projectId && args.taskId)
@@ -602,8 +839,8 @@ export const chatResolvers = {
 				workspace.memberId ?? "",
 				...args.memberIds,
 			]);
-			if (ids.length < 2 || ids.length > 9)
-				badInput("Pick one to eight people");
+			// just you: notes to yourself
+			if (!ids.length || ids.length > 9) badInput("Pick up to eight people");
 			const key = [...ids].sort().join(",");
 			// the same people always land in the same DM
 			const [existing] = await db
@@ -613,7 +850,8 @@ export const chatResolvers = {
 					and(
 						eq(tables.chat_channel.workspace_id, workspace.id),
 						eq(tables.chat_channel.kind, "dm"),
-						sql`(select string_agg(${tables.chat_member.member_id}, ',' order by ${tables.chat_member.member_id}) from ${tables.chat_member} where ${tables.chat_member.channel_id} = ${tables.chat_channel.id}) = ${key}`,
+						// "C" sorts like JS's sort() above; the default collation may not
+						sql`(select string_agg(${tables.chat_member.member_id}, ',' order by ${tables.chat_member.member_id} collate "C") from ${tables.chat_member} where ${tables.chat_member.channel_id} = ${tables.chat_channel.id}) = ${key}`,
 					),
 				);
 			const channel =
@@ -634,7 +872,12 @@ export const chatResolvers = {
 		},
 		sendChatMessage: async (
 			_: unknown,
-			args: { slug: string; channelId: string; body: string },
+			args: {
+				slug: string;
+				channelId: string;
+				body: string;
+				parentId?: string | null;
+			},
 			ctx: GraphQLContext,
 		) => {
 			const { user, workspace, channel } = await requireChannel(
@@ -654,11 +897,27 @@ export const chatResolvers = {
 				);
 			if ((recent?.n ?? 0) >= PER_MINUTE)
 				badInput("You're sending messages very fast. Wait a moment.");
+			// a reply goes on a message in this channel that isn't itself a reply
+			const [parent] = args.parentId
+				? await db
+						.select()
+						.from(tables.chat_message)
+						.where(
+							and(
+								eq(tables.chat_message.id, args.parentId),
+								eq(tables.chat_message.channel_id, channel.id),
+								isNull(tables.chat_message.parent_id),
+								isNull(tables.chat_message.deleted_at),
+							),
+						)
+				: [];
+			if (args.parentId && !parent) badInput("That thread isn't here any more");
 			const [message] = await db
 				.insert(tables.chat_message)
 				.values({
 					channel_id: channel.id,
 					author_id: workspace.memberId,
+					parent_id: parent?.id ?? null,
 					body: text,
 				})
 				.returning();
@@ -674,7 +933,7 @@ export const chatResolvers = {
 				{ type: "new", id: message.id },
 				ctx.tab,
 			);
-			await notifyChat(workspace, user.id, channel, text);
+			await notifyChat(workspace, user.id, channel, text, parent);
 			return shaped;
 		},
 		editChatMessage: async (
@@ -760,6 +1019,57 @@ export const chatResolvers = {
 				ctx.tab,
 			);
 			return (await messageShape([updated], workspace))[0];
+		},
+		pinChatMessage: async (
+			_: unknown,
+			args: { slug: string; id: string; pinned: boolean },
+			ctx: GraphQLContext,
+		) => {
+			const { workspace, channel, message } = await requireMessage(
+				ctx,
+				args.slug,
+				args.id,
+				false,
+			);
+			const [updated] = await db
+				.update(tables.chat_message)
+				.set(
+					args.pinned
+						? { pinned_at: new Date(), pinned_by: workspace.memberId }
+						: { pinned_at: null, pinned_by: null },
+				)
+				.where(eq(tables.chat_message.id, message.id))
+				.returning();
+			announceChat(
+				workspace.id,
+				channel.id,
+				{ type: "edit", id: message.id },
+				ctx.tab,
+			);
+			return (await messageShape([updated], workspace))[0];
+		},
+		favoriteChatChannel: async (
+			_: unknown,
+			args: { slug: string; channelId: string; favorite: boolean },
+			ctx: GraphQLContext,
+		) => {
+			const { workspace, channel } = await requireChannel(
+				ctx,
+				args.slug,
+				args.channelId,
+			);
+			await db
+				.insert(tables.chat_member)
+				.values({
+					channel_id: channel.id,
+					member_id: workspace.memberId ?? "",
+					favorite: args.favorite,
+				})
+				.onConflictDoUpdate({
+					target: [tables.chat_member.channel_id, tables.chat_member.member_id],
+					set: { favorite: args.favorite },
+				});
+			return true;
 		},
 		markChatRead: async (
 			_: unknown,
