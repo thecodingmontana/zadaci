@@ -86,6 +86,8 @@ async function findInvite(code: string) {
 
 export type GraphQLContext = {
 	user: { id: string; email: string; name: string } | null;
+	/** the browser tab that sent the request (lib/tab), so its own live updates are skipped */
+	tab?: string | null;
 };
 
 type Workspace = typeof tables.workspace.$inferSelect & {

@@ -10,6 +10,7 @@ import {
 } from "graphql-yoga";
 import { auth } from "#/lib/auth";
 import { announceChange, mutationSlugs } from "#/lib/realtime.server";
+import { tabFrom } from "#/lib/tab";
 import { activityResolvers, activityTypeDefs } from "./activity.server";
 import { aiResolvers, aiTypeDefs } from "./ai.server";
 import { bookmarksResolvers, bookmarksTypeDefs } from "./bookmarks.server";
@@ -92,7 +93,8 @@ const announceChanges: Plugin = {
 		return {
 			onExecuteDone({ result }) {
 				if ("errors" in result && result.errors?.length) return;
-				for (const slug of slugs) announceChange(slug);
+				const tab = (args.contextValue as unknown as GraphQLContext).tab;
+				for (const slug of slugs) announceChange(slug, tab);
 			},
 		};
 	},
@@ -121,6 +123,9 @@ export const yoga = createYoga<object, GraphQLContext>({
 	fetchAPI: { Response },
 	context: async ({ request }) => {
 		const session = await auth.api.getSession({ headers: request.headers });
-		return { user: session?.user ?? null };
+		return {
+			user: session?.user ?? null,
+			tab: tabFrom(request.headers.get("x-tab")),
+		};
 	},
 });

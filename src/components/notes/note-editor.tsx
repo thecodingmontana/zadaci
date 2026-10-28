@@ -251,10 +251,14 @@ export function NoteEditor({
 				dragHandleWidth: 46,
 			}),
 		],
-		onUpdate: ({ editor }) => queue({ doc: editor.getJSON() }),
+		// only real changes save (switching editing on or off also counts as an "update")
+		onUpdate: ({ editor, transaction }) => {
+			if (transaction.docChanged) queue({ doc: editor.getJSON() });
+		},
 	});
 	useEffect(() => {
-		editor?.setEditable(editable);
+		// false: don't announce it as an edit, or opening a page would save it
+		editor?.setEditable(editable, false);
 		editorRef.current = editor;
 	}, [editor, editable]);
 	const words =

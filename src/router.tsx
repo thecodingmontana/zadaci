@@ -7,6 +7,7 @@ import {
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { PageFailed, PageNotFound } from "#/components/states";
+import { TAB_ID } from "#/lib/tab";
 import { routeTree } from "./routeTree.gen";
 
 // During SSR, run GraphQL in-process with the visitor's cookies instead of an HTTP round-trip.
@@ -23,7 +24,12 @@ const graphqlFetch = createIsomorphicFn()
 			new Request("http://internal/api/graphql", { ...init, headers }),
 		);
 	})
-	.client((): typeof fetch => fetch);
+	// the tab's id goes along, so live updates it caused itself don't make it reload
+	.client((): typeof fetch => (input, init) => {
+		const headers = new Headers(init?.headers);
+		headers.set("x-tab", TAB_ID);
+		return fetch(input, { ...init, headers });
+	});
 
 export function getRouter() {
 	const apolloClient = new ApolloClient({

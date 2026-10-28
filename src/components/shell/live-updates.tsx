@@ -2,6 +2,7 @@ import { useApolloClient, useQuery } from "@apollo/client/react";
 import { RealtimeClient } from "@supabase/realtime-js";
 import { useEffect } from "react";
 import { REALTIME_CONFIG } from "#/graphql/operations";
+import { TAB_ID } from "#/lib/tab";
 
 // Listens for "this workspace changed" over Supabase Realtime (sent by the server after any change,
 // by you, a teammate or Zad) and refreshes what's on screen. Nothing is shown; it just keeps the
@@ -25,7 +26,9 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 		let last = 0;
 		const channel = realtime
 			.channel(`ws:${workspaceId}`)
-			.on("broadcast", { event: "changed" }, () => {
+			.on("broadcast", { event: "changed" }, (message) => {
+				// this tab made the change, so it's already on screen
+				if (message.payload?.from === TAB_ID) return;
 				// a refresh already on its way covers this change too (a bulk edit becomes one)
 				if (timer) return;
 				timer = setTimeout(

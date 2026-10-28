@@ -21,8 +21,11 @@ export const realtimeConfig = () => {
 	return u && k ? { url: u, anonKey: k } : null;
 };
 
-/** Tells everyone viewing this workspace to refresh. Never slows down or fails the change itself. */
-export function announceChange(slug: string) {
+/**
+ * Tells everyone viewing this workspace to refresh. Never slows down or fails the change itself.
+ * `from` is the tab that made the change: it already shows it, so it skips the refresh.
+ */
+export function announceChange(slug: string, from?: string | null) {
 	if (!url() || !key() || !slug) return;
 	const send = (async () => {
 		const [ws] = await db
@@ -38,7 +41,13 @@ export function announceChange(slug: string) {
 				"content-type": "application/json",
 			},
 			body: JSON.stringify({
-				messages: [{ topic: `ws:${ws.id}`, event: "changed", payload: {} }],
+				messages: [
+					{
+						topic: `ws:${ws.id}`,
+						event: "changed",
+						payload: from ? { from } : {},
+					},
+				],
 			}),
 			signal: AbortSignal.timeout(4000),
 		});
