@@ -114,7 +114,11 @@ function Info({ slug, channel }: { slug: string; channel: ChatChannel }) {
 					channel.teamId
 						? "The team"
 						: channel.kind === "dm"
-							? "Just you two"
+							? channel.people.length === 1
+								? "Only you"
+								: channel.people.length === 2
+									? "You two"
+									: "The people in it"
 							: channel.private
 								? "Members only"
 								: "Everyone",

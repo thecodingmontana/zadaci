@@ -11,15 +11,15 @@ import {
 	EDIT_CHAT_MESSAGE,
 	PIN_CHAT_MESSAGE,
 	REACT_TO_CHAT_MESSAGE,
-	SEND_CHAT_MESSAGE,
 } from "#/graphql/chat-operations";
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import {
 	Attachments,
-	PendingFiles,
-	usePendingFiles,
+	type Draft,
+	DraftFiles,
+	useDraftFiles,
 	VoiceNote,
 } from "./chat-files";
 
@@ -247,50 +247,30 @@ export function MessageRow({
 	);
 }
 
+/** The box you write in. It keeps what you type and the files you add; sending hands them on
+ *  (useOutbox shows the message at once and uploads the files then). */
 export function Composer({
-	slug,
-	channelId,
-	parentId,
 	placeholder,
 	onTyping,
-	onSent,
+	onSend,
 }: {
-	slug: string;
-	channelId: string;
-	/** a reply in this thread */
-	parentId?: string;
 	placeholder: string;
 	onTyping?: () => void;
-	onSent: (message: ChatMessage) => void;
+	onSend: (body: string, files: Draft[]) => void;
 }) {
 	const [text, setText] = useState("");
-	const [send, { loading }] = useMutation(SEND_CHAT_MESSAGE);
-	const pending = usePendingFiles(slug, channelId);
-	const [dragging, setDragging] = useState(false);
-	const picker = useRef<HTMLInputElement>(null);
+	const drafts = useDraftFiles();
 	const [emoji, setEmoji] = useState(false);
+	const [dragging, setDragging] = useState(false);
 	const ref = useRef<HTMLTextAreaElement>(null);
+	const picker = useRef<HTMLInputElement>(null);
 	const lastTyping = useRef(0);
+	const canSend = !!text.trim() || drafts.files.length > 0;
 
-	const canSend =
-		(!!text.trim() || pending.ready.length > 0) &&
-		!pending.uploading &&
-		!loading;
-	const submit = async () => {
-		const body = text.trim();
+	const submit = () => {
 		if (!canSend) return;
-		const attachments = pending.ready;
+		onSend(text.trim(), drafts.take());
 		setText("");
-		try {
-			const { data } = await send({
-				variables: { slug, channelId, body, parentId, attachments },
-			});
-			pending.clear();
-			if (data) onSent(data.sendChatMessage);
-		} catch (e) {
-			setText(body);
-			toast.error("Couldn't send", { desc: (e as Error).message });
-		}
 		ref.current?.focus();
 	};
 
@@ -309,10 +289,10 @@ export function Composer({
 				if (!e.dataTransfer.files.length) return;
 				e.preventDefault();
 				setDragging(false);
-				pending.add([...e.dataTransfer.files]);
+				drafts.add([...e.dataTransfer.files]);
 			}}
 		>
-			<PendingFiles files={pending.files} onRemove={pending.remove} />
+			<DraftFiles files={drafts.files} onRemove={drafts.remove} />
 			<textarea
 				ref={ref}
 				rows={1}
@@ -331,12 +311,12 @@ export function Composer({
 				onPaste={(e) => {
 					if (!e.clipboardData.files.length) return;
 					e.preventDefault();
-					pending.add([...e.clipboardData.files]);
+					drafts.add([...e.clipboardData.files]);
 				}}
 				onKeyDown={(e) => {
 					if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
 						e.preventDefault();
-						void submit();
+						submit();
 					}
 				}}
 			/>
@@ -347,7 +327,7 @@ export function Composer({
 					multiple
 					hidden
 					onChange={(e) => {
-						pending.add([...(e.target.files ?? [])]);
+						drafts.add([...(e.target.files ?? [])]);
 						e.target.value = "";
 					}}
 				/>
@@ -363,7 +343,7 @@ export function Composer({
 					<span className="chat-h-label">Add file</span>
 				</button>
 				<span className="sp" />
-				<VoiceNote onDone={(file, seconds) => pending.add([file], seconds)} />
+				<VoiceNote onDone={(file, seconds) => drafts.add([file], seconds)} />
 				<PickPopover
 					open={emoji}
 					onOpenChange={setEmoji}
@@ -394,10 +374,10 @@ export function Composer({
 				</PickPopover>
 				<button
 					type="button"
-					className="chat-send"
+					className="btn btn-primary btn-sm chat-send"
 					data-tip="Send"
 					disabled={!canSend}
-					onClick={() => void submit()}
+					onClick={submit}
 					aria-label="Send"
 				>
 					<span

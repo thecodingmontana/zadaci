@@ -5795,6 +5795,11 @@ fieldset.ai-approve {
     background: color-mix(in srgb, #f5a524 18%, transparent);
   }
 }
+.chat-h-av {
+  width: 28px !important;
+  height: 28px !important;
+  margin-right: 2px;
+}
 .chat-star {
   color: #f5a524;
 }
@@ -6125,18 +6130,38 @@ fieldset.ai-approve {
   align-items: center;
   gap: 4px;
 }
-.chat-send {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-  background: var(--q-text);
-  color: var(--q-surface);
-  transition: opacity var(--q-dur);
+/* the app's primary button, square for an icon */
+.btn.chat-send {
+  width: var(--q-h-sm);
+  padding: 0;
+  justify-content: center;
 }
-.chat-send:disabled {
-  opacity: 0.35;
+
+/* a message on its way, or one that didn't go */
+.chat-out .chat-body {
+  opacity: 0.65;
+}
+.chat-out.failed .chat-body {
+  opacity: 1;
+}
+.chat-out-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: var(--q-fs-xs);
+  color: var(--q-text-3);
+}
+.chat-out-failed {
+  color: var(--q-red);
+}
+.chat-out-act {
+  font-weight: 600;
+  color: var(--q-text);
+}
+.chat-out-act:hover {
+  text-decoration: underline;
 }
 
 /* beside it: details or a thread */

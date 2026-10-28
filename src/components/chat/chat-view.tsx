@@ -32,6 +32,7 @@ import {
 	MessagesSkeleton,
 } from "./chat-message";
 import { ChatNav, titleOf, type Via } from "./chat-nav";
+import { OutboxRow, useOutbox } from "./chat-outbox";
 import { ThreadPanel } from "./chat-thread";
 
 // Team chat: its own sidebar of conversations (chat-nav.tsx; a drawer on a phone), the open
@@ -149,7 +150,7 @@ export function ChatView({
 					slug={slug}
 					channel={open}
 					title={titleOf(open, me?.id)}
-					meName={me?.name ?? ""}
+					me={me}
 					onMenu={() => setDrawer(true)}
 				/>
 			) : // still finding the conversation: the whole of it as a placeholder
@@ -251,7 +252,7 @@ function ConversationSkeleton({ onMenu }: { onMenu: () => void }) {
 					<span className="sp" />
 					<button
 						type="button"
-						className="chat-send"
+						className="btn btn-primary btn-sm chat-send"
 						disabled
 						aria-label="Send"
 					>
@@ -293,7 +294,7 @@ function Welcome({ channel, title }: { channel: ChatChannel; title: string }) {
 					/>
 				</span>
 			)}
-			<h2>{self ? "Notes to self" : dm ? title : `Welcome to #${title}!`}</h2>
+			<h2>{dm ? title : `Welcome to #${title}!`}</h2>
 			<p className="faint">
 				{self
 					? "A place for drafts, links and reminders. Only you can see it."
@@ -311,17 +312,20 @@ function Conversation({
 	slug,
 	channel,
 	title,
-	meName,
+	me,
 	onMenu,
 }: {
 	slug: string;
 	channel: ChatChannel;
 	title: string;
-	meName: string;
+	me: { id: string; name: string; image: string | null } | undefined;
 
 	onMenu: () => void;
 }) {
 	const client = useApolloClient();
+	const meName = me?.name ?? "";
+	const dmFace =
+		channel.people.find((p) => p.id !== me?.id) ?? channel.people[0];
 	const variables = { slug, channelId: channel.id };
 	const { data, refetch } = useQuery(CHAT_MESSAGES, { variables });
 	const [older, setOlder] = useState<ChatMessage[]>([]);
@@ -330,10 +334,19 @@ function Conversation({
 	const [markRead] = useMutation(MARK_CHAT_READ, {
 		refetchQueries: ["ChatChannels"],
 	});
-	const [favorite] = useMutation(FAVORITE_CHAT_CHANNEL, {
-		refetchQueries: ["ChatChannels"],
-	});
 	const [typing, setTyping] = useState<Record<string, number>>({});
+	// what you send shows at once; the real message takes its place when the server has it
+	const outbox = useOutbox({
+		slug,
+		channelId: channel.id,
+		onSent: (message) =>
+			client.cache.updateQuery({ query: CHAT_MESSAGES, variables }, (prev) =>
+				// the live refresh may have brought it in already
+				prev?.chatMessages.some((m) => m.id === message.id)
+					? prev
+					: { chatMessages: [...(prev?.chatMessages ?? []), message] },
+			),
+	});
 	// beside the conversation: the details (on Info or Pins), or a thread (by its first message's id)
 	const [side, setSide] = useState<
 		"details" | "pins" | { thread: string } | null
@@ -343,15 +356,45 @@ function Conversation({
 		refetchQueries: ["ChatPins", "ChatMessages"],
 	});
 	// the pinned bar: show the message (a reply opens its thread; one further back, the Pins tab)
-	const showPinned = () => {
+	const showPinned = async () => {
 		if (!pinned) return;
-		const el = document.getElementById(`m-${pinned.id}`);
-		if (el) {
-			el.scrollIntoView({ block: "center", behavior: "smooth" });
-			el.classList.add("flash");
-			setTimeout(() => el.classList.remove("flash"), 1600);
-		} else if (pinned.parentId) setSide({ thread: pinned.parentId });
-		else setSide("pins");
+		// a reply: open its thread, and bring the message it answers into view
+		if (pinned.parentId) setSide({ thread: pinned.parentId });
+		const target = pinned.parentId ?? pinned.id;
+		if (!document.getElementById(`m-${target}`)) {
+			// further back than what's loaded: load earlier pages until it's there
+			const pages: ChatMessage[] = [];
+			let cursor = messages[0]?.createdAt;
+			try {
+				while (cursor && !pages.some((m) => m.id === target)) {
+					const { data: page } = await client.query({
+						query: CHAT_MESSAGES,
+						variables: { ...variables, before: cursor },
+						fetchPolicy: "network-only",
+					});
+					const rows = page?.chatMessages ?? [];
+					pages.unshift(...rows);
+					if (rows.length < PAGE) {
+						setNoMore(true);
+						break;
+					}
+					cursor = rows[0]?.createdAt;
+				}
+			} catch {
+				toast.error("Couldn't load the pinned message");
+				return;
+			}
+			setOlder((o) => [...pages, ...o]);
+			// wait for those rows to be on screen
+			await new Promise((done) =>
+				requestAnimationFrame(() => requestAnimationFrame(done)),
+			);
+		}
+		const el = document.getElementById(`m-${target}`);
+		if (!el) return void toast.error("The pinned message isn't here any more");
+		el.scrollIntoView({ block: "center", behavior: "smooth" });
+		el.classList.add("flash");
+		setTimeout(() => el.classList.remove("flash"), 1600);
 	};
 	const [online, setOnline] = useState(0);
 	const say = useRef<(event: string, payload: object) => void>(() => {});
@@ -515,51 +558,29 @@ function Conversation({
 							aria-hidden="true"
 						/>
 					</button>
-					<span className="chat-h-ic" aria-hidden="true">
-						<span
-							className={cn(
-								"size-4",
-								channel.kind === "dm"
-									? "icon-[solar--chat-round-dots-linear]"
-									: channel.teamId
+					{channel.kind === "dm" ? (
+						// a DM shows who it's with (yourself, in your own)
+						<Av
+							name={dmFace?.name ?? title}
+							image={dmFace?.image}
+							className="chat-h-av"
+						/>
+					) : (
+						<span className="chat-h-ic" aria-hidden="true">
+							<span
+								className={cn(
+									"size-4",
+									channel.teamId
 										? "icon-[solar--users-group-two-rounded-linear]"
 										: channel.private
 											? "icon-[solar--lock-keyhole-minimalistic-linear]"
 											: "icon-[solar--hashtag-linear]",
-							)}
-						/>
-					</span>
+								)}
+							/>
+						</span>
+					)}
 					<b className="trunc">{title}</b>
-					<button
-						type="button"
-						className="ibtn ibtn-sm"
-						aria-pressed={channel.favorite}
-						aria-label={
-							channel.favorite ? "Remove from Favourites" : "Add to Favourites"
-						}
-						data-tip={
-							channel.favorite ? "Remove from Favourites" : "Add to Favourites"
-						}
-						onClick={() =>
-							void favorite({
-								variables: {
-									slug,
-									channelId: channel.id,
-									favorite: !channel.favorite,
-								},
-							}).catch(() => toast.error("Couldn't update Favourites"))
-						}
-					>
-						<span
-							className={cn(
-								"size-4",
-								channel.favorite
-									? "icon-[solar--star-bold] chat-star"
-									: "icon-[solar--star-linear]",
-							)}
-							aria-hidden="true"
-						/>
-					</button>
+
 					<span className="sp" />
 					{online > 1 && (
 						<span className="faint chat-online">{online} here now</span>
@@ -588,7 +609,7 @@ function Conversation({
 						<button
 							type="button"
 							className="chat-pinbar-msg"
-							onClick={showPinned}
+							onClick={() => void showPinned()}
 						>
 							<span className="chat-pinbar-label">Pinned</span>
 							<span className="trunc">
@@ -652,6 +673,15 @@ function Conversation({
 							onThread={() => setSide({ thread: m.id })}
 						/>
 					))}
+					{outbox.items.map((item) => (
+						<OutboxRow
+							key={item.id}
+							item={item}
+							me={me}
+							onRetry={() => outbox.retry(item.id)}
+							onDiscard={() => outbox.discard(item.id)}
+						/>
+					))}
 				</div>
 				<div className="chat-typing faint" aria-live="polite">
 					{typers.length
@@ -659,19 +689,16 @@ function Conversation({
 						: ""}
 				</div>
 				<Composer
-					slug={slug}
-					channelId={channel.id}
 					placeholder={
-						channel.kind === "dm" ? `Message ${title}` : `Message #${title}`
+						channel.kind !== "dm"
+							? `Message #${title}`
+							: channel.people.length === 1
+								? "Write a note to yourself…"
+								: `Message ${title}`
 					}
 					onTyping={() => say.current("typing", { name: meName })}
-					onSent={(message) => {
-						client.cache.updateQuery(
-							{ query: CHAT_MESSAGES, variables },
-							(prev) => ({
-								chatMessages: [...(prev?.chatMessages ?? []), message],
-							}),
-						);
+					onSend={(body, files) => {
+						outbox.send(body, files);
 						requestAnimationFrame(() => {
 							if (list.current)
 								list.current.scrollTop = list.current.scrollHeight;
@@ -693,6 +720,7 @@ function Conversation({
 					key={thread.id}
 					slug={slug}
 					parent={thread}
+					me={me}
 					onClose={() => setSide(null)}
 					onChange={() => void refetch()}
 				/>

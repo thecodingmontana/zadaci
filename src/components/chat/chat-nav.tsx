@@ -30,13 +30,13 @@ type Section = "pinned" | "favorites" | "channels" | "teams" | "dms";
 export type Via = "pin" | "fav";
 const FOLDED_KEY = "zadaci:chat-folded";
 
-/** A DM is named after the others in it (just you: your own notes); a channel after itself. */
+/** A DM is named after the others in it (just you: "Your Name (You)"); a channel after itself. */
 export const titleOf = (c: ChatChannel, meId: string | undefined) =>
 	c.kind === "dm"
 		? c.people
 				.filter((p) => p.id !== meId)
 				.map((p) => p.name)
-				.join(", ") || "Notes to self"
+				.join(", ") || `${c.people[0]?.name ?? "You"} (You)`
 		: (c.name ?? "");
 
 /** The DM with exactly these people (you included), if it exists. */
@@ -312,7 +312,7 @@ export function ChatNav({
 
 									if (dm) return row(dm);
 									const ids = p.isMe ? [] : [p.id];
-									const label = p.isMe ? "Notes to self" : p.name;
+									const label = p.isMe ? `${p.name} (You)` : p.name;
 									return (
 										<div key={p.id} className="sitem chat-row">
 											<button

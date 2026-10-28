@@ -1,4 +1,4 @@
-import { useApolloClient } from "@apollo/client/react";
+import type { ApolloClient } from "@apollo/client";
 import { useEffect, useRef, useState } from "react";
 import { sendToCloudinary } from "#/components/tasks/upload";
 import { CHAT_UPLOAD, type ChatAttachment } from "#/graphql/chat-operations";
@@ -12,168 +12,91 @@ import { cn } from "#/lib/utils";
 const MB = 1024 * 1024;
 const MAX_FILES = 10;
 
-export type Pending = {
+/** A file picked, pasted, dropped or recorded: kept in the browser until the message is sent. */
+export type Draft = {
 	id: string;
-	name: string;
-	type: string;
-	size: number;
-	pct: number;
-	/** set once it's uploaded */
-	done?: ChatAttachment;
-	/** a picture's preview while it uploads */
+	file: File;
+	/** a picture's preview (revoke it once it's no longer shown) */
 	preview?: string;
-	stop: AbortController;
+	/** a voice note's length */
+	seconds?: number;
 };
 
-/** The files waiting to go with the next message. */
-export function usePendingFiles(slug: string, channelId: string) {
-	const client = useApolloClient();
-	const [files, setFiles] = useState<Pending[]>([]);
+/** The files waiting to go with the next message. Nothing uploads until you send. */
+export function useDraftFiles() {
+	const [files, setFiles] = useState<Draft[]>([]);
 	const latest = useRef(files);
 	latest.current = files;
-	// leaving the conversation: stop uploads and free the previews
+	// leaving without sending: free the previews
 	useEffect(
 		() => () => {
-			for (const f of latest.current) {
-				f.stop.abort();
+			for (const f of latest.current)
 				if (f.preview) URL.revokeObjectURL(f.preview);
-			}
 		},
 		[],
 	);
-	const patch = (id: string, change: Partial<Pending>) =>
-		setFiles((all) => all.map((f) => (f.id === id ? { ...f, ...change } : f)));
-	const remove = (id: string) =>
-		setFiles((all) => {
-			const f = all.find((x) => x.id === id);
-			f?.stop.abort();
-			if (f?.preview) URL.revokeObjectURL(f.preview);
-			return all.filter((x) => x.id !== id);
-		});
-
 	const add = (list: File[], seconds?: number) => {
 		const room = MAX_FILES - latest.current.length;
 		if (list.length > room)
 			toast.error(`Send up to ${MAX_FILES} files at a time`);
-		for (const file of list.slice(0, Math.max(0, room))) {
+		const fit = list.slice(0, Math.max(0, room)).filter((file) => {
 			const max = maxUpload(file.type);
-			if (file.size > max) {
-				toast.error(`${file.name} is too big`, {
-					desc: `The limit for this kind of file is ${max / MB} MB.`,
-				});
-				continue;
-			}
-			const item: Pending = {
+			if (file.size <= max) return true;
+			toast.error(`${file.name} is too big`, {
+				desc: `The limit for this kind of file is ${max / MB} MB.`,
+			});
+			return false;
+		});
+		setFiles((all) => [
+			...all,
+			...fit.map((file) => ({
 				id: crypto.randomUUID(),
-				name: file.name,
-				type: file.type || "application/octet-stream",
-				size: file.size,
-				pct: 0,
+				file,
+				seconds,
 				preview: file.type.startsWith("image/")
 					? URL.createObjectURL(file)
 					: undefined,
-				stop: new AbortController(),
-			};
-			setFiles((all) => [...all, item]);
-			void (async () => {
-				try {
-					const { data } = await client.mutate({
-						mutation: CHAT_UPLOAD,
-						variables: {
-							slug,
-							channelId,
-							file: !file.type.startsWith("image/"),
-						},
-					});
-					if (!data) throw new Error("No upload slot");
-					const res = await sendToCloudinary(
-						data.chatUpload,
-						file,
-						(pct) => patch(item.id, { pct }),
-						item.stop.signal,
-					);
-					patch(item.id, {
-						pct: 100,
-						done: {
-							url: res.secure_url,
-							name: file.name,
-							size: res.bytes ?? file.size,
-							type: item.type,
-							seconds: seconds ?? null,
-						},
-					});
-				} catch (e) {
-					if ((e as Error).name !== "AbortError")
-						toast.error(`Couldn't upload ${file.name}`, {
-							desc: (e as Error).message,
-						});
-					remove(item.id);
-				}
-			})();
-		}
+			})),
+		]);
 	};
-	const clear = () => {
-		for (const f of latest.current)
-			if (f.preview) URL.revokeObjectURL(f.preview);
+	const remove = (id: string) =>
+		setFiles((all) => {
+			const f = all.find((x) => x.id === id);
+			if (f?.preview) URL.revokeObjectURL(f.preview);
+			return all.filter((x) => x.id !== id);
+		});
+	/** hands the files over to be sent (their previews go with them) */
+	const take = () => {
+		const out = latest.current;
+		latest.current = [];
 		setFiles([]);
+		return out;
 	};
-	return {
-		files,
-		add,
-		remove,
-		clear,
-		uploading: files.some((f) => !f.done),
-		ready: files.flatMap((f) =>
-			f.done
-				? [
-						{
-							url: f.done.url,
-							name: f.done.name,
-							size: f.done.size,
-							type: f.done.type,
-							...(f.done.seconds != null && { seconds: f.done.seconds }),
-						},
-					]
-				: [],
-		),
-	};
+	return { files, add, remove, take };
 }
 
-/** The files above the message box, each with its progress and a way to drop it. */
-export function PendingFiles({
+/** The files above the message box, each with a way to drop it. */
+export function DraftFiles({
 	files,
 	onRemove,
 }: {
-	files: Pending[];
+	files: Draft[];
 	onRemove: (id: string) => void;
 }) {
 	if (!files.length) return null;
 	return (
 		<div className="chat-pending">
 			{files.map((f) => (
-				<div
-					key={f.id}
-					className={cn("chat-pending-file", !f.done && "busy")}
-					aria-busy={!f.done}
-				>
-					{f.preview ? (
-						<img src={f.preview} alt="" />
-					) : (
-						<span
-							className={cn(fileIcon(f.type), "size-5 shrink-0")}
-							aria-hidden="true"
-						/>
-					)}
+				<div key={f.id} className="chat-pending-file">
+					<FileThumb draft={f} />
 					<span className="chat-pending-name">
-						<span className="trunc">{f.name}</span>
-						<span className="faint">
-							{f.done ? fmtSize(f.size) : `Uploading ${f.pct}%`}
-						</span>
+						<span className="trunc">{f.file.name}</span>
+						<span className="faint">{fmtSize(f.file.size)}</span>
 					</span>
 					<button
 						type="button"
 						className="ibtn ibtn-xs"
-						aria-label={`Remove ${f.name}`}
+						aria-label={`Remove ${f.file.name}`}
 						onClick={() => onRemove(f.id)}
 					>
 						<span
@@ -181,17 +104,46 @@ export function PendingFiles({
 							aria-hidden="true"
 						/>
 					</button>
-					{!f.done && (
-						<span
-							className="chat-pending-bar"
-							style={{ width: `${f.pct}%` }}
-							aria-hidden="true"
-						/>
-					)}
 				</div>
 			))}
 		</div>
 	);
+}
+
+/** A draft's picture preview, or its kind's icon. */
+export const FileThumb = ({ draft }: { draft: Draft }) =>
+	draft.preview ? (
+		<img src={draft.preview} alt="" />
+	) : (
+		<span
+			className={cn(fileIcon(draft.file.type), "size-5 shrink-0")}
+			aria-hidden="true"
+		/>
+	);
+
+/** Uploads one file into the conversation's folder; resolves to what the message carries. */
+export async function uploadChatFile(
+	client: ApolloClient,
+	slug: string,
+	channelId: string,
+	draft: Draft,
+	onProgress: (pct: number) => void,
+	signal?: AbortSignal,
+): Promise<ChatAttachment> {
+	const { file } = draft;
+	const { data } = await client.mutate({
+		mutation: CHAT_UPLOAD,
+		variables: { slug, channelId, file: !file.type.startsWith("image/") },
+	});
+	if (!data) throw new Error("No upload slot");
+	const res = await sendToCloudinary(data.chatUpload, file, onProgress, signal);
+	return {
+		url: res.secure_url,
+		name: file.name,
+		size: res.bytes ?? file.size,
+		type: file.type || "application/octet-stream",
+		seconds: draft.seconds ?? null,
+	};
 }
 
 /** Records a voice note with the microphone; hands back the file when you stop. */

@@ -7,6 +7,7 @@ import {
 	MessageRow,
 	MessagesSkeleton,
 } from "./chat-message";
+import { OutboxRow, useOutbox } from "./chat-outbox";
 
 // A thread beside the conversation: the message it started from, its replies, and a box to reply.
 // New replies arrive through the conversation's live channel, which refetches this query too.
@@ -14,11 +15,13 @@ import {
 export function ThreadPanel({
 	slug,
 	parent,
+	me,
 	onClose,
 	onChange,
 }: {
 	slug: string;
 	parent: ChatMessage;
+	me: { name: string; image: string | null } | undefined;
 	onClose: () => void;
 	/** a reply landed: the conversation's reply counts change */
 	onChange: () => void;
@@ -27,6 +30,19 @@ export function ThreadPanel({
 	const variables = { slug, channelId: parent.channelId, parentId: parent.id };
 	const { data, refetch } = useQuery(CHAT_MESSAGES, { variables });
 	const replies = data?.chatMessages ?? [];
+	const outbox = useOutbox({
+		slug,
+		channelId: parent.channelId,
+		parentId: parent.id,
+		onSent: (message) => {
+			client.cache.updateQuery({ query: CHAT_MESSAGES, variables }, (prev) =>
+				prev?.chatMessages.some((m) => m.id === message.id)
+					? prev
+					: { chatMessages: [...(prev?.chatMessages ?? []), message] },
+			);
+			onChange();
+		},
+	});
 	const list = useRef<HTMLDivElement>(null);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: follow new replies down
@@ -79,21 +95,19 @@ export function ThreadPanel({
 						}}
 					/>
 				))}
+				{outbox.items.map((item) => (
+					<OutboxRow
+						key={item.id}
+						item={item}
+						me={me}
+						onRetry={() => outbox.retry(item.id)}
+						onDiscard={() => outbox.discard(item.id)}
+					/>
+				))}
 			</div>
 			<Composer
-				slug={slug}
-				channelId={parent.channelId}
-				parentId={parent.id}
 				placeholder="Reply…"
-				onSent={(message) => {
-					client.cache.updateQuery(
-						{ query: CHAT_MESSAGES, variables },
-						(prev) => ({
-							chatMessages: [...(prev?.chatMessages ?? []), message],
-						}),
-					);
-					onChange();
-				}}
+				onSend={(body, files) => outbox.send(body, files)}
 			/>
 		</aside>
 	);
