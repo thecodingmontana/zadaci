@@ -18,6 +18,7 @@ import { CodeBlock } from "./code-block";
 import { ColorHighlight, TextColor } from "./colors";
 import { TableOfContents } from "./extras";
 import { ItemEmbed, LinkCard } from "./item-embed";
+import { ReadOnlyMention } from "./mention";
 
 // A page shown read-only (public links): the editor's blocks without editing, the "/" menu
 // or drag handles. Task, bookmark and project cards show "No access" to people outside.
@@ -51,6 +52,7 @@ export function ReadOnlyDoc({ doc }: { doc: unknown }) {
 			MediaLayout,
 			NoteFile,
 			TableOfContents,
+			ReadOnlyMention,
 			Mathematics.configure({ katexOptions: { throwOnError: false } }),
 			ItemEmbed,
 			LinkCard,

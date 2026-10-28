@@ -171,3 +171,33 @@ test("audit: pages of a deleted project are hidden, and copying needs edit right
 	assert.equal(code(await gql(member, `query($s: String!, $id: ID!) { note(slug: $s, id: $id) { id } }`, { s: slug, id: linked.id })), "BAD_USER_INPUT");
 	assert.equal((await list(member, slug)).length, 0);
 });
+
+test("mentioning someone in a page tells them once, and only if they can see the page", async () => {
+	const { owner, member, slug } = await setup();
+	const page = (await create(owner, slug, { title: "Launch plan" })).data?.createNote;
+	const mention = (u: TestUser) => ({ type: "mention", attrs: { id: u.id, label: "Pat" } });
+	const withMention = (u: TestUser, more = "") => ({
+		type: "doc",
+		content: [{ type: "paragraph", content: [{ type: "text", text: `Hi ${more}` }, mention(u)] }],
+	});
+	const save = (id: string, body: unknown) =>
+		gql(owner, `mutation($s: String!, $id: ID!, $p: NotePatch!) { updateNote(slug: $s, id: $id, patch: $p) { id } }`, { s: slug, id, p: { doc: body } });
+	const mentions = async () =>
+		(await gql(member, `query($s: String!) { workspace(slug: $s) { notifications { type text snippet } } }`, { s: slug })).data?.workspace.notifications.filter((n: { type: string }) => n.type === "mention") ?? [];
+
+	assert.ok((await save(page.id, withMention(member))).data?.updateNote);
+	assert.deepEqual(await mentions(), [{ type: "mention", text: "mentioned you in", snippet: "Launch plan" }]);
+	// saving again with the same mention doesn't tell them twice
+	assert.ok((await save(page.id, withMention(member, "again"))).data?.updateNote);
+	assert.equal((await mentions()).length, 1);
+
+	// a private page: the member can't open it, so they hear nothing
+	const secret = (await create(owner, slug, { title: "Secret" })).data?.createNote;
+	await gql(owner, `mutation($s: String!, $id: ID!) { updateNote(slug: $s, id: $id, patch: { isPrivate: true }) { id } }`, { s: slug, id: secret.id });
+	assert.ok((await save(secret.id, withMention(member))).data?.updateNote);
+	assert.equal((await mentions()).length, 1);
+
+	// a mention must name a real-looking user id
+	const bad = { type: "doc", content: [{ type: "paragraph", content: [{ type: "mention", attrs: { id: "<x>", label: "x" } }] }] };
+	assert.ok((await save(page.id, bad)).errors?.length);
+});

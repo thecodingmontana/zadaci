@@ -36,6 +36,7 @@ const NODES = new Set([
 	"toc",
 	"inlineMath",
 	"blockMath",
+	"mention",
 ]);
 /** a task or bookmark shown as a live card; the viewer's access is checked when it's shown */
 export const EMBED_KINDS = ["task", "bookmark", "project"] as const;
@@ -109,6 +110,17 @@ function walk(node: unknown, out: string[], depth: number): DocNode {
 		if (typeof n.text !== "string") throw new Error("Bad note content");
 		out.push(n.text);
 	}
+	// a person mentioned in the page: their user id and the name shown
+	if (n.type === "mention") {
+		const id = n.attrs?.id;
+		const label = n.attrs?.label;
+		if (
+			!(typeof id === "string" && /^[A-Za-z0-9]{1,16}$/.test(id)) ||
+			!(typeof label === "string" && label.length <= 100)
+		)
+			throw new Error("Bad note content");
+		out.push(`@${label}`);
+	}
 	const marks = (n.marks ?? []).map((m) => {
 		if (!MARKS.has(m?.type)) throw new Error(`Unsupported style: ${m?.type}`);
 		const attrs = plain(m.attrs);
@@ -171,4 +183,18 @@ export function checkDoc(doc: unknown): { doc: DocNode; text: string } {
 			.replace(/\n{3,}/g, "\n\n")
 			.trim(),
 	};
+}
+
+/** The user ids of the people a page mentions. */
+export function mentionedIds(doc: unknown) {
+	const ids = new Set<string>();
+	const visit = (node: unknown) => {
+		if (!node || typeof node !== "object") return;
+		const n = node as DocNode;
+		if (n.type === "mention" && typeof n.attrs?.id === "string")
+			ids.add(n.attrs.id);
+		if (Array.isArray(n.content)) for (const c of n.content) visit(c);
+	};
+	visit(doc);
+	return ids;
 }

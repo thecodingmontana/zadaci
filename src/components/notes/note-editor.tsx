@@ -1,5 +1,5 @@
 import { CombinedGraphQLErrors } from "@apollo/client";
-import { useApolloClient, useMutation } from "@apollo/client/react";
+import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import {
 	Details,
 	DetailsContent,
@@ -38,8 +38,10 @@ import {
 	MenuTrigger,
 } from "#/components/q/menu";
 import {
+	NOTE_PEOPLE,
 	type NoteDetail,
 	type NoteItem,
+	type NotePerson,
 	UPDATE_NOTE,
 } from "#/graphql/note-operations";
 import { randomGalleryCover } from "#/lib/note-covers";
@@ -52,6 +54,7 @@ import { ColorHighlight, NOTE_COLORS, TextColor } from "./colors";
 import { EmojiSuggest, TableOfContents } from "./extras";
 import { InsertDialog } from "./insert-dialog";
 import { ItemEmbed, LinkCard } from "./item-embed";
+import { peopleMention } from "./mention";
 import { NoteActions } from "./note-actions";
 import { NoteCover } from "./note-cover";
 import { addFileToNote, chooseFile, uploadToNote } from "./note-upload";
@@ -166,6 +169,11 @@ export function NoteEditor({
 		});
 
 	const upload = (file: File) => uploadToNote(client, slug, note.id, file);
+	// the "@" picker reads the latest list each time it opens
+	const people = useRef<NotePerson[]>([]);
+	people.current =
+		useQuery(NOTE_PEOPLE, { variables: { slug } }).data?.workspace?.members ??
+		[];
 	// a formula is edited by clicking it; the editor isn't made yet when its options are
 	const editorRef = useRef<Editor | null>(null);
 	const editMath =
@@ -223,6 +231,7 @@ export function NoteEditor({
 			NoteFile,
 			TableOfContents,
 			EmojiSuggest,
+			peopleMention(() => people.current),
 			Mathematics.configure({
 				inlineOptions: { onClick: editMath("inline") },
 				blockOptions: { onClick: editMath("block") },

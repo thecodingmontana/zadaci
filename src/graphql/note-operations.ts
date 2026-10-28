@@ -351,3 +351,30 @@ export const EXPAND_MAP_LINK: TypedDocumentNode<
 		expandMapLink(url: $url)
 	}
 `;
+
+export type NotePerson = {
+	id: string;
+	userId: string;
+	name: string;
+	image: string | null;
+	isMe: boolean;
+};
+
+/** The workspace's people, for @mentions in a page. */
+export const NOTE_PEOPLE: TypedDocumentNode<
+	{ workspace: { id: string; members: NotePerson[] } | null },
+	{ slug: string }
+> = gql`
+	query NotePeople($slug: String!) {
+		workspace(slug: $slug) {
+			id
+			members {
+				id
+				userId
+				name
+				image
+				isMe
+			}
+		}
+	}
+`;

@@ -15,10 +15,11 @@ import { z } from "zod";
 import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
 import { isCover } from "#/lib/note-covers";
-import { checkDoc } from "#/lib/note-doc";
+import { checkDoc, mentionedIds } from "#/lib/note-doc";
 import { isShortMapLink } from "#/lib/note-embeds";
 import { can, hasRight, type ProjectRight } from "#/lib/permissions";
 import { pstat } from "#/lib/projects";
+import { notify } from "./activity.server";
 import { visibleBookmarks } from "./bookmarks.server";
 import { viewerRight } from "./projects.server";
 import {
@@ -225,6 +226,46 @@ export async function requireNote(
 	if (!right) badInput("Note not found");
 	if (!hasRight(right, need)) forbidden();
 	return { user, workspace, note, right };
+}
+
+/** At most this many people hear about one save's new mentions. */
+const MAX_MENTIONS = 20;
+
+/**
+ * Tells people newly mentioned in a page, if they can see it: the page's title is the snippet.
+ * Someone mentioned before this save, the author, or anyone who can't open the page hears nothing.
+ */
+async function notifyMentions(
+	workspace: Workspace,
+	actorId: string,
+	note: { id: string; title: string | null },
+	before: Set<string>,
+	after: Set<string>,
+) {
+	const added = [...after]
+		.filter((id) => !before.has(id) && id !== actorId)
+		.slice(0, MAX_MENTIONS);
+	const people: string[] = [];
+	for (const userId of added) {
+		const [theirs] = await findWorkspaces(userId, workspace.slug);
+		if (!theirs) continue;
+		const [seen] = await db
+			.select({ id: tables.note.id })
+			.from(tables.note)
+			.where(and(eq(tables.note.id, note.id), visible(theirs)));
+		if (seen) people.push(userId);
+	}
+	await notify(
+		db,
+		people.map((user_id) => ({
+			user_id,
+			workspace_id: workspace.id,
+			actor_id: actorId,
+			type: "mention",
+			text: "mentioned you in",
+			snippet: note.title?.trim() || "Untitled page",
+		})),
+	);
 }
 
 /** Pages the viewer can see: members see unlinked pages, everyone sees their projects' pages. */
@@ -766,6 +807,17 @@ export const notesResolvers = {
 					});
 				await applySharing(tx, below, workspace.memberId, share);
 			});
+			if (set.doc)
+				await notifyMentions(
+					workspace,
+					user.id,
+					{
+						id: note.id,
+						title: (set.title as string | undefined) ?? note.title,
+					},
+					mentionedIds(note.doc),
+					mentionedIds(set.doc),
+				);
 			return oneNote(note.id, workspace, user.id);
 		},
 

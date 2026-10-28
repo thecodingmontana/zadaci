@@ -1316,3 +1316,25 @@ a.item-embed:hover {
 	/* biome-ignore lint/complexity/noImportantStyles: Shiki sets the light text colour inline */
 	color: var(--shiki-dark, inherit) !important;
 }
+
+/* ---- @mentions ---- */
+.note-body .tiptap .mention {
+	padding: 0 3px;
+	border-radius: 4px;
+	background: color-mix(in srgb, var(--q-accent) 12%, transparent);
+	color: var(--q-accent);
+	font-weight: 500;
+	white-space: nowrap;
+}
+.mention-av {
+	display: inline-grid;
+	place-items: center;
+	flex: none;
+	width: 20px;
+	height: 20px;
+	border-radius: 999px;
+	object-fit: cover;
+	background: var(--q-surface-2);
+	font-size: 11px;
+	font-weight: 600;
+}
