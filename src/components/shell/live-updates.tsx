@@ -24,6 +24,7 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 		});
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		let last = 0;
+		let connected = false;
 		const channel = realtime
 			.channel(`ws:${workspaceId}`)
 			.on("broadcast", { event: "changed" }, (message) => {
@@ -40,7 +41,12 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 					Math.max(SETTLE_MS, last + MIN_GAP_MS - Date.now()),
 				);
 			})
-			.subscribe();
+			// back after the connection dropped (a sleeping laptop, a phone offline): catch up once
+			.subscribe((status) => {
+				if (status !== "SUBSCRIBED") return;
+				if (connected) void client.refetchQueries({ include: "active" });
+				connected = true;
+			});
 		return () => {
 			clearTimeout(timer);
 			void realtime.removeChannel(channel);

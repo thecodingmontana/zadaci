@@ -35,14 +35,9 @@ export function getRouter() {
 	const apolloClient = new ApolloClient({
 		cache: new InMemoryCache(),
 		link: new HttpLink({ uri: "/api/graphql", fetch: graphqlFetch() }),
-		// opening a page shows what's cached at once, then refreshes it from the server, so changes
-		// made by Zad or by teammates while you were elsewhere show up; afterwards it reads the cache
-		defaultOptions: {
-			watchQuery: {
-				fetchPolicy: "cache-and-network",
-				nextFetchPolicy: "cache-first",
-			},
-		},
+		// pages show what's cached at once without asking the server again: live updates
+		// (components/shell/live-updates) refresh them whenever anything changes, by anyone or Zad
+		defaultOptions: { watchQuery: { fetchPolicy: "cache-first" } },
 	});
 
 	const router = createTanStackRouter({
