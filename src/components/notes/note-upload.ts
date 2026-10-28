@@ -1,5 +1,8 @@
 import type { ApolloClient } from "@apollo/client";
-import type { Editor } from "@tiptap/react";
+import type { EditorState } from "@tiptap/pm/state";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { type Editor, Extension } from "@tiptap/react";
 import { sendToCloudinary } from "#/components/tasks/upload";
 import { NOTE_COVER_UPLOAD } from "#/graphql/note-operations";
 import { maxUpload } from "#/lib/files";
@@ -31,6 +34,64 @@ export async function uploadToNote(
 	return secure_url as string;
 }
 
+// While a file uploads, a placeholder block holds its place in the page; it moves with edits
+// around it, and the uploaded block replaces it (or it just goes, if the upload fails).
+const uploads = new PluginKey<DecorationSet>("noteUploads");
+type UploadMeta =
+	| { add: { id: object; pos: number; image: boolean; name: string } }
+	| { remove: object };
+
+export const UploadPlaceholders = Extension.create({
+	name: "uploadPlaceholders",
+	addProseMirrorPlugins() {
+		return [
+			new Plugin<DecorationSet>({
+				key: uploads,
+				state: {
+					init: () => DecorationSet.empty,
+					apply(tr, set) {
+						let next = set.map(tr.mapping, tr.doc);
+						const meta = tr.getMeta(uploads) as UploadMeta | undefined;
+						if (meta && "add" in meta) {
+							const { id, pos, image, name } = meta.add;
+							const el = document.createElement("div");
+							el.className = `upload-sk ${image ? "image" : "file"}`;
+							el.setAttribute("aria-busy", "true");
+							const label = document.createElement("span");
+							label.className = "upload-sk-name";
+							label.textContent = `Uploading ${name}…`;
+							el.append(label);
+							next = next.add(tr.doc, [
+								Decoration.widget(pos, el, { id, side: -1 }),
+							]);
+						} else if (meta && "remove" in meta)
+							next = next.remove(
+								next.find(
+									undefined,
+									undefined,
+									(spec) => spec.id === meta.remove,
+								),
+							);
+						return next;
+					},
+				},
+				props: { decorations: (state) => uploads.getState(state) },
+			}),
+		];
+	},
+});
+
+const placeholderAt = (state: EditorState, id: object) =>
+	uploads
+		.getState(state)
+		?.find(undefined, undefined, (spec) => spec.id === id)[0]?.from ?? null;
+
+/** Where a block can go: between blocks, at the end of the one holding `pos`. */
+const blockGap = (state: EditorState, pos: number) => {
+	const $pos = state.doc.resolve(Math.min(pos, state.doc.content.size));
+	return $pos.depth ? $pos.after(1) : $pos.pos;
+};
+
 /** Uploads a file and puts it in the page at `pos`, as an image or a file block. */
 export function addFileToNote(
 	editor: Editor,
@@ -38,6 +99,16 @@ export function addFileToNote(
 	file: File,
 	pos: number,
 ) {
+	const id = {};
+	const image = file.type.startsWith("image/");
+	editor.view.dispatch(
+		editor.state.tr.setMeta(uploads, {
+			add: { id, pos: blockGap(editor.state, pos), image, name: file.name },
+		}),
+	);
+	const done = () =>
+		editor.isDestroyed ||
+		editor.view.dispatch(editor.state.tr.setMeta(uploads, { remove: id }));
 	return toast
 		.promise(upload(file), {
 			loading: `Uploading ${file.name}…`,
@@ -45,13 +116,15 @@ export function addFileToNote(
 			error: `Couldn't upload ${file.name}`,
 		})
 		.then((src) => {
-			const at = Math.min(pos, editor.state.doc.content.size);
+			if (editor.isDestroyed) return;
+			const at = placeholderAt(editor.state, id);
+			done();
+			if (at === null) return;
 			editor
 				.chain()
-				.focus()
 				.insertContentAt(
 					at,
-					file.type.startsWith("image/")
+					image
 						? { type: "image", attrs: { src, alt: file.name } }
 						: {
 								type: "noteFile",
@@ -65,7 +138,7 @@ export function addFileToNote(
 				)
 				.run();
 		})
-		.catch(() => {});
+		.catch(done);
 }
 
 /** Opens the file chooser (from a slash command, so it counts as the person's click). */

@@ -69,7 +69,12 @@ import { ItemEmbed, LinkCard } from "./item-embed";
 import { peopleMention } from "./mention";
 import { NoteActions } from "./note-actions";
 import { NoteCover } from "./note-cover";
-import { addFileToNote, chooseFile, uploadToNote } from "./note-upload";
+import {
+	addFileToNote,
+	chooseFile,
+	UploadPlaceholders,
+	uploadToNote,
+} from "./note-upload";
 import { SLASH_COMMANDS, SlashCommands } from "./slash-menu";
 
 // A note's page: emoji, title and a Tiptap body. Changes save on their own a moment after
@@ -241,6 +246,7 @@ export function NoteEditor({
 			Embed,
 			MediaLayout,
 			NoteFile,
+			UploadPlaceholders,
 			TableOfContents,
 			EmojiSuggest,
 			peopleMention(() => people.current),
