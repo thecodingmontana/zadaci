@@ -224,6 +224,37 @@ export const SLASH_COMMANDS: Command[] = [
 	},
 	{
 		group: "Advanced",
+		title: "Table of contents",
+		alias: "toc headings outline contents",
+		hint: "List the page's headings",
+		icon: "icon-[solar--list-check-linear]",
+		// a line after it, so typing carries on below instead of replacing the block
+		run: (c) => c.insertContent([{ type: "toc" }, { type: "paragraph" }]),
+	},
+	{
+		group: "Advanced",
+		title: "Math",
+		alias: "equation formula latex katex",
+		hint: "A formula on its own line; click it to edit",
+		icon: "icon-[solar--calculator-linear]",
+		// insertBlockMath would place it where the "/" text was, before it was removed
+		run: (c) =>
+			c.insertContent([
+				{ type: "blockMath", attrs: { latex: "E = mc^2" } },
+				{ type: "paragraph" },
+			]),
+	},
+	{
+		group: "Advanced",
+		title: "Inline math",
+		alias: "equation formula latex katex",
+		hint: "A formula inside the line; or type $$x^2$$",
+		icon: "icon-[solar--square-sort-vertical-linear]",
+		run: (c) =>
+			c.insertContent({ type: "inlineMath", attrs: { latex: "x^2" } }),
+	},
+	{
+		group: "Advanced",
 		title: "Toggle list",
 		alias: "toggle details collapse accordion",
 		hint: "Hide content inside",
@@ -247,12 +278,14 @@ export function filterCommands(query: string) {
 	return [...starts, ...has];
 }
 
-type ListHandle = { onKeyDown: (event: KeyboardEvent) => boolean };
+export type ListHandle = { onKeyDown: (event: KeyboardEvent) => boolean };
 type ListProps = SuggestionProps<Command, Command>;
 
-const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
-	{ items, command },
-	ref,
+/** Arrow keys, Enter and Tab for a suggestion list; `list` holds rows marked data-i. */
+export function useListNav<T>(
+	items: T[],
+	command: (item: T) => void,
+	ref: React.ForwardedRef<ListHandle>,
 ) {
 	const [index, setIndex] = useState(0);
 	const list = useRef<HTMLDivElement>(null);
@@ -263,7 +296,6 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
 			?.querySelector(`[data-i="${index}"]`)
 			?.scrollIntoView({ block: "nearest" });
 	}, [index]);
-
 	useImperativeHandle(ref, () => ({
 		onKeyDown: (event) => {
 			if (!items.length) return false;
@@ -283,6 +315,14 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
 			return false;
 		},
 	}));
+	return { index, setIndex, list };
+}
+
+const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
+	{ items, command },
+	ref,
+) {
+	const { index, setIndex, list } = useListNav(items, command, ref);
 
 	return (
 		<div className="pop slash-menu" role="listbox" aria-label="Blocks">
@@ -377,45 +417,48 @@ export const SlashCommands = Extension.create({
 				command: ({ editor, range, props }) => {
 					props.run(editor.chain().focus().deleteRange(range)).run();
 				},
-				render: () => {
-					let menu: ReactRenderer<ListHandle, ListProps> | undefined;
-					const close = () => {
-						menu?.destroy();
-						menu?.element.remove();
-						menu = undefined;
-					};
-					return {
-						onStart: (props) => {
-							menu = new ReactRenderer(SlashList, {
-								props,
-								editor: props.editor,
-							});
-							// the wrapper is what gets placed; the menu sits inside it
-							Object.assign((menu.element as HTMLElement).style, {
-								position: "fixed",
-								top: "0",
-								left: "0",
-								zIndex: "80",
-							});
-							document.body.appendChild(menu.element);
-							place(menu.element as HTMLElement, props.clientRect);
-						},
-						onUpdate: (props) => {
-							if (!menu) return;
-							menu.updateProps(props);
-							place(menu.element as HTMLElement, props.clientRect);
-						},
-						onKeyDown: ({ event }) => {
-							if (event.key === "Escape" && menu) {
-								close();
-								return true;
-							}
-							return menu?.ref?.onKeyDown(event) ?? false;
-						},
-						onExit: close,
-					};
-				},
+				render: () => popup(SlashList),
 			}),
 		];
 	},
 });
+
+/** Shows a suggestion list (the "/" menu, emoji, people) under the cursor while typing. */
+// biome-ignore lint/suspicious/noExplicitAny: each list takes its own suggestion props
+export function popup<P extends SuggestionProps<any, any>>(
+	List: React.ComponentType<P & React.RefAttributes<ListHandle>>,
+) {
+	let menu: ReactRenderer<ListHandle, P> | undefined;
+	const close = () => {
+		menu?.destroy();
+		menu?.element.remove();
+		menu = undefined;
+	};
+	return {
+		onStart: (props: P) => {
+			menu = new ReactRenderer(List, { props, editor: props.editor });
+			// the wrapper is what gets placed; the menu sits inside it
+			Object.assign((menu.element as HTMLElement).style, {
+				position: "fixed",
+				top: "0",
+				left: "0",
+				zIndex: "80",
+			});
+			document.body.appendChild(menu.element);
+			place(menu.element as HTMLElement, props.clientRect);
+		},
+		onUpdate: (props: P) => {
+			if (!menu) return;
+			menu.updateProps(props);
+			place(menu.element as HTMLElement, props.clientRect);
+		},
+		onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+			if (event.key === "Escape" && menu) {
+				close();
+				return true;
+			}
+			return menu?.ref?.onKeyDown(event) ?? false;
+		},
+		onExit: close,
+	};
+}

@@ -1243,3 +1243,62 @@ a.item-embed:hover {
 	box-shadow: 0 0 0 2px var(--q-accent);
 	border-color: transparent;
 }
+
+/* ---- table of contents, emoji suggestions, word count, math ---- */
+.note-body .tiptap .note-toc {
+	margin: 0.6em 0;
+	padding: 10px 6px;
+	border-left: 2px solid var(--q-border);
+}
+.note-toc-title {
+	padding: 0 8px 4px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--q-text-3);
+}
+.note-toc-item {
+	display: block;
+	width: 100%;
+	padding: 3px 8px;
+	border-radius: var(--q-r-sm);
+	text-align: left;
+	color: var(--q-text-2);
+	text-decoration: underline;
+	text-decoration-color: var(--q-border);
+	text-underline-offset: 3px;
+}
+.note-toc-item:hover {
+	background: var(--q-surface-2);
+	color: var(--q-text);
+}
+.note-toc-empty {
+	margin: 0;
+	padding: 0 8px;
+	font-size: var(--q-fs-sm);
+}
+.note-body .tiptap .note-toc.ProseMirror-selectednode {
+	outline: 2px solid var(--q-accent);
+	outline-offset: 2px;
+	border-radius: var(--q-r-sm);
+}
+.emoji-opt {
+	width: 20px;
+	font-size: 16px;
+	text-align: center;
+}
+.note-stats {
+	margin: 8px 0 0;
+	font-size: 12px;
+	text-align: right;
+}
+.note-body .tiptap .tiptap-mathematics-render {
+	cursor: pointer;
+}
+.note-body .tiptap [data-type="block-math"] {
+	margin: 0.6em 0;
+	padding: 8px;
+	overflow-x: auto;
+	text-align: center;
+}

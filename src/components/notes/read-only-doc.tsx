@@ -5,15 +5,18 @@ import {
 } from "@tiptap/extension-details";
 import Image from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
+import Mathematics from "@tiptap/extension-mathematics";
 import { TableKit } from "@tiptap/extension-table";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
 import Youtube from "@tiptap/extension-youtube";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import "katex/dist/katex.min.css";
 import { Callout, Embed, MediaLayout, NoteFile } from "./blocks";
 import { CodeBlock } from "./code-block";
 import { ColorHighlight, TextColor } from "./colors";
+import { TableOfContents } from "./extras";
 import { ItemEmbed, LinkCard } from "./item-embed";
 
 // A page shown read-only (public links): the editor's blocks without editing, the "/" menu
@@ -47,6 +50,8 @@ export function ReadOnlyDoc({ doc }: { doc: unknown }) {
 			Embed,
 			MediaLayout,
 			NoteFile,
+			TableOfContents,
+			Mathematics.configure({ katexOptions: { throwOnError: false } }),
 			ItemEmbed,
 			LinkCard,
 		],

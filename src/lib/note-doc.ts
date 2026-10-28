@@ -33,6 +33,9 @@ const NODES = new Set([
 	"itemEmbed",
 	"linkCard",
 	"noteFile",
+	"toc",
+	"inlineMath",
+	"blockMath",
 ]);
 /** a task or bookmark shown as a live card; the viewer's access is checked when it's shown */
 export const EMBED_KINDS = ["task", "bookmark", "project"] as const;

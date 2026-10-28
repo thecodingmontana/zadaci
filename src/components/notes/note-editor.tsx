@@ -8,11 +8,15 @@ import {
 import FileHandler from "@tiptap/extension-file-handler";
 import Image from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
+import Mathematics from "@tiptap/extension-mathematics";
 import { TableKit } from "@tiptap/extension-table";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
+import Typography from "@tiptap/extension-typography";
 import Youtube from "@tiptap/extension-youtube";
-import { Placeholder } from "@tiptap/extensions";
+import { CharacterCount, Placeholder } from "@tiptap/extensions";
+import "katex/dist/katex.min.css";
+import type { Node as PMNode } from "@tiptap/pm/model";
 import { NodeSelection } from "@tiptap/pm/state";
 import {
 	type Editor,
@@ -45,6 +49,7 @@ import { BlockToolbar, moveBlock } from "./block-toolbar";
 import { Callout, Embed, FILE_EVENT, MediaLayout, NoteFile } from "./blocks";
 import { CodeBlock } from "./code-block";
 import { ColorHighlight, NOTE_COLORS, TextColor } from "./colors";
+import { EmojiSuggest, TableOfContents } from "./extras";
 import { InsertDialog } from "./insert-dialog";
 import { ItemEmbed, LinkCard } from "./item-embed";
 import { NoteActions } from "./note-actions";
@@ -161,6 +166,26 @@ export function NoteEditor({
 		});
 
 	const upload = (file: File) => uploadToNote(client, slug, note.id, file);
+	// a formula is edited by clicking it; the editor isn't made yet when its options are
+	const editorRef = useRef<Editor | null>(null);
+	const editMath =
+		(kind: "inline" | "block") => (node: PMNode, pos: number) => {
+			const ed = editorRef.current;
+			if (!ed?.isEditable) return;
+			const latex = window.prompt("Formula (LaTeX)", node.attrs.latex ?? "");
+			if (latex === null) return;
+			const chain = ed.chain().setNodeSelection(pos);
+			if (!latex.trim())
+				(kind === "inline"
+					? chain.deleteInlineMath()
+					: chain.deleteBlockMath()
+				).run();
+			else
+				(kind === "inline"
+					? chain.updateInlineMath({ latex })
+					: chain.updateBlockMath({ latex })
+				).run();
+		};
 	const editor = useEditor({
 		immediatelyRender: false,
 		editable,
@@ -196,6 +221,16 @@ export function NoteEditor({
 			Embed,
 			MediaLayout,
 			NoteFile,
+			TableOfContents,
+			EmojiSuggest,
+			Mathematics.configure({
+				inlineOptions: { onClick: editMath("inline") },
+				blockOptions: { onClick: editMath("block") },
+				katexOptions: { throwOnError: false },
+			}),
+			// "--" becomes an en dash, quotes curl, (c) becomes ©
+			Typography,
+			CharacterCount,
 			// files pasted or dropped onto the page upload into it
 			FileHandler.configure({
 				onPaste: (ed, files, html) => {
@@ -220,7 +255,14 @@ export function NoteEditor({
 	});
 	useEffect(() => {
 		editor?.setEditable(editable);
+		editorRef.current = editor;
 	}, [editor, editable]);
+	const words =
+		useEditorState({
+			editor,
+			selector: ({ editor: e }) =>
+				(e?.storage.characterCount?.words() as number | undefined) ?? 0,
+		}) ?? 0;
 	// the File and Audio blocks from the "/" menu
 	// biome-ignore lint/correctness/useExhaustiveDependencies: upload only closes over this page
 	useEffect(() => {
@@ -379,6 +421,12 @@ export function NoteEditor({
 				)}
 				<EditorContent editor={editor} className="note-body" />
 				{editor && editable && <NoteTail editor={editor} />}
+				{editor && words > 0 && (
+					<p className="note-stats faint">
+						{words} {words === 1 ? "word" : "words"} ·{" "}
+						{Math.max(1, Math.round(words / 230))} min read
+					</p>
+				)}
 			</div>
 		</>
 	);
