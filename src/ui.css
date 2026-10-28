@@ -5618,7 +5618,8 @@ fieldset.ai-approve {
 }
 
 /* ---- team chat: conversation list beside the open conversation; one at a time on a phone ---- */
-.chat {
+/* .page.flush is a flex column; the chat page is a grid of list | conversation | details */
+.page.flush.chat {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
   flex: 1;
@@ -5824,7 +5825,7 @@ fieldset.ai-approve {
   opacity: 0.35;
 }
 /* the details panel opens as a third column */
-.chat:has(.chat-details) {
+.page.flush.chat:has(.chat-details) {
   grid-template-columns: 248px minmax(0, 1fr) minmax(0, 300px);
 }
 .chat-details {
@@ -5979,8 +5980,8 @@ fieldset.ai-approve {
 }
 @media (max-width: 900px) {
   /* phones: the conversations become a tab row above the open one, like Settings */
-  .chat,
-  .chat:has(.chat-details) {
+  .page.flush.chat,
+  .page.flush.chat:has(.chat-details) {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
   }

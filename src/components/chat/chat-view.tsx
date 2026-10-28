@@ -35,6 +35,7 @@ import { ChatNav, titleOf } from "./chat-nav";
 
 const TYPING_MS = 4000;
 const PAGE = 50;
+const lastKey = (slug: string) => `zadaci:chat-last:${slug}`;
 
 export function ChatView({
 	slug,
@@ -42,7 +43,7 @@ export function ChatView({
 	starting,
 }: {
 	slug: string;
-	/** none: #general */
+	/** none: the last one you had open, else #general */
 	channelId?: string;
 	/** the sidebar's "Add channel" or "New message" */
 	starting?: "channel" | "dm";
@@ -54,9 +55,31 @@ export function ChatView({
 		[];
 	const me = people.find((p) => p.isMe);
 	const channels = data?.workspace?.chatChannels ?? [];
+	// opening Chat with no ?c returns to where you were (in this browser), else #general.
+	// Read after mount: the server can't know it. undefined = not read yet
+	const [last, setLast] = useState<string | null>();
+	useEffect(() => {
+		try {
+			setLast(localStorage.getItem(lastKey(slug)));
+		} catch {
+			setLast(null);
+		}
+	}, [slug]);
 	const open = channelId
 		? channels.find((c) => c.id === channelId)
-		: channels.find((c) => c.general);
+		: last === undefined
+			? undefined
+			: (channels.find((c) => c.id === last) ??
+				channels.find((c) => c.general));
+	const openId = open?.id;
+	useEffect(() => {
+		if (!openId) return;
+		try {
+			localStorage.setItem(lastKey(slug), openId);
+		} catch {
+			// private mode: Chat just opens #general next time
+		}
+	}, [slug, openId]);
 
 	return (
 		<div className="page flush chat">
@@ -76,7 +99,7 @@ export function ChatView({
 				/>
 			) : (
 				<section className="chat-main chat-blank faint">
-					{data ? "This conversation isn't here any more." : ""}
+					{data && channelId ? "This conversation isn't here any more." : ""}
 				</section>
 			)}
 			{starting && (
