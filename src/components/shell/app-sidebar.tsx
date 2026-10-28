@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { CollectionsNav } from "#/components/bookmarks/collections-nav";
+
 import { NotesTree } from "#/components/notes/notes-tree";
 import { projectColor } from "#/components/projects/bits";
 import { ProjectModalLoader } from "#/components/projects/project-modal";
@@ -500,11 +501,44 @@ export function AppSidebar({
 				<NotesTree slug={slug} />
 				<CollectionsNav slug={slug} />
 
-				{teams.length > 0 && (
+				{(teams.length > 0 || allowed("manageTeams")) && (
 					<div className="sgroup">
 						<div className="sgroup-h">
 							<span>Teams</span>
+							<span className="sp" />
+							{allowed("manageTeams") && (
+								<SideTip label="New team" always>
+									<Link
+										to="/w/$slug/teams"
+										params={{ slug }}
+										search={{ new: true }}
+										className="ibtn ibtn-xs"
+										aria-label="New team"
+									>
+										<span
+											className="icon-[hugeicons--plus-sign] size-3.5"
+											aria-hidden="true"
+										/>
+									</Link>
+								</SideTip>
+							)}
 						</div>
+						{!teams.length && (
+							<SideTip label="Add team">
+								<Link
+									to="/w/$slug/teams"
+									params={{ slug }}
+									search={{ new: true }}
+									className="sitem faint"
+								>
+									<span
+										className="icon-[hugeicons--plus-sign] i size-4 shrink-0"
+										aria-hidden="true"
+									/>
+									<span className="trunc">Add team</span>
+								</Link>
+							</SideTip>
+						)}
 						{teams.map((t) => (
 							<SItem
 								key={t.id}

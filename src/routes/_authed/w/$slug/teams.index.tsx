@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@apollo/client/react";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { z } from "zod";
 import { AvStack } from "#/components/q/av";
 import { TeamsGrid } from "#/components/settings/workspace-group";
 import { TeamsSkeleton } from "#/components/shell/page-skeletons";
@@ -13,6 +14,8 @@ import { wsTitle } from "#/lib/seo";
 // Ported from the reference app's Teams page.
 
 export const Route = createFileRoute("/_authed/w/$slug/teams/")({
+	// ?new opens "New team" (the sidebar's add button)
+	validateSearch: z.object({ new: z.boolean().optional() }),
 	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const [{ data }] = await Promise.all([
@@ -38,6 +41,8 @@ function TeamsPage() {
 	const { data: statsData } = useSuspenseQuery(MEMBER_STATS, {
 		variables: { slug },
 	});
+	const isNew = Route.useSearch().new === true;
+	const navigate = useNavigate();
 	const [creating, setCreating] = useState(false);
 	const workspace = data.workspace;
 	if (!workspace) return null;
@@ -98,8 +103,12 @@ function TeamsPage() {
 			)}
 			{canAdmin && (
 				<TeamModal
-					open={creating}
-					onOpenChange={setCreating}
+					open={creating || isNew}
+					onOpenChange={(open) => {
+						setCreating(open);
+						if (!open && isNew)
+							void navigate({ to: ".", search: {}, replace: true });
+					}}
 					slug={slug}
 					members={workspace.members}
 					teams={workspace.teams}
