@@ -70,18 +70,38 @@ export async function runDaily(now = new Date()) {
 			.onConflictDoNothing()
 			.returning({ day: tables.daily_sent.day });
 		if (!claimed.length) continue;
-		result.people++;
 		const notif = { ...PREF_DEFAULTS.notif, ...prefs?.notif };
-		result.reminders += await remindDue(person.id, clock.day, {
-			push: notif.push_due,
-			overdue: notif.assign_over,
-		});
+		try {
+			result.reminders += await remindDue(person.id, clock.day, {
+				push: notif.push_due,
+				overdue: notif.assign_over,
+			});
+		} catch (error) {
+			// hand the day back so the next hourly run tries again, and carry on with everyone else
+			await db
+				.delete(tables.daily_sent)
+				.where(
+					and(
+						eq(tables.daily_sent.user_id, person.id),
+						eq(tables.daily_sent.day, clock.day),
+					),
+				)
+				.catch(() => {});
+			console.error("[daily] reminders failed for a person:", String(error));
+			continue;
+		}
+		result.people++;
 		const digestOn =
 			prefs?.notif?.email_digest ?? PREF_DEFAULTS.notif.email_digest;
 		if (digestOn && !clock.weekend) {
 			// Monday's digest also covers the weekend
 			const since = new Date(now.getTime() - (clock.monday ? 3 : 1) * DAY_MS);
-			if (await sendDigest(person, since, hour)) result.digests++;
+			// a failed digest is skipped for today (retrying would send the reminders twice)
+			try {
+				if (await sendDigest(person, since, hour)) result.digests++;
+			} catch (error) {
+				console.error("[daily] digest failed for a person:", String(error));
+			}
 		}
 	}
 	return result;

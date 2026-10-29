@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { after, test } from "node:test";
+import { after, mock, test } from "node:test";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { DUE_REMINDER, localClock, runDaily } from "#/lib/daily.server";
@@ -87,4 +87,38 @@ test("the saved browser zone must be a real time zone", async () => {
 	assert.equal((await save({ autoTz: "Europe/Berlin", digestHour: "7" })).data?.updatePreferences.digestHour, "7");
 	assert.ok((await save({ autoTz: "Mars/Olympus" })).errors, "unknown zones are refused");
 	assert.ok((await save({ digestHour: "24" })).errors, "hours stop at 23");
+});
+
+test("if one person's reminders fail, the next hourly run tries them again", async () => {
+	const owner = await makeUser("owner");
+	await db.update(tables.user).set({ preferences: { autoTz: "UTC", digestHour: "9" } }).where(eq(tables.user.id, owner.id));
+	const { slug } = await makeWorkspace(owner);
+	const ws = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } projects { id } } }`, { s: slug })).data?.workspace;
+	const me = ws.members.find((m: { isMe: boolean }) => m.isMe).id;
+	await gql(owner, `mutation($s: String!, $i: TaskInput!) { createTask(slug: $s, input: $i) { id } }`, {
+		s: slug,
+		i: { projectId: ws.projects[0].id, title: "Ship it", assigneeId: me, dueDate: "2026-12-02" },
+	});
+	const mine = () => db.select().from(tables.notification).where(and(eq(tables.notification.user_id, owner.id), eq(tables.notification.text, "is due today")));
+	const claimed = () => db.select().from(tables.daily_sent).where(and(eq(tables.daily_sent.user_id, owner.id), eq(tables.daily_sent.day, "2026-12-02")));
+	const now = new Date("2026-12-02T09:30:00Z");
+
+	// the reminder write fails for this person
+	const real = db.insert.bind(db);
+	const insert = mock.method(db, "insert", ((table: unknown) => {
+		if (table === tables.notification) throw new Error("database hiccup");
+		return real(table as never);
+	}) as typeof db.insert);
+	const error = mock.method(console, "error", () => {});
+	try {
+		await runDaily(now);
+	} finally {
+		insert.mock.restore();
+		error.mock.restore();
+	}
+	assert.equal((await claimed()).length, 0, "the day is handed back");
+	assert.equal((await mine()).length, 0);
+
+	await runDaily(now);
+	assert.equal((await mine()).length, 1, "the next run sends it");
 });
