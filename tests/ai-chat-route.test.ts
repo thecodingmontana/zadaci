@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
+import { eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { userClock } from "#/lib/ai/limits.server";
 import { Route } from "#/routes/api/chat";
@@ -39,6 +40,16 @@ test("the free daily limit and size cap can't be dodged by how the chat is sent"
 		await ask(amina.cookie, slug, [...endsWithAnswer, { id: "3", role: "user", content: "One more" }], claimsResume),
 		/daily_limit/,
 		"saying it's an approval answer doesn't make a message free",
+	);
+	// even while the chat really waits on an approval, an answer that adds a new question counts
+	const [ws] = await db.select({ id: tables.workspace.id }).from(tables.workspace).where(eq(tables.workspace.slug, slug));
+	const thread = `${ws?.id}-${amina.id}`;
+	await db.insert(tables.ai_conversation).values({ id: thread, user_id: amina.id, workspace_id: ws?.id ?? "" });
+	await db.insert(tables.ai_message).values({ conversation_id: thread, user_id: amina.id, position: 0, role: "assistant", tool_calls: [{ id: "c1", name: "delete_task" }] });
+	assert.match(
+		await ask(amina.cookie, slug, [...endsWithAnswer, { id: "3", role: "user", content: "And plan next week" }], claimsResume),
+		/daily_limit/,
+		"a question riding on an approval answer still counts",
 	);
 
 	const huge = [

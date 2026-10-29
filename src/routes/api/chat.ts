@@ -123,8 +123,10 @@ export const Route = createFileRoute("/api/chat")({
 				// every request counts except an approval answer, which continues the last message;
 				// the browser only claims that, so it's free only while the saved chat really waits on one.
 				// Only the shared key is limited, your own key is yours to spend
+				// (an answer ends on Zad's paused turn: one that also adds a new question isn't one)
 				const answering =
 					!!params.resume?.length &&
+					text === null &&
 					(await awaitingApproval(threadId, session.user.id));
 				const counted = !own && !answering;
 				if (counted && !(await takeMessage(session.user.id, today)))
