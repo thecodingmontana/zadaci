@@ -6,11 +6,16 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 
 ## Features
 
-- **Workspaces** with roles (Owner, Admin, Member, Guest), email invites, invite links and teams.
+- **Workspaces** with roles (Owner, Admin, Member, Guest), email invites, invite links and teams. Setting one up takes a few short steps (pick as many use cases as fit), and leaving halfway picks up where you stopped.
 - **Projects** with board, list, table, calendar, timeline, files and activity views, saved views, statuses, leads and private or workspace-wide sharing.
 - **Tasks** with subtasks, assignees, priorities, labels, due and start dates, estimates, dependencies, repeating tasks, comments with @mentions and reactions, attachments, favorites and bulk edits.
 - **My Tasks, Inbox and Notifications**, plus a workspace activity feed and a command menu (`Ctrl/⌘ K`).
 - **Assistant** (`Ctrl/⌘ J` or the sparkle in the top bar): a side drawer with one saved chat per workspace that you can clear. Ask it what's due, or tell it to create, update, assign, move, tag, comment, plan projects, edit notes or save bookmarks. It works only through your own permissions, shows each step it takes ("Thinking… Worked for 7s") with the items it found, lists the tasks, projects and notes it touched so you can open them, and asks before deleting, archiving or changing more than 3 tasks. Type `@` to point it at a project, task or note. It sticks to work in the workspace and politely declines anything else. Runs on shared free OpenRouter models (2 messages a day per person), rotating between them when one is busy. In **Settings → AI assistant** people connect their own Claude, ChatGPT, Gemini or OpenRouter key, pick a model, and use it as much as they like; keys are checked with the provider, encrypted and tied to their account, and never shown again.
+- **Chat:** Slack-style team chat on its own page, with a slide-out list on phones.
+  - **Conversations:** open and private channels, a #general everyone joins, one channel per team, direct messages (and notes to yourself), and a chat for any project or task, opened in a side panel from the project or the task. A project's and its tasks' chats include exactly whoever can see the project: people added to it are in at once, people taken off it are out (their messages stay).
+  - **Messages:** threads, reactions, edits, @mentions (they land in the Inbox with "Open in chat"), one pinned message per conversation shown under the header, files and images (uploaded only when you press send), voice notes, and live cards for shared tasks, projects, notes and bookmarks, each shown only as far as the reader can see it.
+  - **Sidebar:** Pinned, Favourites, Channels, Teams and Direct messages, each foldable, with unread counts and a ⋯ menu to pin, favourite, mark read, copy a link or delete.
+  - **Live:** messages and the typing line arrive without reloading, and green dots and "N online" show who's around. Messages you send while offline wait in order and go out when you're back, with Retry and Discard if one fails.
 - **Live updates:** when anyone changes something (you in another tab, a teammate, or Zad), everyone with that workspace open sees it right away, without reloading. The server sends a tiny "this workspace changed" ping through Supabase Realtime (no data), and each browser refreshes what's on screen through the normal signed-in API. Browsers connect to Supabase directly, so it works on Vercel's serverless functions.
 - **Reminders and digests:** due-soon and overdue reminders, a morning email digest at the hour you choose in your own time zone, and web push notifications on desktop and phone.
 - **Time tracking** on tasks, **public read-only share links** for projects and notes, and **import and export** of workspace data.
@@ -67,7 +72,9 @@ pnpm dev                     # http://localhost:3000
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | no | Web push notifications. Generate with `npx web-push generate-vapid-keys`. |
 | `CRON_SECRET` | no | Protects `/api/cron/daily` (hourly reminders and digests) and `/api/ai/models`. Any long random string. |
 | `OPENROUTER_API_KEY` | no | Turns on the assistant. Server only; get one at [openrouter.ai/keys](https://openrouter.ai/keys). Without it the rest of the app works and the assistant says it isn't set up. |
-| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | no | Live updates through Supabase Realtime (Project Settings → API). Without them, pages still refresh when you open them. |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | no | Live updates, live chat and who's online, through Supabase Realtime (Project Settings → API). Without them, pages still refresh when you open them. |
+| `REALTIME_PRIVATE`, `SUPABASE_SECRET_KEY` | no | `REALTIME_PRIVATE=1` makes Realtime channels private, so only people with access can listen. Turn it on once Supabase trusts Zadaci's sign-in tokens (Authentication → Third-Party Auth → Custom OIDC, issuer = `BETTER_AUTH_URL`) and Realtime's "Allow public access" is off. The secret key stays on the server. |
+| `AUTH_JWT_ISSUER` | no | Local only, with `REALTIME_PRIVATE` on: the deployed site's address, so live chat and who's online work from localhost. Leave empty in production. |
 | `AI_MODEL` | no | Pin one model id and turn rotation off. |
 | `AI_MODEL_PREFERRED` | no | Comma-separated model name fragments to try first, e.g. `nemotron,gemma`. |
 | `AI_ROTATION_PROBE` | no | `true` sends a tiny test request to the top models when the ranking refreshes (uses free quota). |
@@ -98,7 +105,7 @@ DATABASE_URL=postgres://…/zadaci_test pnpm db:migrate
 DATABASE_URL=postgres://…/zadaci_test pnpm test
 ```
 
-They cover permissions and sharing, tasks, projects, members and invites, notes, bookmarks and safe link previews, the note document sanitizer, embeds and covers, reminders and digests, push, time tracking, share links, import, the assistant's tools, chat storage, limits and model rotation, and a check that every query the app sends fits the API's request limits.
+They cover permissions and sharing, tasks, projects, members and invites, notes, bookmarks and safe link previews, the note document sanitizer, embeds and covers, reminders and digests, push, time tracking, share links, import, team chat (access, mentions, shares, pins, project and task chats), workspace setup, the assistant's tools, chat storage, limits and model rotation, and a check that every query the app sends fits the API's request limits.
 
 `tests/ai-eval.manual.ts` sends real prompts to the free models and prints which model answered and which tools it picked. It's not part of `pnpm test` because each prompt uses the account's free daily requests:
 
@@ -114,7 +121,7 @@ src/
     _authed/     everything behind sign-in: workspaces, projects, tasks, notes, settings
     api/         /api/graphql, /api/auth, /api/chat (assistant), /api/cron (reminders, digests)
   graphql/       schema and resolvers (*.server.ts) and the client operations
-  components/    UI by area: tasks, projects, notes, shell, settings, auth, …
+  components/    UI by area: tasks, projects, notes, chat, shell, settings, auth, …
   db/            Drizzle schema and migrations
   lib/           shared logic: permissions, auth, note sanitizer, embeds, time, toasts
     ai/          the assistant: tools, prompt, model rotation, limits, chat storage
@@ -124,7 +131,7 @@ tests/           API tests
 
 ## Deployment
 
-The app deploys to Vercel. Push to `main` and Vercel builds it. Set the environment variables above in the Vercel project, and run `pnpm db:migrate` against the production database when a change adds a migration. A GitHub Actions workflow calls `/api/cron/daily` every hour with the `CRON_SECRET` for reminders and digests.
+The app deploys to Vercel. Push to `main` and Vercel builds it. Set the environment variables above in the Vercel project, and run `pnpm db:migrate` against the production database when a change adds a migration. Keep the Vercel functions and the Supabase database in the same region (`fra1` and `eu-central-1`): the build stops if they don't match (`src/lib/deploy-region.ts`). A GitHub Actions workflow calls `/api/cron/daily` every hour with the `CRON_SECRET` for reminders and digests.
 
 ## Support and credits
 
