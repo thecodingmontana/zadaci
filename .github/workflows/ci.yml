@@ -1,0 +1,57 @@
+name: CI
+
+# Lint, type-check, the API tests (against a throwaway Postgres) and a build on every pull request,
+# Dependabot's included, and on main.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: zadaci
+          POSTGRES_PASSWORD: zadaci
+          POSTGRES_DB: zadaci_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U zadaci" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # CI-only stand-ins, not secrets: the tests call no outside service (and refuse a database
+      # whose name lacks "test"); the build skips the region check for a localhost database
+      DATABASE_URL: postgres://zadaci:zadaci@localhost:5432/zadaci_test
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-only-not-a-real-secret-0123456789abcdef
+      GOOGLE_CLIENT_ID: ci
+      GOOGLE_CLIENT_SECRET: ci
+      CLOUDINARY_CLOUD_NAME: ci
+      CLOUDINARY_API_KEY: ci
+      CLOUDINARY_API_SECRET: ci
+      AI_KEYS_SECRET: ci-only-not-a-real-secret-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm db:migrate
+      - run: pnpm test
+      - run: pnpm build

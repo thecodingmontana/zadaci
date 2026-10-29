@@ -53,7 +53,7 @@
     "db:clear": "tsx --env-file=.env.local ./src/db/clear.ts",
     "db:reset": "pnpm run db:clear && pnpm run db:generate && pnpm run db:migrate",
     "email": "email dev --dir src/emails --port 3001",
-    "test": "RESEND_API_KEY= node --env-file=.env.local --import tsx --test --test-concurrency=1 'tests/**/*.test.ts' 'src/**/*.test.ts'"
+    "test": "RESEND_API_KEY= node --env-file-if-exists=.env.local --import tsx --test --test-concurrency=1 'tests/**/*.test.ts' 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@apollo/client": "^4.1.6",

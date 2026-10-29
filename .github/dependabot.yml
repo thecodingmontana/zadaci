@@ -1,0 +1,30 @@
+# Dependabot opens pull requests that keep dependencies current; CI (ci.yml) checks each one.
+# Minor and patch updates come grouped in one PR a week; a major version gets its own PR, since it
+# can change behaviour. Security fixes are opened straight away, outside this schedule.
+version: 2
+updates:
+  - package-ecosystem: npm # pnpm-lock.yaml is updated too
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Nairobi
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
