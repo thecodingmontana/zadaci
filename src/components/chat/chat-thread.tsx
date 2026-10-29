@@ -1,6 +1,7 @@
 import { useApolloClient, useQuery } from "@apollo/client/react";
 import { useEffect, useRef } from "react";
 import { CHAT_MESSAGES, type ChatMessage } from "#/graphql/chat-operations";
+import { cn } from "#/lib/utils";
 import {
 	Composer,
 	groupedWith,
@@ -20,6 +21,7 @@ export function ThreadPanel({
 	people,
 	onClose,
 	onChange,
+	closing,
 }: {
 	slug: string;
 	parent: ChatMessage;
@@ -27,6 +29,8 @@ export function ThreadPanel({
 	/** who can be @mentioned in it */
 	people: Mentionable[];
 	onClose: () => void;
+	/** on its way out: plays the closing animation */
+	closing?: boolean;
 	/** a reply landed: the conversation's reply counts change */
 	onChange: () => void;
 }) {
@@ -56,7 +60,10 @@ export function ThreadPanel({
 	}, [replies.length]);
 
 	return (
-		<aside className="chat-side chat-thread" aria-label="Thread">
+		<aside
+			className={cn("chat-side chat-thread", closing && "closing")}
+			aria-label="Thread"
+		>
 			<div className="chat-side-h">
 				<b>Thread</b>
 				<span className="sp" />

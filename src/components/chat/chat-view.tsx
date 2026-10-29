@@ -44,6 +44,8 @@ import { ThreadPanel } from "./chat-thread";
 
 const TYPING_MS = 4000;
 const PAGE = 50;
+/** how long a side panel takes to slide out (ui.css: chat-side-out) */
+const SIDE_OUT_MS = 180;
 const lastKey = (slug: string) => `zadaci:chat-last:${slug}`;
 
 export function ChatView({
@@ -436,10 +438,21 @@ function Conversation({
 	const shared = useOnline();
 	// you're online while you're looking, even before presence connects
 	const online = { has: (id: string) => id === me?.id || shared.has(id) };
-	const memberIds =
-		channel.private || channel.teamId
-			? channel.people.map((p) => p.id)
-			: everyone.map((p) => p.id);
+	// the people in it: everyone in the workspace for an open channel
+	const members =
+		channel.private || channel.teamId || channel.kind === "dm"
+			? channel.people
+			: everyone;
+	const memberIds = members.map((p) => p.id);
+	// a side panel slides out before it goes
+	const [closing, setClosing] = useState(false);
+	const closeSide = () => {
+		setClosing(true);
+		setTimeout(() => {
+			setSide(null);
+			setClosing(false);
+		}, SIDE_OUT_MS);
+	};
 	const onlineCount = memberIds.filter((id) => online.has(id)).length;
 	const say = useRef<(event: string, payload: object) => void>(() => {});
 	const list = useRef<HTMLDivElement>(null);
@@ -639,7 +652,7 @@ function Conversation({
 						aria-pressed={details}
 						aria-label="Details"
 						data-tip="Details"
-						onClick={() => setSide(details ? null : "details")}
+						onClick={() => (details ? closeSide() : setSide("details"))}
 					>
 						{/* the sidebar icon, facing the panel it opens on the right */}
 						<span
@@ -765,7 +778,10 @@ function Conversation({
 					slug={slug}
 					channel={channel}
 					tab={side === "pins" ? "pins" : "info"}
-					onClose={() => setSide(null)}
+					members={members}
+					meId={me?.id}
+					closing={closing}
+					onClose={closeSide}
 				/>
 			)}
 			{thread && (
@@ -775,7 +791,8 @@ function Conversation({
 					parent={thread}
 					me={me}
 					people={mentionable}
-					onClose={() => setSide(null)}
+					closing={closing}
+					onClose={closeSide}
 					onChange={() => void refetch()}
 				/>
 			)}

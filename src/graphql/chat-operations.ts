@@ -392,3 +392,41 @@ export const PIN_CHAT_CHANNEL: TypedDocumentNode<
 		pinChatChannel(slug: $slug, channelId: $channelId, pinned: $pinned)
 	}
 `;
+
+/** The workspace's people with what a profile shows (role, title, email, time zone). */
+export const CHAT_MEMBERS: TypedDocumentNode<
+	{
+		workspace: {
+			id: string;
+			members: {
+				id: string;
+				userId: string;
+				role: string;
+				name: string;
+				email: string;
+				image: string | null;
+				isMe: boolean;
+				title: string | null;
+				tz: string | null;
+			}[];
+		} | null;
+	},
+	{ slug: string }
+> = gql`
+	query ChatMembers($slug: String!) {
+		workspace(slug: $slug) {
+			id
+			members {
+				id
+				userId
+				role
+				name
+				email
+				image
+				isMe
+				title
+				tz
+			}
+		}
+	}
+`;

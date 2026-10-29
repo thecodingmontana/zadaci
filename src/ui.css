@@ -6266,7 +6266,76 @@ a.chat-at:hover {
   text-decoration: underline;
 }
 
-/* beside it: details or a thread */
+/* beside it: details or a thread, sliding in and out */
+@keyframes chat-side-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@keyframes chat-side-out {
+  to {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+.chat-side {
+  animation: chat-side-in 0.2s var(--q-ease);
+}
+.chat-side.closing {
+  animation: chat-side-out 0.18s var(--q-ease) forwards;
+}
+/* the people in a conversation, as a list */
+.chat-people {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 -8px;
+}
+.chat-person-row .chat-face {
+  width: 28px;
+  justify-content: center;
+}
+/* someone's profile */
+.chat-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.chat-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.chat-profile-av {
+  width: 56px !important;
+  height: 56px !important;
+  font-size: 20px !important;
+}
+.chat-profile-head .chat-dot {
+  width: 12px;
+  height: 12px;
+}
+.chat-profile-who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--q-fs-sm);
+}
+.chat-profile-who b {
+  font-size: var(--q-fs-md);
+}
+.chat-profile-state {
+  color: var(--q-text-3);
+  font-size: var(--q-fs-xs);
+}
+.chat-profile-state.on {
+  color: var(--q-green);
+}
+.chat-profile-role {
+  text-transform: capitalize;
+}
 .chat-side {
   display: flex;
   flex-direction: column;
@@ -6349,35 +6418,6 @@ a.chat-at:hover {
   background: var(--q-surface-3);
   font-size: var(--q-fs-2xs);
   font-weight: 500;
-}
-.chat-users {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-.chat-user {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 4px 8px;
-  border-radius: 10px;
-  background: var(--q-surface-2);
-  font-size: var(--q-fs-xs);
-  text-align: center;
-}
-.chat-user > .trunc {
-  max-width: 100%;
-}
-.chat-user-av {
-  width: 40px !important;
-  height: 40px !important;
-  font-size: 15px !important;
-}
-.chat-all {
-  width: 100%;
-  justify-content: center;
-  margin-top: 10px;
 }
 .chat-pins {
   display: flex;
@@ -6536,6 +6576,10 @@ a.chat-at:hover {
   .chat-nav,
   .chat-chev {
     transition: none;
+  }
+  .chat-side,
+  .chat-side.closing {
+    animation: none;
   }
   .chat-rec-dot {
     animation: none;
