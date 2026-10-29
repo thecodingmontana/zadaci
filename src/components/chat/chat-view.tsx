@@ -275,16 +275,24 @@ function ConversationSkeleton({ onMenu }: { onMenu: () => void }) {
 }
 
 /** The start of a conversation, Discord-style: what this place is. */
-function Welcome({ channel, title }: { channel: ChatChannel; title: string }) {
+function Welcome({
+	channel,
+	title,
+	face,
+}: {
+	channel: ChatChannel;
+	title: string;
+	/** a DM's other person (you, in your own), found by id: two people can share a name */
+	face: { name: string; image: string | null } | undefined;
+}) {
 	const dm = channel.kind === "dm";
 	const self = dm && channel.people.length === 1;
-	const other = dm ? channel.people.find((p) => p.name === title) : undefined;
 	return (
 		<div className="chat-welcome">
 			{dm ? (
 				<Av
-					name={other?.name ?? channel.people[0]?.name ?? title}
-					image={(other ?? channel.people[0])?.image}
+					name={face?.name ?? title}
+					image={face?.image}
 					className="chat-welcome-av"
 				/>
 			) : (
@@ -491,7 +499,8 @@ function Conversation({
 				)
 				.on("broadcast", { event: "typing" }, (m) => {
 					const name = String(m.payload?.name ?? "");
-					if (name && name !== meName)
+					// by id, not name: two people can share a name
+					if (name && m.payload?.id !== me?.id)
 						setTyping((t) => ({ ...t, [name]: Date.now() }));
 				})
 				.subscribe();
@@ -680,7 +689,9 @@ function Conversation({
 				<div className="chat-msgs" ref={list}>
 					{!data && <MessagesSkeleton />}
 					{/* the start sits at the top only once there's nothing earlier to load */}
-					{data && !hasEarlier && <Welcome channel={channel} title={title} />}
+					{data && !hasEarlier && (
+						<Welcome channel={channel} title={title} face={dmFace} />
+					)}
 					{hasEarlier && (
 						<div ref={top} className="chat-older" aria-live="polite">
 							{loadingOlder ? (
@@ -737,7 +748,7 @@ function Conversation({
 								? "Write a note to yourself…"
 								: `Message ${title}`
 					}
-					onTyping={() => say.current("typing", { name: meName })}
+					onTyping={() => say.current("typing", { name: meName, id: me?.id })}
 					people={mentionable}
 					onSend={(body, files, mentionIds, shares) => {
 						outbox.send(body, files, mentionIds, shares);
