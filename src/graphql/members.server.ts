@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { PROJECT_STATUS, STATUS } from "#/db/enums";
+import { toDay } from "#/lib/projects";
 import { projectScope } from "./schema.server";
 
 // Per-member numbers for the Members directory, fetched in four grouped queries
@@ -194,7 +195,8 @@ export const membersResolvers = {
 				projects,
 				tasks: tasks.map(({ due, ...t }) => ({
 					...t,
-					dueDate: due?.toISOString() ?? null,
+					// a plain day, like every other due date (a UTC instant shows a day early in the Americas)
+					dueDate: toDay(due),
 				})),
 			};
 		},

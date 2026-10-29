@@ -206,3 +206,16 @@ test("an invite link shows the workspace first; declining turns the invite down 
 	assert.equal((await gql(stranger, PREVIEW, { c: inviteCode })).data?.invitePreview.forYou, true);
 	assert.equal((await gql(owner, PREVIEW, { c: inviteCode })).data?.invitePreview.joinedSlug, slug);
 });
+
+test("a profile's due dates are plain days, like everywhere else", async () => {
+	const owner = await makeUser("owner");
+	const { slug } = await makeWorkspace(owner);
+	const ws = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } projects { id } } }`, { s: slug })).data?.workspace;
+	const me = ws.members.find((m: { isMe: boolean }) => m.isMe).id;
+	await gql(owner, `mutation($s: String!, $i: TaskInput!) { createTask(slug: $s, input: $i) { id } }`, {
+		s: slug,
+		i: { projectId: ws.projects[0].id, title: "Due Halloween", assigneeId: me, dueDate: "2026-10-31" },
+	});
+	const tasks = (await gql(owner, `query($s: String!, $m: ID!) { workspace(slug: $s) { memberProfile(memberId: $m) { tasks { name dueDate } } } }`, { s: slug, m: me })).data?.workspace.memberProfile.tasks;
+	assert.equal(tasks.find((t: { name: string }) => t.name === "Due Halloween")?.dueDate, "2026-10-31");
+});
