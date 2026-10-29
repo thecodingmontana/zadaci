@@ -129,7 +129,7 @@ test("moving and bulk-deleting take subtasks along, and one forbidden id stops t
 	const [gone] = await db.select({ deletedAt: tables.task.deleted_at }).from(tables.task).where(eq(tables.task.id, child.id));
 	assert.ok(gone?.deletedAt, "subtasks go with their parent");
 	const stars = await db.select().from(tables.favorite).where(eq(tables.favorite.entity_id, child.id));
-	assert.deepEqual(stars, [], "and so do stars on them");
+	assert.equal(stars.length, 1, "stars stay (the task is hidden), so an Undo brings them back too");
 	void project;
 });
 
@@ -386,4 +386,14 @@ test("a notification shows once in the inbox after its task moves to another pro
 	assert.ok(moved.data, JSON.stringify(moved.errors));
 	const ids = ((await gql(member, `query($s: String!) { workspace(slug: $s) { notifications { id } } }`, { s: slug })).data?.workspace.notifications as { id: string }[]).map((n) => n.id);
 	assert.equal(new Set(ids).size, ids.length, "no notification twice");
+});
+
+test("undoing a delete brings back everyone's stars on the task", async () => {
+	const { owner, member, slug, project, create } = await setup();
+	const task = (await create(owner, { title: "Starred" })).data?.createTask;
+	await gql(member, `mutation($s: String!, $id: ID!) { toggleTaskFavorite(slug: $s, id: $id) }`, { s: slug, id: task.id });
+	await gql(owner, `mutation($s: String!, $ids: [ID!]!) { deleteTasks(slug: $s, ids: $ids) }`, { s: slug, ids: [task.id] });
+	await gql(owner, `mutation($s: String!, $ids: [ID!]!) { restoreTasks(slug: $s, ids: $ids) }`, { s: slug, ids: [task.id] });
+	const tasks = (await gql(member, `query($s: String!, $p: ID) { workspace(slug: $s) { tasks(projectId: $p) { id isFavorite } } }`, { s: slug, p: project.id })).data?.workspace.tasks as { id: string; isFavorite: boolean }[];
+	assert.equal(tasks.find((t) => t.id === task.id)?.isFavorite, true);
 });

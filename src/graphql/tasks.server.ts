@@ -1253,10 +1253,11 @@ export const tasksResolvers = {
 				return 0;
 			}
 			await requireTasks(ctx, args.slug, ids, "edit");
-			// all or nothing: the tasks, their subtasks, and everyone's stars on them
+			// all or nothing: the tasks and their subtasks. Stars stay (a deleted task isn't shown),
+			// so Undo brings them back too
 			await db.transaction(async (tx) => {
 				const now = new Date();
-				const subtasks = await tx
+				await tx
 					.update(tables.task)
 					.set({ deleted_at: now })
 					.where(
@@ -1264,23 +1265,11 @@ export const tasksResolvers = {
 							inArray(tables.task.parent_task_id, ids),
 							isNull(tables.task.deleted_at),
 						),
-					)
-					.returning({ id: tables.task.id });
+					);
 				await tx
 					.update(tables.task)
 					.set({ deleted_at: now })
 					.where(inArray(tables.task.id, ids));
-				await tx
-					.delete(tables.favorite)
-					.where(
-						and(
-							eq(tables.favorite.entity_type, "task"),
-							inArray(tables.favorite.entity_id, [
-								...ids,
-								...subtasks.map((t) => t.id),
-							]),
-						),
-					);
 			});
 			return ids.length;
 		},
