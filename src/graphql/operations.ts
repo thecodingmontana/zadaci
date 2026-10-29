@@ -9,6 +9,8 @@ export type WorkspaceSummary = {
 	color?: string | null;
 	defaultView: string;
 	role: string;
+	/** your own membership (Shell query only) */
+	memberId?: string | null;
 	/** permission toggles (Shell and Settings queries only) */
 	settings?: {
 		permCreate: boolean;
@@ -192,6 +194,7 @@ export const SHELL: TypedDocumentNode<
 			color
 			defaultView
 			role
+			memberId
 			settings
 			projects {
 				id

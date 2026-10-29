@@ -206,7 +206,10 @@ function ShellLayout() {
 			</NewTaskProvider>
 			<DataTips />
 			<SyncTimeZone />
-			<LiveUpdates workspaceId={workspace.id} />
+			<LiveUpdates
+				workspaceId={workspace.id}
+				memberId={workspace.memberId ?? undefined}
+			/>
 		</TooltipProvider>
 	);
 }

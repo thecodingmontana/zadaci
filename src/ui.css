@@ -5808,6 +5808,35 @@ fieldset.ai-approve {
     background: color-mix(in srgb, #f5a524 18%, transparent);
   }
 }
+/* online: a green dot on the avatar's corner */
+.chat-face {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.chat-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--q-green, #30a46c);
+  box-shadow: 0 0 0 2px var(--q-surface);
+}
+.chat-h-av + .chat-dot {
+  width: 10px;
+  height: 10px;
+}
+.chat-h-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.chat-h-sub {
+  font-size: var(--q-fs-2xs);
+}
 .chat-h-av {
   width: 28px !important;
   height: 28px !important;
@@ -5816,9 +5845,7 @@ fieldset.ai-approve {
 .chat-star {
   color: #f5a524;
 }
-.chat-online {
-  font-size: var(--q-fs-xs);
-}
+
 /* messages sit at the bottom, the start of the conversation above them (like Discord) */
 .chat-msgs {
   flex: 1;
@@ -5891,6 +5918,9 @@ fieldset.ai-approve {
   background: var(--q-accent-soft);
   color: var(--q-accent);
   font-weight: 550;
+}
+a.chat-at:hover {
+  text-decoration: underline;
 }
 .chat-msg.mentions-me {
   background: color-mix(in srgb, var(--q-accent) 6%, transparent);

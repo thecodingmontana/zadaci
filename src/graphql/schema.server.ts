@@ -113,6 +113,8 @@ const typeDefs = /* GraphQL */ `
 		teamSize: String
 		defaultView: String!
 		role: String!
+		"your own membership in it"
+		memberId: ID
 		projects: [Project!]!
 		teams: [Team!]!
 	}

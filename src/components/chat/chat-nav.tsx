@@ -17,6 +17,7 @@ import {
 	MARK_CHAT_READ,
 	PIN_CHAT_CHANNEL,
 } from "#/graphql/chat-operations";
+import { useOnline } from "#/lib/online";
 import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 
@@ -99,6 +100,9 @@ export function ChatNav({
 		});
 
 	const me = people.find((p) => p.isMe);
+	const shared = useOnline();
+	// you're online while you're looking, even before presence connects
+	const online = { has: (id: string) => id === me?.id || shared.has(id) };
 	const all = channels ?? [];
 	const favorites = all.filter((c) => c.favorite);
 	// newest pin on top
@@ -185,9 +189,11 @@ export function ChatNav({
 					onClick={onClose}
 				>
 					{c.kind === "dm" ? (
-						<Av
+						<Face
 							name={other?.name ?? "?"}
 							image={other?.image}
+							// a group DM's dot would only speak for one of them
+							online={c.people.length <= 2 && !!other && online.has(other.id)}
 							className="chat-side-av"
 						/>
 					) : (
@@ -323,9 +329,10 @@ export function ChatNav({
 													onClose();
 												}}
 											>
-												<Av
+												<Face
 													name={p.name}
 													image={p.image}
+													online={online.has(p.id)}
 													className="chat-side-av"
 												/>
 												<span className="trunc grow">{label}</span>
@@ -504,5 +511,25 @@ function ChatRowMenu({
 				}}
 			/>
 		</>
+	);
+}
+
+/** Someone's avatar, with a green dot while they're online. */
+export function Face({
+	name,
+	image,
+	online,
+	className,
+}: {
+	name: string;
+	image: string | null | undefined;
+	online: boolean;
+	className?: string;
+}) {
+	return (
+		<span className="chat-face">
+			<Av name={name} image={image} className={className} />
+			{online && <span className="chat-dot" role="img" aria-label="Online" />}
+		</span>
 	);
 }

@@ -257,13 +257,14 @@ test("chat: @mentions reach exactly who was picked, even when two people share a
 	const idOf = async (u: TestUser) => (await gql(u, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug })).data?.workspace.members.find((m: { isMe: boolean }) => m.isMe).id as string;
 	const general = (await gql(owner, `query($s: String!) { workspace(slug: $s) { chatChannels { id general } } }`, { s: slug })).data?.workspace.chatChannels.find((c: { general: boolean }) => c.general).id;
 	const SEND_AT = `mutation($s: String!, $c: ID!, $b: String!, $m: [ID!]) { sendChatMessage(slug: $s, channelId: $c, body: $b, mentionIds: $m) { id mentions mentionsMe } }`;
-	const notes = async (u: TestUser) => ((await gql(u, `query($s: String!) { workspace(slug: $s) { notifications { text } } }`, { s: slug })).data?.workspace.notifications ?? []) as { text: string }[];
+	const notes = async (u: TestUser) => ((await gql(u, `query($s: String!) { workspace(slug: $s) { notifications { text chatChannelId chatMessageId } } }`, { s: slug })).data?.workspace.notifications ?? []) as { text: string; chatChannelId: string | null; chatMessageId: string | null }[];
 
 	// both are "sam": only the one picked hears about it
 	const a = await idOf(samA);
 	const sent = (await gql(owner, SEND_AT, { s: slug, c: general, b: "@sam can you look?", m: [a] })).data?.sendChatMessage;
 	assert.deepEqual(sent.mentions, [a]);
-	assert.ok((await notes(samA)).some((n) => n.text === "mentioned you in #general"));
+	const told = (await notes(samA)).find((n) => n.text === "mentioned you in #general");
+	assert.deepEqual([told?.chatChannelId, told?.chatMessageId], [general, sent.id], "it opens at the message");
 	assert.ok(!(await notes(samB)).some((n) => n.text === "mentioned you in #general"), "the other sam isn't told");
 	const seen = (await gql(samA, `query($s: String!, $c: ID!) { chatMessages(slug: $s, channelId: $c) { id mentionsMe } }`, { s: slug, c: general })).data?.chatMessages.find((m: { id: string }) => m.id === sent.id);
 	assert.equal(seen.mentionsMe, true);

@@ -1,6 +1,7 @@
 import { useApolloClient, useQuery } from "@apollo/client/react";
 import { useEffect } from "react";
 import { REALTIME_CONFIG } from "#/graphql/operations";
+import { setOnline } from "#/lib/online";
 import { TAB_ID } from "#/lib/tab";
 
 // Listens for "this workspace changed" over Supabase Realtime (sent by the server after any change,
@@ -12,7 +13,14 @@ const SETTLE_MS = 400;
 // a page refreshes at most this often
 const MIN_GAP_MS = 3000;
 
-export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
+export function LiveUpdates({
+	workspaceId,
+	memberId,
+}: {
+	workspaceId: string;
+	/** yours: shared as "online" while this tab is open */
+	memberId?: string;
+}) {
 	const client = useApolloClient();
 	const config = useQuery(REALTIME_CONFIG, { fetchPolicy: "cache-first" }).data
 		?.realtime;
@@ -33,8 +41,17 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 			let connected = false;
 			const channel = realtime
 				.channel(`ws:${workspaceId}`, {
-					config: { private: config.private },
+					// presence keyed by member, so several tabs count as one person
+					config: {
+						private: config.private,
+						...(memberId && { presence: { key: memberId } }),
+					},
 				})
+				// who's online: everyone sharing presence here (shortcut: a member could claim another's
+				// id, since presence is what the browser says; harmless while it only shows a dot)
+				.on("presence", { event: "sync" }, () =>
+					setOnline(Object.keys(channel.presenceState())),
+				)
 				.on("broadcast", { event: "changed" }, (message) => {
 					// this tab made the change, so it's already on screen
 					if (message.payload?.from === TAB_ID) return;
@@ -57,11 +74,13 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 				// back after the connection dropped (a sleeping laptop, a phone offline): catch up once
 				.subscribe((status) => {
 					if (status !== "SUBSCRIBED") return;
+					if (memberId) void channel.track({ at: Date.now() });
 					if (connected) void client.refetchQueries({ include: "active" });
 					connected = true;
 				});
 			stop = () => {
 				clearTimeout(timer);
+				setOnline([]);
 				void realtime.removeChannel(channel);
 				realtime.disconnect();
 			};
@@ -70,7 +89,7 @@ export function LiveUpdates({ workspaceId }: { workspaceId: string }) {
 			gone = true;
 			stop?.();
 		};
-	}, [config, workspaceId, client]);
+	}, [config, workspaceId, memberId, client]);
 	return null;
 }
 

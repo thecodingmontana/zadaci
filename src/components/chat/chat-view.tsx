@@ -21,7 +21,7 @@ import {
 } from "#/graphql/chat-operations";
 import { NOTE_PEOPLE } from "#/graphql/note-operations";
 import { REALTIME_CONFIG } from "#/graphql/operations";
-import { TAB_ID } from "#/lib/tab";
+import { useOnline } from "#/lib/online";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
 import { ChannelDetails } from "./chat-details";
@@ -33,7 +33,7 @@ import {
 	MessageRow,
 	MessagesSkeleton,
 } from "./chat-message";
-import { ChatNav, titleOf, type Via } from "./chat-nav";
+import { ChatNav, Face, titleOf, type Via } from "./chat-nav";
 import { OutboxRow, useOutbox } from "./chat-outbox";
 import { ThreadPanel } from "./chat-thread";
 
@@ -424,7 +424,15 @@ function Conversation({
 		opened.current = true;
 		requestAnimationFrame(() => void goTo(openAt));
 	}, [openAt, !!data]);
-	const [online, setOnline] = useState(0);
+	// who's online (shared by every open tab of the workspace; LiveUpdates keeps it current)
+	const shared = useOnline();
+	// you're online while you're looking, even before presence connects
+	const online = { has: (id: string) => id === me?.id || shared.has(id) };
+	const memberIds =
+		channel.private || channel.teamId
+			? channel.people.map((p) => p.id)
+			: everyone.map((p) => p.id);
+	const onlineCount = memberIds.filter((id) => online.has(id)).length;
 	const say = useRef<(event: string, payload: object) => void>(() => {});
 	const list = useRef<HTMLDivElement>(null);
 	const config = useQuery(REALTIME_CONFIG, { fetchPolicy: "cache-first" }).data
@@ -471,7 +479,7 @@ function Conversation({
 			});
 			const room = realtime
 				.channel(`chat:${channel.id}`, {
-					config: { private: config.private, presence: { key: TAB_ID } },
+					config: { private: config.private },
 				})
 				.on(
 					"broadcast",
@@ -486,12 +494,7 @@ function Conversation({
 					if (name && name !== meName)
 						setTyping((t) => ({ ...t, [name]: Date.now() }));
 				})
-				.on("presence", { event: "sync" }, () =>
-					setOnline(Object.keys(room.presenceState()).length),
-				)
-				.subscribe((status) => {
-					if (status === "SUBSCRIBED") void room.track({ name: meName });
-				});
+				.subscribe();
 			say.current = (event, payload) =>
 				void room.send({ type: "broadcast", event, payload });
 			stop = () => {
@@ -572,7 +575,7 @@ function Conversation({
 	const typers = Object.keys(typing);
 
 	return (
-		<ChatNamesContext.Provider value={names}>
+		<ChatNamesContext.Provider value={{ slug, names }}>
 			<section className="chat-main">
 				<header className="chat-h">
 					<button
@@ -587,10 +590,11 @@ function Conversation({
 						/>
 					</button>
 					{channel.kind === "dm" ? (
-						// a DM shows who it's with (yourself, in your own)
-						<Av
+						// a DM shows who it's with (yourself, in your own), with their online dot
+						<Face
 							name={dmFace?.name ?? title}
 							image={dmFace?.image}
+							online={!!dmFace && online.has(dmFace.id)}
 							className="chat-h-av"
 						/>
 					) : (
@@ -607,12 +611,19 @@ function Conversation({
 							/>
 						</span>
 					)}
-					<b className="trunc">{title}</b>
-
+					<span className="chat-h-title">
+						<b className="trunc">{title}</b>
+						<span className="faint chat-h-sub">
+							{channel.kind === "dm"
+								? channel.people.length > 2
+									? `${onlineCount} of ${channel.people.length} online`
+									: dmFace && online.has(dmFace.id)
+										? "Online"
+										: "Offline"
+								: `${onlineCount} online · ${memberIds.length} ${memberIds.length === 1 ? "member" : "members"}`}
+						</span>
+					</span>
 					<span className="sp" />
-					{online > 1 && (
-						<span className="faint chat-online">{online} here now</span>
-					)}
 					<button
 						type="button"
 						className={cn("ibtn ibtn-sm", details && "on")}

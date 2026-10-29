@@ -1,4 +1,5 @@
 import { useApolloClient, useMutation } from "@apollo/client/react";
+import { Link } from "@tanstack/react-router";
 import { createContext, useContext, useRef, useState } from "react";
 import { Av } from "#/components/q/av";
 import { ConfirmModal } from "#/components/q/confirm";
@@ -27,26 +28,40 @@ import {
 // by the conversation and by a thread.
 
 /** Member ids to names, for showing @mentions (the conversation provides it). */
-export const ChatNamesContext = createContext(new Map<string, string>());
+export const ChatNamesContext = createContext({
+	slug: "",
+	names: new Map<string, string>(),
+});
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** A message's text with its @mentions marked (only the people who were picked). */
 function WithMentions({ text, ids }: { text: string; ids: string[] }) {
-	const names = useContext(ChatNamesContext);
-	const mentioned = [...new Set(ids.flatMap((id) => names.get(id) ?? []))]
-		// longest first, so "Sam Lee" wins over "Sam"
-		.sort((a, b) => b.length - a.length);
+	const { slug, names } = useContext(ChatNamesContext);
+	// each picked person by name (the first pick wins if two share a name)
+	const byName = new Map<string, string>();
+	for (const id of ids) {
+		const name = names.get(id);
+		if (name && !byName.has(name)) byName.set(name, id);
+	}
+	// longest first, so "Sam Lee" wins over "Sam"
+	const mentioned = [...byName.keys()].sort((a, b) => b.length - a.length);
 	if (!mentioned.length) return text;
 	const parts = text.split(
 		new RegExp(`(@(?:${mentioned.map(escapeRe).join("|")}))`, "g"),
 	);
 	return parts.map((part, i) =>
 		i % 2 ? (
-			// biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed string
-			<span key={i} className="chat-at">
+			// a mention opens that person's page
+			<Link
+				// biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed string
+				key={i}
+				to="/w/$slug/members/$memberId"
+				params={{ slug, memberId: byName.get(part.slice(1)) ?? "" }}
+				className="chat-at"
+			>
 				{part}
-			</span>
+			</Link>
 		) : (
 			part
 		),
