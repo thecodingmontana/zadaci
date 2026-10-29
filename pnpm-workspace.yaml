@@ -1,6 +1,9 @@
 allowBuilds:
+  # optional setup scripts the app doesn't need
+  '@google/genai': false
   esbuild: true
   lightningcss: true
+  protobufjs: false
 skills:
   dirs:
     - .claude/skills
