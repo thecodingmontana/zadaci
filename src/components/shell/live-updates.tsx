@@ -12,6 +12,9 @@ const SETTLE_MS = 400;
 // anyone holding the public key can post to the channel, so however many messages arrive,
 // a page refreshes at most this often
 const MIN_GAP_MS = 3000;
+// the chat list only shows unread counts (an open conversation gets its messages at once), so a
+// busy workspace reloads it far less often
+const CHAT_GAP_MS = 10_000;
 
 export function LiveUpdates({
 	workspaceId,
@@ -40,8 +43,13 @@ export function LiveUpdates({
 			// and Supabase refuses the private channel
 			if (config.private) await realtime.setAuth();
 			if (gone) return realtime.disconnect();
-			let timer: ReturnType<typeof setTimeout> | undefined;
-			let last = 0;
+			const refresh = spaced(() =>
+				client.refetchQueries({ include: "active" }),
+			);
+			const refreshChats = spaced(
+				() => client.refetchQueries({ include: ["ChatChannels"] }),
+				CHAT_GAP_MS,
+			);
 			let connected = false;
 			const channel = realtime
 				.channel(`ws:${workspaceId}`, {
@@ -58,22 +66,12 @@ export function LiveUpdates({
 				)
 				.on("broadcast", { event: "changed" }, (message) => {
 					// this tab made the change, so it's already on screen
-					if (message.payload?.from === TAB_ID) return;
-					// a refresh already on its way covers this change too (a bulk edit becomes one)
-					if (timer) return;
-					timer = setTimeout(
-						() => {
-							timer = undefined;
-							last = Date.now();
-							void client.refetchQueries({ include: "active" });
-						},
-						Math.max(SETTLE_MS, last + MIN_GAP_MS - Date.now()),
-					);
+					if (message.payload?.from !== TAB_ID) refresh();
 				})
 				// a chat message somewhere: the sidebar's unread counts (the open conversation listens itself)
 				.on("broadcast", { event: "chat" }, (message) => {
-					if (message.payload?.from !== TAB_ID)
-						void client.refetchQueries({ include: ["ChatChannels"] });
+					// not once per message: at most every CHAT_GAP_MS
+					if (message.payload?.from !== TAB_ID) refreshChats();
 				})
 				// back after the connection dropped (a sleeping laptop, a phone offline): catch up once
 				.subscribe((status) => {
@@ -83,7 +81,8 @@ export function LiveUpdates({
 					connected = true;
 				});
 			stop = () => {
-				clearTimeout(timer);
+				refresh.cancel();
+				refreshChats.cancel();
 				setOnline([]);
 				void realtime.removeChannel(channel);
 				realtime.disconnect();
@@ -95,6 +94,26 @@ export function LiveUpdates({
 		};
 	}, [config, workspaceId, memberId, client]);
 	return null;
+}
+
+/** Runs `run` soon after a call, once for a burst of calls (a bulk edit becomes one refresh), and
+ *  no more often than every `gapMs`. */
+export function spaced(run: () => unknown, gapMs = MIN_GAP_MS) {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	let last = 0;
+	const call = () => {
+		if (timer) return;
+		timer = setTimeout(
+			() => {
+				timer = undefined;
+				last = Date.now();
+				void run();
+			},
+			Math.max(SETTLE_MS, last + gapMs - Date.now()),
+		);
+	};
+	call.cancel = () => clearTimeout(timer);
+	return call;
 }
 
 /** A token for Realtime's private channels (better-auth's jwt plugin); null when signed out. */
