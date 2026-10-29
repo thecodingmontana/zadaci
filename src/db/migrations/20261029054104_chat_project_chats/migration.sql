@@ -1,0 +1,3 @@
+ALTER TABLE "app_chat_channel" ADD COLUMN "follows_project" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "chat_channel_project_chat_unique" ON "app_chat_channel" ("project_id") WHERE follows_project and task_id is null;--> statement-breakpoint
+CREATE UNIQUE INDEX "chat_channel_task_chat_unique" ON "app_chat_channel" ("task_id") WHERE follows_project and task_id is not null;

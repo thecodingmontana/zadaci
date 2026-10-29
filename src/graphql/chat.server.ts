@@ -81,6 +81,8 @@ export const chatTypeDefs = /* GraphQL */ `
 		teamId: ID
 		"in your Favourites"
 		favorite: Boolean!
+		"a project's or task's own chat: whoever can see the project is in it"
+		followsProject: Boolean!
 		"when you pinned it to the top of your chat sidebar"
 		pinnedAt: String
 		"you made it, or you're an admin (never #general, a team's channel or a DM)"
@@ -182,6 +184,8 @@ export const chatTypeDefs = /* GraphQL */ `
 		"a conversation has one pinned message: pinning another replaces it"
 		pinChatMessage(slug: String!, id: ID!, pinned: Boolean!): ChatMessage!
 		deleteChatChannel(slug: String!, channelId: ID!): Boolean!
+		"a project's or task's own chat: found, or started (named after it) if it has none yet"
+		openChatFor(slug: String!, kind: String!, id: ID!): ChatChannel!
 		"pin a conversation to the top of your own chat sidebar"
 		pinChatChannel(slug: String!, channelId: ID!, pinned: Boolean!): Boolean!
 		favoriteChatChannel(
@@ -200,6 +204,19 @@ export const chatTypeDefs = /* GraphQL */ `
 const onTeam = (memberId: string) =>
 	sql`exists (select 1 from ${tables.team_members} join ${tables.team} on ${tables.team.id} = ${tables.team_members.team_id} and ${tables.team.deleted_at} is null where ${tables.team_members.team_id} = ${tables.chat_channel.team_id} and ${tables.team_members.member_id} = ${memberId} and ${tables.team_members.deleted_at} is null)`;
 
+/** A project's (or task's) own chat: this member can see its project, the way the app decides. */
+const seesProject = (ws: Workspace) =>
+	db
+		.select({ id: tables.project.id })
+		.from(tables.project)
+		.where(
+			and(
+				eq(tables.project.id, tables.chat_channel.project_id),
+				isNull(tables.project.deleted_at),
+				projectScope(ws),
+			),
+		);
+
 /** Channels this member may see: a team's while on the team, open ones, and private ones and
  *  DMs they belong to. (The same rule guards Realtime: zadaci_private.can_join.) */
 const visible = (ws: Workspace) =>
@@ -208,6 +225,7 @@ const visible = (ws: Workspace) =>
 		isNull(tables.chat_channel.archived_at),
 		sql`case
 			when ${tables.chat_channel.team_id} is not null then ${onTeam(ws.memberId ?? "")}
+			when ${tables.chat_channel.follows_project} then exists (${seesProject(ws)})
 			when not ${tables.chat_channel.private} then true
 			else exists (select 1 from ${tables.chat_member} where ${tables.chat_member.channel_id} = ${tables.chat_channel.id} and ${tables.chat_member.member_id} = ${ws.memberId ?? ""})
 		end`,
@@ -375,6 +393,7 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 		people: teams.get(c.id)?.people ?? members.get(c.id) ?? [],
 		teamId: c.team_id,
 		favorite: favorites.has(c.id),
+		followsProject: c.follows_project,
 		pinnedAt: pins.get(c.id)?.toISOString() ?? null,
 		canDelete: canDelete(c, ws),
 		unread: unreadBy.get(c.id) ?? 0,
@@ -382,9 +401,10 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 		general: isGeneral(c),
 		creator: (c.created_by && creators.get(c.created_by)) || null,
 		createdAt: c.created_at.toISOString(),
+		// a task's chat also keeps its project (for who can see it): the task is what it's about
 		link:
-			(c.project_id && links.get(c.project_id)) ||
 			(c.task_id && links.get(c.task_id)) ||
+			(c.project_id && links.get(c.project_id)) ||
 			null,
 	}));
 }
@@ -542,7 +562,10 @@ async function ensureGeneral(ws: Workspace, channels: Channel[]) {
 		channels = [general, ...channels];
 	}
 	// #general and your teams' channels count unread from when you first saw them
-	const everyones = channels.filter((c) => isGeneral(c) || c.team_id);
+	// (and project chats: being able to see them makes you a member, for live updates)
+	const everyones = channels.filter(
+		(c) => isGeneral(c) || c.team_id || c.follows_project,
+	);
 	const joined = new Set(
 		(
 			await db
@@ -1310,6 +1333,65 @@ export const chatResolvers = {
 				ctx.tab,
 			);
 			return true;
+		},
+		openChatFor: async (
+			_: unknown,
+			args: { slug: string; kind: string; id: string },
+			ctx: GraphQLContext,
+		) => {
+			if (args.kind !== "project" && args.kind !== "task")
+				badInput("Only projects and tasks have their own chat");
+			// you can only open the chat of something you can see
+			const forTask =
+				args.kind === "task"
+					? await requireTask(ctx, args.slug, args.id)
+					: null;
+			const { workspace, project } =
+				forTask ?? (await requireProject(ctx, args.slug, args.id));
+			const task = forTask?.task ?? null;
+			const mine = () =>
+				db
+					.select()
+					.from(tables.chat_channel)
+					.where(
+						and(
+							eq(tables.chat_channel.workspace_id, workspace.id),
+							eq(tables.chat_channel.follows_project, true),
+							task
+								? eq(tables.chat_channel.task_id, task.id)
+								: and(
+										eq(tables.chat_channel.project_id, project.id),
+										isNull(tables.chat_channel.task_id),
+									),
+							isNull(tables.chat_channel.archived_at),
+						),
+					);
+			let [channel] = await mine();
+			if (!channel) {
+				const title = task?.name ?? project.title;
+				// two people opening it at once: the unique index keeps one, both read it back
+				await db
+					.insert(tables.chat_channel)
+					.values({
+						workspace_id: workspace.id,
+						kind: "channel",
+						name: channelName(title) || (task ? "task" : "project"),
+						topic: task
+							? `About the task “${task.name}” in ${project.title}.`
+							: `Everything about ${project.title}.`,
+						// it follows the project: private to everyone else
+						private: true,
+						follows_project: true,
+						project_id: project.id,
+						task_id: task?.id ?? null,
+						created_by: workspace.memberId,
+					})
+					.onConflictDoNothing();
+				[channel] = await mine();
+			}
+			if (!channel) badInput("Couldn't open the chat");
+			await join(channel.id, workspace.memberId ?? "");
+			return (await channelShape([channel], workspace))[0];
 		},
 		pinChatChannel: async (
 			_: unknown,

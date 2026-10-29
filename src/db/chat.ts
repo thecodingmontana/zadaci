@@ -60,6 +60,8 @@ export const chat_channel = pgTable(
 		task_id: varchar("task_id", { length: 16 }).references(() => task.id, {
 			onDelete: "set null",
 		}),
+		/** a project's or task's own chat: whoever can see that project (task: its project) is in it */
+		follows_project: boolean("follows_project").notNull().default(false),
 		/** a team's own channel: its members are the team's, and follow it */
 		team_id: varchar("team_id", { length: 16 }).references(() => team.id, {
 			onDelete: "cascade",
@@ -78,6 +80,13 @@ export const chat_channel = pgTable(
 		uniqueIndex("chat_channel_team_unique")
 			.on(t.team_id)
 			.where(sql`team_id is not null`),
+		// one own chat per project, and per task
+		uniqueIndex("chat_channel_project_chat_unique")
+			.on(t.project_id)
+			.where(sql`follows_project and task_id is null`),
+		uniqueIndex("chat_channel_task_chat_unique")
+			.on(t.task_id)
+			.where(sql`follows_project and task_id is not null`),
 	],
 );
 

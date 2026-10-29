@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
+import { eq } from "drizzle-orm";
+import { db, tables } from "#/db";
 import { cleanup, gql, join, makeUser, makeWorkspace, type TestUser } from "./helpers";
 
 after(cleanup);
@@ -302,4 +304,38 @@ test("chat: share a task, project or note you can see; it shows to each reader o
 	await gql(owner, SHARE, { s: slug, c: general, b: "read this", x: [{ kind: "note", id: note.id }] });
 	const card = (await gql(owner, CARD, { s: slug, k: "note", id: note.id })).data?.noteEmbed;
 	assert.deepEqual(card, { kind: "note", title: "Launch plan", href: `/w/${slug}/notes/${note.id}` });
+});
+
+test("chat: a project's or task's own chat follows who can see the project", async () => {
+	const owner = await makeUser("owner");
+	const guest = await makeUser("guest");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await gql(owner, `mutation($s: String!, $e: [String!]!) { inviteMembers(slug: $s, emails: $e, role: "guest") { id } }`, { s: slug, e: [guest.email] });
+	await join(guest, inviteCode);
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id title } } }`, { s: slug })).data?.workspace.projects[0];
+	const OPEN = `mutation($s: String!, $k: String!, $id: ID!) { openChatFor(slug: $s, kind: $k, id: $id) { id name private followsProject link { kind id } } }`;
+	const LIST = `query($s: String!) { workspace(slug: $s) { members { id isMe } chatChannels { id } } }`;
+	const sees = async (u: TestUser, id: string) => ((await gql(u, LIST, { s: slug })).data?.workspace.chatChannels as { id: string }[]).some((c) => c.id === id);
+
+	// one chat per project, named after it, about it
+	const chat = (await gql(owner, OPEN, { s: slug, k: "project", id: project.id })).data?.openChatFor;
+	assert.deepEqual({ private: chat.private, follows: chat.followsProject, link: chat.link }, { private: true, follows: true, link: { kind: "project", id: project.id } });
+	assert.equal((await gql(owner, OPEN, { s: slug, k: "project", id: project.id })).data?.openChatFor.id, chat.id, "the same chat every time");
+
+	// a guest who isn't on the project can't open it or see it…
+	assert.ok((await gql(guest, OPEN, { s: slug, k: "project", id: project.id })).errors?.length);
+	assert.equal(await sees(guest, chat.id), false);
+	// …until they're added to the project, and not after they're taken off
+	const guestId = ((await gql(guest, LIST, { s: slug })).data?.workspace.members as { id: string; isMe: boolean }[]).find((m) => m.isMe)?.id ?? "";
+	const [row] = await db.insert(tables.project_members).values({ project_id: project.id, member_id: guestId }).returning();
+	assert.equal(await sees(guest, chat.id), true, "on the project: in its chat");
+	await db.delete(tables.project_members).where(eq(tables.project_members.id, row.id));
+	assert.equal(await sees(guest, chat.id), false, "off the project: out of its chat");
+	assert.match((await gql(guest, `query($s: String!, $c: ID!) { chatMessages(slug: $s, channelId: $c) { id } }`, { s: slug, c: chat.id })).errors?.[0]?.message ?? "", /not found/);
+
+	// a task has its own chat, apart from the project's
+	const task = (await gql(owner, `mutation($s: String!, $i: TaskInput!) { createTask(slug: $s, input: $i) { id } }`, { s: slug, i: { projectId: project.id, title: "Ship it" } })).data?.createTask;
+	const taskChat = (await gql(owner, OPEN, { s: slug, k: "task", id: task.id })).data?.openChatFor;
+	assert.notEqual(taskChat.id, chat.id);
+	assert.deepEqual([taskChat.name, taskChat.link], ["ship-it", { kind: "task", id: task.id }]);
 });
