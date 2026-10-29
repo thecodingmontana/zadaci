@@ -8,6 +8,7 @@ import {
 	isNull,
 	ne,
 	or,
+	sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db, tables } from "#/db";
@@ -175,9 +176,10 @@ const notificationRows = (where: ReturnType<typeof and>) =>
 		.leftJoin(
 			tables.project,
 			and(
-				or(
-					eq(tables.project.id, tables.notification.project_id),
-					eq(tables.project.id, tables.task.project_id),
+				// one project per row: the task's now (it may have moved), else the one noted
+				eq(
+					tables.project.id,
+					sql`coalesce(${tables.task.project_id}, ${tables.notification.project_id})`,
 				),
 				isNull(tables.project.deleted_at),
 			),

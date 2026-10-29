@@ -372,3 +372,18 @@ test("bulk assigning someone leaves exactly them on each task, like a single edi
 	const tasks = (await gql(owner, `query($s: String!) { workspace(slug: $s) { tasks { id assigneeIds } } }`, { s: slug })).data?.workspace.tasks as { id: string; assigneeIds: string[] }[];
 	for (const t of [a, b]) assert.deepEqual(tasks.find((x) => x.id === t.id)?.assigneeIds, [memberId]);
 });
+
+test("a notification shows once in the inbox after its task moves to another project", async () => {
+	const { owner, member, slug, memberId, create } = await setup();
+	const other = (
+		await gql(owner, `mutation($s: String!, $i: ProjectInput!) { createProject(slug: $s, input: $i) { id } }`, {
+			s: slug,
+			i: { title: "Elsewhere", icon: "icon-[solar--global-linear]", color: "teal", template: "blank" },
+		})
+	).data?.createProject;
+	const task = (await create(owner, { title: "Moving soon", assigneeId: memberId })).data?.createTask;
+	const moved = await gql(owner, UPDATE, { s: slug, id: task.id, p: { projectId: other.id } });
+	assert.ok(moved.data, JSON.stringify(moved.errors));
+	const ids = ((await gql(member, `query($s: String!) { workspace(slug: $s) { notifications { id } } }`, { s: slug })).data?.workspace.notifications as { id: string }[]).map((n) => n.id);
+	assert.equal(new Set(ids).size, ids.length, "no notification twice");
+});
