@@ -3,6 +3,7 @@ import { db, tables } from "#/db";
 import { checkKey, keyHint, sealKey } from "#/lib/ai/keys.server";
 import { dailyLimit, usedToday, userClock } from "#/lib/ai/limits.server";
 import { modelFor, providerOf } from "#/lib/ai/providers";
+import { takeAllowance } from "#/lib/rate-limit.server";
 import {
 	badInput,
 	findWorkspaces,
@@ -12,6 +13,9 @@ import {
 
 // The assistant's settings for the signed-in person: their own AI keys (never sent back, only
 // their last characters), which one is active, free messages left today, and clearing their chat.
+
+const KEY_CHECKS_PER_HOUR = 10;
+const HOUR_MS = 60 * 60 * 1000;
 
 export const aiTypeDefs = /* GraphQL */ `
 	type AiKey {
@@ -120,6 +124,16 @@ export const aiResolvers = {
 			const user = requireUser(ctx);
 			const provider = known(args.provider);
 			const key = args.key.trim();
+			// each check calls the provider: a cap keeps us from being a free tester for leaked keys
+			if (
+				!(await takeAllowance(
+					`ai-key-checks:${user.id}`,
+					1,
+					KEY_CHECKS_PER_HOUR,
+					HOUR_MS,
+				))
+			)
+				badInput("Too many key checks. Try again in an hour.");
 			const check = await checkKey(provider.id, key);
 			if (!check.ok) badInput(check.error);
 			const row = {

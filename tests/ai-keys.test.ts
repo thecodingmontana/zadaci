@@ -49,3 +49,22 @@ test("people add keys for several providers, pick the active one, and remove the
 		globalThis.fetch = realFetch;
 	}
 });
+
+test("checking keys is capped at 10 an hour, before the provider is asked", async () => {
+	const sam = await makeUser("sam");
+	const key = `ai-key-checks:${sam.id}`;
+	await db.insert(tables.rateLimit).values({ id: key, key, count: 10, lastRequest: Date.now() });
+	let asked = 0;
+	const realFetch = globalThis.fetch;
+	globalThis.fetch = (async () => {
+		asked++;
+		return new Response("{}", { status: 200 });
+	}) as typeof fetch;
+	try {
+		const res = await gql(sam, `mutation($k: String!) { setAiKey(provider: "anthropic", key: $k) { used } }`, { k: KEY });
+		assert.match(res.errors?.[0]?.message ?? "", /Too many key checks/);
+		assert.equal(asked, 0, "no call to the provider");
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
