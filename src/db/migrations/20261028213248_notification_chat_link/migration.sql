@@ -1,0 +1,4 @@
+ALTER TABLE "app_notification" ADD COLUMN "chat_channel_id" varchar(16);--> statement-breakpoint
+ALTER TABLE "app_notification" ADD COLUMN "chat_message_id" varchar(16);--> statement-breakpoint
+ALTER TABLE "app_notification" ADD CONSTRAINT "app_notification_chat_channel_id_app_chat_channel_id_fkey" FOREIGN KEY ("chat_channel_id") REFERENCES "app_chat_channel"("id") ON DELETE SET NULL;--> statement-breakpoint
+ALTER TABLE "app_notification" ADD CONSTRAINT "app_notification_chat_message_id_app_chat_message_id_fkey" FOREIGN KEY ("chat_message_id") REFERENCES "app_chat_message"("id") ON DELETE SET NULL;

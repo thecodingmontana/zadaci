@@ -51,10 +51,13 @@ export function ChatView({
 	channelId,
 	starting,
 	via,
+	messageId,
 }: {
 	slug: string;
 	/** which copy of it was clicked in the chat sidebar */
 	via?: Via;
+	/** a message to open at (from a notification) */
+	messageId?: string;
 	/** none: the last one you had open, else #general */
 	channelId?: string;
 	/** "Add channel" was picked */
@@ -154,6 +157,7 @@ export function ChatView({
 					title={titleOf(open, me?.id)}
 					me={me}
 					everyone={people}
+					openAt={messageId}
 					onMenu={() => setDrawer(true)}
 				/>
 			) : // still finding the conversation: the whole of it as a placeholder
@@ -317,6 +321,7 @@ function Conversation({
 	title,
 	me,
 	everyone,
+	openAt,
 	onMenu,
 }: {
 	slug: string;
@@ -325,6 +330,8 @@ function Conversation({
 	me: { id: string; name: string; image: string | null } | undefined;
 	/** the workspace's members */
 	everyone: Mentionable[];
+	/** a message to scroll to once it's open */
+	openAt?: string;
 	onMenu: () => void;
 }) {
 	const client = useApolloClient();
@@ -366,11 +373,8 @@ function Conversation({
 		refetchQueries: ["ChatPins", "ChatMessages"],
 	});
 	// the pinned bar: show the message (a reply opens its thread; one further back, the Pins tab)
-	const showPinned = async () => {
-		if (!pinned) return;
-		// a reply: open its thread, and bring the message it answers into view
-		if (pinned.parentId) setSide({ thread: pinned.parentId });
-		const target = pinned.parentId ?? pinned.id;
+	// takes you to a message: loads earlier pages until it's there, then scrolls it into view
+	const goTo = async (target: string) => {
 		if (!document.getElementById(`m-${target}`)) {
 			// further back than what's loaded: load earlier pages until it's there
 			const pages: ChatMessage[] = [];
@@ -406,6 +410,20 @@ function Conversation({
 		el.classList.add("flash");
 		setTimeout(() => el.classList.remove("flash"), 1600);
 	};
+	const showPinned = () => {
+		if (!pinned) return;
+		// a reply: open its thread, and bring the message it answers into view
+		if (pinned.parentId) setSide({ thread: pinned.parentId });
+		void goTo(pinned.parentId ?? pinned.id);
+	};
+	// opened from a notification: go to its message once the conversation has loaded
+	const opened = useRef(false);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: once, when the first page is in
+	useEffect(() => {
+		if (!openAt || !data || opened.current) return;
+		opened.current = true;
+		requestAnimationFrame(() => void goTo(openAt));
+	}, [openAt, !!data]);
 	const [online, setOnline] = useState(0);
 	const say = useRef<(event: string, payload: object) => void>(() => {});
 	const list = useRef<HTMLDivElement>(null);
@@ -683,11 +701,12 @@ function Conversation({
 							onThread={() => setSide({ thread: m.id })}
 						/>
 					))}
-					{outbox.items.map((item) => (
+					{outbox.items.map((item, i) => (
 						<OutboxRow
 							key={item.id}
 							item={item}
 							me={me}
+							waiting={outbox.items.slice(0, i).some((x) => x.failed)}
 							onRetry={() => outbox.retry(item.id)}
 							onDiscard={() => outbox.discard(item.id)}
 						/>

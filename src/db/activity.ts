@@ -1,4 +1,5 @@
 import { index, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { chat_channel, chat_message } from "./chat";
 import { project, task } from "./project";
 import { user } from "./user";
 import { generateNanoId, pgTable, timestamps } from "./utils";
@@ -77,6 +78,15 @@ export const notification = pgTable(
 		task_id: varchar("task_id", { length: 16 }).references(() => task.id, {
 			onDelete: "set null",
 		}),
+		/** a chat mention or message: the conversation, and the message to open at */
+		chat_channel_id: varchar("chat_channel_id", { length: 16 }).references(
+			() => chat_channel.id,
+			{ onDelete: "set null" },
+		),
+		chat_message_id: varchar("chat_message_id", { length: 16 }).references(
+			() => chat_message.id,
+			{ onDelete: "set null" },
+		),
 		read_at: timestamp("read_at", {
 			mode: "date",
 			precision: 3,

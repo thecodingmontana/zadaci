@@ -429,6 +429,59 @@ function Preview({
 	const workspace = data?.workspace;
 	const t = workspace?.task;
 
+	// a chat message: what was said and where, and the way to it
+	if (n.chatChannelId)
+		return (
+			<div style={{ padding: "24px 28px" }}>
+				<button
+					type="button"
+					className="btn btn-sm btn-ghost"
+					style={{ margin: "-4px 0 12px -8px" }}
+					onClick={onBack}
+				>
+					<span
+						className="icon-[solar--arrow-left-linear] size-3.5"
+						aria-hidden="true"
+					/>
+					Back
+				</button>
+				<div className="inbox-chat">
+					<div className="row" style={{ gap: 10 }}>
+						<Av name={n.actor?.name ?? "Someone"} image={n.actor?.image} />
+						<div style={{ minWidth: 0 }}>
+							<b>{n.actor?.name ?? "Someone"}</b>{" "}
+							<span className="muted">
+								{n.text}
+								{n.chatChannelName ? "" : " in a direct message"}
+							</span>
+						</div>
+					</div>
+					{n.snippet && <p className="inbox-chat-text">{n.snippet}</p>}
+				</div>
+				<button
+					type="button"
+					className="btn btn-primary"
+					style={{ marginTop: 14 }}
+					onClick={() =>
+						navigate({
+							to: "/w/$slug/chat",
+							params: { slug },
+							search: {
+								c: n.chatChannelId ?? undefined,
+								m: n.chatMessageId ?? undefined,
+							},
+						})
+					}
+				>
+					<span
+						className="icon-[solar--chat-round-dots-linear] size-4"
+						aria-hidden="true"
+					/>
+					Open in chat
+				</button>
+			</div>
+		);
+
 	if (!n.taskId)
 		return (
 			<div style={{ padding: "24px 28px" }}>

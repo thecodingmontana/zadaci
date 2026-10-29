@@ -667,6 +667,9 @@ export type NotificationItem = {
 	projectColor: string | null;
 	taskId: string | null;
 	taskTitle: string | null;
+	chatChannelId: string | null;
+	chatChannelName: string | null;
+	chatMessageId: string | null;
 	actor: { id: string; name: string; image: string | null } | null;
 	read: boolean;
 	createdAt: string;
@@ -696,6 +699,9 @@ export const NOTIFICATIONS: TypedDocumentNode<
 				projectColor
 				taskId
 				taskTitle
+				chatChannelId
+				chatChannelName
+				chatMessageId
 				actor {
 					id
 					name

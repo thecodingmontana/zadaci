@@ -99,11 +99,12 @@ export function ThreadPanel({
 						}}
 					/>
 				))}
-				{outbox.items.map((item) => (
+				{outbox.items.map((item, i) => (
 					<OutboxRow
 						key={item.id}
 						item={item}
 						me={me}
+						waiting={outbox.items.slice(0, i).some((x) => x.failed)}
 						onRetry={() => outbox.retry(item.id)}
 						onDiscard={() => outbox.discard(item.id)}
 					/>

@@ -9,6 +9,8 @@ export const Route = createFileRoute("/_authed/w/$slug/chat")({
 		new: z.literal("channel").optional(),
 		/** opened from Pinned or Favourites: that copy of it is highlighted */
 		via: z.enum(["pin", "fav"]).optional(),
+		/** a message to open at (from a notification) */
+		m: z.string().max(16).optional(),
 	}),
 	head: ({ matches }) => ({ meta: [{ title: wsTitle(matches, "Chat") }] }),
 	component: ChatPage,
@@ -16,6 +18,14 @@ export const Route = createFileRoute("/_authed/w/$slug/chat")({
 
 function ChatPage() {
 	const { slug } = Route.useParams();
-	const { c, new: starting, via } = Route.useSearch();
-	return <ChatView slug={slug} channelId={c} starting={starting} via={via} />;
+	const { c, new: starting, via, m } = Route.useSearch();
+	return (
+		<ChatView
+			slug={slug}
+			channelId={c}
+			starting={starting}
+			via={via}
+			messageId={m}
+		/>
+	);
 }

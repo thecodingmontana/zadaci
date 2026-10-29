@@ -5617,6 +5617,19 @@ fieldset.ai-approve {
   font-size: 18px;
 }
 
+/* the Inbox showing a chat message */
+.inbox-chat {
+  padding: 14px 16px;
+  border: 1px solid var(--q-border);
+  border-radius: 12px;
+  background: var(--q-surface);
+}
+.inbox-chat-text {
+  margin: 10px 0 0 38px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* ---- team chat: its own sidebar | the conversation | details or a thread ----
    .page.flush is a flex column; the chat page is a grid. On a phone the sidebar is a drawer. */
 .page.flush.chat {

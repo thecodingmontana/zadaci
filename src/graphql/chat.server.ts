@@ -733,6 +733,8 @@ async function notifyChat(
 	channel: Channel,
 	text: string,
 	mentionIds: string[],
+	/** the message, for the notification to open at */
+	messageId: string,
 	parent?: Message,
 ) {
 	const seenBy = audience(channel);
@@ -788,6 +790,8 @@ async function notifyChat(
 		actor_id: actorId,
 		type: "mention",
 		snippet: text.slice(0, 200),
+		chat_channel_id: channel.id,
+		chat_message_id: messageId,
 	};
 	await notify(db, [
 		...mentioned.map((m) => ({
@@ -1075,6 +1079,8 @@ export const chatResolvers = {
 						? `Sent ${files[0]?.name}`
 						: `Sent ${files.length} files`),
 				mentions,
+				// a thread reply opens at the thread's first message (that's in the conversation)
+				parent?.id ?? message.id,
 				parent,
 			);
 			return shaped;

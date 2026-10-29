@@ -141,6 +141,8 @@ type NotificationRow = {
 	snippet?: string | null;
 	project_id?: string | null;
 	task_id?: string | null;
+	chat_channel_id?: string | null;
+	chat_message_id?: string | null;
 };
 
 /** Queues an email and a push for each notification, as far as its recipient asked for them. */
@@ -199,7 +201,9 @@ export async function queueNotifications(rows: NotificationRow[]) {
 		const link =
 			row.task_id && row.project_id
 				? `${appUrl}/w/${ws.slug}/p/${row.project_id}?task=${row.task_id}`
-				: `${appUrl}/w/${ws.slug}/notifications`;
+				: row.chat_channel_id
+					? `${appUrl}/w/${ws.slug}/chat?c=${row.chat_channel_id}${row.chat_message_id ? `&m=${row.chat_message_id}` : ""}`
+					: `${appUrl}/w/${ws.slug}/notifications`;
 		if (notifKey("push", row, to.prefs))
 			pushes.push({
 				userId: to.id,

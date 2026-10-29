@@ -9,23 +9,28 @@ import {
 import { cn } from "#/lib/utils";
 import { type Draft, FileThumb, uploadChatFile } from "./chat-files";
 
-// Sending, optimistically: a message shows the moment you press send ("Sending…"), its files
-// upload only then, and once the server has it the real message takes its place. If it fails it
-// stays, with Retry and Discard.
+// Sending, optimistically: a message shows the moment you press send, its files upload only then,
+// and once the server has it the real message takes its place.
+//
+// Order: messages are saved strictly one at a time, in the order you sent them (files upload in
+// parallel, but a message waits for the one before it), so everyone sees them as you sent them.
+// If one fails, the ones after it wait; Retry carries on from it, Discard skips it.
 
-type Item = {
+export type Item = {
 	id: string;
 	body: string;
 	files: Draft[];
 	/** people picked from the @ list */
 	mentionIds: string[];
-	status: "sending" | "failed";
-	/** why it failed, in the server's words */
-	error?: string;
+	/** files already uploaded (kept, so a retry doesn't upload them again) */
+	uploaded: (ChatAttachment | undefined)[];
 	/** upload progress across its files, 0–100 */
 	pct: number;
-	/** files already uploaded, kept so a retry doesn't send them again */
-	uploaded: (ChatAttachment | undefined)[];
+	/** its files are all up (or it has none) */
+	ready: boolean;
+	saving: boolean;
+	/** why it failed, in the server's words */
+	failed?: string;
 };
 
 export function useOutbox({
@@ -42,29 +47,44 @@ export function useOutbox({
 	onSent: (message: ChatMessage) => void;
 }) {
 	const client = useApolloClient();
+	// the queue itself lives in a ref (one source of truth for the order); state is its picture
+	const queue = useRef<Item[]>([]);
 	const [items, setItems] = useState<Item[]>([]);
-	const latest = useRef(items);
-	latest.current = items;
+	const busy = useRef(false);
 	const sent = useRef(onSent);
 	sent.current = onSent;
+	const show = () => setItems([...queue.current]);
+	const patch = (id: string, change: Partial<Item>) => {
+		queue.current = queue.current.map((i) =>
+			i.id === id ? { ...i, ...change } : i,
+		);
+		show();
+	};
+	const find = (id: string) => queue.current.find((i) => i.id === id);
+	const drop = (id: string) => {
+		for (const f of find(id)?.files ?? [])
+			if (f.preview) URL.revokeObjectURL(f.preview);
+		queue.current = queue.current.filter((i) => i.id !== id);
+		show();
+	};
 	// leaving: free the pictures' previews
 	useEffect(
 		() => () => {
-			for (const i of latest.current)
+			for (const i of queue.current)
 				for (const f of i.files) if (f.preview) URL.revokeObjectURL(f.preview);
 		},
 		[],
 	);
-	const patch = (id: string, change: Partial<Item>) =>
-		setItems((all) => all.map((i) => (i.id === id ? { ...i, ...change } : i)));
 
-	const run = async (item: Item) => {
-		patch(item.id, { status: "sending", error: undefined });
+	/** Uploads whatever of a message's files isn't up yet. */
+	const upload = async (id: string) => {
+		const item = find(id);
+		if (!item) return;
+		const uploaded = [...item.uploaded];
+		const progress: number[] = item.files.map((_, n) =>
+			uploaded[n] ? 100 : 0,
+		);
 		try {
-			const uploaded = [...item.uploaded];
-			const progress: number[] = item.files.map((_, n) =>
-				uploaded[n] ? 100 : 0,
-			);
 			await Promise.all(
 				item.files.map(async (f, n) => {
 					if (uploaded[n]) return;
@@ -75,17 +95,33 @@ export function useOutbox({
 						f,
 						(pct) => {
 							progress[n] = pct;
-							patch(item.id, {
+							patch(id, {
 								pct: Math.round(
 									progress.reduce((a, b) => a + b, 0) / progress.length,
 								),
 							});
 						},
 					);
-					patch(item.id, { uploaded: [...uploaded] });
+					patch(id, { uploaded: [...uploaded] });
 				}),
 			);
-			const attachments = uploaded.flatMap((a) =>
+			if (find(id)) patch(id, { ready: true });
+		} catch (e) {
+			if (find(id)) patch(id, { failed: (e as Error).message });
+		}
+		pump();
+	};
+
+	/** Saves the first message in the queue once it's ready, then the next, and so on. */
+	const pump = async () => {
+		if (busy.current) return;
+		const head = queue.current[0];
+		// nothing to send, the first one failed (the rest wait for it), or its files are still going
+		if (!head || head.failed || !head.ready) return;
+		busy.current = true;
+		patch(head.id, { saving: true });
+		try {
+			const attachments = head.uploaded.flatMap((a) =>
 				a
 					? [
 							{
@@ -103,19 +139,21 @@ export function useOutbox({
 				variables: {
 					slug,
 					channelId,
-					body: item.body,
+					body: head.body,
 					parentId,
 					attachments,
-					mentionIds: item.mentionIds,
+					mentionIds: head.mentionIds,
 				},
 			});
 			if (!data) throw new Error("No reply from the server");
 			sent.current(data.sendChatMessage);
-			for (const f of item.files) if (f.preview) URL.revokeObjectURL(f.preview);
-			setItems((all) => all.filter((i) => i.id !== item.id));
+			drop(head.id);
 		} catch (e) {
-			patch(item.id, { status: "failed", error: (e as Error).message });
+			patch(head.id, { saving: false, failed: (e as Error).message });
+		} finally {
+			busy.current = false;
 		}
+		void pump();
 	};
 
 	return {
@@ -126,24 +164,28 @@ export function useOutbox({
 				body,
 				files,
 				mentionIds,
-				status: "sending",
-				pct: 0,
 				uploaded: [],
+				pct: 0,
+				ready: files.length === 0,
+				saving: false,
 			};
-			setItems((all) => [...all, item]);
-			void run(item);
+			queue.current = [...queue.current, item];
+			show();
+			if (files.length) void upload(item.id);
+			else void pump();
 		},
 		retry: (id: string) => {
-			const item = latest.current.find((i) => i.id === id);
-			if (item) void run(item);
+			const item = find(id);
+			if (!item) return;
+			patch(id, { failed: undefined });
+			// files that didn't make it go up again; the rest are kept
+			if (!item.ready) void upload(id);
+			else void pump();
 		},
-		discard: (id: string) =>
-			setItems((all) => {
-				const item = all.find((i) => i.id === id);
-				for (const f of item?.files ?? [])
-					if (f.preview) URL.revokeObjectURL(f.preview);
-				return all.filter((i) => i.id !== id);
-			}),
+		discard: (id: string) => {
+			drop(id);
+			void pump();
+		},
 	};
 }
 
@@ -151,16 +193,19 @@ export function useOutbox({
 export function OutboxRow({
 	item,
 	me,
+	waiting,
 	onRetry,
 	onDiscard,
 }: {
 	item: Item;
 	me: { name: string; image: string | null } | undefined;
+	/** a message before it failed: this one waits its turn */
+	waiting: boolean;
 	onRetry: () => void;
 	onDiscard: () => void;
 }) {
-	const failed = item.status === "failed";
-	const uploading = item.files.length > 0 && item.pct < 100 && !failed;
+	const failed = !!item.failed;
+	const uploading = !item.ready && !failed;
 	return (
 		<div className={cn("chat-msg chat-out", failed && "failed")}>
 			<div className="chat-av">
@@ -187,7 +232,7 @@ export function OutboxRow({
 					{failed ? (
 						<>
 							<span className="chat-out-failed">
-								Couldn't send{item.error ? `: ${item.error}` : "."}
+								Couldn't send{item.failed ? `: ${item.failed}` : "."}
 							</span>
 							<button type="button" className="chat-out-act" onClick={onRetry}>
 								Retry
@@ -202,6 +247,8 @@ export function OutboxRow({
 						</>
 					) : uploading ? (
 						`Uploading ${item.pct}%…`
+					) : waiting ? (
+						"Waiting for the message before it…"
 					) : (
 						"Sending…"
 					)}

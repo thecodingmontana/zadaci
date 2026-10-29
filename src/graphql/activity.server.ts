@@ -101,6 +101,12 @@ export const activityTypeDefs = /* GraphQL */ `
 		projectColor: String
 		taskId: ID
 		taskTitle: String
+		"a chat mention or message: the conversation and the message to open at"
+		chatChannelId: ID
+		"a channel's name (a direct message has none)"
+		chatChannelName: String
+		"the message to open at (a thread reply's: its thread's first message)"
+		chatMessageId: ID
 		actor: Person
 		read: Boolean!
 		createdAt: String!
@@ -148,6 +154,11 @@ const notificationRows = (where: ReturnType<typeof and>) =>
 				color: tables.project.color,
 			},
 			taskTitle: tables.task.name,
+			chat: {
+				id: tables.chat_channel.id,
+				kind: tables.chat_channel.kind,
+				name: tables.chat_channel.name,
+			},
 		})
 		.from(tables.notification)
 		.leftJoin(actor, eq(actor.id, tables.notification.actor_id))
@@ -168,6 +179,14 @@ const notificationRows = (where: ReturnType<typeof and>) =>
 				isNull(tables.project.deleted_at),
 			),
 		)
+		.leftJoin(
+			tables.chat_channel,
+			and(
+				eq(tables.chat_channel.id, tables.notification.chat_channel_id),
+				isNull(tables.chat_channel.archived_at),
+			),
+		)
+
 		.where(where)
 		.orderBy(desc(tables.notification.created_at))
 		// shortcut: newest 100 only, add a "load more" cursor once inboxes get long
@@ -183,6 +202,10 @@ const notificationRows = (where: ReturnType<typeof and>) =>
 				projectColor: r.project?.color ?? null,
 				taskId: r.taskTitle ? r.n.task_id : null,
 				taskTitle: r.taskTitle,
+				chatChannelId: r.chat?.id ?? null,
+				chatChannelName: r.chat?.kind === "channel" ? r.chat.name : null,
+				chatMessageId: r.chat ? r.n.chat_message_id : null,
+
 				actor: r.actor,
 				read: !!r.n.read_at,
 				createdAt: r.n.created_at.toISOString(),
