@@ -20,6 +20,7 @@ import {
 	TASKS,
 	TOGGLE_FAVORITE,
 } from "#/graphql/operations";
+import { openChatDock } from "#/lib/chat-dock";
 import { download, fileName, toCsv } from "#/lib/export";
 import { hasRight, type Permission } from "#/lib/permissions";
 import { LABELS, PRIORITIES, taskStatus } from "#/lib/tasks";
@@ -185,6 +186,18 @@ export function ProjectMenu({
 							Rename & edit
 						</MenuItem>
 					)}
+					<MenuItem
+						icon="icon-[solar--chat-round-dots-linear]"
+						onSelect={() =>
+							openChatDock({
+								kind: "project",
+								id: project.id,
+								title: project.title,
+							})
+						}
+					>
+						Open chat
+					</MenuItem>
 					<MenuItem
 						icon="icon-[solar--share-linear]"
 						onSelect={() => setSharing(true)}

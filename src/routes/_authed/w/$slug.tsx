@@ -24,6 +24,7 @@ import {
 	UPDATE_PREFERENCES,
 } from "#/graphql/operations";
 import { assistantThread } from "#/lib/ai/prompt";
+import { useChatDock } from "#/lib/chat-dock";
 import { can } from "#/lib/permissions";
 import { reloadOnEnter } from "#/lib/routing";
 import { getSidebarOpen } from "#/lib/session";
@@ -38,6 +39,10 @@ const AssistantPanel = lazy(() =>
 	import("#/components/ai/assistant-panel").then((m) => ({
 		default: m.AssistantPanel,
 	})),
+);
+// a project's or task's chat, over the page (openChatDock)
+const ChatDock = lazy(() =>
+	import("#/components/chat/chat-dock").then((m) => ({ default: m.ChatDock })),
 );
 
 export const Route = createFileRoute("/_authed/w/$slug")({
@@ -126,6 +131,7 @@ function ShellLayout() {
 	// closed drawers stay a moment to slide out
 	const drawerTask = useLeaving(task ?? null);
 	const panel = useLeaving(assistant.open || null);
+	const dock = useLeaving(useChatDock());
 	const workspace = data.workspace;
 	if (!workspace) return null;
 
@@ -197,6 +203,15 @@ function ShellLayout() {
 									slug={slug}
 									leaving={panel.leaving}
 									threadId={assistantThread(workspace.id, user.id)}
+								/>
+							</Suspense>
+						)}
+						{dock.shown && (
+							<Suspense fallback={null}>
+								<ChatDock
+									slug={slug}
+									target={dock.shown}
+									leaving={dock.leaving}
 								/>
 							</Suspense>
 						)}

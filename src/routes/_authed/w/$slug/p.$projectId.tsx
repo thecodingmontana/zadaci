@@ -30,6 +30,7 @@ import {
 	TOGGLE_FAVORITE,
 	UPDATE_PROJECT,
 } from "#/graphql/operations";
+import { openChatDock } from "#/lib/chat-dock";
 import { can, hasRight } from "#/lib/permissions";
 import { pstat } from "#/lib/projects";
 import { prime, reloadOnEnter } from "#/lib/routing";
@@ -253,6 +254,23 @@ function ProjectPage() {
 								/>
 							</button>
 						)}
+						<button
+							type="button"
+							className="btn btn-secondary btn-sm"
+							onClick={() =>
+								openChatDock({
+									kind: "project",
+									id: project.id,
+									title: project.title,
+								})
+							}
+						>
+							<span
+								className="icon-[solar--chat-round-dots-linear] size-[13px]"
+								aria-hidden="true"
+							/>
+							<span className="hide-m">Chat</span>
+						</button>
 						<button
 							type="button"
 							className="btn btn-secondary btn-sm hide-m"

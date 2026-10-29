@@ -5617,6 +5617,49 @@ fieldset.ai-approve {
   font-size: 18px;
 }
 
+/* a project's or task's chat in a side panel (chat-dock.tsx): the chat page's conversation, compact */
+.drawer.chat-drawer {
+  width: min(520px, 100vw);
+}
+.chat-dock {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.chat-dock .chat-main {
+  flex: 1;
+}
+.chat-dock .chat-menu {
+  display: none;
+}
+/* details and threads cover the conversation inside the panel */
+.chat-dock .chat-side {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-left: 0;
+  background: var(--q-surface);
+}
+.chat-dock-empty {
+  margin: auto;
+  max-width: 340px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.chat-dock-empty h2 {
+  margin: 6px 0 0;
+  font-size: var(--q-fs-lg, 16px);
+}
+.chat-dock-empty p {
+  margin: 0 0 6px;
+  font-size: var(--q-fs-sm);
+}
+
 /* the Inbox showing a chat message */
 .inbox-chat {
   padding: 14px 16px;

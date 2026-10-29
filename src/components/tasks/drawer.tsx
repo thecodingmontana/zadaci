@@ -19,6 +19,7 @@ import {
 	type TaskItem,
 	TOGGLE_TASK_FAVORITE,
 } from "#/graphql/operations";
+import { openChatDock } from "#/lib/chat-dock";
 import { FILE_TYPES, fileKind, fmtSize } from "#/lib/files";
 import { ESTIMATES, inlineMarks, RECURS } from "#/lib/tasks";
 import { ago, daysUntil, relDay } from "#/lib/time";
@@ -241,6 +242,22 @@ function DrawerBody({
 					{t.key}
 				</span>
 				<span className="sp" />
+				{/* the task's own chat, in the chat panel (it takes the drawer's place) */}
+				<button
+					type="button"
+					className="ibtn ibtn-sm"
+					aria-label="Chat about this task"
+					data-tip="Chat"
+					onClick={() => {
+						openChatDock({ kind: "task", id: t.id, title: t.name });
+						onClose();
+					}}
+				>
+					<span
+						className="icon-[solar--chat-round-dots-linear] size-4"
+						aria-hidden="true"
+					/>
+				</button>
 				{editable && (
 					<button
 						type="button"

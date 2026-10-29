@@ -214,7 +214,7 @@ export function ChatView({
 }
 
 /** Before the conversation is known: its header, a screen of messages and the box, as placeholders. */
-function ConversationSkeleton({ onMenu }: { onMenu: () => void }) {
+export function ConversationSkeleton({ onMenu }: { onMenu: () => void }) {
 	return (
 		<section className="chat-main" aria-busy="true">
 			<header className="chat-h">
@@ -325,7 +325,7 @@ function Welcome({
 	);
 }
 
-function Conversation({
+export function Conversation({
 	slug,
 	channel,
 	title,

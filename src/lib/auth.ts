@@ -54,11 +54,16 @@ export async function secondFactors(user: {
 	];
 }
 
-/** Who signs the tokens Supabase Realtime trusts (its discovery document is at /.well-known). */
-export const AUTH_ISSUER = (process.env.BETTER_AUTH_URL ?? SITE_URL).replace(
-	/\/$/,
-	"",
-);
+/**
+ * Who signs the tokens Supabase Realtime trusts (its discovery document is at /.well-known).
+ * AUTH_JWT_ISSUER lets a local server name the deployed site: Supabase trusts only that one, and
+ * a local server sharing its database signs with the same keys.
+ */
+export const AUTH_ISSUER = (
+	process.env.AUTH_JWT_ISSUER ||
+	process.env.BETTER_AUTH_URL ||
+	SITE_URL
+).replace(/\/$/, "");
 
 export const auth = betterAuth({
 	appName: "Zadaci",

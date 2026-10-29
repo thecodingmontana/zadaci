@@ -18,6 +18,8 @@ export type ChatChannel = {
 	link: { kind: "project" | "task"; id: string; title: string } | null;
 	teamId: string | null;
 	favorite: boolean;
+	/** a project's or task's own chat */
+	followsProject: boolean;
 	pinnedAt: string | null;
 	canDelete: boolean;
 };
@@ -80,6 +82,7 @@ const CHANNEL = gql`
 		}
 		teamId
 		favorite
+		followsProject
 		pinnedAt
 		canDelete
 	}
@@ -429,4 +432,16 @@ export const CHAT_MEMBERS: TypedDocumentNode<
 			}
 		}
 	}
+`;
+
+export const OPEN_CHAT_FOR: TypedDocumentNode<
+	{ openChatFor: ChatChannel },
+	{ slug: string; kind: "project" | "task"; id: string }
+> = gql`
+	mutation OpenChatFor($slug: String!, $kind: String!, $id: ID!) {
+		openChatFor(slug: $slug, kind: $kind, id: $id) {
+			...ChatChannelFields
+		}
+	}
+	${CHANNEL}
 `;
