@@ -147,6 +147,8 @@ export function useOutbox({
 					attachments,
 					mentionIds: head.mentionIds,
 					shares: head.shares.map(({ kind, id }) => ({ kind, id })),
+					// Retry sends the same id: if the first try did land, nothing is posted twice
+					clientId: head.id,
 				},
 			});
 			if (!data) throw new Error("No reply from the server");

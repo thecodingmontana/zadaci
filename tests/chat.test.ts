@@ -354,3 +354,32 @@ test("chat: a project's or task's own chat follows who can see the project", asy
 	assert.notEqual(taskChat.id, chat.id);
 	assert.deepEqual([taskChat.name, taskChat.link], ["ship-it", { kind: "task", id: task.id }]);
 });
+
+test("chat: two people opening a DM with each other at the same moment get one DM", async () => {
+	const amina = await makeUser("amina");
+	const brian = await makeUser("brian");
+	const { slug, inviteCode } = await makeWorkspace(amina);
+	await join(brian, inviteCode);
+	const ME = `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`;
+	const idOf = async (u: TestUser) => ((await gql(u, ME, { s: slug })).data?.workspace.members as { id: string; isMe: boolean }[]).find((m) => m.isMe)?.id ?? "";
+	const [a, b] = [await idOf(amina), await idOf(brian)];
+	const DM = `mutation($s: String!, $m: [ID!]!) { openChatDm(slug: $s, memberIds: $m) { id } }`;
+	const [fromA, fromB] = await Promise.all([gql(amina, DM, { s: slug, m: [b] }), gql(brian, DM, { s: slug, m: [a] })]);
+	assert.ok(fromA.data && fromB.data, JSON.stringify([fromA.errors, fromB.errors]));
+	assert.equal(fromA.data.openChatDm.id, fromB.data.openChatDm.id);
+});
+
+test("chat: sending the same message again (a retry after a lost reply) doesn't post it twice", async () => {
+	const amina = await makeUser("amina");
+	const { slug } = await makeWorkspace(amina);
+	const general = ((await gql(amina, `query($s: String!) { workspace(slug: $s) { chatChannels { id general } } }`, { s: slug })).data?.workspace.chatChannels as { id: string; general: boolean }[]).find((c) => c.general)?.id;
+	const SEND = `mutation($s: String!, $c: ID!, $b: String!, $k: String) { sendChatMessage(slug: $s, channelId: $c, body: $b, clientId: $k) { id } }`;
+	const k = "3f1c2a9e-0b7d-4c55-9a51-2f6d8e4b7c10";
+	const first = await gql(amina, SEND, { s: slug, c: general, b: "Ship it", k });
+	const [again, alsoAgain] = await Promise.all([gql(amina, SEND, { s: slug, c: general, b: "Ship it", k }), gql(amina, SEND, { s: slug, c: general, b: "Ship it", k })]);
+	assert.ok(first.data, JSON.stringify(first.errors));
+	assert.deepEqual([again.data?.sendChatMessage.id, alsoAgain.data?.sendChatMessage.id], [first.data.sendChatMessage.id, first.data.sendChatMessage.id]);
+	const saved = await db.select().from(tables.chat_message).where(eq(tables.chat_message.client_id, k));
+	assert.equal(saved.length, 1);
+	assert.ok((await gql(amina, SEND, { s: slug, c: general, b: "x", k: "not ok!" })).errors?.length, "a bad id is refused");
+});

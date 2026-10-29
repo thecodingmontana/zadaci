@@ -157,6 +157,8 @@ export const chat_message = pgTable(
 			.$type<ChatAttachment[]>()
 			.notNull()
 			.default(sql`'[]'::jsonb`),
+		/** the sender's own id for it, so a retry after a lost reply doesn't post it twice */
+		client_id: varchar("client_id", { length: 40 }),
 		/** pinned to the channel's Pins */
 		pinned_at: when("pinned_at"),
 		pinned_by: varchar("pinned_by", { length: 16 }).references(
@@ -168,5 +170,8 @@ export const chat_message = pgTable(
 	(t) => [
 		index("chat_message_channel_idx").on(t.channel_id, t.created_at),
 		index("chat_message_parent_idx").on(t.parent_id, t.created_at),
+		uniqueIndex("chat_message_client_unique")
+			.on(t.author_id, t.client_id)
+			.where(sql`client_id is not null`),
 	],
 );

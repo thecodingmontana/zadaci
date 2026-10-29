@@ -1,0 +1,2 @@
+ALTER TABLE "app_chat_message" ADD COLUMN "client_id" varchar(40);--> statement-breakpoint
+CREATE UNIQUE INDEX "chat_message_client_unique" ON "app_chat_message" ("author_id","client_id") WHERE client_id is not null;

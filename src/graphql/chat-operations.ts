@@ -221,6 +221,7 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 		attachments?: Omit<ChatAttachment, "seconds">[] & { seconds?: number }[];
 		mentionIds?: string[];
 		shares?: ChatShare[];
+		clientId?: string;
 	}
 > = gql`
 	mutation SendChatMessage(
@@ -231,6 +232,7 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 		$attachments: [ChatAttachmentInput!]
 		$mentionIds: [ID!]
 		$shares: [ChatShareInput!]
+		$clientId: String
 	) {
 		sendChatMessage(
 			slug: $slug
@@ -240,6 +242,7 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 			attachments: $attachments
 			mentionIds: $mentionIds
 			shares: $shares
+			clientId: $clientId
 		) {
 			...ChatMessageFields
 		}

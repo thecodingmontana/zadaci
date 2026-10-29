@@ -178,6 +178,8 @@ export const chatTypeDefs = /* GraphQL */ `
 			mentionIds: [ID!]
 			"tasks, projects, notes or bookmarks to share (you must be able to see each)"
 			shares: [ChatShareInput!]
+			"the sender's own id for it: sending the same one again returns the first, not a copy"
+			clientId: String
 		): ChatMessage!
 		"a signed slot to upload a file into this conversation (file: anything but a picture)"
 		chatUpload(slug: String!, channelId: ID!, file: Boolean): CloudinaryUpload!
@@ -1123,32 +1125,39 @@ export const chatResolvers = {
 			// just you: notes to yourself
 			if (!ids.length || ids.length > 9) badInput("Pick up to eight people");
 			const key = [...ids].sort().join(",");
-			// the same people always land in the same DM
-			const [existing] = await db
-				.select()
-				.from(tables.chat_channel)
-				.where(
-					and(
-						eq(tables.chat_channel.workspace_id, workspace.id),
-						eq(tables.chat_channel.kind, "dm"),
-						// "C" sorts like JS's sort() above; the default collation may not
-						sql`(select string_agg(${tables.chat_member.member_id}, ',' order by ${tables.chat_member.member_id} collate "C") from ${tables.chat_member} where ${tables.chat_member.channel_id} = ${tables.chat_channel.id}) = ${key}`,
-					),
+			// the same people always land in the same DM: looked up and made under one lock, so two
+			// of them opening it at the same moment get one, with everyone in it
+			const channel = await db.transaction(async (tx) => {
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtext(${`dm:${workspace.id}:${key}`}))`,
 				);
-			const channel =
-				existing ??
-				(
-					await db
-						.insert(tables.chat_channel)
-						.values({
-							workspace_id: workspace.id,
-							kind: "dm",
-							private: true,
-							created_by: workspace.memberId,
-						})
-						.returning()
-				)[0];
-			if (!existing) for (const id of ids) await join(channel.id, id);
+				const [existing] = await tx
+					.select()
+					.from(tables.chat_channel)
+					.where(
+						and(
+							eq(tables.chat_channel.workspace_id, workspace.id),
+							eq(tables.chat_channel.kind, "dm"),
+							// "C" sorts like JS's sort() above; the default collation may not
+							sql`(select string_agg(${tables.chat_member.member_id}, ',' order by ${tables.chat_member.member_id} collate "C") from ${tables.chat_member} where ${tables.chat_member.channel_id} = ${tables.chat_channel.id}) = ${key}`,
+						),
+					);
+				if (existing) return existing;
+				const [made] = await tx
+					.insert(tables.chat_channel)
+					.values({
+						workspace_id: workspace.id,
+						kind: "dm",
+						private: true,
+						created_by: workspace.memberId,
+					})
+					.returning();
+				if (!made) throw new Error("DM insert returned nothing");
+				await tx
+					.insert(tables.chat_member)
+					.values(ids.map((member_id) => ({ channel_id: made.id, member_id })));
+				return made;
+			});
 			return (await channelShape([channel], workspace))[0];
 		},
 		sendChatMessage: async (
@@ -1161,6 +1170,7 @@ export const chatResolvers = {
 				attachments?: ChatAttachment[] | null;
 				mentionIds?: string[] | null;
 				shares?: { kind: string; id: string }[] | null;
+				clientId?: string | null;
 			},
 			ctx: GraphQLContext,
 		) => {
@@ -1169,6 +1179,25 @@ export const chatResolvers = {
 				args.slug,
 				args.channelId,
 			);
+			const clientId = args.clientId ?? null;
+			if (clientId !== null && !/^[A-Za-z0-9-]{1,40}$/.test(clientId))
+				badInput("Bad message id");
+			// a retry after the reply got lost: it's already here, so send back the first one
+			const sentBefore = async () => {
+				if (clientId === null) return undefined;
+				const [first] = await db
+					.select()
+					.from(tables.chat_message)
+					.where(
+						and(
+							eq(tables.chat_message.author_id, workspace.memberId ?? ""),
+							eq(tables.chat_message.client_id, clientId),
+						),
+					);
+				return first && (await messageShape([first], workspace))[0];
+			};
+			const again = await sentBefore();
+			if (again) return again;
 			const files = await checkFiles(channel.id, args.attachments ?? []);
 			const shares = await checkShares(workspace, args.slug, args.shares ?? []);
 			// a file or a shared item on its own is a message too
@@ -1218,8 +1247,16 @@ export const chatResolvers = {
 					attachments: files,
 					shares,
 					mentions,
+					client_id: clientId,
 				})
+				// the same retry twice at once: one is saved, the other returns it
+				.onConflictDoNothing()
 				.returning();
+			if (!message) {
+				const first = await sentBefore();
+				if (!first) throw new Error("Message insert returned nothing");
+				return first;
+			}
 			await db
 				.update(tables.chat_channel)
 				.set({ last_message_at: message.created_at })
