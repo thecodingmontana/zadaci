@@ -252,10 +252,31 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 
 export const EDIT_CHAT_MESSAGE: TypedDocumentNode<
 	{ editChatMessage: ChatMessage },
-	{ slug: string; id: string; body: string }
+	{
+		slug: string;
+		id: string;
+		body: string;
+		attachments?: Omit<ChatAttachment, "seconds">[] & { seconds?: number }[];
+		mentionIds?: string[];
+		shares?: ChatShare[];
+	}
 > = gql`
-	mutation EditChatMessage($slug: String!, $id: ID!, $body: String!) {
-		editChatMessage(slug: $slug, id: $id, body: $body) {
+	mutation EditChatMessage(
+		$slug: String!
+		$id: ID!
+		$body: String!
+		$attachments: [ChatAttachmentInput!]
+		$mentionIds: [ID!]
+		$shares: [ChatShareInput!]
+	) {
+		editChatMessage(
+			slug: $slug
+			id: $id
+			body: $body
+			attachments: $attachments
+			mentionIds: $mentionIds
+			shares: $shares
+		) {
 			...ChatMessageFields
 		}
 	}

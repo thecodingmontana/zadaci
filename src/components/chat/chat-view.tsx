@@ -375,6 +375,8 @@ export function Conversation({
 			),
 	});
 	// beside the conversation: the details (on Info or Pins), or a thread (by its first message's id)
+	// one of your messages being edited in the box below
+	const [editing, setEditing] = useState<ChatMessage | null>(null);
 	const [side, setSide] = useState<
 		"details" | "pins" | { thread: string } | null
 	>(null);
@@ -737,6 +739,7 @@ export function Conversation({
 							grouped={groupedWith(m, messages[i - 1])}
 							onChange={() => void refetch()}
 							onThread={() => setSide({ thread: m.id })}
+							onEdit={() => setEditing(m)}
 						/>
 					))}
 					{outbox.items.map((item, i) => (
@@ -766,6 +769,8 @@ export function Conversation({
 					}
 					onTyping={() => say.current("typing", { name: meName, id: me?.id })}
 					people={mentionable}
+					editing={editing}
+					onEditEnd={() => setEditing(null)}
 					onSend={(body, files, mentionIds, shares) => {
 						outbox.send(body, files, mentionIds, shares);
 						requestAnimationFrame(() => {

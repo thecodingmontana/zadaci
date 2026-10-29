@@ -6117,6 +6117,21 @@ a.chat-at:hover {
   background: var(--q-accent-soft);
 }
 /* files waiting to send: small chips above the text */
+.chat-editing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0 6px;
+  font-size: var(--q-fs-sm);
+  color: var(--q-text-2);
+}
+.chat-editing b {
+  color: var(--q-text);
+  font-weight: 500;
+}
+.chat-editing .icon-\[solar--pen-linear\] {
+  color: var(--q-accent);
+}
 .chat-pending {
   display: flex;
   flex-wrap: wrap;

@@ -1,5 +1,5 @@
 import { useApolloClient, useQuery } from "@apollo/client/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CHAT_MESSAGES, type ChatMessage } from "#/graphql/chat-operations";
 import { cn } from "#/lib/utils";
 import {
@@ -52,6 +52,8 @@ export function ThreadPanel({
 		},
 	});
 	const list = useRef<HTMLDivElement>(null);
+	// one of your messages here being edited in the reply box
+	const [editing, setEditing] = useState<ChatMessage | null>(null);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: follow new replies down
 	useEffect(() => {
@@ -85,6 +87,7 @@ export function ThreadPanel({
 					message={parent}
 					grouped={false}
 					onChange={onClose}
+					onEdit={() => setEditing(parent)}
 				/>
 				<div className="chat-thread-sep">
 					<span>
@@ -104,6 +107,7 @@ export function ThreadPanel({
 							void refetch();
 							onChange();
 						}}
+						onEdit={() => setEditing(m)}
 					/>
 				))}
 				{outbox.items.map((item, i) => (
@@ -121,6 +125,12 @@ export function ThreadPanel({
 				slug={slug}
 				placeholder="Reply…"
 				people={people}
+				editing={editing}
+				onEditEnd={() => {
+					setEditing(null);
+					void refetch();
+					onChange();
+				}}
 				onSend={(body, files, mentionIds, shares) =>
 					outbox.send(body, files, mentionIds, shares)
 				}

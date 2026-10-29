@@ -1,6 +1,6 @@
 import { useApolloClient, useMutation } from "@apollo/client/react";
 import { Link } from "@tanstack/react-router";
-import { createContext, useContext, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { ItemCard } from "#/components/notes/item-embed";
 import { ItemPicker } from "#/components/notes/item-picker";
 import { Av } from "#/components/q/av";
@@ -9,6 +9,7 @@ import { EmojiPicker } from "#/components/q/emoji-picker";
 import { PickPopover } from "#/components/tasks/pick";
 import {
 	CHAT_PINS,
+	type ChatAttachment,
 	type ChatMessage,
 	type ChatShare,
 	DELETE_CHAT_MESSAGE,
@@ -16,6 +17,7 @@ import {
 	PIN_CHAT_MESSAGE,
 	REACT_TO_CHAT_MESSAGE,
 } from "#/graphql/chat-operations";
+import { NOTE_EMBED } from "#/graphql/note-operations";
 import { ago } from "#/lib/time";
 import { toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -23,6 +25,7 @@ import {
 	Attachments,
 	type Draft,
 	DraftFiles,
+	uploadChatFile,
 	useDraftFiles,
 	VoiceNote,
 } from "./chat-files";
@@ -99,6 +102,7 @@ export function MessageRow({
 	grouped,
 	onChange,
 	onThread,
+	onEdit,
 }: {
 	slug: string;
 	message: ChatMessage;
@@ -106,9 +110,10 @@ export function MessageRow({
 	onChange: () => void;
 	/** open this message's thread; none inside a thread */
 	onThread?: () => void;
+	/** edit it in the box below (yours only) */
+	onEdit?: () => void;
 }) {
 	const [react] = useMutation(REACT_TO_CHAT_MESSAGE);
-	const [edit] = useMutation(EDIT_CHAT_MESSAGE);
 	const [remove] = useMutation(DELETE_CHAT_MESSAGE);
 	const client = useApolloClient();
 	const [pin] = useMutation(PIN_CHAT_MESSAGE, {
@@ -277,14 +282,7 @@ export function MessageRow({
 							className="ibtn ibtn-xs"
 							aria-label="Edit"
 							data-tip="Edit"
-							onClick={() => {
-								// shortcut: the browser's prompt for editing; an inline editor if people edit often
-								const next = window.prompt("Edit message", m.body);
-								if (next?.trim() && next !== m.body)
-									void edit({
-										variables: { slug, id: m.id, body: next },
-									}).catch(fail("Couldn't edit"));
-							}}
+							onClick={onEdit}
 						>
 							<span
 								className="icon-[solar--pen-linear] size-4"
@@ -333,12 +331,18 @@ export function Composer({
 	people,
 	onTyping,
 	onSend,
+	editing,
+	onEditEnd,
 }: {
 	slug: string;
 	placeholder: string;
 	/** who can be @mentioned here (the people who can see it, you left out) */
 	people: Mentionable[];
 	onTyping?: () => void;
+	/** one of your messages being edited here: the box holds it, and saving updates it */
+	editing?: ChatMessage | null;
+	/** saved or cancelled */
+	onEditEnd?: () => void;
 	onSend: (
 		body: string,
 		files: Draft[],
@@ -358,7 +362,17 @@ export function Composer({
 	const [shares, setShares] = useState<(ChatShare & { name: string })[]>([]);
 	const [sharing, setSharing] = useState(false);
 	const [shareKind, setShareKind] = useState<ChatShare["kind"]>("task");
-	const canSend = !!text.trim() || drafts.files.length > 0 || shares.length > 0;
+	// an edited message's files that stay (new ones are added as drafts)
+	const [kept, setKept] = useState<ChatAttachment[]>([]);
+	const [saving, setSaving] = useState(false);
+	const client = useApolloClient();
+	const { names } = useContext(ChatNamesContext);
+	const [edit] = useMutation(EDIT_CHAT_MESSAGE);
+	const canSend =
+		!!text.trim() ||
+		drafts.files.length > 0 ||
+		shares.length > 0 ||
+		(!!editing && kept.length > 0);
 	// @mentions: the word being typed after "@", and who was picked from the list
 	const [at, setAt] = useState<{ query: string; start: number } | null>(null);
 	const [atIndex, setAtIndex] = useState(0);
@@ -389,18 +403,95 @@ export function Composer({
 		});
 	};
 
+	const clear = () => {
+		setShares([]);
+		setKept([]);
+		picked.current.clear();
+		setText("");
+		setAt(null);
+	};
+	// Edit: the message moves into the box, text, files, shares and mentions alike
+	// biome-ignore lint/correctness/useExhaustiveDependencies: load each message once, when its edit starts
+	useEffect(() => {
+		if (!editing) return;
+		setText(editing.body);
+		setKept(editing.attachments);
+		setShares(
+			editing.shares.map((s) => ({
+				...s,
+				name:
+					client.readQuery({
+						query: NOTE_EMBED,
+						variables: { slug, kind: s.kind, id: s.id },
+					})?.noteEmbed?.title ?? SHARE_LABEL[s.kind],
+			})),
+		);
+		picked.current = new Map(
+			editing.mentions.flatMap((id) => {
+				const name = names.get(id);
+				return name ? [[id, name] as const] : [];
+			}),
+		);
+		requestAnimationFrame(() => {
+			const el = ref.current;
+			el?.focus();
+			el?.setSelectionRange(editing.body.length, editing.body.length);
+		});
+		return clear;
+	}, [editing?.id]);
+	const cancelEdit = () => {
+		clear();
+		for (const f of drafts.take())
+			if (f.preview) URL.revokeObjectURL(f.preview);
+		onEditEnd?.();
+	};
+
+	const save = async (message: ChatMessage, body: string, ids: string[]) => {
+		setSaving(true);
+		try {
+			// new files go up first; the message only changes once they're there
+			const added = await Promise.all(
+				drafts.files.map((d) =>
+					uploadChatFile(client, slug, message.channelId, d, () => {}),
+				),
+			);
+			await edit({
+				variables: {
+					slug,
+					id: message.id,
+					body,
+					attachments: [...kept, ...added].map((a) => ({
+						url: a.url,
+						name: a.name,
+						size: a.size,
+						type: a.type,
+						...(a.seconds != null && { seconds: a.seconds }),
+					})),
+					mentionIds: ids,
+					shares: shares.map(({ kind, id }) => ({ kind, id })),
+				},
+			});
+			for (const f of drafts.take())
+				if (f.preview) URL.revokeObjectURL(f.preview);
+			clear();
+			onEditEnd?.();
+		} catch (e) {
+			toast.error("Couldn't save the edit", { desc: (e as Error).message });
+		} finally {
+			setSaving(false);
+		}
+	};
+
 	const submit = () => {
-		if (!canSend) return;
+		if (!canSend || saving) return;
 		const body = text.trim();
 		// only picks whose @Name is still in the text
 		const ids = [...picked.current]
 			.filter(([, name]) => body.includes(`@${name}`))
 			.map(([id]) => id);
+		if (editing) return void save(editing, body, ids);
 		onSend(body, drafts.take(), ids, shares);
-		setShares([]);
-		picked.current.clear();
-		setText("");
-		setAt(null);
+		clear();
 		ref.current?.focus();
 	};
 
@@ -422,6 +513,61 @@ export function Composer({
 				drafts.add([...e.dataTransfer.files]);
 			}}
 		>
+			{editing && (
+				<div className="chat-editing">
+					<span
+						className="icon-[solar--pen-linear] size-4"
+						aria-hidden="true"
+					/>
+					<b>Editing message</b>
+					<span className="faint">Esc to cancel</span>
+					<span className="sp" />
+					<button
+						type="button"
+						className="btn btn-ghost btn-sm"
+						onClick={cancelEdit}
+						disabled={saving}
+					>
+						Cancel
+					</button>
+				</div>
+			)}
+			{kept.length > 0 && (
+				<div className="chat-pending">
+					{kept.map((a) => (
+						<div key={a.url} className="chat-pending-file">
+							<span
+								className={cn(
+									a.type.startsWith("image/")
+										? "icon-[solar--gallery-linear]"
+										: a.type.startsWith("audio/")
+											? "icon-[solar--microphone-linear]"
+											: "icon-[solar--file-linear]",
+									"size-5 shrink-0",
+								)}
+								aria-hidden="true"
+							/>
+							<span className="chat-pending-name">
+								<span className="trunc">{a.name}</span>
+								<span className="faint">Attached</span>
+							</span>
+							<button
+								type="button"
+								className="ibtn ibtn-xs"
+								aria-label={`Remove ${a.name}`}
+								onClick={() =>
+									setKept((all) => all.filter((x) => x.url !== a.url))
+								}
+							>
+								<span
+									className="icon-[solar--close-circle-bold] size-4"
+									aria-hidden="true"
+								/>
+							</button>
+						</div>
+					))}
+				</div>
+			)}
 			<DraftFiles files={drafts.files} onRemove={drafts.remove} />
 			{shares.length > 0 && (
 				<div className="chat-pending">
@@ -498,6 +644,11 @@ export function Composer({
 							setAt(null);
 							return;
 						}
+					}
+					if (e.key === "Escape" && editing) {
+						e.preventDefault();
+						cancelEdit();
+						return;
 					}
 					if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
 						e.preventDefault();
@@ -640,13 +791,20 @@ export function Composer({
 				<button
 					type="button"
 					className="btn btn-primary btn-sm chat-send"
-					data-tip="Send"
-					disabled={!canSend}
+					data-tip={editing ? "Save" : "Send"}
+					disabled={!canSend || saving}
 					onClick={submit}
-					aria-label="Send"
+					aria-label={editing ? "Save" : "Send"}
 				>
 					<span
-						className="icon-[solar--arrow-up-linear] size-4"
+						className={cn(
+							saving
+								? "icon-[hugeicons--loading-03] animate-spin"
+								: editing
+									? "icon-[solar--check-read-linear]"
+									: "icon-[solar--arrow-up-linear]",
+							"size-4",
+						)}
 						aria-hidden="true"
 					/>
 				</button>

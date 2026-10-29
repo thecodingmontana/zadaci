@@ -383,3 +383,31 @@ test("chat: sending the same message again (a retry after a lost reply) doesn't 
 	assert.equal(saved.length, 1);
 	assert.ok((await gql(amina, SEND, { s: slug, c: general, b: "x", k: "not ok!" })).errors?.length, "a bad id is refused");
 });
+
+test("chat: editing a message can change its text, files, shares and mentions, checked like sending", async () => {
+	const amina = await makeUser("amina");
+	const brian = await makeUser("brian");
+	const { slug, inviteCode } = await makeWorkspace(amina);
+	await join(brian, inviteCode);
+	const ws = (await gql(amina, `query($s: String!) { workspace(slug: $s) { members { id isMe } projects { id } chatChannels { id general } } }`, { s: slug })).data?.workspace;
+	const general = ws.chatChannels.find((c: { general: boolean }) => c.general).id;
+	const brianId = ws.members.find((m: { isMe: boolean }) => !m.isMe).id;
+	const sent = (await gql(amina, `mutation($s: String!, $c: ID!) { sendChatMessage(slug: $s, channelId: $c, body: "Draft plan") { id } }`, { s: slug, c: general })).data?.sendChatMessage;
+	const EDIT = `mutation($s: String!, $id: ID!, $b: String!, $a: [ChatAttachmentInput!], $m: [ID!], $sh: [ChatShareInput!]) { editChatMessage(slug: $s, id: $id, body: $b, attachments: $a, mentionIds: $m, shares: $sh) { body editedAt mentions shares { kind id } attachments { url } } }`;
+
+	const edited = (await gql(amina, EDIT, { s: slug, id: sent.id, b: "Plan for @brian", m: [brianId], sh: [{ kind: "project", id: ws.projects[0].id }] })).data?.editChatMessage;
+	assert.equal(edited.body, "Plan for @brian");
+	assert.ok(edited.editedAt);
+	assert.deepEqual(edited.mentions, [brianId]);
+	assert.deepEqual(edited.shares, [{ kind: "project", id: ws.projects[0].id }]);
+
+	// only the text: files, shares and mentions stay as they were
+	const textOnly = (await gql(amina, EDIT, { s: slug, id: sent.id, b: "Plan for @brian, v2" })).data?.editChatMessage;
+	assert.deepEqual([textOnly.mentions, textOnly.shares.length], [[brianId], 1]);
+
+	// a file from somewhere else is refused, as on send
+	const bad = await gql(amina, EDIT, { s: slug, id: sent.id, b: "x", a: [{ url: "https://evil.example/x.exe", name: "x.exe", size: 1, type: "application/octet-stream" }] });
+	assert.match(bad.errors?.[0]?.message ?? "", /didn't come from this conversation/);
+	// and only the author can edit
+	assert.ok((await gql(brian, EDIT, { s: slug, id: sent.id, b: "mine now" })).errors?.length);
+});

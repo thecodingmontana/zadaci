@@ -195,7 +195,15 @@ export const chatTypeDefs = /* GraphQL */ `
 			channelId: ID!
 			favorite: Boolean!
 		): Boolean!
-		editChatMessage(slug: String!, id: ID!, body: String!): ChatMessage!
+		"files, mentions and shares, when given, replace the message's own (checked as on send)"
+		editChatMessage(
+			slug: String!
+			id: ID!
+			body: String!
+			attachments: [ChatAttachmentInput!]
+			mentionIds: [ID!]
+			shares: [ChatShareInput!]
+		): ChatMessage!
 		deleteChatMessage(slug: String!, id: ID!): Boolean!
 		reactToChatMessage(slug: String!, id: ID!, emoji: String!): ChatMessage!
 		markChatRead(slug: String!, channelId: ID!): Boolean!
@@ -1288,7 +1296,14 @@ export const chatResolvers = {
 		},
 		editChatMessage: async (
 			_: unknown,
-			args: { slug: string; id: string; body: string },
+			args: {
+				slug: string;
+				id: string;
+				body: string;
+				attachments?: ChatAttachment[] | null;
+				mentionIds?: string[] | null;
+				shares?: { kind: string; id: string }[] | null;
+			},
 			ctx: GraphQLContext,
 		) => {
 			const { workspace, channel, message } = await requireMessage(
@@ -1297,9 +1312,30 @@ export const chatResolvers = {
 				args.id,
 				true,
 			);
+			const files = args.attachments
+				? await checkFiles(channel.id, args.attachments)
+				: message.attachments;
+			const shares = args.shares
+				? await checkShares(workspace, args.slug, args.shares)
+				: message.shares;
+			// a file or a shared item on its own is still a message
+			const text =
+				(files.length || shares.length) && !args.body.trim()
+					? ""
+					: body(args.body);
+			// shortcut: someone newly @mentioned in an edit isn't notified (only on send)
+			const mentions = args.mentionIds
+				? await checkMentions(workspace, channel, args.mentionIds, text)
+				: message.mentions;
 			const [updated] = await db
 				.update(tables.chat_message)
-				.set({ body: body(args.body), edited_at: new Date() })
+				.set({
+					body: text,
+					attachments: files,
+					shares,
+					mentions,
+					edited_at: new Date(),
+				})
 				.where(eq(tables.chat_message.id, message.id))
 				.returning();
 			announceChat(
