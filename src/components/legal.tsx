@@ -22,11 +22,11 @@ export function LegalPage({
 					<ZadaciLogo className="size-6" />
 					Zadaci
 				</Link>
-				<span className="row" style={{ gap: 14 }}>
-					<Link to="/terms" className="faint">
+				<span className="row" style={{ gap: 4 }}>
+					<Link to="/terms" className="legal-tab">
 						Terms
 					</Link>
-					<Link to="/privacy" className="faint">
+					<Link to="/privacy" className="legal-tab">
 						Privacy
 					</Link>
 				</span>

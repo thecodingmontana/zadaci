@@ -14,7 +14,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 	return (
 		<button
 			type="button"
-			className={cn("ibtn", className)}
+			className={cn("ibtn cursor-pointer", className)}
 			data-tip="Toggle theme"
 			aria-label="Toggle theme"
 			onClick={() => {

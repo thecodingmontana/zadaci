@@ -4926,6 +4926,22 @@ button.tl-row {
   font-size: var(--q-fs-sm);
   border-bottom: 1px solid var(--q-divider);
 }
+.legal-tab {
+  color: var(--q-text-3);
+  padding: 4px 10px;
+  border-radius: var(--q-r-sm);
+  transition:
+    background var(--q-dur),
+    color var(--q-dur);
+}
+.legal-tab:hover {
+  color: var(--q-text);
+}
+.legal-tab[data-status="active"] {
+  color: var(--q-text);
+  font-weight: 500;
+  background: var(--q-surface-2);
+}
 .shared-title {
   font-size: 32px;
   font-weight: 600;

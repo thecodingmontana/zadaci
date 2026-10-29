@@ -143,7 +143,7 @@ const typeDefs = /* GraphQL */ `
 	}
 
 	input OnboardingInput {
-		useCase: String!
+		useCases: [String!]!
 		name: String!
 		slug: String!
 		defaultView: String!
@@ -244,7 +244,10 @@ const ids = <T extends readonly { id: string }[]>(items: T) =>
 	items.map((item) => item.id) as [T[number]["id"], ...T[number]["id"][]];
 
 const onboardingInput = z.object({
-	useCase: z.enum(ids(USE_CASES)),
+	useCases: z
+		.array(z.enum(ids(USE_CASES)))
+		.min(1, "Pick what you're working on to continue")
+		.transform((list) => [...new Set(list)]),
 	name: z.string().trim().min(1, "Name your workspace to continue").max(255),
 	slug: z.string().regex(SLUG_RE, "Use lowercase letters, numbers and dashes"),
 	defaultView: z.enum(ids(VIEWS)),
@@ -768,7 +771,7 @@ const resolvers = {
 							name: input.name,
 							slug: input.slug,
 							invite_code: generateInviteCode(),
-							use_case: input.useCase,
+							use_case: input.useCases.join(","),
 							team_size: input.teamSize,
 							default_view: input.defaultView,
 							user_id: user.id,

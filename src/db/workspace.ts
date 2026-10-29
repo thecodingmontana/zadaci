@@ -24,7 +24,8 @@ export const workspace = pgTable(
 		slug: varchar("slug", { length: 48 }).notNull().unique(),
 		image_url: text("image_url"),
 		invite_code: text("invite_code").notNull().unique(),
-		use_case: varchar("use_case", { length: 20 }),
+		/** what it's used for: use-case ids, comma-separated */
+		use_case: varchar("use_case", { length: 80 }),
 		team_size: varchar("team_size", { length: 10 }),
 		default_view: varchar("default_view", { length: 10 })
 			.notNull()

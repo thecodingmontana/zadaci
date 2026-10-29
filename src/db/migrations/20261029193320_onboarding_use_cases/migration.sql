@@ -1,0 +1,1 @@
+ALTER TABLE "app_workspace" ALTER COLUMN "use_case" SET DATA TYPE varchar(80) USING "use_case"::varchar(80);

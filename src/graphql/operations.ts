@@ -66,7 +66,7 @@ export const SLUG_AVAILABLE: TypedDocumentNode<
 `;
 
 export type OnboardingInput = {
-	useCase: string;
+	useCases: string[];
 	name: string;
 	slug: string;
 	defaultView: string;

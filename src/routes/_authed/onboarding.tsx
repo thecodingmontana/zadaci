@@ -48,12 +48,28 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 type Created = { slug: string; inviteCode: string; invites: number };
 
+/** the answers so far, saved while setting up */
+type Draft = {
+	step: number;
+	use: string[];
+	ws: string;
+	url: string;
+	urlTouched: boolean;
+	view: string;
+	size: string;
+	proj: string;
+	projTouched: boolean;
+	tmpl: string;
+	invites: string[];
+};
+
 function Onboarding() {
 	const { hasWorkspace } = Route.useLoaderData();
+	const { user } = Route.useRouteContext();
 	const navigate = useNavigate();
 	const [step, setStep] = useState(0);
 	// nothing picked yet: step 1 waits for a choice
-	const [use, setUse] = useState<string>("");
+	const [use, setUse] = useState<string[]>([]);
 	const [ws, setWs] = useState("");
 	const [url, setUrl] = useState("");
 	const [urlTouched, setUrlTouched] = useState(false);
@@ -67,6 +83,68 @@ function Onboarding() {
 	);
 	const [errors, setErrors] = useState<{ ws?: string; url?: string }>({});
 	const [created, setCreated] = useState<Created | null>(null);
+
+	// where you got to, kept in this browser so leaving and coming back picks up there
+	const draftKey = `zadaci:onboarding:${user.id}`;
+	const [restored, setRestored] = useState(false);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: read once, after mount (the server has no storage)
+	useEffect(() => {
+		try {
+			const d = JSON.parse(
+				localStorage.getItem(draftKey) ?? "null",
+			) as Draft | null;
+			if (d) {
+				setStep(Math.min(d.step, 4));
+				setUse(d.use);
+				setWs(d.ws);
+				setUrl(d.url);
+				setUrlTouched(d.urlTouched);
+				setView(d.view);
+				setSize(d.size);
+				setProj(d.proj);
+				setProjTouched(d.projTouched);
+				setTmpl(d.tmpl);
+				setInvites(d.invites);
+			}
+		} catch {}
+		setRestored(true);
+	}, []);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: save whenever an answer changes
+	useEffect(() => {
+		if (!restored) return;
+		try {
+			if (step === 5) localStorage.removeItem(draftKey);
+			else {
+				const d: Draft = {
+					step,
+					use,
+					ws,
+					url,
+					urlTouched,
+					view,
+					size,
+					proj,
+					projTouched,
+					tmpl,
+					invites,
+				};
+				localStorage.setItem(draftKey, JSON.stringify(d));
+			}
+		} catch {}
+	}, [
+		restored,
+		step,
+		use,
+		ws,
+		url,
+		urlTouched,
+		view,
+		size,
+		proj,
+		projTouched,
+		tmpl,
+		invites,
+	]);
 
 	const slugStatus = useSlugStatus(url);
 	const [completeOnboarding, { loading: saving }] =
@@ -86,7 +164,7 @@ function Onboarding() {
 			const { data } = await completeOnboarding({
 				variables: {
 					input: {
-						useCase: use,
+						useCases: use,
 						name: ws.trim(),
 						slug: url,
 						defaultView: view,
@@ -120,7 +198,7 @@ function Onboarding() {
 	}
 
 	function next() {
-		if (step === 0 && !use)
+		if (step === 0 && !use.length)
 			return toast.error("Pick what you're working on to continue");
 		if (step === 1) {
 			if (!ws.trim())
@@ -186,7 +264,7 @@ function Onboarding() {
 			<>
 				<Heading
 					title="What are you working on?"
-					sub="We'll tailor templates and views to fit. You can change this later."
+					sub="Pick all that apply. We'll tailor templates and views to fit. You can change this later."
 				/>
 				<RadioGroup
 					label="What are you working on?"
@@ -196,8 +274,13 @@ function Onboarding() {
 						<Option
 							key={o.id}
 							name="use"
-							checked={use === o.id}
-							onChange={() => setUse(o.id)}
+							multiple
+							checked={use.includes(o.id)}
+							onChange={() =>
+								setUse((u) =>
+									u.includes(o.id) ? u.filter((x) => x !== o.id) : [...u, o.id],
+								)
+							}
 							icon={o.icon}
 							title={o.name}
 							desc={o.desc}
@@ -666,6 +749,7 @@ function RadioGroup({
 
 function Option({
 	name,
+	multiple,
 	checked,
 	onChange,
 	icon,
@@ -673,6 +757,8 @@ function Option({
 	desc,
 }: {
 	name: string;
+	/** one of several that can all be picked (a checkbox) */
+	multiple?: boolean;
 	checked: boolean;
 	onChange: () => void;
 	icon: string;
@@ -687,7 +773,7 @@ function Option({
 		>
 			<input
 				id={id}
-				type="radio"
+				type={multiple ? "checkbox" : "radio"}
 				name={name}
 				className="sr-only"
 				checked={checked}

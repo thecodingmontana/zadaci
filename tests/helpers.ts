@@ -47,7 +47,7 @@ export async function makeWorkspace(owner: TestUser) {
 	const slug = `t-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 	const res = await gql(owner, `mutation($i: OnboardingInput!) { completeOnboarding(input: $i) { slug inviteCode } }`, {
 		i: {
-			useCase: "product",
+			useCases: ["product"],
 			name: "Test",
 			slug,
 			defaultView: "board",
