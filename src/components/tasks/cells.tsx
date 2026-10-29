@@ -115,7 +115,14 @@ export function Faces({
 export function CellAssignee({ t }: { t: TaskItem }) {
 	const { update, canEdit, members } = useTaskView();
 	const people = useAssignees(t.assigneeIds);
-	const body = (
+	// avatars only: the names show on hover (and to screen readers)
+	const names = people.map((p) => p.name).join(", ");
+	const body = people.length ? (
+		<span className="row" data-tip={names}>
+			<Faces people={people} max={5} />
+			<span className="sr-only">{names}</span>
+		</span>
+	) : (
 		<>
 			<Faces people={people} />
 			<span className="trunc">{assigneeLabel(people)}</span>
