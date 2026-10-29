@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
+import { db, tables } from "#/db";
 import { auth } from "#/lib/auth";
 import { cleanup, makeUser } from "./helpers";
 
@@ -70,4 +71,20 @@ test("sign-in emails are limited per address, counted in the database so it hold
 	assert.equal(statuses.at(-1), 429, `the sixth request in a minute is refused (${statuses.join(",")})`);
 	const { db, tables } = await import("#/db");
 	assert.ok((await db.select().from(tables.rateLimit)).length > 0, "the count lives in Postgres");
+});
+
+test("one address gets at most 5 sign-in links an hour, whoever asks", async () => {
+	const person = await makeUser("flooded", false);
+	// 5 already sent this hour (asking for them here would trip the per-IP limit first)
+	const key = `magic-link:${person.email.toLowerCase()}`;
+	await db.insert(tables.rateLimit).values({ id: key, key, count: 5, lastRequest: Date.now() });
+	const res = await auth.handler(
+		new Request("http://localhost:3000/api/auth/sign-in/magic-link", {
+			method: "POST",
+			headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+			body: JSON.stringify({ email: person.email.toUpperCase(), callbackURL: "/workspace" }),
+		}),
+	);
+	assert.equal(res.status, 429, "the sixth is refused, however the address is written");
+	assert.ok(await linkFor((await makeUser("other", false)).email), "someone else still gets theirs");
 });

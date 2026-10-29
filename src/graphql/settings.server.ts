@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, count, eq, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, count, eq, isNull, lt, ne } from "drizzle-orm";
 import { GraphQLError, GraphQLScalarType } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
@@ -18,6 +18,7 @@ import {
 	WS_SETTINGS_DEFAULTS,
 	workspaceSettingsPatch,
 } from "#/lib/preferences";
+import { takeAllowance } from "#/lib/rate-limit.server";
 import { realtimeConfig } from "#/lib/realtime.server";
 import { logActivity, notify } from "./activity.server";
 import {
@@ -174,24 +175,15 @@ export async function checkInviteBudget(userId: string, adding: number) {
 		badInput(
 			`You can send up to ${DAILY_INVITES} invite emails a day. Try again tomorrow.`,
 		);
-	if (adding > DAILY_INVITES) refuse();
-	const key = `invite-emails:${userId}`;
-	const now = Date.now();
-	const fresh = sql`${tables.rateLimit.lastRequest} < ${now - DAY_MS}`;
-	// one atomic statement, so requests at the same moment can't both slip under the cap
-	const [taken] = await db
-		.insert(tables.rateLimit)
-		.values({ id: key, key, count: adding, lastRequest: now })
-		.onConflictDoUpdate({
-			target: tables.rateLimit.key,
-			set: {
-				count: sql`case when ${fresh} then ${adding} else ${tables.rateLimit.count} + ${adding} end`,
-				lastRequest: sql`case when ${fresh} then ${now} else ${tables.rateLimit.lastRequest} end`,
-			},
-			setWhere: sql`${fresh} or ${tables.rateLimit.count} + ${adding} <= ${DAILY_INVITES}`,
-		})
-		.returning({ count: tables.rateLimit.count });
-	if (!taken) refuse();
+	if (
+		!(await takeAllowance(
+			`invite-emails:${userId}`,
+			adding,
+			DAILY_INVITES,
+			DAY_MS,
+		))
+	)
+		refuse();
 }
 
 export function parse<T>(schema: z.ZodType<T>, value: unknown): T {

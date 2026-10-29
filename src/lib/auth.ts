@@ -14,6 +14,7 @@ import MagicLinkEmail from "#/emails/magic-link";
 import { isDicebearUrl } from "#/lib/dicebear";
 import { sendEmail } from "#/lib/email.server";
 import { requireEnv } from "#/lib/env";
+import { takeAllowance } from "#/lib/rate-limit.server";
 import { SITE_URL } from "#/lib/seo";
 
 const TWO_FACTOR_COOKIE_MAX_AGE = 600;
@@ -37,6 +38,7 @@ export function isAllowedPicture(value: string) {
 	}
 }
 const MAGIC_LINK_MINUTES = 10;
+const MAGIC_LINKS_PER_HOUR = 5;
 
 /** Second-step methods a user has set up: an authenticator app (TOTP) and/or passkeys. */
 export async function secondFactors(user: {
@@ -190,6 +192,19 @@ export const auth = betterAuth({
 			expiresIn: MAGIC_LINK_MINUTES * 60,
 			storeToken: "hashed",
 			sendMagicLink: async ({ email, url }) => {
+				// per address too, not only per IP: nobody can flood one inbox (or our sending quota)
+				if (
+					!(await takeAllowance(
+						`magic-link:${email.toLowerCase()}`,
+						1,
+						MAGIC_LINKS_PER_HOUR,
+						60 * 60 * 1000,
+					))
+				)
+					throw new APIError("TOO_MANY_REQUESTS", {
+						message:
+							"Too many sign-in links for this email. Use the last one sent, or try again in an hour.",
+					});
 				const sent = await sendEmail(
 					email,
 					"Your Zadaci sign-in link",
