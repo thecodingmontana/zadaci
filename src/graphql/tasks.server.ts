@@ -825,23 +825,24 @@ async function bulkPatch(
 				.from(tables.task)
 				.where(inArray(tables.task.id, ids))
 				.for("update");
-			const current = new Map(
-				(
-					await tx
-						.select({
-							taskId: tables.task_assignees.task_id,
-							memberId: tables.task_assignees.member_id,
-						})
-						.from(tables.task_assignees)
-						.where(
-							and(
-								inArray(tables.task_assignees.task_id, ids),
-								isNull(tables.task_assignees.deleted_at),
-							),
-						)
-				).map((r) => [r.taskId, r.memberId]),
+			// everyone on each task: it's unchanged only if that's exactly `next` already (or nobody)
+			const current = new Map<string, string[]>();
+			for (const r of await tx
+				.select({
+					taskId: tables.task_assignees.task_id,
+					memberId: tables.task_assignees.member_id,
+				})
+				.from(tables.task_assignees)
+				.where(
+					and(
+						inArray(tables.task_assignees.task_id, ids),
+						isNull(tables.task_assignees.deleted_at),
+					),
+				))
+				current.set(r.taskId, [...(current.get(r.taskId) ?? []), r.memberId]);
+			const changed = tasks.filter(
+				(t) => (current.get(t.id) ?? []).join() !== (next ? [next] : []).join(),
 			);
-			const changed = tasks.filter((t) => (current.get(t.id) ?? null) !== next);
 			if (changed.length) {
 				const changedIds = changed.map((t) => t.id);
 				await tx

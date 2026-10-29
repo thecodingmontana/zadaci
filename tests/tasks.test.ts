@@ -360,3 +360,15 @@ test("a comment reaches every assignee of the task, not just one", async () => {
 		assert.ok(notes.some((n) => n.type === "comment"), "both assignees hear about the comment");
 	}
 });
+
+test("bulk assigning someone leaves exactly them on each task, like a single edit", async () => {
+	const { owner, slug, memberId, create } = await setup();
+	const ownerId = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug })).data?.workspace.members.find((m: { isMe: boolean }) => m.isMe).id;
+	// co-assigned in both orders, so the result can't depend on which row comes back first
+	const a = (await create(owner, { title: "A", assigneeIds: [ownerId, memberId] })).data?.createTask;
+	const b = (await create(owner, { title: "B", assigneeIds: [memberId, ownerId] })).data?.createTask;
+	const res = await gql(owner, `mutation($s: String!, $ids: [ID!]!, $p: TaskPatch!) { bulkUpdateTasks(slug: $s, ids: $ids, patch: $p) }`, { s: slug, ids: [a.id, b.id], p: { assigneeId: memberId } });
+	assert.ok(res.data, JSON.stringify(res.errors));
+	const tasks = (await gql(owner, `query($s: String!) { workspace(slug: $s) { tasks { id assigneeIds } } }`, { s: slug })).data?.workspace.tasks as { id: string; assigneeIds: string[] }[];
+	for (const t of [a, b]) assert.deepEqual(tasks.find((x) => x.id === t.id)?.assigneeIds, [memberId]);
+});
