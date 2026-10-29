@@ -35,7 +35,6 @@ import {
 import { READ_TOOLS } from "#/lib/ai/tools.server";
 import { WRITE_TOOLS } from "#/lib/ai/write-tools.server";
 import { auth } from "#/lib/auth";
-import { drainEmails } from "#/lib/email.server";
 
 // The assistant: streams the model's answer for the signed-in person, inside one workspace.
 
@@ -157,47 +156,42 @@ export const Route = createFileRoute("/api/chat")({
 					fallbacks: string[],
 				): AsyncIterable<Chunk> {
 					model = first;
-					try {
-						for await (const chunk of chat({
-							adapter:
-								own && own.provider !== "openrouter"
-									? ownAdapter(own.provider, first, own.key)
-									: adapterFor(first, fallbacks, own?.key ?? aiKey()),
-							messages: params.messages,
-							threadId,
-							runId: params.runId,
-							// an approval answer resumes the paused run from the history the browser sends back
-							parentRunId: params.parentRunId,
-							...(params.resume ? { resume: params.resume } : {}),
-							systemPrompts: [
-								systemPrompt({
-									name: session.user.name,
-									workspace: workspace.name,
-									timeZone,
-								}),
-							],
-							tools: [...READ_TOOLS, ...WRITE_TOOLS, ...MORE_TOOLS],
-							// tools run as this person, in this workspace
-							context: {
-								user: session.user,
-								slug,
-								today,
-								edited: new Set<string>(),
-							},
-							// at most 6 model turns (each can call tools) per message
-							agentLoopStrategy: maxIterations(6),
-							// saves the conversation as it goes, in our own tables
-							middleware: [withPersistence(persistence)],
-						})) {
-							const meta = (
-								chunk as { metadata?: { tanstack?: { model?: string } } }
-							).metadata?.tanstack?.model;
-							if (chunk.type === "RUN_FINISHED" && meta) model = meta;
-							yield chunk as Chunk;
-						}
-					} finally {
-						// emails and pushes the tools queued (a comment notifies the task's people)
-						await drainEmails();
+					for await (const chunk of chat({
+						adapter:
+							own && own.provider !== "openrouter"
+								? ownAdapter(own.provider, first, own.key)
+								: adapterFor(first, fallbacks, own?.key ?? aiKey()),
+						messages: params.messages,
+						threadId,
+						runId: params.runId,
+						// an approval answer resumes the paused run from the history the browser sends back
+						parentRunId: params.parentRunId,
+						...(params.resume ? { resume: params.resume } : {}),
+						systemPrompts: [
+							systemPrompt({
+								name: session.user.name,
+								workspace: workspace.name,
+								timeZone,
+							}),
+						],
+						tools: [...READ_TOOLS, ...WRITE_TOOLS, ...MORE_TOOLS],
+						// tools run as this person, in this workspace
+						context: {
+							user: session.user,
+							slug,
+							today,
+							edited: new Set<string>(),
+						},
+						// at most 6 model turns (each can call tools) per message
+						agentLoopStrategy: maxIterations(6),
+						// saves the conversation as it goes, in our own tables
+						middleware: [withPersistence(persistence)],
+					})) {
+						const meta = (
+							chunk as { metadata?: { tanstack?: { model?: string } } }
+						).metadata?.tanstack?.model;
+						if (chunk.type === "RUN_FINISHED" && meta) model = meta;
+						yield chunk as Chunk;
 					}
 				};
 				// a failing model hands over to the next one before anything has streamed;

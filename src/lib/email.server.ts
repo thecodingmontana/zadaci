@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { render } from "@react-email/components";
 import { waitUntil } from "@vercel/functions";
 import { inArray } from "drizzle-orm";
@@ -120,19 +121,46 @@ export function notifKey(
 	return (chosen ?? PREF_DEFAULTS.notif[key]) ? key : null;
 }
 
-// emails and pushes wait here until the request's work is saved, then go out together (drainEmails)
-const pending: Promise<unknown>[] = [];
+// Emails and pushes wait, not yet started, until the request's work is done, then go out
+// together: each request its own queue, and only for notifications that were really saved.
+type Send = { notificationIds: string[]; start: () => Promise<unknown> };
+const requestQueue = new AsyncLocalStorage<Send[]>();
 
-/** Sends the queued emails and pushes; called at the end of each API request, capped so they can't hang it. */
-export async function drainEmails(limitMs = 3000) {
-	if (!pending.length) return;
-	const all = Promise.allSettled(pending.splice(0));
+/** Runs `work` with its own queue, then sends what it queued. */
+export async function withEmails<T>(work: () => Promise<T>): Promise<T> {
+	const queue: Send[] = [];
+	const result = await requestQueue.run(queue, work);
+	await send(queue);
+	return result;
+}
+
+/** Capped so sends can't hang the request. */
+async function send(queue: Send[], limitMs = 3000) {
+	if (!queue.length) return;
+	// a change that rolled back took its notifications with it: nothing goes out for those
+	const ids = queue.flatMap((s) => s.notificationIds);
+	const saved = new Set(
+		ids.length
+			? (
+					await db
+						.select({ id: tables.notification.id })
+						.from(tables.notification)
+						.where(inArray(tables.notification.id, ids))
+				).map((r) => r.id)
+			: [],
+	);
+	const all = Promise.allSettled(
+		queue
+			.filter((s) => s.notificationIds.every((id) => saved.has(id)))
+			.map((s) => s.start()),
+	);
 	// on Vercel, sends still going after the cap finish after the response instead of being dropped
 	waitUntil(all);
 	await Promise.race([all, new Promise((r) => setTimeout(r, limitMs))]);
 }
 
 type NotificationRow = {
+	id: string;
 	user_id: string;
 	workspace_id: string;
 	actor_id?: string | null;
@@ -190,7 +218,10 @@ export async function queueNotifications(rows: NotificationRow[]) {
 	const space = new Map(workspaces.map((w) => [w.id, w]));
 	const taskName = new Map(tasks.map((t) => [t.id, t.name]));
 	const appUrl = (process.env.BETTER_AUTH_URL ?? SITE_URL).replace(/\/$/, "");
+	const queue = requestQueue.getStore();
+	const pending = queue ?? [];
 	const pushes: PushMessage[] = [];
+	const pushed: string[] = [];
 	for (const row of wanted) {
 		const to = person.get(row.user_id);
 		const ws = space.get(row.workspace_id);
@@ -204,7 +235,7 @@ export async function queueNotifications(rows: NotificationRow[]) {
 				: row.chat_channel_id
 					? `${appUrl}/w/${ws.slug}/chat?c=${row.chat_channel_id}${row.chat_message_id ? `&m=${row.chat_message_id}` : ""}`
 					: `${appUrl}/w/${ws.slug}/notifications`;
-		if (notifKey("push", row, to.prefs))
+		if (notifKey("push", row, to.prefs) && pushed.push(row.id))
 			pushes.push({
 				userId: to.id,
 				title: headline,
@@ -213,21 +244,26 @@ export async function queueNotifications(rows: NotificationRow[]) {
 				tag: row.task_id ?? undefined,
 			});
 		if (notifKey("email", row, to.prefs))
-			pending.push(
-				sendEmail(
-					to.email,
-					headline,
-					createElement(NotificationEmail, {
+			pending.push({
+				notificationIds: [row.id],
+				start: () =>
+					sendEmail(
+						to.email,
 						headline,
-						snippet: row.snippet,
-						workspace: ws.name,
-						link,
-						settingsLink: `${appUrl}/w/${ws.slug}/settings?sec=notif-email`,
-						baseUrl: SITE_URL,
-					}),
-					`${appUrl}/w/${ws.slug}/settings?sec=notif-email`,
-				),
-			);
+						createElement(NotificationEmail, {
+							headline,
+							snippet: row.snippet,
+							workspace: ws.name,
+							link,
+							settingsLink: `${appUrl}/w/${ws.slug}/settings?sec=notif-email`,
+							baseUrl: SITE_URL,
+						}),
+						`${appUrl}/w/${ws.slug}/settings?sec=notif-email`,
+					),
+			});
 	}
-	if (pushes.length) pending.push(sendPushes(pushes));
+	if (pushes.length)
+		pending.push({ notificationIds: pushed, start: () => sendPushes(pushes) });
+	// not inside a request (a script): send now
+	if (!queue) await send(pending);
 }

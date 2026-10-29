@@ -1,5 +1,6 @@
 import { execute, parse } from "graphql";
 import { schema } from "#/graphql/yoga.server";
+import { withEmails } from "#/lib/email.server";
 import { announceChange, mutationSlugs } from "#/lib/realtime.server";
 import { asAssistant } from "./assistant-scope.server";
 
@@ -26,13 +27,16 @@ export async function run<T = Record<string, unknown>>(
 	const document = parse(query);
 	const variableValues = { slug: ctx.slug, ...variables };
 	// anything this changes is logged as done "via assistant"
-	const result = await asAssistant(async () =>
-		execute({
-			schema,
-			document,
-			variableValues,
-			contextValue: { user: ctx.user },
-		}),
+	// and what it notifies people about goes out once this step is done
+	const result = await withEmails(() =>
+		asAssistant(async () =>
+			execute({
+				schema,
+				document,
+				variableValues,
+				contextValue: { user: ctx.user },
+			}),
+		),
 	);
 	if (result.errors?.length)
 		return { error: result.errors.map((e) => e.message).join("; ") };

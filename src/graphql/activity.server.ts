@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db, tables } from "#/db";
+import { generateNanoId } from "#/db/utils";
 import { viaAssistant } from "#/lib/ai/assistant-scope.server";
 import { queueNotifications } from "#/lib/email.server";
 import { ADMIN_ROLES, can } from "#/lib/permissions";
@@ -37,9 +38,11 @@ export async function notify(
 	rows: (typeof tables.notification.$inferInsert)[],
 ) {
 	if (!rows.length) return;
-	await q.insert(tables.notification).values(rows);
+	// ids up front: what's queued is only sent if these rows were really saved
+	const saved = rows.map((r) => ({ ...r, id: r.id ?? generateNanoId() }));
+	await q.insert(tables.notification).values(saved);
 	// emails and pushes go out at the end of the request, once its changes are saved
-	await queueNotifications(rows);
+	await queueNotifications(saved);
 }
 
 /** User ids of the workspace's owner and admins, for "someone joined" style updates. */
