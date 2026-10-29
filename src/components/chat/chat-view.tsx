@@ -491,13 +491,16 @@ export function Conversation({
 		if (!config) return;
 		let stop: (() => void) | undefined;
 		let gone = false;
-		void import("@supabase/realtime-js").then(({ RealtimeClient }) => {
+		void import("@supabase/realtime-js").then(async ({ RealtimeClient }) => {
 			if (gone) return;
 			// shortcut: a second socket while chat is open (LiveUpdates holds the other); share one if it matters
 			const realtime = new RealtimeClient(`${config.url}/realtime/v1`, {
 				params: { apikey: config.anonKey },
 				...(config.private && { accessToken: realtimeToken }),
 			});
+			// the token before the join (see LiveUpdates)
+			if (config.private) await realtime.setAuth();
+			if (gone) return realtime.disconnect();
 			const room = realtime
 				.channel(`chat:${channel.id}`, {
 					config: { private: config.private },

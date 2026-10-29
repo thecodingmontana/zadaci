@@ -29,13 +29,17 @@ export function LiveUpdates({
 		let stop: (() => void) | undefined;
 		let gone = false;
 		// the connection library loads once the page is up, not with it
-		void import("@supabase/realtime-js").then(({ RealtimeClient }) => {
+		void import("@supabase/realtime-js").then(async ({ RealtimeClient }) => {
 			if (gone) return;
 			const realtime = new RealtimeClient(`${config.url}/realtime/v1`, {
 				params: { apikey: config.anonKey },
 				// private channels: a short-lived signed-in token, fetched again as it runs out
 				...(config.private && { accessToken: realtimeToken }),
 			});
+			// a channel reads the token when it joins: have it first, or the join goes out signed-out
+			// and Supabase refuses the private channel
+			if (config.private) await realtime.setAuth();
+			if (gone) return realtime.disconnect();
 			let timer: ReturnType<typeof setTimeout> | undefined;
 			let last = 0;
 			let connected = false;
