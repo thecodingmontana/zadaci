@@ -90,3 +90,21 @@ test("projectExists tells a deleted project from one you can't open", async () =
 	const bad = (await gql(owner, EXISTS, { s: slug, id: "nope0000nope0000" })).data?.workspace;
 	assert.deepEqual(bad, { projectExists: false, projectDeleted: false }, "a bad link: the page says not found");
 });
+
+test("moving a project up skips past projects you can't see, so the button always moves it", async () => {
+	const owner = await makeUser("owner");
+	const member = await makeUser("member");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(member, inviteCode);
+	const make = async (title: string) => (await gql(owner, CREATE, { s: slug, i: input(title) })).data?.createProject.id as string;
+	const a = await make("A");
+	const hidden = await make("Hidden");
+	const c = await make("C"); // newest first: C, Hidden, A, …
+	await gql(owner, `mutation($s: String!, $p: ID!) { setProjectAccess(slug: $s, projectId: $p, access: "private") { id } }`, { s: slug, p: hidden });
+	const seen = async () => ((await gql(member, LIST, { s: slug })).data?.workspace.projects as { id: string }[]).map((p) => p.id).filter((id) => [a, c].includes(id));
+	assert.deepEqual(await seen(), [c, a]);
+
+	const moved = await gql(member, `mutation($s: String!, $p: ID!) { moveProject(slug: $s, projectId: $p, direction: "up") }`, { s: slug, p: a });
+	assert.equal(moved.data?.moveProject, true, JSON.stringify(moved.errors));
+	assert.deepEqual(await seen(), [a, c], "A moved above C in the member's sidebar");
+});

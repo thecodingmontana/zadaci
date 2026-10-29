@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { GraphQLError } from "graphql";
 import { z } from "zod";
 import { db, tables } from "#/db";
@@ -151,13 +151,17 @@ export async function requireProject(
 	return { user, workspace, project, right };
 }
 
-const visibleProjects = (workspaceId: string) =>
+/** The workspace's live projects in sidebar order, and which of them this viewer sees. */
+const sidebarOrder = (workspace: Parameters<typeof projectScope>[0]) =>
 	db
-		.select({ id: tables.project.id })
+		.select({
+			id: tables.project.id,
+			seen: sql<boolean>`${projectScope(workspace) ?? sql`true`}`,
+		})
 		.from(tables.project)
 		.where(
 			and(
-				eq(tables.project.workspace_id, workspaceId),
+				eq(tables.project.workspace_id, workspace.id),
 				isNull(tables.project.deleted_at),
 				isNull(tables.project.archived_at),
 			),
@@ -468,9 +472,13 @@ export const projectsResolvers = {
 			);
 			if (args.direction !== "up" && args.direction !== "down")
 				badInput("Direction must be up or down");
-			const order = (await visibleProjects(workspace.id)).map((p) => p.id);
+			const rows = await sidebarOrder(workspace);
+			const order = rows.map((p) => p.id);
 			const i = order.indexOf(project.id);
-			const j = args.direction === "up" ? i - 1 : i + 1;
+			// swap with the next project this person can see; the ones they can't keep their places
+			const step = args.direction === "up" ? -1 : 1;
+			let j = i + step;
+			while (j >= 0 && j < rows.length && !rows[j]?.seen) j += step;
 			if (i < 0 || j < 0 || j >= order.length) return false;
 			[order[i], order[j]] = [order[j] as string, order[i] as string];
 			await db.transaction(async (tx) => {
