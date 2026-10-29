@@ -501,6 +501,8 @@ const canDelete = (c: Channel, ws: Workspace) =>
 	c.kind === "channel" &&
 	!isGeneral(c) &&
 	!c.team_id &&
+	// a project's or task's own chat lasts as long as it does (one per project or task)
+	!c.follows_project &&
 	(c.created_by === ws.memberId ||
 		can(ws.role, "manageAllContent", ws.settings));
 

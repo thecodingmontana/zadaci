@@ -321,6 +321,9 @@ test("chat: a project's or task's own chat follows who can see the project", asy
 	const chat = (await gql(owner, OPEN, { s: slug, k: "project", id: project.id })).data?.openChatFor;
 	assert.deepEqual({ private: chat.private, follows: chat.followsProject, link: chat.link }, { private: true, follows: true, link: { kind: "project", id: project.id } });
 	assert.equal((await gql(owner, OPEN, { s: slug, k: "project", id: project.id })).data?.openChatFor.id, chat.id, "the same chat every time");
+	// it can't be deleted: there's only ever one, so a deleted one couldn't be started again
+	assert.ok((await gql(owner, `mutation($s: String!, $c: ID!) { deleteChatChannel(slug: $s, channelId: $c) }`, { s: slug, c: chat.id })).errors?.length);
+	assert.equal((await gql(owner, OPEN, { s: slug, k: "project", id: project.id })).data?.openChatFor.id, chat.id, "still there");
 
 	// a guest who isn't on the project can't open it or see it…
 	assert.ok((await gql(guest, OPEN, { s: slug, k: "project", id: project.id })).errors?.length);
