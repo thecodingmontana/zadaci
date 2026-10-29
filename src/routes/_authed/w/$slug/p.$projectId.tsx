@@ -257,6 +257,8 @@ function ProjectPage() {
 						<button
 							type="button"
 							className="btn btn-secondary btn-sm"
+							// the label hides on a phone; the button still needs its name
+							aria-label="Chat"
 							onClick={() =>
 								openChatDock({
 									kind: "project",
