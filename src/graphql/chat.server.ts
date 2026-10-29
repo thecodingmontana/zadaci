@@ -18,6 +18,7 @@ import { isUploadUrl } from "#/lib/files";
 import { can } from "#/lib/permissions";
 import { announceChat } from "#/lib/realtime.server";
 import { notify } from "./activity.server";
+import { findEmbed } from "./notes.server";
 import { requireProject } from "./projects.server";
 import { badInput, type GraphQLContext, projectScope } from "./schema.server";
 import {
@@ -95,6 +96,16 @@ export const chatTypeDefs = /* GraphQL */ `
 		seconds: Int
 	}
 
+	type ChatShare {
+		kind: String!
+		id: ID!
+	}
+
+	input ChatShareInput {
+		kind: String!
+		id: ID!
+	}
+
 	input ChatAttachmentInput {
 		url: String!
 		name: String!
@@ -115,6 +126,8 @@ export const chatTypeDefs = /* GraphQL */ `
 		"a reply in a thread: the message it answers"
 		parentId: ID
 		attachments: [ChatAttachment!]!
+		"tasks, projects, notes or bookmarks shared in it (look each up with noteEmbed)"
+		shares: [ChatShare!]!
 		"members picked from the @ list"
 		mentions: [ID!]!
 		mentionsMe: Boolean!
@@ -161,6 +174,8 @@ export const chatTypeDefs = /* GraphQL */ `
 			attachments: [ChatAttachmentInput!]
 			"members picked from the @ list (their @Name must be in the text)"
 			mentionIds: [ID!]
+			"tasks, projects, notes or bookmarks to share (you must be able to see each)"
+			shares: [ChatShareInput!]
 		): ChatMessage!
 		"a signed slot to upload a file into this conversation (file: anything but a picture)"
 		chatUpload(slug: String!, channelId: ID!, file: Boolean): CloudinaryUpload!
@@ -613,6 +628,7 @@ async function messageShape(rows: Message[], ws: Workspace) {
 			: null,
 		pinned: !!m.pinned_at,
 		attachments: m.attachments,
+		shares: m.shares,
 		mentions: m.mentions,
 		mentionsMe: !!ws.memberId && m.mentions.includes(ws.memberId),
 	}));
@@ -672,6 +688,28 @@ async function checkMentions(
 			),
 		);
 	return rows.filter((r) => text.includes(`@${r.name}`)).map((r) => r.id);
+}
+
+const SHARE_KINDS = ["task", "project", "note", "bookmark"];
+const MAX_SHARES = 5;
+
+/** What a message may share: things the sender can see (each reader is checked again on show). */
+async function checkShares(
+	ws: Workspace,
+	slug: string,
+	shares: { kind: string; id: string }[],
+) {
+	if (shares.length > MAX_SHARES)
+		badInput(`Share up to ${MAX_SHARES} things at a time`);
+	const out: { kind: string; id: string }[] = [];
+	for (const s of shares) {
+		if (!SHARE_KINDS.includes(s.kind)) badInput("That can't be shared");
+		if (out.some((o) => o.kind === s.kind && o.id === s.id)) continue;
+		if (!(await findEmbed(ws, slug, s.kind, s.id)))
+			badInput("You can only share what you can see");
+		out.push({ kind: s.kind, id: s.id });
+	}
+	return out;
 }
 
 /** A message's files: only ones uploaded into this channel's folder, within the size limits. */
@@ -1004,6 +1042,7 @@ export const chatResolvers = {
 				parentId?: string | null;
 				attachments?: ChatAttachment[] | null;
 				mentionIds?: string[] | null;
+				shares?: { kind: string; id: string }[] | null;
 			},
 			ctx: GraphQLContext,
 		) => {
@@ -1013,8 +1052,12 @@ export const chatResolvers = {
 				args.channelId,
 			);
 			const files = await checkFiles(channel.id, args.attachments ?? []);
-			// a file on its own is a message too
-			const text = files.length && !args.body.trim() ? "" : body(args.body);
+			const shares = await checkShares(workspace, args.slug, args.shares ?? []);
+			// a file or a shared item on its own is a message too
+			const text =
+				(files.length || shares.length) && !args.body.trim()
+					? ""
+					: body(args.body);
 			const mentions = await checkMentions(
 				workspace,
 				channel,
@@ -1055,6 +1098,7 @@ export const chatResolvers = {
 					parent_id: parent?.id ?? null,
 					body: text,
 					attachments: files,
+					shares,
 					mentions,
 				})
 				.returning();
@@ -1077,7 +1121,9 @@ export const chatResolvers = {
 				text ||
 					(files.length === 1
 						? `Sent ${files[0]?.name}`
-						: `Sent ${files.length} files`),
+						: files.length
+							? `Sent ${files.length} files`
+							: "Shared something"),
 				mentions,
 				// a thread reply opens at the thread's first message (that's in the conversation)
 				parent?.id ?? message.id,

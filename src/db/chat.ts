@@ -132,6 +132,12 @@ export const chat_message = pgTable(
 			.notNull()
 			.default(sql`'{}'::jsonb`),
 		edited_at: when("edited_at"),
+		/** tasks, projects, notes or bookmarks shared in it: only what they are; each reader's card
+		 *  is looked up with their own access */
+		shares: jsonb("shares")
+			.$type<{ kind: string; id: string }[]>()
+			.notNull()
+			.default(sql`'[]'::jsonb`),
 		/** member ids picked from the @ list (the text shows @Name; this says who was meant) */
 		mentions: jsonb("mentions")
 			.$type<string[]>()

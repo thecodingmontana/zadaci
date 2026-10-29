@@ -274,3 +274,32 @@ test("chat: @mentions reach exactly who was picked, even when two people share a
 	const secret = (await gql(owner, `mutation($s: String!) { createChatChannel(slug: $s, name: "leads", private: true) { id } }`, { s: slug })).data?.createChatChannel.id;
 	assert.deepEqual((await gql(owner, SEND_AT, { s: slug, c: secret, b: "@sam secret plans", m: [a] })).data?.sendChatMessage.mentions, []);
 });
+
+test("chat: share a task, project or note you can see; it shows to each reader only as far as they can see it", async () => {
+	const owner = await makeUser("owner");
+	const guest = await makeUser("guest");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await gql(owner, `mutation($s: String!, $e: [String!]!) { inviteMembers(slug: $s, emails: $e, role: "guest") { id } }`, { s: slug, e: [guest.email] });
+	await join(guest, inviteCode);
+	const general = (await gql(owner, `query($s: String!) { workspace(slug: $s) { chatChannels { id general } } }`, { s: slug })).data?.workspace.chatChannels.find((c: { general: boolean }) => c.general).id;
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id title } } }`, { s: slug })).data?.workspace.projects[0];
+	const SHARE = `mutation($s: String!, $c: ID!, $b: String!, $x: [ChatShareInput!]) { sendChatMessage(slug: $s, channelId: $c, body: $b, shares: $x) { body shares { kind id } } }`;
+	const CARD = `query($s: String!, $k: String!, $id: ID!) { noteEmbed(slug: $s, kind: $k, id: $id) { kind title href } }`;
+
+	// a project on its own is a message, and its card shows to whoever can see the project
+	const sent = (await gql(owner, SHARE, { s: slug, c: general, b: "", x: [{ kind: "project", id: project.id }] })).data?.sendChatMessage;
+	assert.deepEqual(sent, { body: "", shares: [{ kind: "project", id: project.id }] });
+	assert.equal((await gql(owner, CARD, { s: slug, k: "project", id: project.id })).data?.noteEmbed.title, project.title);
+	assert.equal((await gql(guest, CARD, { s: slug, k: "project", id: project.id })).data?.noteEmbed, null, "the guest isn't on it: no card");
+
+	// you can't share what you can't see, or something that isn't shareable
+	assert.match((await gql(guest, SHARE, { s: slug, c: general, b: "look", x: [{ kind: "project", id: project.id }] })).errors?.[0]?.message ?? "", /only share what you can see/);
+	assert.match((await gql(owner, SHARE, { s: slug, c: general, b: "look", x: [{ kind: "user", id: "x" }] })).errors?.[0]?.message ?? "", /can't be shared/);
+
+	// a note shares too, as a card that opens it
+	const note = (await gql(owner, `mutation($s: String!, $i: NewNote!) { createNote(slug: $s, input: $i) { id } }`, { s: slug, i: { title: "Launch plan" } })).data?.createNote;
+	assert.ok(note, "made a note");
+	await gql(owner, SHARE, { s: slug, c: general, b: "read this", x: [{ kind: "note", id: note.id }] });
+	const card = (await gql(owner, CARD, { s: slug, k: "note", id: note.id })).data?.noteEmbed;
+	assert.deepEqual(card, { kind: "note", title: "Launch plan", href: `/w/${slug}/notes/${note.id}` });
+});

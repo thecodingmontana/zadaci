@@ -106,7 +106,7 @@ export const notesTypeDefs = /* GraphQL */ `
 		title: String!
 		"the project of a task, the site of a bookmark"
 		sub: String
-		"a task's status; a project's colour"
+		"a task's status; a project's colour; a note's icon"
 		status: String
 		"where the card opens: a task in the app, or the bookmark's link"
 		href: String!
@@ -226,6 +226,130 @@ export async function requireNote(
 	if (!right) badInput("Note not found");
 	if (!hasRight(right, need)) forbidden();
 	return { user, workspace, note, right };
+}
+
+/**
+ * A task, project, note or bookmark as a card, if this member may see it (null if not): for a
+ * page's embeds and things shared in chat. Only { kind, id } is stored; each reader gets their own.
+ */
+export async function findEmbed(
+	workspace: Workspace,
+	slug: string,
+	kind: string,
+	id: string,
+) {
+	if (kind === "task") {
+		const [t] = await db
+			.select({
+				id: tables.task.id,
+				name: tables.task.name,
+				status: tables.task.status,
+				projectId: tables.project.id,
+				project: tables.project.title,
+			})
+			.from(tables.task)
+			.innerJoin(tables.project, eq(tables.project.id, tables.task.project_id))
+			.where(
+				and(
+					eq(tables.task.id, id),
+					eq(tables.project.workspace_id, workspace.id),
+					isNull(tables.task.deleted_at),
+					isNull(tables.project.deleted_at),
+					projectScope(workspace),
+				),
+			);
+		return t
+			? {
+					kind: "task",
+					id: t.id,
+					title: t.name,
+					sub: t.project,
+					status: t.status,
+					href: `/w/${slug}/p/${t.projectId}?task=${t.id}`,
+				}
+			: null;
+	}
+	if (kind === "project") {
+		const [p] = await db
+			.select({
+				id: tables.project.id,
+				title: tables.project.title,
+				status: tables.project.status,
+				color: tables.project.color,
+			})
+			.from(tables.project)
+			.where(
+				and(
+					eq(tables.project.id, id),
+					eq(tables.project.workspace_id, workspace.id),
+					isNull(tables.project.deleted_at),
+					projectScope(workspace),
+				),
+			);
+		return p
+			? {
+					kind: "project",
+					id: p.id,
+					title: p.title,
+					sub: pstat(p.status).name,
+					status: p.color,
+					href: `/w/${slug}/p/${p.id}`,
+				}
+			: null;
+	}
+	if (kind === "bookmark") {
+		const rows = await db
+			.select({
+				id: tables.bookmark.id,
+				title: tables.bookmark.title,
+				url: tables.bookmark.url,
+				site: tables.bookmark.site,
+				created_by: tables.bookmark.created_by,
+				private: tables.bookmark.private,
+			})
+			.from(tables.bookmark)
+			.where(
+				and(
+					eq(tables.bookmark.id, id),
+					eq(tables.bookmark.workspace_id, workspace.id),
+					isNull(tables.bookmark.deleted_at),
+				),
+			);
+		const [b] = await visibleBookmarks(workspace, rows);
+		return b
+			? {
+					kind: "bookmark",
+					id: b.id,
+					title: b.title,
+					sub: b.site,
+					status: null,
+					href: b.url,
+				}
+			: null;
+	}
+	if (kind === "note") {
+		const [note] = await db
+			.select()
+			.from(tables.note)
+			.where(
+				and(
+					eq(tables.note.id, id),
+					eq(tables.note.workspace_id, workspace.id),
+					isNull(tables.note.deleted_at),
+				),
+			);
+		return note && (await noteRight(workspace, note))
+			? {
+					kind: "note",
+					id: note.id,
+					title: note.title?.trim() || "Untitled",
+					sub: null,
+					status: note.icon,
+					href: `/w/${slug}/notes/${note.id}`,
+				}
+			: null;
+	}
+	badInput("Unknown embed");
 }
 
 /** At most this many people hear about one save's new mentions. */
@@ -496,99 +620,7 @@ export const notesResolvers = {
 			ctx: GraphQLContext,
 		) => {
 			const { workspace } = await workspaceOf(ctx, args.slug);
-			if (args.kind === "task") {
-				const [t] = await db
-					.select({
-						id: tables.task.id,
-						name: tables.task.name,
-						status: tables.task.status,
-						projectId: tables.project.id,
-						project: tables.project.title,
-					})
-					.from(tables.task)
-					.innerJoin(
-						tables.project,
-						eq(tables.project.id, tables.task.project_id),
-					)
-					.where(
-						and(
-							eq(tables.task.id, args.id),
-							eq(tables.project.workspace_id, workspace.id),
-							isNull(tables.task.deleted_at),
-							isNull(tables.project.deleted_at),
-							projectScope(workspace),
-						),
-					);
-				return t
-					? {
-							kind: "task",
-							id: t.id,
-							title: t.name,
-							sub: t.project,
-							status: t.status,
-							href: `/w/${args.slug}/p/${t.projectId}?task=${t.id}`,
-						}
-					: null;
-			}
-			if (args.kind === "project") {
-				const [p] = await db
-					.select({
-						id: tables.project.id,
-						title: tables.project.title,
-						status: tables.project.status,
-						color: tables.project.color,
-					})
-					.from(tables.project)
-					.where(
-						and(
-							eq(tables.project.id, args.id),
-							eq(tables.project.workspace_id, workspace.id),
-							isNull(tables.project.deleted_at),
-							projectScope(workspace),
-						),
-					);
-				return p
-					? {
-							kind: "project",
-							id: p.id,
-							title: p.title,
-							sub: pstat(p.status).name,
-							status: p.color,
-							href: `/w/${args.slug}/p/${p.id}`,
-						}
-					: null;
-			}
-			if (args.kind === "bookmark") {
-				const rows = await db
-					.select({
-						id: tables.bookmark.id,
-						title: tables.bookmark.title,
-						url: tables.bookmark.url,
-						site: tables.bookmark.site,
-						created_by: tables.bookmark.created_by,
-						private: tables.bookmark.private,
-					})
-					.from(tables.bookmark)
-					.where(
-						and(
-							eq(tables.bookmark.id, args.id),
-							eq(tables.bookmark.workspace_id, workspace.id),
-							isNull(tables.bookmark.deleted_at),
-						),
-					);
-				const [b] = await visibleBookmarks(workspace, rows);
-				return b
-					? {
-							kind: "bookmark",
-							id: b.id,
-							title: b.title,
-							sub: b.site,
-							status: null,
-							href: b.url,
-						}
-					: null;
-			}
-			badInput("Unknown embed");
+			return findEmbed(workspace, args.slug, args.kind, args.id);
 		},
 		notes: async (_: unknown, args: { slug: string }, ctx: GraphQLContext) => {
 			const { user, workspace } = await workspaceOf(ctx, args.slug);
