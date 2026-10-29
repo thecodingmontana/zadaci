@@ -45,11 +45,18 @@ const SOURCES: Record<string, (src: unknown) => boolean> = {
 	image: isImageSrc,
 	youtube: isYoutubeSrc,
 	embed: isEmbedSrc,
-	// files and audio are only ever uploaded to our Cloudinary
+	// files and audio are only ever uploaded to our own Cloudinary, into a note's folder (any
+	// note's: a duplicated or pasted page keeps the original's files)
 	noteFile: (src) =>
 		typeof src === "string" &&
 		src.length <= 2000 &&
-		/^https:\/\/res\.cloudinary\.com\/[^\s"'<>\\]+$/.test(src),
+		!!process.env.CLOUDINARY_CLOUD_NAME &&
+		src.startsWith(
+			`https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/`,
+		) &&
+		/^https:\/\/res\.cloudinary\.com\/[^/\s]+\/(image|video|raw)\/upload\/(v\d+\/)?zadaci\/notes\/[^\s"'<>\\?#]+$/.test(
+			src,
+		),
 };
 const MARKS = new Set([
 	"bold",

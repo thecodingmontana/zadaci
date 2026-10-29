@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { checkDoc } from "./note-doc";
 
+// the account note files are uploaded to
+process.env.CLOUDINARY_CLOUD_NAME = "acme";
+
 const doc = (...content: unknown[]) => ({ type: "doc", content });
 const p = (...content: unknown[]) => ({ type: "paragraph", content });
 const t = (text: string, marks?: unknown[]) => ({ type: "text", text, marks });
@@ -100,7 +103,7 @@ test("keeps colours, code themes and uploaded files, but only safe ones", () => 
 	const file = {
 		type: "noteFile",
 		attrs: {
-			src: "https://res.cloudinary.com/acme/raw/upload/a.pdf",
+			src: "https://res.cloudinary.com/acme/raw/upload/zadaci/notes/n1/a.pdf",
 			name: "a.pdf",
 		},
 	};
@@ -123,5 +126,31 @@ test("keeps colours, code themes and uploaded files, but only safe ones", () => 
 		() =>
 			checkDoc(doc({ ...file, attrs: { src: "https://evil.example/a.pdf" } })),
 		/can't be shown/,
+	);
+	assert.throws(
+		() =>
+			checkDoc(
+				doc({
+					...file,
+					attrs: {
+						src: "https://res.cloudinary.com/someone-else/raw/upload/zadaci/notes/n1/x.exe",
+					},
+				}),
+			),
+		/can't be shown/,
+		"another Cloudinary account's file",
+	);
+	assert.throws(
+		() =>
+			checkDoc(
+				doc({
+					...file,
+					attrs: {
+						src: "https://res.cloudinary.com/acme/raw/upload/elsewhere/x.exe",
+					},
+				}),
+			),
+		/can't be shown/,
+		"our account, but not a note's upload",
 	);
 });
