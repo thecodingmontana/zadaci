@@ -1,4 +1,4 @@
-import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { USER_ROLE } from "#/db/enums";
@@ -327,18 +327,22 @@ export const sharingResolvers = {
 			}
 			// A new person joins the workspace as a guest and lands on this project.
 			if (!can(workspace.role, "inviteGuests", workspace.settings)) forbidden();
+			const canMembers = can(
+				workspace.role,
+				"inviteMembers",
+				workspace.settings,
+			);
+			// An open invite already says what role they get: it only gains the project (else a newer
+			// guest invite would make someone invited as a member join as a guest).
 			const pending = and(
 				eq(tables.workspace_invite_request.workspace_id, workspace.id),
 				eq(tables.workspace_invite_request.email, email),
 				eq(tables.workspace_invite_request.status, "PENDING"),
 				isNull(tables.workspace_invite_request.deleted_at),
 				// someone who can only invite guests must not revive an expired member/admin invite
-				can(workspace.role, "inviteMembers", workspace.settings)
+				canMembers
 					? undefined
-					: and(
-							eq(tables.workspace_invite_request.role, USER_ROLE.GUEST),
-							gt(tables.workspace_invite_request.expires_at, new Date()),
-						),
+					: gt(tables.workspace_invite_request.expires_at, new Date()),
 			);
 			// every call emails them again, new invite or not
 			await checkInviteBudget(user.id, 1);
@@ -349,7 +353,13 @@ export const sharingResolvers = {
 			};
 			const [updated] = await db
 				.update(tables.workspace_invite_request)
-				.set(target)
+				.set({
+					...target,
+					// …nor make a member/admin invite last longer
+					...(!canMembers && {
+						expires_at: sql`case when ${tables.workspace_invite_request.role}::text = ${USER_ROLE.GUEST} then ${target.expires_at.toISOString()}::timestamptz else ${tables.workspace_invite_request.expires_at} end`,
+					}),
+				})
 				.where(pending)
 				.returning({
 					id: tables.workspace_invite_request.id,

@@ -125,6 +125,29 @@ test("invites can't be resent every second, and a member can't revive an admin i
 	assert.ok(fresh.some((r) => r.role === "guest"), "a separate guest invite was made");
 });
 
+test("sharing a project with someone already invited as a member keeps them a member", async () => {
+	const owner = await makeUser("owner");
+	const member = await makeUser("member");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(member, inviteCode);
+	const email = `bob-${Date.now()}@example.com`;
+	const id = (await gql(owner, `mutation($s: String!, $e: [String!]!) { inviteMembers(slug: $s, emails: $e, role: "member") { id } }`, { s: slug, e: [email] })).data?.inviteMembers[0].id;
+	const [before] = await db.select().from(tables.workspace_invite_request).where(eq(tables.workspace_invite_request.id, id));
+	const project = (
+		await gql(member, `mutation($s: String!, $i: ProjectInput!) { createProject(slug: $s, input: $i) { id } }`, {
+			s: slug,
+			i: { title: "Side project", icon: "icon-[solar--global-linear]", color: "teal", template: "blank" },
+		})
+	).data?.createProject;
+	const shared = await gql(member, `mutation($s: String!, $p: ID!, $e: String!) { inviteToProject(slug: $s, projectId: $p, email: $e, permission: "view") }`, { s: slug, p: project.id, e: email });
+	assert.ok(shared.data?.inviteToProject, JSON.stringify(shared.errors));
+
+	const invites = await db.select().from(tables.workspace_invite_request).where(eq(tables.workspace_invite_request.email, email));
+	assert.equal(invites.length, 1, "no second, guest invite");
+	assert.deepEqual([invites[0]?.role, invites[0]?.project_id], ["member", project.id], "still a member invite, now with the project");
+	assert.equal(invites[0]?.expires_at?.getTime(), before?.expires_at?.getTime(), "a member can't make it last longer");
+});
+
 test("team lists carry their member and project counts", async () => {
 	const owner = await makeUser("owner");
 	const { slug } = await makeWorkspace(owner);
