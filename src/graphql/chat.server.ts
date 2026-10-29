@@ -15,7 +15,7 @@ import type { ChatAttachment } from "#/db/chat";
 import { generateNanoId } from "#/db/utils";
 import { isEmoji } from "#/lib/emoji";
 import { isUploadUrl } from "#/lib/files";
-import { can } from "#/lib/permissions";
+import { can, projectRight } from "#/lib/permissions";
 import { announceChat } from "#/lib/realtime.server";
 import { notify } from "./activity.server";
 import { findEmbed } from "./notes.server";
@@ -285,6 +285,75 @@ async function people(channelIds: string[]) {
 	return by;
 }
 
+/** Who can see each project now (the app's project rule, projectRight), by project id: the
+ *  people in its own chat and its tasks' chats. */
+async function projectPeople(ws: Workspace, projectIds: string[]) {
+	const by = new Map<string, Person[]>();
+	const ids = [...new Set(projectIds)];
+	if (!ids.length) return by;
+	const [projects, added, everyone] = await Promise.all([
+		db
+			.select({
+				id: tables.project.id,
+				access: tables.project.access,
+				leadId: tables.project.lead_id,
+			})
+			.from(tables.project)
+			.where(
+				and(inArray(tables.project.id, ids), isNull(tables.project.deleted_at)),
+			),
+		db
+			.select({
+				projectId: tables.project_members.project_id,
+				memberId: tables.project_members.member_id,
+				permission: tables.project_members.permission,
+			})
+			.from(tables.project_members)
+			.where(
+				and(
+					inArray(tables.project_members.project_id, ids),
+					isNull(tables.project_members.deleted_at),
+				),
+			),
+		db
+			.select({
+				id: tables.workspace_members.id,
+				role: tables.workspace_members.role,
+				name: tables.user.name,
+				image: tables.user.image,
+			})
+			.from(tables.workspace_members)
+			.innerJoin(
+				tables.user,
+				eq(tables.user.id, tables.workspace_members.user_id),
+			)
+			.where(
+				and(
+					eq(tables.workspace_members.workspace_id, ws.id),
+					isNull(tables.workspace_members.deleted_at),
+				),
+			),
+	]);
+	const membership = new Map(
+		added.map((a) => [`${a.projectId}:${a.memberId}`, a.permission]),
+	);
+	for (const p of projects)
+		by.set(
+			p.id,
+			everyone
+				.filter((m) =>
+					projectRight(
+						m.role,
+						{ access: p.access, isLead: p.leadId === m.id },
+						membership.get(`${p.id}:${m.id}`),
+						ws.settings,
+					),
+				)
+				.map(({ role: _, ...person }) => person),
+		);
+	return by;
+}
+
 /** Team channels: the team's name and its current members, by channel id. */
 async function teamsOf(channels: Channel[]) {
 	const byTeam = new Map(
@@ -334,51 +403,61 @@ async function teamsOf(channels: Channel[]) {
 async function channelShape(channels: Channel[], ws: Workspace) {
 	const ids = channels.map((c) => c.id);
 	const me = ws.memberId ?? "";
-	const [members, unread, creators, links, teams, mine] = await Promise.all([
-		people(ids),
-		ids.length
-			? db
-					.select({ channelId: tables.chat_message.channel_id, n: count() })
-					.from(tables.chat_message)
-					.innerJoin(
-						tables.chat_member,
-						and(
-							eq(tables.chat_member.channel_id, tables.chat_message.channel_id),
-							eq(tables.chat_member.member_id, me),
-						),
-					)
-					.where(
-						and(
-							inArray(tables.chat_message.channel_id, ids),
-							isNull(tables.chat_message.deleted_at),
-							ne(tables.chat_message.author_id, me),
-							gt(
-								tables.chat_message.created_at,
-								sql`coalesce(${tables.chat_member.last_read_at}, ${tables.chat_member.created_at})`,
+	const [members, unread, creators, links, teams, onProject, mine] =
+		await Promise.all([
+			people(ids),
+			ids.length
+				? db
+						.select({ channelId: tables.chat_message.channel_id, n: count() })
+						.from(tables.chat_message)
+						.innerJoin(
+							tables.chat_member,
+							and(
+								eq(
+									tables.chat_member.channel_id,
+									tables.chat_message.channel_id,
+								),
+								eq(tables.chat_member.member_id, me),
 							),
-						),
-					)
-					.groupBy(tables.chat_message.channel_id)
-			: [],
-		creatorsOf(channels),
-		linksOf(channels, ws),
-		teamsOf(channels),
-		ids.length
-			? db
-					.select({
-						channelId: tables.chat_member.channel_id,
-						favorite: tables.chat_member.favorite,
-						pinnedAt: tables.chat_member.pinned_at,
-					})
-					.from(tables.chat_member)
-					.where(
-						and(
-							inArray(tables.chat_member.channel_id, ids),
-							eq(tables.chat_member.member_id, me),
-						),
-					)
-			: [],
-	]);
+						)
+						.where(
+							and(
+								inArray(tables.chat_message.channel_id, ids),
+								isNull(tables.chat_message.deleted_at),
+								ne(tables.chat_message.author_id, me),
+								gt(
+									tables.chat_message.created_at,
+									sql`coalesce(${tables.chat_member.last_read_at}, ${tables.chat_member.created_at})`,
+								),
+							),
+						)
+						.groupBy(tables.chat_message.channel_id)
+				: [],
+			creatorsOf(channels),
+			linksOf(channels, ws),
+			teamsOf(channels),
+			projectPeople(
+				ws,
+				channels.flatMap((c) =>
+					c.follows_project && c.project_id ? [c.project_id] : [],
+				),
+			),
+			ids.length
+				? db
+						.select({
+							channelId: tables.chat_member.channel_id,
+							favorite: tables.chat_member.favorite,
+							pinnedAt: tables.chat_member.pinned_at,
+						})
+						.from(tables.chat_member)
+						.where(
+							and(
+								inArray(tables.chat_member.channel_id, ids),
+								eq(tables.chat_member.member_id, me),
+							),
+						)
+				: [],
+		]);
 	const favorites = new Set(
 		mine.filter((m) => m.favorite).map((m) => m.channelId),
 	);
@@ -390,7 +469,12 @@ async function channelShape(channels: Channel[], ws: Workspace) {
 		name: teams.get(c.id)?.name ?? c.name,
 		topic: c.topic,
 		private: c.private,
-		people: teams.get(c.id)?.people ?? members.get(c.id) ?? [],
+		people:
+			teams.get(c.id)?.people ??
+			(c.follows_project
+				? onProject.get(c.project_id ?? "")
+				: members.get(c.id)) ??
+			[],
 		teamId: c.team_id,
 		favorite: favorites.has(c.id),
 		followsProject: c.follows_project,
@@ -694,7 +778,7 @@ async function checkMentions(
 ) {
 	const wanted = [...new Set(ids)].slice(0, 50);
 	if (!wanted.length || !text) return [];
-	const seenBy = audience(channel);
+	const seenBy = await audience(ws, channel);
 	const rows = await db
 		.select({ id: tables.workspace_members.id, name: tables.user.name })
 		.from(tables.workspace_members)
@@ -769,9 +853,16 @@ const body = (value: string) => {
 };
 
 /** Who can see a channel, as member ids (undefined: the whole workspace). */
-const audience = (channel: Channel) =>
-	channel.team_id
-		? db
+/** Who may read the channel (ids), or undefined for an open channel: everyone. */
+async function audience(ws: Workspace, channel: Channel) {
+	if (channel.follows_project)
+		return (
+			(await projectPeople(ws, [channel.project_id ?? ""]))
+				.get(channel.project_id ?? "")
+				?.map((p) => p.id) ?? []
+		);
+	const rows = channel.team_id
+		? await db
 				.select({ id: tables.team_members.member_id })
 				.from(tables.team_members)
 				.where(
@@ -781,11 +872,13 @@ const audience = (channel: Channel) =>
 					),
 				)
 		: channel.private
-			? db
+			? await db
 					.select({ id: tables.chat_member.member_id })
 					.from(tables.chat_member)
 					.where(eq(tables.chat_member.channel_id, channel.id))
 			: undefined;
+	return rows?.map((r) => r.id);
+}
 
 /** Mentioned people, the rest of a DM, and whoever started a thread hear about a message. */
 async function notifyChat(
@@ -798,7 +891,7 @@ async function notifyChat(
 	messageId: string,
 	parent?: Message,
 ) {
-	const seenBy = audience(channel);
+	const seenBy = await audience(ws, channel);
 	const members = await db
 		.select({
 			id: tables.workspace_members.id,

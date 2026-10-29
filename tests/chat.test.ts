@@ -327,10 +327,22 @@ test("chat: a project's or task's own chat follows who can see the project", asy
 	assert.equal(await sees(guest, chat.id), false);
 	// …until they're added to the project, and not after they're taken off
 	const guestId = ((await gql(guest, LIST, { s: slug })).data?.workspace.members as { id: string; isMe: boolean }[]).find((m) => m.isMe)?.id ?? "";
+	const PEOPLE = `query($s: String!) { workspace(slug: $s) { chatChannels { id people { id } } } }`;
+	const inChat = async () => ((await gql(owner, PEOPLE, { s: slug })).data?.workspace.chatChannels as { id: string; people: { id: string }[] }[]).find((c) => c.id === chat.id)?.people.map((p) => p.id) ?? [];
+	const MENTION = `mutation($s: String!, $c: ID!, $b: String!, $m: [ID!]) { sendChatMessage(slug: $s, channelId: $c, body: $b, mentionIds: $m) { id mentions } }`;
+	const mention = async () => ((await gql(owner, MENTION, { s: slug, c: chat.id, b: "Hi @guest", m: [guestId] })).data?.sendChatMessage.mentions as string[]);
+	assert.equal((await inChat()).includes(guestId), false);
 	const [row] = await db.insert(tables.project_members).values({ project_id: project.id, member_id: guestId }).returning();
+	// listed and mentionable from the moment they're added, before they ever open it
+	assert.equal((await inChat()).includes(guestId), true, "on the project: in its chat's people");
+	assert.deepEqual(await mention(), [guestId], "and can be @mentioned");
 	assert.equal(await sees(guest, chat.id), true, "on the project: in its chat");
+	await gql(guest, `query($s: String!, $c: ID!) { chatMessages(slug: $s, channelId: $c) { id } }`, { s: slug, c: chat.id });
 	await db.delete(tables.project_members).where(eq(tables.project_members.id, row.id));
 	assert.equal(await sees(guest, chat.id), false, "off the project: out of its chat");
+	// having opened it doesn't keep them in: not listed, and a mention no longer reaches them
+	assert.equal((await inChat()).includes(guestId), false, "off the project: out of its people");
+	assert.deepEqual(await mention(), []);
 	assert.match((await gql(guest, `query($s: String!, $c: ID!) { chatMessages(slug: $s, channelId: $c) { id } }`, { s: slug, c: chat.id })).errors?.[0]?.message ?? "", /not found/);
 
 	// a task has its own chat, apart from the project's
