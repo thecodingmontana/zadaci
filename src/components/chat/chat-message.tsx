@@ -1,6 +1,8 @@
 import { useApolloClient, useMutation } from "@apollo/client/react";
 import { Link } from "@tanstack/react-router";
 import { createContext, useContext, useRef, useState } from "react";
+import { ItemCard } from "#/components/notes/item-embed";
+import { ItemPicker } from "#/components/notes/item-picker";
 import { Av } from "#/components/q/av";
 import { ConfirmModal } from "#/components/q/confirm";
 import { EmojiPicker } from "#/components/q/emoji-picker";
@@ -8,6 +10,7 @@ import { PickPopover } from "#/components/tasks/pick";
 import {
 	CHAT_PINS,
 	type ChatMessage,
+	type ChatShare,
 	DELETE_CHAT_MESSAGE,
 	EDIT_CHAT_MESSAGE,
 	PIN_CHAT_MESSAGE,
@@ -67,6 +70,19 @@ function WithMentions({ text, ids }: { text: string; ids: string[] }) {
 		),
 	);
 }
+
+const SHARE_LABEL: Record<ChatShare["kind"], string> = {
+	task: "Task",
+	project: "Project",
+	note: "Note",
+	bookmark: "Bookmark",
+};
+const SHARE_ICON: Record<ChatShare["kind"], string> = {
+	task: "icon-[solar--checklist-minimalistic-linear]",
+	project: "icon-[solar--folder-linear]",
+	note: "icon-[solar--document-text-linear]",
+	bookmark: "icon-[solar--bookmark-linear]",
+};
 
 /** Someone who can be @mentioned. */
 export type Mentionable = { id: string; name: string; image: string | null };
@@ -158,6 +174,18 @@ export function MessageRow({
 					</div>
 				)}
 				<Attachments files={m.attachments} />
+				{m.shares.length > 0 && (
+					<div className="chat-shares">
+						{m.shares.map((s) => (
+							<ItemCard
+								key={`${s.kind}-${s.id}`}
+								slug={slug}
+								kind={s.kind}
+								id={s.id}
+							/>
+						))}
+					</div>
+				)}
 				{m.reactions.length > 0 && (
 					<div className="reacts">
 						{m.reactions.map((r) => (
@@ -300,16 +328,24 @@ export function MessageRow({
 /** The box you write in. It keeps what you type and the files you add; sending hands them on
  *  (useOutbox shows the message at once and uploads the files then). */
 export function Composer({
+	slug,
 	placeholder,
 	people,
 	onTyping,
 	onSend,
 }: {
+	slug: string;
 	placeholder: string;
 	/** who can be @mentioned here (the people who can see it, you left out) */
 	people: Mentionable[];
 	onTyping?: () => void;
-	onSend: (body: string, files: Draft[], mentionIds: string[]) => void;
+	onSend: (
+		body: string,
+		files: Draft[],
+		mentionIds: string[],
+		/** with their names, for the message on its way */
+		shares: (ChatShare & { name: string })[],
+	) => void;
 }) {
 	const [text, setText] = useState("");
 	const drafts = useDraftFiles();
@@ -318,7 +354,11 @@ export function Composer({
 	const ref = useRef<HTMLTextAreaElement>(null);
 	const picker = useRef<HTMLInputElement>(null);
 	const lastTyping = useRef(0);
-	const canSend = !!text.trim() || drafts.files.length > 0;
+	// things to share with the message: picked from the Share button, sent with it
+	const [shares, setShares] = useState<(ChatShare & { name: string })[]>([]);
+	const [sharing, setSharing] = useState(false);
+	const [shareKind, setShareKind] = useState<ChatShare["kind"]>("task");
+	const canSend = !!text.trim() || drafts.files.length > 0 || shares.length > 0;
 	// @mentions: the word being typed after "@", and who was picked from the list
 	const [at, setAt] = useState<{ query: string; start: number } | null>(null);
 	const [atIndex, setAtIndex] = useState(0);
@@ -356,7 +396,8 @@ export function Composer({
 		const ids = [...picked.current]
 			.filter(([, name]) => body.includes(`@${name}`))
 			.map(([id]) => id);
-		onSend(body, drafts.take(), ids);
+		onSend(body, drafts.take(), ids, shares);
+		setShares([]);
 		picked.current.clear();
 		setText("");
 		setAt(null);
@@ -382,6 +423,37 @@ export function Composer({
 			}}
 		>
 			<DraftFiles files={drafts.files} onRemove={drafts.remove} />
+			{shares.length > 0 && (
+				<div className="chat-pending">
+					{shares.map((s) => (
+						<div key={`${s.kind}-${s.id}`} className="chat-pending-file">
+							<span
+								className={cn(SHARE_ICON[s.kind], "size-5 shrink-0")}
+								aria-hidden="true"
+							/>
+							<span className="chat-pending-name">
+								<span className="trunc">{s.name}</span>
+								<span className="faint">{SHARE_LABEL[s.kind]}</span>
+							</span>
+							<button
+								type="button"
+								className="ibtn ibtn-xs"
+								aria-label={`Don't share ${s.name}`}
+								onClick={() =>
+									setShares((all) =>
+										all.filter((x) => !(x.kind === s.kind && x.id === s.id)),
+									)
+								}
+							>
+								<span
+									className="icon-[solar--close-circle-bold] size-4"
+									aria-hidden="true"
+								/>
+							</button>
+						</div>
+					))}
+				</div>
+			)}
 			<textarea
 				ref={ref}
 				rows={1}
@@ -484,6 +556,57 @@ export function Composer({
 					/>
 					<span className="chat-h-label">Add file</span>
 				</button>
+				<PickPopover
+					open={sharing}
+					onOpenChange={setSharing}
+					width={340}
+					align="start"
+					trigger={
+						<button type="button" className="btn btn-secondary btn-sm">
+							<span
+								className="icon-[solar--share-linear] size-4"
+								aria-hidden="true"
+							/>
+							<span className="chat-h-label">Share</span>
+						</button>
+					}
+				>
+					<div className="chat-share">
+						<div className="seg">
+							{(["task", "project", "note", "bookmark"] as const).map((k) => (
+								<button
+									key={k}
+									type="button"
+									className={cn(shareKind === k && "on")}
+									aria-pressed={shareKind === k}
+									onClick={() => setShareKind(k)}
+								>
+									{SHARE_LABEL[k]}
+								</button>
+							))}
+						</div>
+						<ItemPicker
+							key={shareKind}
+							slug={slug}
+							kind={shareKind}
+							placeholder={`Find a ${SHARE_LABEL[shareKind].toLowerCase()}…`}
+							hint="Or paste its link. People only see what they have access to."
+							onPick={(id, name) => {
+								if (shares.length >= 5) {
+									toast.error("Share up to 5 things at a time");
+									return;
+								}
+								setShares((all) =>
+									all.some((s) => s.kind === shareKind && s.id === id)
+										? all
+										: [...all, { kind: shareKind, id, name }],
+								);
+								setSharing(false);
+								requestAnimationFrame(() => ref.current?.focus());
+							}}
+						/>
+					</div>
+				</PickPopover>
 				<span className="sp" />
 				<VoiceNote onDone={(file, seconds) => drafts.add([file], seconds)} />
 				<PickPopover

@@ -16,7 +16,7 @@ export function ItemPicker({
 	onPick,
 }: {
 	slug: string;
-	kind: "task" | "bookmark" | "project";
+	kind: "task" | "bookmark" | "project" | "note";
 	placeholder: string;
 	hint: string;
 	onPick: (id: string, name: string) => void;
@@ -34,7 +34,9 @@ export function ItemPicker({
 			? /[?&]task=([A-Za-z0-9]{1,16})/.exec(debounced)?.[1]
 			: kind === "project"
 				? /\/p\/([A-Za-z0-9]{1,16})(?:[/?#]|$)/.exec(debounced)?.[1]
-				: undefined;
+				: kind === "note"
+					? /\/notes\/([A-Za-z0-9]{1,16})(?:[/?#]|$)/.exec(debounced)?.[1]
+					: undefined;
 	const { data, loading } = useQuery(SEARCH, {
 		variables: { slug, q: debounced },
 		skip: !debounced || !!linked,
@@ -67,24 +69,38 @@ export function ItemPicker({
 					sub: "",
 					icon: <ProjectDot color={p.color} />,
 				}))
-			: kind === "task"
-				? (data?.search.tasks ?? []).map((t) => ({
-						id: t.id,
-						name: t.name,
-						sub: t.projectTitle,
-						icon: <StatusIcon status={t.status} size={15} />,
-					}))
-				: (data?.search.bookmarks ?? []).map((b) => ({
-						id: b.id,
-						name: b.title,
-						sub: b.site ?? b.url,
-						icon: (
+			: kind === "note"
+				? (data?.search.notes ?? []).map((n) => ({
+						id: n.id,
+						name: n.title || "Untitled",
+						sub: "",
+						icon: n.icon ? (
+							<span aria-hidden="true">{n.icon}</span>
+						) : (
 							<span
-								className="icon-[solar--bookmark-linear] size-[15px]"
+								className="icon-[solar--document-text-linear] size-[15px]"
 								aria-hidden="true"
 							/>
 						),
-					}));
+					}))
+				: kind === "task"
+					? (data?.search.tasks ?? []).map((t) => ({
+							id: t.id,
+							name: t.name,
+							sub: t.projectTitle,
+							icon: <StatusIcon status={t.status} size={15} />,
+						}))
+					: (data?.search.bookmarks ?? []).map((b) => ({
+							id: b.id,
+							name: b.title,
+							sub: b.site ?? b.url,
+							icon: (
+								<span
+									className="icon-[solar--bookmark-linear] size-[15px]"
+									aria-hidden="true"
+								/>
+							),
+						}));
 	return (
 		<div className="insert-link">
 			<input

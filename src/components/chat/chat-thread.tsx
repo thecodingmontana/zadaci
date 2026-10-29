@@ -111,10 +111,11 @@ export function ThreadPanel({
 				))}
 			</div>
 			<Composer
+				slug={slug}
 				placeholder="Reply…"
 				people={people}
-				onSend={(body, files, mentionIds) =>
-					outbox.send(body, files, mentionIds)
+				onSend={(body, files, mentionIds, shares) =>
+					outbox.send(body, files, mentionIds, shares)
 				}
 			/>
 		</aside>

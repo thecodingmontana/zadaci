@@ -729,6 +729,7 @@ function Conversation({
 						: ""}
 				</div>
 				<Composer
+					slug={slug}
 					placeholder={
 						channel.kind !== "dm"
 							? `Message #${title}`
@@ -738,8 +739,8 @@ function Conversation({
 					}
 					onTyping={() => say.current("typing", { name: meName })}
 					people={mentionable}
-					onSend={(body, files, mentionIds) => {
-						outbox.send(body, files, mentionIds);
+					onSend={(body, files, mentionIds, shares) => {
+						outbox.send(body, files, mentionIds, shares);
 						requestAnimationFrame(() => {
 							if (list.current)
 								list.current.scrollTop = list.current.scrollHeight;

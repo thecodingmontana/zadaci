@@ -26,6 +26,23 @@ const hostOf = (href: string) => {
 function ItemEmbedView({ node, extension }: NodeViewProps) {
 	const { kind, id } = node.attrs as { kind: string; id: string };
 	const slug = (extension.options as { slug: string }).slug;
+	return (
+		<NodeViewWrapper className="item-embed-wrap" data-drag-handle>
+			<ItemCard slug={slug} kind={kind} id={id} />
+		</NodeViewWrapper>
+	);
+}
+
+/** A live card for a task, project, note or bookmark, as this reader may see it (also in chat). */
+export function ItemCard({
+	slug,
+	kind,
+	id,
+}: {
+	slug: string;
+	kind: string;
+	id: string;
+}) {
 	// shortcut: one small query per card, fine for a handful per page; batch them if pages fill up
 	const { data, loading } = useQuery(NOTE_EMBED, {
 		variables: { slug, kind, id },
@@ -39,6 +56,15 @@ function ItemEmbedView({ node, extension }: NodeViewProps) {
 				className="pdot"
 				style={{ "--c": projectColor(item?.status) } as React.CSSProperties}
 			/>
+		) : kind === "note" ? (
+			item?.status ? (
+				<span aria-hidden="true">{item.status}</span>
+			) : (
+				<span
+					className="icon-[solar--document-text-linear] size-[15px]"
+					aria-hidden="true"
+				/>
+			)
 		) : (
 			<span
 				className="icon-[solar--bookmark-linear] size-[15px]"
@@ -54,32 +80,28 @@ function ItemEmbedView({ node, extension }: NodeViewProps) {
 			{item?.sub && <span className="item-embed-sub">{item.sub}</span>}
 		</>
 	);
-	return (
-		<NodeViewWrapper className="item-embed-wrap" data-drag-handle>
-			{!item ? (
-				<span className="item-embed is-empty" contentEditable={false}>
-					{body}
-				</span>
-			) : kind !== "bookmark" ? (
-				<Link className="item-embed" to={item.href} contentEditable={false}>
-					{body}
-				</Link>
-			) : (
-				<a
-					className="item-embed"
-					href={safeLink(item.href) ? item.href : undefined}
-					target="_blank"
-					rel="noopener noreferrer"
-					contentEditable={false}
-				>
-					{body}
-					<span
-						className="icon-[solar--arrow-right-up-linear] size-3"
-						aria-hidden="true"
-					/>
-				</a>
-			)}
-		</NodeViewWrapper>
+	return !item ? (
+		<span className="item-embed is-empty" contentEditable={false}>
+			{body}
+		</span>
+	) : kind !== "bookmark" ? (
+		<Link className="item-embed" to={item.href} contentEditable={false}>
+			{body}
+		</Link>
+	) : (
+		<a
+			className="item-embed"
+			href={safeLink(item.href) ? item.href : undefined}
+			target="_blank"
+			rel="noopener noreferrer"
+			contentEditable={false}
+		>
+			{body}
+			<span
+				className="icon-[solar--arrow-right-up-linear] size-3"
+				aria-hidden="true"
+			/>
+		</a>
 	);
 }
 

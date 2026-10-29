@@ -6107,6 +6107,26 @@ a.chat-at:hover {
   background: var(--q-accent);
   transition: width 0.2s linear;
 }
+/* sharing: the picker, and shared cards in messages */
+.chat-share {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+.chat-share .seg {
+  display: flex;
+}
+.chat-share .seg button {
+  flex: 1;
+  justify-content: center;
+}
+.chat-shares {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
 /* sent files */
 .chat-files {
   display: flex;

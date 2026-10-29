@@ -28,6 +28,11 @@ export type ChatAttachment = {
 	type: string;
 	seconds: number | null;
 };
+/** A task, project, note or bookmark shared in a message. */
+export type ChatShare = {
+	kind: "task" | "project" | "note" | "bookmark";
+	id: string;
+};
 export type ChatMessage = {
 	id: string;
 	channelId: string;
@@ -42,6 +47,7 @@ export type ChatMessage = {
 	lastReplyAt: string | null;
 	pinned: boolean;
 	attachments: ChatAttachment[];
+	shares: ChatShare[];
 	mentions: string[];
 	mentionsMe: boolean;
 };
@@ -106,6 +112,10 @@ const MESSAGE = gql`
 			size
 			type
 			seconds
+		}
+		shares {
+			kind
+			id
 		}
 		mentions
 		mentionsMe
@@ -207,6 +217,7 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 		parentId?: string;
 		attachments?: Omit<ChatAttachment, "seconds">[] & { seconds?: number }[];
 		mentionIds?: string[];
+		shares?: ChatShare[];
 	}
 > = gql`
 	mutation SendChatMessage(
@@ -216,6 +227,7 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 		$parentId: ID
 		$attachments: [ChatAttachmentInput!]
 		$mentionIds: [ID!]
+		$shares: [ChatShareInput!]
 	) {
 		sendChatMessage(
 			slug: $slug
@@ -224,6 +236,7 @@ export const SEND_CHAT_MESSAGE: TypedDocumentNode<
 			parentId: $parentId
 			attachments: $attachments
 			mentionIds: $mentionIds
+			shares: $shares
 		) {
 			...ChatMessageFields
 		}

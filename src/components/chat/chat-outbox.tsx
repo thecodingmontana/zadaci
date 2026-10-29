@@ -4,6 +4,7 @@ import { Av } from "#/components/q/av";
 import {
 	type ChatAttachment,
 	type ChatMessage,
+	type ChatShare,
 	SEND_CHAT_MESSAGE,
 } from "#/graphql/chat-operations";
 import { cn } from "#/lib/utils";
@@ -22,6 +23,8 @@ export type Item = {
 	files: Draft[];
 	/** people picked from the @ list */
 	mentionIds: string[];
+	/** tasks, projects, notes or bookmarks shared (named, for showing it on its way) */
+	shares: (ChatShare & { name?: string })[];
 	/** files already uploaded (kept, so a retry doesn't upload them again) */
 	uploaded: (ChatAttachment | undefined)[];
 	/** upload progress across its files, 0–100 */
@@ -143,6 +146,7 @@ export function useOutbox({
 					parentId,
 					attachments,
 					mentionIds: head.mentionIds,
+					shares: head.shares.map(({ kind, id }) => ({ kind, id })),
 				},
 			});
 			if (!data) throw new Error("No reply from the server");
@@ -158,12 +162,18 @@ export function useOutbox({
 
 	return {
 		items,
-		send: (body: string, files: Draft[], mentionIds: string[] = []) => {
+		send: (
+			body: string,
+			files: Draft[],
+			mentionIds: string[] = [],
+			shares: (ChatShare & { name?: string })[] = [],
+		) => {
 			const item: Item = {
 				id: crypto.randomUUID(),
 				body,
 				files,
 				mentionIds,
+				shares,
 				uploaded: [],
 				pct: 0,
 				ready: files.length === 0,
@@ -216,6 +226,17 @@ export function OutboxRow({
 					<b>{me?.name ?? "You"}</b>
 				</div>
 				{item.body && <div className="chat-text">{item.body}</div>}
+				{item.shares.length > 0 && (
+					<div className="chat-pending">
+						{item.shares.map((s) => (
+							<div key={`${s.kind}-${s.id}`} className="chat-pending-file">
+								<span className="chat-pending-name">
+									<span className="trunc">{s.name ?? s.kind}</span>
+								</span>
+							</div>
+						))}
+					</div>
+				)}
 				{item.files.length > 0 && (
 					<div className="chat-pending">
 						{item.files.map((f) => (
