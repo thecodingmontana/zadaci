@@ -276,7 +276,8 @@ async function notifyComment(
 	const mentioned = new Set(
 		people.filter((p) => text.includes(`@${p.name}`)).map((p) => p.userId),
 	);
-	const [assignee] = await db
+	// every assignee follows their task
+	const assignees = await db
 		.select({ memberId: tables.task_assignees.member_id })
 		.from(tables.task_assignees)
 		.where(
@@ -295,7 +296,8 @@ async function notifyComment(
 			),
 		);
 	const followers = new Set(
-		[assignee?.memberId, ...earlier.map((c) => c.memberId)]
+		[...assignees, ...earlier]
+			.map((r) => r.memberId)
 			.map((id) => people.find((p) => p.memberId === id)?.userId)
 			.filter((id): id is string => !!id),
 	);

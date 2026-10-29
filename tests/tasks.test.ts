@@ -346,3 +346,17 @@ test("editing a description shows in the feed once per stretch of typing", async
 		.where(and(eq(tables.activity.task_id, task.id), eq(tables.activity.verb, "edited the description of")));
 	assert.equal(rows.length, 1);
 });
+
+test("a comment reaches every assignee of the task, not just one", async () => {
+	const { owner, member, slug, memberId, create } = await setup();
+	const sam = await makeUser("sam");
+	const code = (await gql(owner, `query($s: String!) { workspace(slug: $s) { inviteCode } }`, { s: slug })).data?.workspace.inviteCode;
+	await join(sam, code);
+	const samId = (await gql(sam, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug })).data?.workspace.members.find((m: { isMe: boolean }) => m.isMe).id;
+	const task = (await create(owner, { title: "Pair on it", assigneeIds: [memberId, samId] })).data?.createTask;
+	await gql(owner, `mutation($s: String!, $t: ID!) { addComment(slug: $s, taskId: $t, text: "Ready for review") { id } }`, { s: slug, t: task.id });
+	for (const who of [member, sam]) {
+		const notes = (await gql(who, `query($s: String!) { workspace(slug: $s) { notifications { type } } }`, { s: slug })).data?.workspace.notifications as { type: string }[];
+		assert.ok(notes.some((n) => n.type === "comment"), "both assignees hear about the comment");
+	}
+});
