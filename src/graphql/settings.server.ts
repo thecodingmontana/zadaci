@@ -117,7 +117,6 @@ export const settingsTypeDefs = /* GraphQL */ `
 		updatePreferences(patch: JSON!): JSON!
 		updateWorkspace(slug: String!, input: WorkspaceInput!): Workspace!
 		deleteWorkspace(slug: String!): Boolean!
-		workspaceLogoUpload(slug: String!): CloudinaryUpload!
 		setWorkspaceImage(slug: String!, imageUrl: String): Workspace!
 		inviteMembers(
 			slug: String!
@@ -497,35 +496,6 @@ export const settingsResolvers = {
 				})
 				.where(eq(tables.workspace.id, workspace.id));
 			return true;
-		},
-
-		workspaceLogoUpload: async (
-			_: unknown,
-			args: { slug: string },
-			ctx: GraphQLContext,
-		) => {
-			const { workspace } = await requireWorkspace(
-				ctx,
-				args.slug,
-				"workspaceSettings",
-			);
-			const { cloud, key, secret } = cloudinary();
-			const params = {
-				folder: "zadaci/workspaces",
-				public_id: workspace.id,
-				overwrite: "true",
-				invalidate: "true",
-				allowed_formats: "png,jpg,jpeg,webp,gif",
-				timestamp: Math.floor(Date.now() / 1000),
-			};
-			return {
-				url: `https://api.cloudinary.com/v1_1/${cloud}/image/upload`,
-				apiKey: key,
-				timestamp: params.timestamp,
-				signature: signCloudinary(params, secret),
-				publicId: workspace.id,
-				folder: params.folder,
-			};
 		},
 
 		setWorkspaceImage: async (

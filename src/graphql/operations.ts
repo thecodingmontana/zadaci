@@ -469,31 +469,6 @@ export const DELETE_WORKSPACE: TypedDocumentNode<
 	}
 `;
 
-export const WORKSPACE_LOGO_UPLOAD: TypedDocumentNode<
-	{
-		workspaceLogoUpload: {
-			url: string;
-			apiKey: string;
-			timestamp: number;
-			signature: string;
-			publicId: string;
-			folder: string;
-		};
-	},
-	{ slug: string }
-> = gql`
-	mutation WorkspaceLogoUpload($slug: String!) {
-		workspaceLogoUpload(slug: $slug) {
-			url
-			apiKey
-			timestamp
-			signature
-			publicId
-			folder
-		}
-	}
-`;
-
 export const SET_WORKSPACE_IMAGE: TypedDocumentNode<
 	{ setWorkspaceImage: { id: string } },
 	{ slug: string; imageUrl: string | null }
