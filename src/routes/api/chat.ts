@@ -200,21 +200,26 @@ export const Route = createFileRoute("/api/chat")({
 				// with the account out of free requests, nothing is tried
 				let answered = false;
 				const stream = (async function* () {
-					if (models)
-						for await (const chunk of rotate(models, {
-							start,
-							// cooldowns and stats are about OpenRouter's free models only
-							onFailure: (m, f) =>
-								viaRouter ? recordFailure(m, f, !!own) : undefined,
-							onSuccess: (m, info) => {
-								answered = true;
-								return viaRouter ? recordSuccess(m, info) : undefined;
-							},
-						}))
-							yield own ? ownKeyError(chunk, own) : chunk;
-					else yield giveUp("account_limit");
-					// a message no model answered doesn't use up the day's allowance
-					if (counted && !answered) await refundMessage(session.user.id, today);
+					try {
+						if (models)
+							for await (const chunk of rotate(models, {
+								start,
+								// cooldowns and stats are about OpenRouter's free models only
+								onFailure: (m, f) =>
+									viaRouter ? recordFailure(m, f, !!own) : undefined,
+								onSuccess: (m, info) => {
+									answered = true;
+									return viaRouter ? recordSuccess(m, info) : undefined;
+								},
+							}))
+								yield own ? ownKeyError(chunk, own) : chunk;
+						else yield giveUp("account_limit");
+					} finally {
+						// a message no model answered doesn't use up the day's allowance, even when
+						// the person closed the panel while it was still trying
+						if (counted && !answered)
+							await refundMessage(session.user.id, today);
+					}
 				})();
 				return toServerSentEventsResponse(
 					stream as Parameters<typeof toServerSentEventsResponse>[0],
