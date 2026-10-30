@@ -16,7 +16,7 @@ export type GitHubPr = {
 };
 
 export const PROJECT_GITHUB: TypedDocumentNode<
-	{ projectGitHub: ProjectGitHub | null },
+	{ projectGitHub: ProjectGitHub | null; githubConnectReady: boolean },
 	{ slug: string; projectId: string }
 > = gql`
 	query ProjectGitHub($slug: String!, $projectId: ID!) {
@@ -25,6 +25,7 @@ export const PROJECT_GITHUB: TypedDocumentNode<
 			webhookUrl
 			secret
 		}
+		githubConnectReady
 	}
 `;
 

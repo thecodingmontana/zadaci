@@ -62,7 +62,8 @@ function Privacy() {
 				reads in Zadaci goes to that agent and the AI service behind it, under
 				their terms. When you link a GitHub repo, GitHub sends us its pull
 				requests' titles, descriptions and branch names; we keep only those that
-				mention a task.
+				mention a task. If you use Connect with GitHub, GitHub gives us a token
+				that we use once to add the repo's webhook, then forget.
 			</p>
 
 			<h2>Cookies</h2>

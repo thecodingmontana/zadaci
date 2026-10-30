@@ -2,7 +2,8 @@ import { asc, eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
 import { MCP_RESOURCE } from "#/lib/auth";
-import { githubSecret } from "#/lib/github.server";
+import { githubSecret, parseRepo } from "#/lib/github.server";
+import { githubConnectReady } from "#/lib/github-connect.server";
 import { requireProject } from "./projects.server";
 import { badInput, type GraphQLContext } from "./schema.server";
 
@@ -28,6 +29,8 @@ export const githubTypeDefs = /* GraphQL */ `
 	extend type Query {
 		"for people with full access to the project; null when it isn't linked"
 		projectGitHub(slug: String!, projectId: ID!): ProjectGitHub
+		"true when Connect with GitHub is set up on this server"
+		githubConnectReady: Boolean!
 	}
 
 	extend type Mutation {
@@ -41,7 +44,6 @@ export const githubTypeDefs = /* GraphQL */ `
 	}
 `;
 
-const REPO_RE = /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/;
 const shape = (projectId: string, repo: string, nonce: string) => ({
 	repo,
 	webhookUrl: `${new URL(MCP_RESOURCE).origin}/api/github/${projectId}`,
@@ -50,6 +52,7 @@ const shape = (projectId: string, repo: string, nonce: string) => ({
 
 export const githubResolvers = {
 	Query: {
+		githubConnectReady: () => githubConnectReady(),
 		projectGitHub: async (
 			_: unknown,
 			args: { slug: string; projectId: string },
@@ -77,12 +80,8 @@ export const githubResolvers = {
 				args.projectId,
 				{ right: "full" },
 			);
-			// accept a pasted URL too: https://github.com/owner/name(.git)
-			const repo = args.repo
-				.trim()
-				.replace(/^https?:\/\/github\.com\//i, "")
-				.replace(/\.git$|\/$/g, "");
-			if (!REPO_RE.test(repo))
+			const repo = parseRepo(args.repo);
+			if (!repo)
 				badInput("Enter the repo as owner/name, like octocat/hello-world");
 			const nonce = generateNanoId();
 			await db

@@ -43,6 +43,16 @@ import { cn } from "#/lib/utils";
 
 const TABS = PROJECT_PAGE_TABS.map((t) => t.tab);
 
+const GITHUB_RESULTS: Record<string, string> = {
+	connected:
+		"GitHub connected. Pull requests that mention a task now show on it.",
+	"no-access": "You need admin access to that repo, and it must exist.",
+	denied: "Only people with full access to the project can link a repo.",
+	"bad-repo": "Enter the repo as owner/name, like octocat/hello-world.",
+	cancelled: "GitHub wasn't approved, so nothing changed.",
+	failed: "GitHub didn't accept the webhook. Try again, or set it up by hand.",
+};
+
 export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 	validateSearch: z.object({
 		// a built-in view, or "v:<id>" for a saved view
@@ -50,6 +60,8 @@ export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 			.string()
 			.refine((t) => TABS.includes(t as never) || t.startsWith("v:"))
 			.optional(),
+		// back from "Connect with GitHub" (github-connect.server.ts)
+		github: z.string().max(20).optional(),
 	}),
 	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
@@ -91,7 +103,18 @@ export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 
 function ProjectPage() {
 	const { slug, projectId } = Route.useParams();
-	const { tab = "board" } = Route.useSearch();
+	const { tab = "board", github } = Route.useSearch();
+	const navigate = Route.useNavigate();
+	useEffect(() => {
+		if (!github) return;
+		const note = GITHUB_RESULTS[github] ?? GITHUB_RESULTS.failed;
+		if (github === "connected") toast.success(note);
+		else toast.error("Couldn't connect GitHub", { desc: note });
+		void navigate({
+			search: (s) => ({ ...s, github: undefined }),
+			replace: true,
+		});
+	}, [github, navigate]);
 	const { user } = Route.useRouteContext();
 	// custom permissions live in the workspace settings the shell already loaded
 	const settings = useQuery(SHELL, { variables: { slug } }).data?.workspace

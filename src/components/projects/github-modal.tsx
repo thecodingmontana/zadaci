@@ -32,9 +32,15 @@ export function GitHubModal({
 	const [disconnect] = useMutation(DISCONNECT_GITHUB, opts);
 	const [repo, setRepo] = useState("");
 	const link = data?.projectGitHub;
+	const ready = !!data?.githubConnectReady;
 
 	async function submit(e: FormEvent) {
 		e.preventDefault();
+		// GitHub asks them to approve, then we add the webhook (github-connect.server.ts)
+		if (ready) {
+			location.href = `/api/github/connect?${new URLSearchParams({ slug, projectId, repo })}`;
+			return;
+		}
 		try {
 			await connect({ variables: { ...vars, repo } });
 			setRepo("");
@@ -61,6 +67,18 @@ export function GitHubModal({
 				Copy
 			</button>
 		</div>
+	);
+
+	const manual = link && (
+		<>
+			<p style={{ fontSize: 13 }}>
+				On GitHub, open the repo's <b>Settings → Webhooks → Add webhook</b>,
+				paste these, set the content type to <code>application/json</code>, and
+				pick <b>Let me select individual events → Pull requests</b>.
+			</p>
+			{copyRow("Payload URL", link.webhookUrl)}
+			{copyRow("Secret", link.secret)}
+		</>
 	);
 
 	return (
@@ -108,17 +126,30 @@ export function GitHubModal({
 								Unlink
 							</button>
 						</div>
-						<p style={{ fontSize: 13 }}>
-							On GitHub, open the repo's{" "}
-							<b>Settings → Webhooks → Add webhook</b>, paste these, set the
-							content type to <code>application/json</code>, and pick{" "}
-							<b>Let me select individual events → Pull requests</b>.
-						</p>
-						{copyRow("Payload URL", link.webhookUrl)}
-						{copyRow("Secret", link.secret)}
+						{ready ? (
+							<details style={{ fontSize: 13 }}>
+								<summary className="faint" style={{ cursor: "pointer" }}>
+									Set it up by hand
+								</summary>
+								<div
+									style={{
+										display: "flex",
+										flexDirection: "column",
+										gap: 10,
+										marginTop: 10,
+									}}
+								>
+									{manual}
+								</div>
+							</details>
+						) : (
+							manual
+						)}
 						<p className="faint" style={{ fontSize: 12 }}>
 							Merges complete tasks as you (the person who linked the repo).
-							Linking again makes a new secret.
+							{ready
+								? " Unlinking stops updates; remove the webhook in the repo's settings too."
+								: " Linking again makes a new secret."}
 						</p>
 					</>
 				) : (
@@ -143,7 +174,7 @@ export function GitHubModal({
 								className="icon-[simple-icons--github] size-4"
 								aria-hidden="true"
 							/>
-							Link repo
+							{ready ? "Connect with GitHub" : "Link repo"}
 						</button>
 					</form>
 				)}

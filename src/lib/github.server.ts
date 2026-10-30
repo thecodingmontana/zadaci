@@ -16,6 +16,15 @@ export const githubSecret = (projectId: string, nonce: string) =>
 		.update(`github:${projectId}:${nonce}`)
 		.digest("hex");
 
+/** "owner/name" from what someone typed or pasted (https://github.com/owner/name.git too), or null. */
+export function parseRepo(input: string) {
+	const repo = input
+		.trim()
+		.replace(/^https?:\/\/github\.com\//i, "")
+		.replace(/\.git$|\/$/g, "");
+	return /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/.test(repo) ? repo : null;
+}
+
 /** GitHub's X-Hub-Signature-256 for this body and secret, compared in constant time. */
 export function signedByGitHub(
 	body: string,
@@ -35,7 +44,10 @@ export function taskNumbers(
 	key: string,
 	...texts: (string | null | undefined)[]
 ) {
-	const re = new RegExp(`(?<![A-Za-z0-9])${key}-(\\d{1,6})(?![A-Za-z0-9])`, "gi");
+	const re = new RegExp(
+		`(?<![A-Za-z0-9])${key}-(\\d{1,6})(?![A-Za-z0-9])`,
+		"gi",
+	);
 	const found = new Set<number>();
 	for (const t of texts)
 		for (const m of (t ?? "").matchAll(re)) found.add(Number(m[1]));

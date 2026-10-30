@@ -38,6 +38,8 @@ import { Route as ApiAiModelsRouteImport } from './routes/api/ai/models'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronDailyRouteImport } from './routes/api/cron/daily'
 import { Route as ApiGithubProjectIdRouteImport } from './routes/api/github/$projectId'
+import { Route as ApiGithubCallbackRouteImport } from './routes/api/github/callback'
+import { Route as ApiGithubConnectRouteImport } from './routes/api/github/connect'
 import { Route as ApiUploadImageRouteImport } from './routes/api/upload/image'
 import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor/index'
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
@@ -212,6 +214,16 @@ const ApiGithubProjectIdRoute = ApiGithubProjectIdRouteImport.update({
   path: '/api/github/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGithubCallbackRoute = ApiGithubCallbackRouteImport.update({
+  id: '/api/github/callback',
+  path: '/api/github/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGithubConnectRoute = ApiGithubConnectRouteImport.update({
+  id: '/api/github/connect',
+  path: '/api/github/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiUploadImageRoute = ApiUploadImageRouteImport.update({
   id: '/api/upload/image',
   path: '/api/upload/image',
@@ -363,6 +375,8 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/api/github/$projectId': typeof ApiGithubProjectIdRoute
+  '/api/github/callback': typeof ApiGithubCallbackRoute
+  '/api/github/connect': typeof ApiGithubConnectRoute
   '/api/upload/image': typeof ApiUploadImageRoute
   '/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
@@ -416,6 +430,8 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/api/github/$projectId': typeof ApiGithubProjectIdRoute
+  '/api/github/callback': typeof ApiGithubCallbackRoute
+  '/api/github/connect': typeof ApiGithubConnectRoute
   '/api/upload/image': typeof ApiUploadImageRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
@@ -472,6 +488,8 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/api/github/$projectId': typeof ApiGithubProjectIdRoute
+  '/api/github/callback': typeof ApiGithubCallbackRoute
+  '/api/github/connect': typeof ApiGithubConnectRoute
   '/api/upload/image': typeof ApiUploadImageRoute
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
@@ -528,6 +546,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/api/github/$projectId'
+    | '/api/github/callback'
+    | '/api/github/connect'
     | '/api/upload/image'
     | '/workspace/'
     | '/auth/two-factor/'
@@ -581,6 +601,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/api/github/$projectId'
+    | '/api/github/callback'
+    | '/api/github/connect'
     | '/api/upload/image'
     | '/workspace'
     | '/auth/two-factor'
@@ -636,6 +658,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/api/github/$projectId'
+    | '/api/github/callback'
+    | '/api/github/connect'
     | '/api/upload/image'
     | '/_authed/workspace/'
     | '/auth/two-factor/'
@@ -686,6 +710,8 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronDailyRoute: typeof ApiCronDailyRoute
   ApiGithubProjectIdRoute: typeof ApiGithubProjectIdRoute
+  ApiGithubCallbackRoute: typeof ApiGithubCallbackRoute
+  ApiGithubConnectRoute: typeof ApiGithubConnectRoute
   ApiUploadImageRoute: typeof ApiUploadImageRoute
   AuthTwoFactorIndexRoute: typeof AuthTwoFactorIndexRoute
 }
@@ -893,6 +919,20 @@ declare module '@tanstack/react-router' {
       path: '/api/github/$projectId'
       fullPath: '/api/github/$projectId'
       preLoaderRoute: typeof ApiGithubProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/github/callback': {
+      id: '/api/github/callback'
+      path: '/api/github/callback'
+      fullPath: '/api/github/callback'
+      preLoaderRoute: typeof ApiGithubCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/github/connect': {
+      id: '/api/github/connect'
+      path: '/api/github/connect'
+      fullPath: '/api/github/connect'
+      preLoaderRoute: typeof ApiGithubConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/upload/image': {
@@ -1194,6 +1234,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronDailyRoute: ApiCronDailyRoute,
   ApiGithubProjectIdRoute: ApiGithubProjectIdRoute,
+  ApiGithubCallbackRoute: ApiGithubCallbackRoute,
+  ApiGithubConnectRoute: ApiGithubConnectRoute,
   ApiUploadImageRoute: ApiUploadImageRoute,
   AuthTwoFactorIndexRoute: AuthTwoFactorIndexRoute,
 }
