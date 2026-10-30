@@ -318,12 +318,19 @@ export function GitHubModal({
 							</button>
 						</div>
 						{account ? byHand(manual) : manual}
-						<p className="faint" style={{ fontSize: 12 }}>
-							Merges complete tasks as you (the person who linked the repo).
-							{account
-								? " Unlinking removes the webhook from the repo too."
-								: " Linking again makes a new secret."}
-						</p>
+						{link.mergesAs ? (
+							<p className="faint" style={{ fontSize: 12 }}>
+								Merges complete tasks as {link.mergesAs}, who linked the repo.
+								{account
+									? " Unlinking removes the webhook from the repo too."
+									: " Linking again makes a new secret."}
+							</p>
+						) : (
+							<p style={{ fontSize: 12, color: "var(--q-red)" }}>
+								Whoever linked this repo has left, so merges can't complete
+								tasks. Unlink it and link it again to complete them as you.
+							</p>
+						)}
 					</>
 				) : (
 					notLinked()

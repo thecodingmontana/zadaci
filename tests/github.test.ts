@@ -72,3 +72,23 @@ test("github: a linked repo's PRs show on the tasks they mention, and merging co
 	assert.notEqual(again.secret, link.secret);
 	assert.equal((await deliver(project.id, link.secret, "pull_request", opened)).status, 401);
 });
+
+test("github: the window says who merges complete tasks as, and when that person has left", async () => {
+	const owner = await makeUser("gh2-owner", false);
+	const admin = await makeUser("gh2-admin", false);
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	await join(admin, inviteCode);
+	const members = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug })).data?.workspace.members;
+	const adminId = members.find((m: { isMe: boolean }) => !m.isMe).id;
+	await gql(owner, `mutation($s: String!, $m: ID!) { updateMemberRole(slug: $s, memberId: $m, role: "moderator") { id } }`, { s: slug, m: adminId });
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
+
+	const linked = await gql(admin, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "acme/shop") { mergesAs } }`, { s: slug, p: project.id });
+	assert.equal(linked.data?.connectGitHub.mergesAs, "gh2-admin");
+	const LINK = `query($s: String!, $p: ID!) { projectGitHub(slug: $s, projectId: $p) { mergesAs } }`;
+	assert.equal((await gql(owner, LINK, { s: slug, p: project.id })).data?.projectGitHub.mergesAs, "gh2-admin");
+
+	// they leave: merges can't complete tasks as them any more, and the window says so
+	await gql(owner, `mutation($s: String!, $m: ID!) { removeMember(slug: $s, memberId: $m) }`, { s: slug, m: adminId });
+	assert.equal((await gql(owner, LINK, { s: slug, p: project.id })).data?.projectGitHub.mergesAs, null);
+});

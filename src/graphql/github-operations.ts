@@ -6,6 +6,8 @@ export type ProjectGitHub = {
 	repo: string;
 	webhookUrl: string;
 	secret: string;
+	/** whoever linked the repo, while they're still in the workspace */
+	mergesAs: string | null;
 };
 export type GitHubPr = {
 	repo: string;
@@ -28,6 +30,7 @@ export const PROJECT_GITHUB: TypedDocumentNode<
 			repo
 			webhookUrl
 			secret
+			mergesAs
 		}
 		githubConnectReady
 		githubAccount {
@@ -46,6 +49,7 @@ export const CONNECT_GITHUB: TypedDocumentNode<
 			repo
 			webhookUrl
 			secret
+			mergesAs
 		}
 	}
 `;

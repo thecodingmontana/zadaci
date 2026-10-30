@@ -164,7 +164,7 @@ export async function githubWebhook(projectId: string, request: Request) {
 	// person who connected the repo, with their rights
 	let completed = 0;
 	const open = tasks.filter((t) => t.status !== STATUS.COMPLETED);
-	if (merged && open.length && link.connectedBy) {
+	if (merged && open.length) {
 		const [who] = await db
 			.select({
 				id: tables.user.id,
@@ -172,7 +172,12 @@ export async function githubWebhook(projectId: string, request: Request) {
 				name: tables.user.name,
 			})
 			.from(tables.user)
-			.where(eq(tables.user.id, link.connectedBy));
+			.where(eq(tables.user.id, link.connectedBy ?? ""));
+		// the window shows this too (projectGitHub.mergesAs); here it's for whoever reads the logs
+		if (!who)
+			console.error(
+				`[github] project ${projectId}: merged #${pr.number}, but whoever linked the repo is gone`,
+			);
 		if (who) {
 			const ctx = {
 				user: who,
@@ -188,6 +193,10 @@ export async function githubWebhook(projectId: string, request: Request) {
 					{ id: t.id },
 				);
 				if ("data" in res) completed++;
+				else
+					console.error(
+						`[github] project ${projectId}: couldn't complete task ${t.id} for #${pr.number}: ${res.error}`,
+					);
 			}
 		}
 	}

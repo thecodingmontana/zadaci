@@ -22,6 +22,8 @@ export const githubTypeDefs = /* GraphQL */ `
 		repo: String!
 		webhookUrl: String!
 		secret: String!
+		"who merged pull requests complete tasks as: whoever linked the repo; null once they've left the workspace or deleted their account"
+		mergesAs: String
 	}
 
 	"your GitHub account, connected in Settings → Connected apps"
@@ -73,6 +75,27 @@ export const githubTypeDefs = /* GraphQL */ `
 	}
 `;
 
+/** The linker's name while they're still in the project's workspace (merges run as them). */
+async function mergesAs(userId: string | null, workspaceId: string) {
+	if (!userId) return null;
+	const [who] = await db
+		.select({ name: tables.user.name })
+		.from(tables.workspace_members)
+		.innerJoin(
+			tables.user,
+			eq(tables.user.id, tables.workspace_members.user_id),
+		)
+		.where(
+			and(
+				eq(tables.workspace_members.user_id, userId),
+				eq(tables.workspace_members.workspace_id, workspaceId),
+				// removing someone keeps their row, marked deleted
+				isNull(tables.workspace_members.deleted_at),
+			),
+		);
+	return who?.name ?? null;
+}
+
 const shape = (projectId: string, repo: string, nonce: string) => ({
 	repo,
 	webhookUrl: webhookUrl(projectId),
@@ -102,7 +125,12 @@ export const githubResolvers = {
 				.select()
 				.from(tables.project_github)
 				.where(eq(tables.project_github.project_id, project.id));
-			return link ? shape(project.id, link.repo, link.nonce) : null;
+			return link
+				? {
+						...shape(project.id, link.repo, link.nonce),
+						mergesAs: await mergesAs(link.connected_by, project.workspace_id),
+					}
+				: null;
 		},
 	},
 	Mutation: {
@@ -132,7 +160,7 @@ export const githubResolvers = {
 					target: tables.project_github.project_id,
 					set: { repo, nonce, connected_by: user.id, created_at: new Date() },
 				});
-			const link = shape(project.id, repo, nonce);
+			const link = { ...shape(project.id, repo, nonce), mergesAs: user.name };
 			const account = await githubAccount(user.id);
 			if (!account) return link;
 			const added = await addWebhook(
