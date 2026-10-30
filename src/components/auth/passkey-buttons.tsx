@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
-import { takeNext } from "#/lib/next-path";
+import { goNext } from "#/lib/next-path";
 import { toast } from "#/lib/toast";
 
 // Closing the browser's passkey prompt isn't an error worth a toast.
@@ -35,7 +35,7 @@ export function PasskeySignInButton({
 			onClick={async () => {
 				setBusy(true);
 				const { error } = await authClient.signIn.passkey();
-				if (!error) return navigate({ href: takeNext() });
+				if (!error) return goNext(navigate);
 				setBusy(false);
 				if (!("code" in error && CANCELLED.has(error.code)))
 					toast.error("Passkey sign-in failed", { desc: error.message });

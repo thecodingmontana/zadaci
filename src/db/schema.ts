@@ -7,6 +7,7 @@ export * from "./enums";
 export * from "./favorite";
 export * from "./jobs";
 export * from "./note";
+export * from "./oauth";
 export * from "./project";
 export * from "./tags";
 export * from "./team";

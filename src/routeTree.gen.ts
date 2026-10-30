@@ -15,13 +15,19 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as DotwellKnownOauthAuthorizationServerRouteImport } from './routes/[.]well-known/oauth-authorization-server'
+import { Route as DotwellKnownOauthProtectedResourceRouteImport } from './routes/[.]well-known/oauth-protected-resource'
 import { Route as DotwellKnownOpenidConfigurationRouteImport } from './routes/[.]well-known/openid-configuration'
 import { Route as AuthedOnboardingRouteImport } from './routes/_authed/onboarding'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiGraphqlRouteImport } from './routes/api/graphql'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
+import { Route as OauthConsentRouteImport } from './routes/oauth/consent'
+import { Route as OauthSigninRouteImport } from './routes/oauth/signin'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as DotwellKnownOauthAuthorizationServerSplatRouteImport } from './routes/[.]well-known/oauth-authorization-server.$'
+import { Route as DotwellKnownOauthProtectedResourceSplatRouteImport } from './routes/[.]well-known/oauth-protected-resource.$'
 import { Route as AuthedJoinCodeRouteImport } from './routes/_authed/join.$code'
 import { Route as AuthedSaveSlugRouteImport } from './routes/_authed/save.$slug'
 import { Route as AuthedWSlugRouteImport } from './routes/_authed/w/$slug'
@@ -84,6 +90,18 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOauthAuthorizationServerRoute =
+  DotwellKnownOauthAuthorizationServerRouteImport.update({
+    id: '/.well-known/oauth-authorization-server',
+    path: '/.well-known/oauth-authorization-server',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownOauthProtectedResourceRoute =
+  DotwellKnownOauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DotwellKnownOpenidConfigurationRoute =
   DotwellKnownOpenidConfigurationRouteImport.update({
     id: '/.well-known/openid-configuration',
@@ -115,11 +133,33 @@ const AuthSigninRoute = AuthSigninRouteImport.update({
   path: '/auth/signin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OauthConsentRoute = OauthConsentRouteImport.update({
+  id: '/oauth/consent',
+  path: '/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OauthSigninRoute = OauthSigninRouteImport.update({
+  id: '/oauth/signin',
+  path: '/oauth/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const STokenRoute = STokenRouteImport.update({
   id: '/s/$token',
   path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOauthAuthorizationServerSplatRoute =
+  DotwellKnownOauthAuthorizationServerSplatRouteImport.update({
+    id: '/$',
+    path: '/$',
+    getParentRoute: () => DotwellKnownOauthAuthorizationServerRoute,
+  } as any)
+const DotwellKnownOauthProtectedResourceSplatRoute =
+  DotwellKnownOauthProtectedResourceSplatRouteImport.update({
+    id: '/$',
+    path: '/$',
+    getParentRoute: () => DotwellKnownOauthProtectedResourceRoute,
+  } as any)
 const AuthedJoinCodeRoute = AuthedJoinCodeRouteImport.update({
   id: '/join/$code',
   path: '/join/$code',
@@ -289,13 +329,19 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRouteWithChildren
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/oauth/consent': typeof OauthConsentRoute
+  '/oauth/signin': typeof OauthSigninRoute
   '/s/$token': typeof STokenRoute
+  '/.well-known/oauth-authorization-server/$': typeof DotwellKnownOauthAuthorizationServerSplatRoute
+  '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
   '/join/$code': typeof AuthedJoinCodeRoute
   '/save/$slug': typeof AuthedSaveSlugRoute
   '/w/$slug': typeof AuthedWSlugRouteWithChildren
@@ -335,13 +381,19 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRouteWithChildren
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/oauth/consent': typeof OauthConsentRoute
+  '/oauth/signin': typeof OauthSigninRoute
   '/s/$token': typeof STokenRoute
+  '/.well-known/oauth-authorization-server/$': typeof DotwellKnownOauthAuthorizationServerSplatRoute
+  '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
   '/join/$code': typeof AuthedJoinCodeRoute
   '/save/$slug': typeof AuthedSaveSlugRoute
   '/api/account/export': typeof ApiAccountExportRoute
@@ -382,13 +434,19 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRouteWithChildren
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/_authed/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/oauth/consent': typeof OauthConsentRoute
+  '/oauth/signin': typeof OauthSigninRoute
   '/s/$token': typeof STokenRoute
+  '/.well-known/oauth-authorization-server/$': typeof DotwellKnownOauthAuthorizationServerSplatRoute
+  '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
   '/_authed/join/$code': typeof AuthedJoinCodeRoute
   '/_authed/save/$slug': typeof AuthedSaveSlugRoute
   '/_authed/w/$slug': typeof AuthedWSlugRouteWithChildren
@@ -430,13 +488,19 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/.well-known/oauth-authorization-server'
+    | '/.well-known/oauth-protected-resource'
     | '/.well-known/openid-configuration'
     | '/onboarding'
     | '/api/chat'
     | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
+    | '/oauth/consent'
+    | '/oauth/signin'
     | '/s/$token'
+    | '/.well-known/oauth-authorization-server/$'
+    | '/.well-known/oauth-protected-resource/$'
     | '/join/$code'
     | '/save/$slug'
     | '/w/$slug'
@@ -476,13 +540,19 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/.well-known/oauth-authorization-server'
+    | '/.well-known/oauth-protected-resource'
     | '/.well-known/openid-configuration'
     | '/onboarding'
     | '/api/chat'
     | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
+    | '/oauth/consent'
+    | '/oauth/signin'
     | '/s/$token'
+    | '/.well-known/oauth-authorization-server/$'
+    | '/.well-known/oauth-protected-resource/$'
     | '/join/$code'
     | '/save/$slug'
     | '/api/account/export'
@@ -522,13 +592,19 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/.well-known/oauth-authorization-server'
+    | '/.well-known/oauth-protected-resource'
     | '/.well-known/openid-configuration'
     | '/_authed/onboarding'
     | '/api/chat'
     | '/api/client-error'
     | '/api/graphql'
     | '/auth/signin'
+    | '/oauth/consent'
+    | '/oauth/signin'
     | '/s/$token'
+    | '/.well-known/oauth-authorization-server/$'
+    | '/.well-known/oauth-protected-resource/$'
     | '/_authed/join/$code'
     | '/_authed/save/$slug'
     | '/_authed/w/$slug'
@@ -570,11 +646,15 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  DotwellKnownOauthAuthorizationServerRoute: typeof DotwellKnownOauthAuthorizationServerRouteWithChildren
+  DotwellKnownOauthProtectedResourceRoute: typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   DotwellKnownOpenidConfigurationRoute: typeof DotwellKnownOpenidConfigurationRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiGraphqlRoute: typeof ApiGraphqlRoute
   AuthSigninRoute: typeof AuthSigninRoute
+  OauthConsentRoute: typeof OauthConsentRoute
+  OauthSigninRoute: typeof OauthSigninRoute
   STokenRoute: typeof STokenRoute
   ApiAccountExportRoute: typeof ApiAccountExportRoute
   ApiAiModelsRoute: typeof ApiAiModelsRoute
@@ -628,6 +708,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-authorization-server': {
+      id: '/.well-known/oauth-authorization-server'
+      path: '/.well-known/oauth-authorization-server'
+      fullPath: '/.well-known/oauth-authorization-server'
+      preLoaderRoute: typeof DotwellKnownOauthAuthorizationServerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof DotwellKnownOauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.well-known/openid-configuration': {
       id: '/.well-known/openid-configuration'
       path: '/.well-known/openid-configuration'
@@ -670,12 +764,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSigninRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oauth/consent': {
+      id: '/oauth/consent'
+      path: '/oauth/consent'
+      fullPath: '/oauth/consent'
+      preLoaderRoute: typeof OauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth/signin': {
+      id: '/oauth/signin'
+      path: '/oauth/signin'
+      fullPath: '/oauth/signin'
+      preLoaderRoute: typeof OauthSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/s/$token': {
       id: '/s/$token'
       path: '/s/$token'
       fullPath: '/s/$token'
       preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-authorization-server/$': {
+      id: '/.well-known/oauth-authorization-server/$'
+      path: '/$'
+      fullPath: '/.well-known/oauth-authorization-server/$'
+      preLoaderRoute: typeof DotwellKnownOauthAuthorizationServerSplatRouteImport
+      parentRoute: typeof DotwellKnownOauthAuthorizationServerRoute
+    }
+    '/.well-known/oauth-protected-resource/$': {
+      id: '/.well-known/oauth-protected-resource/$'
+      path: '/$'
+      fullPath: '/.well-known/oauth-protected-resource/$'
+      preLoaderRoute: typeof DotwellKnownOauthProtectedResourceSplatRouteImport
+      parentRoute: typeof DotwellKnownOauthProtectedResourceRoute
     }
     '/_authed/join/$code': {
       id: '/_authed/join/$code'
@@ -977,6 +1099,36 @@ const AuthedRouteChildren: AuthedRouteChildren = {
 const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
+interface DotwellKnownOauthAuthorizationServerRouteChildren {
+  DotwellKnownOauthAuthorizationServerSplatRoute: typeof DotwellKnownOauthAuthorizationServerSplatRoute
+}
+
+const DotwellKnownOauthAuthorizationServerRouteChildren: DotwellKnownOauthAuthorizationServerRouteChildren =
+  {
+    DotwellKnownOauthAuthorizationServerSplatRoute:
+      DotwellKnownOauthAuthorizationServerSplatRoute,
+  }
+
+const DotwellKnownOauthAuthorizationServerRouteWithChildren =
+  DotwellKnownOauthAuthorizationServerRoute._addFileChildren(
+    DotwellKnownOauthAuthorizationServerRouteChildren,
+  )
+
+interface DotwellKnownOauthProtectedResourceRouteChildren {
+  DotwellKnownOauthProtectedResourceSplatRoute: typeof DotwellKnownOauthProtectedResourceSplatRoute
+}
+
+const DotwellKnownOauthProtectedResourceRouteChildren: DotwellKnownOauthProtectedResourceRouteChildren =
+  {
+    DotwellKnownOauthProtectedResourceSplatRoute:
+      DotwellKnownOauthProtectedResourceSplatRoute,
+  }
+
+const DotwellKnownOauthProtectedResourceRouteWithChildren =
+  DotwellKnownOauthProtectedResourceRoute._addFileChildren(
+    DotwellKnownOauthProtectedResourceRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
@@ -984,11 +1136,17 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  DotwellKnownOauthAuthorizationServerRoute:
+    DotwellKnownOauthAuthorizationServerRouteWithChildren,
+  DotwellKnownOauthProtectedResourceRoute:
+    DotwellKnownOauthProtectedResourceRouteWithChildren,
   DotwellKnownOpenidConfigurationRoute: DotwellKnownOpenidConfigurationRoute,
   ApiChatRoute: ApiChatRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
   ApiGraphqlRoute: ApiGraphqlRoute,
   AuthSigninRoute: AuthSigninRoute,
+  OauthConsentRoute: OauthConsentRoute,
+  OauthSigninRoute: OauthSigninRoute,
   STokenRoute: STokenRoute,
   ApiAccountExportRoute: ApiAccountExportRoute,
   ApiAiModelsRoute: ApiAiModelsRoute,

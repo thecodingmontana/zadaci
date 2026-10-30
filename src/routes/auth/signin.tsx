@@ -5,7 +5,7 @@ import { AuthShell } from "#/components/auth/auth-shell";
 import { PasskeySignInButton } from "#/components/auth/passkey-buttons";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
-import { rememberNext, safePath } from "#/lib/next-path";
+import { isServerPath, rememberNext, safePath } from "#/lib/next-path";
 import { NOINDEX } from "#/lib/seo";
 import { getSession } from "#/lib/session";
 import { toast } from "#/lib/toast";
@@ -15,9 +15,11 @@ export const Route = createFileRoute("/auth/signin")({
 		error: z.string().optional(),
 		redirect: z.string().optional(),
 	}),
-	beforeLoad: async () => {
-		const session = await getSession();
-		if (session) throw redirect({ to: "/workspace" });
+	// already signed in: straight on (an AI agent's approval is a server address, so a full load)
+	beforeLoad: async ({ search }) => {
+		if (!(await getSession())) return;
+		const to = safePath(search.redirect) ?? "/workspace";
+		throw redirect({ href: to, reloadDocument: isServerPath(to) });
 	},
 	head: () => ({ meta: [{ title: "Sign in - Zadaci" }, NOINDEX] }),
 	component: SignIn,

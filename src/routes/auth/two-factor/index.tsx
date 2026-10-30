@@ -6,7 +6,7 @@ import { PasskeySignInButton } from "#/components/auth/passkey-buttons";
 import { TotpInput } from "#/components/auth/totp-input";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
-import { takeNext } from "#/lib/next-path";
+import { goNext } from "#/lib/next-path";
 import { NOINDEX } from "#/lib/seo";
 import { getSession } from "#/lib/session";
 import { toast } from "#/lib/toast";
@@ -42,7 +42,7 @@ function VerifyTwoFactor() {
 						code: value.trim(),
 						trustDevice,
 					});
-		if (!error) return navigate({ href: takeNext() });
+		if (!error) return goNext(navigate);
 
 		setIsVerifying(false);
 		setCode("");
