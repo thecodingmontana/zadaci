@@ -356,11 +356,33 @@ export function SessionsSection({ title }: { title: string }) {
 // Claude Code's one-liner; other MCP clients take the same address
 const MCP_URL = () => `${window.location.origin}/api/mcp`;
 
+// the app's own logo when we know it by name: colour logos where they're square, simple-icons
+// marks where the colour one is a wide wordmark (written out in full so Tailwind generates them)
+const BRANDS: [RegExp, string][] = [
+	[/claude|anthropic/i, "icon-[logos--claude-icon]"],
+	[/cursor/i, "icon-[simple-icons--cursor]"],
+	[/copilot/i, "icon-[logos--github-copilot]"],
+	[/vs ?code|visual studio code/i, "icon-[logos--visual-studio-code]"],
+	[/codex|openai|chatgpt/i, "icon-[logos--openai-icon]"],
+	[/gemini/i, "icon-[simple-icons--googlegemini]"],
+	[/cline/i, "icon-[simple-icons--cline]"],
+	[/jetbrains|intellij|webstorm/i, "icon-[logos--jetbrains]"],
+	[/perplexity/i, "icon-[logos--perplexity-icon]"],
+	[/mistral/i, "icon-[logos--mistral-ai-icon]"],
+	[/replit/i, "icon-[logos--replit-icon]"],
+	[/windsurf|codeium/i, "icon-[simple-icons--windsurf]"],
+	[/\bzed\b/i, "icon-[simple-icons--zedindustries]"],
+];
+const brandIcon = (name: string) =>
+	BRANDS.find(([re]) => re.test(name))?.[1] ??
+	"icon-[solar--plug-circle-linear]";
+
 type Consent = { id: string; clientId: string; createdAt: string };
 
 /** AI agents (Claude Code, Cursor…) you let use Zadaci as you, through its MCP server. */
 function ConnectedApps() {
 	const [apps, setApps] = useState<(Consent & { name: string })[] | null>(null);
+	const [refreshing, setRefreshing] = useState(false);
 	const load = useCallback(async () => {
 		const res = await fetch("/api/auth/oauth2/get-consents");
 		const list = res.ok ? ((await res.json()) as Consent[]) : [];
@@ -381,11 +403,37 @@ function ConnectedApps() {
 
 	return (
 		<>
-			<div style={{ marginTop: 36 }}>
-				<SettingsHeader
-					title="Connected apps"
-					lead="AI agents you let use Zadaci as you, with your role in each workspace. Disconnecting stops one at once."
-				/>
+			<div
+				className="row"
+				style={{ marginTop: 36, alignItems: "flex-start", gap: 12 }}
+			>
+				<div className="grow">
+					<SettingsHeader
+						title="Connected apps"
+						lead="AI agents you let use Zadaci as you, with your role in each workspace. Disconnecting stops one at once."
+					/>
+				</div>
+				{/* just connected an agent in another window: see it here without reloading the app */}
+				<button
+					type="button"
+					className="btn btn-secondary btn-sm"
+					disabled={refreshing}
+					aria-busy={refreshing}
+					onClick={async () => {
+						setRefreshing(true);
+						await load().catch(() => toast.error("Couldn't refresh the list"));
+						setRefreshing(false);
+					}}
+				>
+					<span
+						className={cn(
+							"icon-[solar--refresh-linear] size-3.5",
+							refreshing && "animate-spin",
+						)}
+						aria-hidden="true"
+					/>
+					Refresh
+				</button>
 			</div>
 			{apps === null ? (
 				<div className="srow">
@@ -404,7 +452,7 @@ function ConnectedApps() {
 						t={
 							<span className="row" style={{ gap: 8 }}>
 								<span
-									className="icon-[solar--plug-circle-linear] size-4 shrink-0"
+									className={cn(brandIcon(a.name), "size-4 shrink-0")}
 									aria-hidden="true"
 								/>
 								{a.name}
