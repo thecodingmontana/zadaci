@@ -1,6 +1,7 @@
 import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { GitHubModal } from "#/components/projects/github-modal";
 import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { ShareModal } from "#/components/projects/share-modal";
 import { ConfirmModal } from "#/components/q/confirm";
@@ -48,6 +49,8 @@ export function ProjectMenu({
 	const canEdit = hasRight(project.myAccess, "edit");
 	const canReorder = allowed("editProjects");
 	const [sharing, setSharing] = useState(false);
+	// linking a repo: only people with full access to the project
+	const [github, setGithub] = useState(false);
 	const navigate = useNavigate();
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
@@ -204,6 +207,14 @@ export function ProjectMenu({
 					>
 						Share
 					</MenuItem>
+					{hasRight(project.myAccess, "full") && (
+						<MenuItem
+							icon="icon-[simple-icons--github]"
+							onSelect={() => setGithub(true)}
+						>
+							GitHub
+						</MenuItem>
+					)}
 					<MenuItem
 						icon="icon-[solar--link-linear]"
 						onSelect={() =>
@@ -299,6 +310,14 @@ export function ProjectMenu({
 				slug={slug}
 				projectId={project.id}
 			/>
+			{github && (
+				<GitHubModal
+					open={github}
+					onOpenChange={setGithub}
+					slug={slug}
+					projectId={project.id}
+				/>
+			)}
 			<ShareModal
 				open={sharing}
 				onOpenChange={setSharing}

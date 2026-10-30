@@ -1640,6 +1640,14 @@ export type TaskAttachment = {
 
 export type TaskDetail = TaskItem & {
 	description: string | null;
+	/** pull requests that mention this task (from a linked GitHub repo) */
+	githubPrs: {
+		repo: string;
+		number: number;
+		title: string;
+		url: string;
+		state: string;
+	}[];
 	timeSpent: number;
 	myTimerStartedAt: string | null;
 	subtasks: TaskItem[];
@@ -1672,6 +1680,13 @@ export const TASK_DETAIL: TypedDocumentNode<
 				description
 				timeSpent
 				myTimerStartedAt
+				githubPrs {
+					repo
+					number
+					title
+					url
+					state
+				}
 				subtasks {
 					...TaskFields
 				}

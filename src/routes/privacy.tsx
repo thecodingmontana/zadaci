@@ -8,7 +8,7 @@ export const Route = createFileRoute("/privacy")({
 
 function Privacy() {
 	return (
-		<LegalPage title="Privacy Policy" updated="October 30, 2026">
+		<LegalPage title="Privacy Policy" updated="October 31, 2026">
 			<p>
 				This explains what Zadaci keeps about you, why, and what you can do
 				about it.
@@ -37,6 +37,10 @@ function Privacy() {
 					<b>Connected apps:</b> AI agents you connect (like Claude Code), what
 					you approved, and the short-lived sign-in tokens they use.
 				</li>
+				<li>
+					<b>GitHub:</b> for a project linked to a repo, the repo's name and the
+					title, number, link and state of pull requests that mention a task.
+				</li>
 			</ul>
 
 			<h2>Why</h2>
@@ -56,7 +60,9 @@ function Privacy() {
 				OpenRouter). Free AI models may log prompts, so don't share anything
 				sensitive with the assistant. When you connect an AI agent, what it
 				reads in Zadaci goes to that agent and the AI service behind it, under
-				their terms.
+				their terms. When you link a GitHub repo, GitHub sends us its pull
+				requests' titles, descriptions and branch names; we keep only those that
+				mention a task.
 			</p>
 
 			<h2>Cookies</h2>
@@ -74,6 +80,10 @@ function Privacy() {
 				<li>
 					Disconnect an AI agent in Settings → Sessions → Connected apps; it
 					stops at once.
+				</li>
+				<li>
+					Unlink a GitHub repo in the project's menu → GitHub; we stop accepting
+					its updates.
 				</li>
 				<li>
 					Download all your data, or delete your account, in Settings → Your

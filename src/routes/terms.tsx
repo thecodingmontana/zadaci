@@ -8,7 +8,7 @@ export const Route = createFileRoute("/terms")({
 
 function Terms() {
 	return (
-		<LegalPage title="Terms of Service" updated="October 30, 2026">
+		<LegalPage title="Terms of Service" updated="October 31, 2026">
 			<p>
 				These terms cover your use of Zadaci, a tool for planning projects,
 				tasks, notes and bookmarks with your team. By signing in you agree to
@@ -53,6 +53,8 @@ function Terms() {
 				you. An agent acts with your account and your role in each workspace,
 				and what it does counts as done by you, so connect only agents you trust
 				and check their work. You can disconnect one at any time in Settings.
+				If you link a GitHub repo to a project, merging a pull request that
+				mentions a task marks it done as you.
 			</p>
 
 			<h2>Acceptable use</h2>

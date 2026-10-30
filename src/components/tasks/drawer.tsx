@@ -448,6 +448,7 @@ function DrawerBody({
 				<Description t={t} editable={editable} />
 				{!t.parentId && <Subtasks t={t} editable={editable} onOpen={onOpen} />}
 				<Attachments t={t} editable={editable} />
+				{t.githubPrs?.length > 0 && <PullRequests prs={t.githubPrs} />}
 				<DrawerConversation t={t} activity={activity} />
 			</div>
 		</>
@@ -960,6 +961,46 @@ function Subtasks({
 }
 
 /** Files on the task, uploaded straight to Cloudinary with a signed request. */
+const PR_STATE: Record<string, [string, string]> = {
+	open: ["Open", "green"],
+	merged: ["Merged", "violet"],
+	closed: ["Closed", "red"],
+};
+
+/** Pull requests on GitHub that mention this task (from the project's linked repo). */
+function PullRequests({ prs }: { prs: TaskDetail["githubPrs"] }) {
+	return (
+		<div className="dsec">
+			<div className="dsec-h">
+				<h3>Pull requests</h3>
+			</div>
+			{prs.map((p) => {
+				const [label, tone] = PR_STATE[p.state] ?? ["Open", "green"];
+				return (
+					<a
+						key={`${p.repo}#${p.number}`}
+						href={p.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="row"
+						style={{ gap: 8, padding: "6px 0", alignItems: "center" }}
+					>
+						<span
+							className="icon-[simple-icons--github] size-4 shrink-0"
+							aria-hidden="true"
+						/>
+						<span className="trunc grow">{p.title}</span>
+						<span className="faint" style={{ fontSize: 12 }}>
+							#{p.number}
+						</span>
+						<span className={`badge ${tone}`}>{label}</span>
+					</a>
+				);
+			})}
+		</div>
+	);
+}
+
 function Attachments({ t, editable }: { t: TaskDetail; editable: boolean }) {
 	const { slug, member } = useTaskView();
 	const { uploads, upload, picker } = useUploads(

@@ -22,6 +22,7 @@ import {
 	type TaskItem,
 	TOGGLE_TASK_FAVORITE,
 } from "#/graphql/operations";
+import { slugify } from "#/lib/onboarding";
 import { PRIORITIES, TASK_STATUSES } from "#/lib/tasks";
 import { copy, toast } from "#/lib/toast";
 import { PrIcon } from "./bits";
@@ -226,6 +227,21 @@ export function TaskMenu({
 						}
 					>
 						Copy link
+					</MenuItem>
+					<MenuItem
+						icon="icon-[simple-icons--git]"
+						onSelect={() =>
+							// a branch named like this links its pull request to the task
+							copy(
+								`${t.key.toLowerCase()}-${slugify(t.name).slice(0, 40)}`.replace(
+									/-+$/,
+									"",
+								),
+								"branch name",
+							)
+						}
+					>
+						Copy branch name
 					</MenuItem>
 					{editable && (
 						<>
