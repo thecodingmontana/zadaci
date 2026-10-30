@@ -67,7 +67,7 @@ pnpm dev                     # http://localhost:3000
 | `BETTER_AUTH_URL` | yes | Address the app runs at, e.g. `http://localhost:3000`. |
 | `BETTER_AUTH_SECRET` | yes | A long random string for signing sessions. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | yes | Google OAuth app for sign-in. |
-| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | no | GitHub OAuth app for **Connect with GitHub** (callback URL `<BETTER_AUTH_URL>/api/github/callback`). Without it, people add the repo's webhook by hand. |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | no | GitHub OAuth app for **Connect with GitHub** (callback URL `<BETTER_AUTH_URL>/api/github/callback`). Without it, people add the repo's webhook by hand. Leave it out locally: GitHub can't send webhooks to `localhost` (use a tunnel and a second OAuth app if you need it). |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | yes | For attachments, logos, covers and note images. |
 | `RESEND_API_KEY` | no | Sends invite, notification and sign-in-link emails. Leave empty to skip sending; in development the sign-in link is printed in the terminal instead. |
 | `VITE_SITE_URL` | no | Public address for canonical links, the sitemap and emails. Defaults to `https://zadaci.vercel.app`. |
