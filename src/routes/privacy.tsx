@@ -83,7 +83,7 @@ function Privacy() {
 					stops at once.
 				</li>
 				<li>
-					Unlink a GitHub repo in the project's menu → GitHub; we stop accepting
+					Unlink a GitHub repo in the project's menu → Connect with GitHub; we stop accepting
 					its updates.
 				</li>
 				<li>

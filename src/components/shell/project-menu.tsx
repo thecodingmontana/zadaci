@@ -212,7 +212,7 @@ export function ProjectMenu({
 							icon="icon-[simple-icons--github]"
 							onSelect={() => setGithub(true)}
 						>
-							GitHub
+							Connect with GitHub
 						</MenuItem>
 					)}
 					<MenuItem
