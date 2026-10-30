@@ -56,6 +56,8 @@ test("mcp: an agent works as the person, with their role, and its changes are si
 
 	// on connecting, the agent learns what Zadaci is and who made it
 	const hello = await rpc(ownerAgent, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } });
+	assert.ok(hello.body?.result?.serverInfo?.icons?.[0]?.src?.endsWith("/android-chrome-512x512.png"), "it shows Zadaci's logo");
+	assert.equal(hello.body?.result?.serverInfo?.title, "Zadaci");
 	assert.match(hello.body?.result?.instructions ?? "", /collaborative project and task manager[\s\S]*codewithmontana/);
 
 	const tools = (await rpc(ownerAgent, "tools/list")).body?.result?.tools as { name: string; inputSchema: { required?: string[] } }[];

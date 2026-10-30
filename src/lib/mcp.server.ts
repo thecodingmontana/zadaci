@@ -105,7 +105,25 @@ const workspaceArg = z
 /** One MCP server for this person's request (stateless: Vercel functions keep no sessions). */
 function serverFor(user: AiContext["user"], today: string) {
 	const server = new McpServer(
-		{ name: "zadaci", version: "1.0.0" },
+		{
+			name: "zadaci",
+			title: "Zadaci",
+			version: "1.0.0",
+			websiteUrl: ISSUER,
+			// the logo agents show for this server (MCP 2025-11-25 server icons)
+			icons: [
+				{
+					src: `${ISSUER}/android-chrome-512x512.png`,
+					mimeType: "image/png",
+					sizes: ["512x512"],
+				},
+				{
+					src: `${ISSUER}/android-chrome-192x192.png`,
+					mimeType: "image/png",
+					sizes: ["192x192"],
+				},
+			],
+		},
 		{ instructions: ABOUT },
 	);
 	const ctx = (slug: string): AiContext => ({
