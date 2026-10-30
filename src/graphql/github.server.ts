@@ -3,11 +3,19 @@ import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
 import { MCP_RESOURCE } from "#/lib/auth";
 import { githubSecret, parseRepo } from "#/lib/github.server";
-import { githubConnectReady } from "#/lib/github-connect.server";
+import {
+	addWebhook,
+	disconnectGitHubAccount,
+	githubAccount,
+	githubConnectReady,
+	githubRepos,
+	removeWebhook,
+} from "#/lib/github-connect.server";
 import { requireProject } from "./projects.server";
-import { badInput, type GraphQLContext } from "./schema.server";
+import { badInput, type GraphQLContext, requireUser } from "./schema.server";
 
-// A project's link to a GitHub repo (the webhook GitHub calls), and the PRs that mention a task.
+// A project's link to a GitHub repo (the webhook GitHub calls), the PRs that mention a task, and
+// your connected GitHub account (which adds the webhook for you).
 
 export const githubTypeDefs = /* GraphQL */ `
 	"a project's GitHub link: paste webhookUrl and secret into the repo's Settings → Webhooks"
@@ -15,6 +23,13 @@ export const githubTypeDefs = /* GraphQL */ `
 		repo: String!
 		webhookUrl: String!
 		secret: String!
+	}
+
+	"your GitHub account, connected in Settings → Connected apps"
+	type GitHubAccount {
+		login: String!
+		"repos you admin (so we can add a webhook), most recently pushed first; public ones only"
+		repos: [String!]!
 	}
 
 	type GitHubPr {
@@ -31,12 +46,15 @@ export const githubTypeDefs = /* GraphQL */ `
 		projectGitHub(slug: String!, projectId: ID!): ProjectGitHub
 		"true when Connect with GitHub is set up on this server"
 		githubConnectReady: Boolean!
+		githubAccount: GitHubAccount
 	}
 
 	extend type Mutation {
-		"link the project to a repo (owner/name); a new secret each time"
+		"link the project to a repo (owner/name); a new secret each time. With your GitHub account connected, this also adds the webhook on GitHub"
 		connectGitHub(slug: String!, projectId: ID!, repo: String!): ProjectGitHub!
 		disconnectGitHub(slug: String!, projectId: ID!): Boolean!
+		"forget your GitHub account here and revoke Zadaci on GitHub"
+		disconnectGitHubAccount: Boolean!
 	}
 
 	extend type Task {
@@ -52,7 +70,12 @@ const shape = (projectId: string, repo: string, nonce: string) => ({
 
 export const githubResolvers = {
 	Query: {
-		githubConnectReady: () => githubConnectReady(),
+		githubConnectReady: (_: unknown, __: unknown, ctx: GraphQLContext) => {
+			requireUser(ctx);
+			return githubConnectReady();
+		},
+		githubAccount: (_: unknown, __: unknown, ctx: GraphQLContext) =>
+			githubAccount(requireUser(ctx).id),
 		projectGitHub: async (
 			_: unknown,
 			args: { slug: string; projectId: string },
@@ -83,6 +106,10 @@ export const githubResolvers = {
 			const repo = parseRepo(args.repo);
 			if (!repo)
 				badInput("Enter the repo as owner/name, like octocat/hello-world");
+			const [before] = await db
+				.select()
+				.from(tables.project_github)
+				.where(eq(tables.project_github.project_id, project.id));
 			const nonce = generateNanoId();
 			await db
 				.insert(tables.project_github)
@@ -91,21 +118,71 @@ export const githubResolvers = {
 					target: tables.project_github.project_id,
 					set: { repo, nonce, connected_by: user.id, created_at: new Date() },
 				});
-			return shape(project.id, repo, nonce);
+			const link = shape(project.id, repo, nonce);
+			const account = await githubAccount(user.id);
+			if (!account) return link;
+			const added = await addWebhook(
+				account.token,
+				repo,
+				link.webhookUrl,
+				link.secret,
+			);
+			if (added === "ok") return link;
+			// GitHub said no: put back what was there, so a link never sits without its webhook
+			if (before)
+				await db
+					.update(tables.project_github)
+					.set({
+						repo: before.repo,
+						nonce: before.nonce,
+						connected_by: before.connected_by,
+					})
+					.where(eq(tables.project_github.id, before.id));
+			else
+				await db
+					.delete(tables.project_github)
+					.where(eq(tables.project_github.project_id, project.id));
+			badInput(
+				added === "no-access"
+					? `@${account.login} needs admin access to ${repo} (and it must exist)`
+					: "GitHub didn't accept the webhook. Try again in a moment.",
+			);
+		},
+		disconnectGitHubAccount: async (
+			_: unknown,
+			__: unknown,
+			ctx: GraphQLContext,
+		) => {
+			await disconnectGitHubAccount(requireUser(ctx).id);
+			return true;
 		},
 		disconnectGitHub: async (
 			_: unknown,
 			args: { slug: string; projectId: string },
 			ctx: GraphQLContext,
 		) => {
-			const { project } = await requireProject(ctx, args.slug, args.projectId, {
-				right: "full",
-			});
-			await db
+			const { user, project } = await requireProject(
+				ctx,
+				args.slug,
+				args.projectId,
+				{ right: "full" },
+			);
+			const [gone] = await db
 				.delete(tables.project_github)
-				.where(eq(tables.project_github.project_id, project.id));
+				.where(eq(tables.project_github.project_id, project.id))
+				.returning({ repo: tables.project_github.repo });
+			const account = gone && (await githubAccount(user.id));
+			if (account)
+				await removeWebhook(
+					account.token,
+					gone.repo,
+					shape(project.id, gone.repo, "").webhookUrl,
+				).catch(() => {});
 			return true;
 		},
+	},
+	GitHubAccount: {
+		repos: (a: { token: string }) => githubRepos(a.token),
 	},
 	Task: {
 		// shortcut: one query per task; it's only asked for on an open task

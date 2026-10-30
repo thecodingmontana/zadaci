@@ -39,7 +39,11 @@ function Privacy() {
 				</li>
 				<li>
 					<b>GitHub:</b> for a project linked to a repo, the repo's name and the
-					title, number, link and state of pull requests that mention a task.
+					title, number, link and state of pull requests that mention a task. If
+					you connect your GitHub account, your GitHub username and an access
+					token that can only manage repo webhooks, encrypted before it's
+					stored. We use it to list repos you admin and add or remove a
+					project's webhook.
 				</li>
 			</ul>
 
@@ -62,8 +66,7 @@ function Privacy() {
 				reads in Zadaci goes to that agent and the AI service behind it, under
 				their terms. When you link a GitHub repo, GitHub sends us its pull
 				requests' titles, descriptions and branch names; we keep only those that
-				mention a task. If you use Connect with GitHub, GitHub gives us a token
-				that we use once to add the repo's webhook, then forget.
+				mention a task.
 			</p>
 
 			<h2>Cookies</h2>
@@ -83,8 +86,9 @@ function Privacy() {
 					stops at once.
 				</li>
 				<li>
-					Unlink a GitHub repo in the project's menu → Connect with GitHub; we
-					stop accepting its updates.
+					Unlink a GitHub repo in the project's menu → Connect with GitHub, and
+					disconnect your GitHub account in Settings → Sessions → Connected
+					apps; we delete the token and revoke it on GitHub.
 				</li>
 				<li>
 					Download all your data, or delete your account, in Settings → Your

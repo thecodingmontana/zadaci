@@ -1,6 +1,8 @@
 import { useMutation, useQuery } from "@apollo/client/react";
-import { type FormEvent, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Modal } from "#/components/q/modal";
+import { PickList, PickPopover } from "#/components/tasks/pick";
 import {
 	CONNECT_GITHUB,
 	DISCONNECT_GITHUB,
@@ -8,6 +10,36 @@ import {
 } from "#/graphql/github-operations";
 import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+
+const RESULTS: Record<string, string> = {
+	account: "GitHub connected. Now pick a repo for a project.",
+	cancelled: "GitHub wasn't approved, so nothing changed.",
+	failed: "GitHub didn't answer as expected. Try again in a moment.",
+};
+
+/** Back from connecting GitHub (?github=…): say how it went, then tidy the address. */
+export function useGitHubResult() {
+	const { github } = useSearch({ strict: false }) as { github?: string };
+	const navigate = useNavigate();
+	useEffect(() => {
+		if (!github) return;
+		if (github === "account") toast.success(RESULTS.account);
+		else
+			toast.error("Couldn't connect GitHub", {
+				desc: RESULTS[github] ?? RESULTS.failed,
+			});
+		void navigate({
+			to: ".",
+			search: (s: Record<string, unknown>) => ({ ...s, github: undefined }),
+			replace: true,
+		});
+	}, [github, navigate]);
+}
+
+/** Off to GitHub to connect your account, then back to this page. */
+export const connectGitHubAccount = () => {
+	location.href = `/api/github/connect?${new URLSearchParams({ back: location.pathname + location.search })}`;
+};
 
 /** Link a project to a GitHub repo: PRs that mention a task's key show on it; merging completes it. */
 export function GitHubModal({
@@ -31,23 +63,28 @@ export function GitHubModal({
 	const [connect, connecting] = useMutation(CONNECT_GITHUB, opts);
 	const [disconnect] = useMutation(DISCONNECT_GITHUB, opts);
 	const [repo, setRepo] = useState("");
+	const [picking, setPicking] = useState(false);
 	const link = data?.projectGitHub;
+	const account = data?.githubAccount;
 	const ready = !!data?.githubConnectReady;
 
-	async function submit(e: FormEvent) {
-		e.preventDefault();
-		// GitHub asks them to approve, then we add the webhook (github-connect.server.ts)
-		if (ready) {
-			location.href = `/api/github/connect?${new URLSearchParams({ slug, projectId, repo })}`;
-			return;
-		}
+	async function linkRepo(name: string) {
 		try {
-			await connect({ variables: { ...vars, repo } });
+			await connect({ variables: { ...vars, repo: name } });
 			setRepo("");
+			toast.success(
+				account
+					? `Linked ${name}. GitHub now sends its pull requests here.`
+					: `Linked ${name}`,
+			);
 		} catch (err) {
 			toast.error("Couldn't link the repo", { desc: (err as Error).message });
 		}
 	}
+	const submit = (e: FormEvent) => {
+		e.preventDefault();
+		void linkRepo(repo);
+	};
 
 	const copyRow = (label: string, value: string) => (
 		<div className="row" style={{ gap: 8, alignItems: "center" }}>
@@ -69,6 +106,132 @@ export function GitHubModal({
 		</div>
 	);
 
+	const byHand = (body: ReactNode) => (
+		<details style={{ fontSize: 13 }}>
+			<summary className="faint" style={{ cursor: "pointer" }}>
+				Set it up by hand instead
+			</summary>
+			<div
+				style={{
+					display: "flex",
+					flexDirection: "column",
+					gap: 10,
+					marginTop: 10,
+				}}
+			>
+				{body}
+			</div>
+		</details>
+	);
+
+	const repoForm = (
+		<form onSubmit={submit}>
+			<label className="label" htmlFor="gh-repo">
+				Which repo?
+			</label>
+			<div className="row" style={{ gap: 8 }}>
+				<input
+					id="gh-repo"
+					className="input grow"
+					value={repo}
+					onChange={(e) => setRepo(e.target.value)}
+					placeholder="octocat/hello-world, or paste its GitHub link"
+					required
+				/>
+				<button
+					type="submit"
+					className={cn("btn btn-primary", connecting.loading && "is-loading")}
+					disabled={connecting.loading || !repo.trim()}
+				>
+					Link repo
+				</button>
+			</div>
+		</form>
+	);
+
+	function notLinked() {
+		if (!ready) return repoForm;
+		if (!account)
+			return (
+				<>
+					<p style={{ fontSize: 13 }}>
+						Connect your GitHub account once, then pick the repo here and we add
+						its webhook for you.
+					</p>
+					<div>
+						<button
+							type="button"
+							className="btn btn-primary"
+							onClick={connectGitHubAccount}
+						>
+							<span
+								className="icon-[simple-icons--github] size-4"
+								aria-hidden="true"
+							/>
+							Connect GitHub
+						</button>
+					</div>
+					{byHand(repoForm)}
+				</>
+			);
+		const ghIcon = (
+			<span
+				className="icon-[simple-icons--github] size-3.5 shrink-0"
+				aria-hidden="true"
+			/>
+		);
+		return (
+			<>
+				<div>
+					<span className="label" id="gh-pick-l">
+						Repo
+					</span>
+					<PickPopover
+						open={picking}
+						onOpenChange={setPicking}
+						width={436}
+						trigger={
+							<button
+								type="button"
+								className={cn("input row", connecting.loading && "is-loading")}
+								style={{ width: "100%", gap: 8, cursor: "pointer" }}
+								aria-labelledby="gh-pick-l"
+								disabled={connecting.loading}
+							>
+								{ghIcon}
+								<span className="grow faint" style={{ textAlign: "left" }}>
+									{connecting.loading ? "Linking…" : "Choose a repo…"}
+								</span>
+								<span
+									className="icon-[solar--alt-arrow-down-linear] size-3.5"
+									aria-hidden="true"
+								/>
+							</button>
+						}
+					>
+						<PickList
+							items={account.repos.map((r) => ({
+								id: r,
+								name: r,
+								icon: ghIcon,
+							}))}
+							search="Search your repos"
+							empty="No repos you admin match"
+							onPick={(r) => {
+								setPicking(false);
+								void linkRepo(r);
+							}}
+						/>
+					</PickPopover>
+					<p className="faint" style={{ fontSize: 12, marginTop: 8 }}>
+						Connected as <b>@{account.login}</b>. The list shows public repos
+						you admin; we add the webhook for you.
+					</p>
+				</div>
+			</>
+		);
+	}
+
 	const manual = link && (
 		<>
 			<p style={{ fontSize: 13 }}>
@@ -85,7 +248,7 @@ export function GitHubModal({
 		<Modal
 			open={open}
 			onOpenChange={onOpenChange}
-			title="GitHub"
+			title="Connect with GitHub"
 			sub="Pull requests that mention a task's key (like WEB-12 in the title, or a branch named web-12-login) show on the task, and merging one completes it."
 		>
 			<div
@@ -126,68 +289,16 @@ export function GitHubModal({
 								Unlink
 							</button>
 						</div>
-						{ready ? (
-							<details style={{ fontSize: 13 }}>
-								<summary className="faint" style={{ cursor: "pointer" }}>
-									Set it up by hand
-								</summary>
-								<div
-									style={{
-										display: "flex",
-										flexDirection: "column",
-										gap: 10,
-										marginTop: 10,
-									}}
-								>
-									{manual}
-								</div>
-							</details>
-						) : (
-							manual
-						)}
+						{account ? byHand(manual) : manual}
 						<p className="faint" style={{ fontSize: 12 }}>
 							Merges complete tasks as you (the person who linked the repo).
-							{ready
-								? " Unlinking stops updates; remove the webhook in the repo's settings too."
+							{account
+								? " Unlinking removes the webhook from the repo too."
 								: " Linking again makes a new secret."}
 						</p>
 					</>
 				) : (
-					<form onSubmit={submit}>
-						<label className="label" htmlFor="gh-repo">
-							Which repo?
-						</label>
-						<div className="row" style={{ gap: 8 }}>
-							<input
-								id="gh-repo"
-								className="input grow"
-								value={repo}
-								onChange={(e) => setRepo(e.target.value)}
-								placeholder="octocat/hello-world, or paste its GitHub link"
-								required
-							/>
-							<button
-								type="submit"
-								className={cn(
-									"btn btn-primary",
-									connecting.loading && "is-loading",
-								)}
-								disabled={connecting.loading || !repo.trim()}
-							>
-								<span
-									className="icon-[simple-icons--github] size-4"
-									aria-hidden="true"
-								/>
-								{ready ? "Connect with GitHub" : "Link repo"}
-							</button>
-						</div>
-						{ready && (
-							<p className="faint" style={{ fontSize: 12, marginTop: 8 }}>
-								GitHub asks you to approve, then we add the webhook to that repo
-								for you. You need admin access to it.
-							</p>
-						)}
-					</form>
+					notLinked()
 				)}
 			</div>
 		</Modal>

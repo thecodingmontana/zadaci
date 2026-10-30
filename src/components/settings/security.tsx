@@ -8,6 +8,7 @@ import { authClient } from "#/lib/auth-client";
 import { ago } from "#/lib/time";
 import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
+import { GitHubAccountRow } from "./github-account";
 import { SBlock, SettingsHeader, SRow } from "./ui";
 
 /** better-auth resolves with `{ error }` instead of rejecting; this rejects so toast.promise sees the failure. */
@@ -531,7 +532,7 @@ function ConnectedApps() {
 				<div className="grow">
 					<SettingsHeader
 						title="Connected apps"
-						lead="AI agents you let use Zadaci as you, with your role in each workspace. Disconnecting stops one at once."
+						lead="GitHub, and AI agents you let use Zadaci as you, with your role in each workspace. Disconnecting stops one at once."
 					/>
 				</div>
 				{/* just connected an agent in another window: see it here without reloading the app */}
@@ -556,6 +557,7 @@ function ConnectedApps() {
 					Refresh
 				</button>
 			</div>
+			<GitHubAccountRow />
 			{apps === null ? (
 				<div className="srow">
 					<span className="sk" style={{ height: 14, width: 200 }} />
@@ -563,7 +565,7 @@ function ConnectedApps() {
 			) : apps.length === 0 ? (
 				<div className="srow">
 					<p className="muted grow" style={{ fontSize: 13 }}>
-						No apps connected yet.
+						No AI agents connected yet.
 					</p>
 				</div>
 			) : (

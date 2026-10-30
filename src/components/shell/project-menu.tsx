@@ -36,12 +36,15 @@ export function ProjectMenu({
 	count,
 	allowed,
 	className = "ibtn ibtn-xs",
+	openGitHub = false,
 }: {
 	slug: string;
 	project: ShellProject;
 	index: number;
 	count: number;
 	allowed: (permission: Permission) => boolean;
+	/** back from connecting GitHub: open its window again to pick the repo */
+	openGitHub?: boolean;
 	/** trigger look: the sidebar's small button by default */
 	className?: string;
 }) {
@@ -50,7 +53,7 @@ export function ProjectMenu({
 	const canReorder = allowed("editProjects");
 	const [sharing, setSharing] = useState(false);
 	// linking a repo: only people with full access to the project
-	const [github, setGithub] = useState(false);
+	const [github, setGithub] = useState(openGitHub);
 	const navigate = useNavigate();
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);

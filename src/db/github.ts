@@ -16,6 +16,17 @@ import { generateNanoId, pgTable } from "./utils";
 const when = (name: string) =>
 	timestamp(name, { mode: "date", withTimezone: true });
 
+/** Someone's GitHub account, connected once in Settings → Connected apps (to list repos and add webhooks). */
+export const github_account = pgTable("github_account", {
+	user_id: varchar("user_id", { length: 16 })
+		.primaryKey()
+		.references(() => user.id, { onDelete: "cascade" }),
+	login: text("login").notNull(),
+	/** the OAuth token, sealed like AI keys (keys.server.ts): only ciphertext is stored */
+	token: text("token").notNull(),
+	created_at: when("created_at").notNull().defaultNow(),
+});
+
 export const project_github = pgTable(
 	"project_github",
 	{

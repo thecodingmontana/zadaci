@@ -116,7 +116,11 @@ const SET_NAV: [string, [Section, string, string][]][] = [
 ];
 
 export const Route = createFileRoute("/_authed/w/$slug/settings")({
-	validateSearch: z.object({ sec: z.enum(SECTIONS).optional() }),
+	validateSearch: z.object({
+		sec: z.enum(SECTIONS).optional(),
+		// back from connecting GitHub (github-connect.server.ts)
+		github: z.string().max(20).optional(),
+	}),
 	shouldReload: reloadOnEnter,
 	loader: async ({ context, params }) => {
 		const { data } = await context.apolloClient.query({

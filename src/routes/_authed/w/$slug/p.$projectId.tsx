@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { ActivityItem } from "#/components/activity/activity-item";
 import { PIcon, projectColor, StatusMenu } from "#/components/projects/bits";
+import { useGitHubResult } from "#/components/projects/github-modal";
 import { ProjectOverview } from "#/components/projects/overview";
 import { ProjectModal } from "#/components/projects/project-modal";
 import {
@@ -42,16 +43,6 @@ import { cn } from "#/lib/utils";
 // Ported from the reference app's project page (pages/project.js): header and view tabs.
 
 const TABS = PROJECT_PAGE_TABS.map((t) => t.tab);
-
-const GITHUB_RESULTS: Record<string, string> = {
-	connected:
-		"GitHub connected. Pull requests that mention a task now show on it.",
-	"no-access": "You need admin access to that repo, and it must exist.",
-	denied: "Only people with full access to the project can link a repo.",
-	"bad-repo": "Enter the repo as owner/name, like octocat/hello-world.",
-	cancelled: "GitHub wasn't approved, so nothing changed.",
-	failed: "GitHub didn't accept the webhook. Try again, or set it up by hand.",
-};
 
 export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 	validateSearch: z.object({
@@ -104,17 +95,7 @@ export const Route = createFileRoute("/_authed/w/$slug/p/$projectId")({
 function ProjectPage() {
 	const { slug, projectId } = Route.useParams();
 	const { tab = "board", github } = Route.useSearch();
-	const navigate = Route.useNavigate();
-	useEffect(() => {
-		if (!github) return;
-		const note = GITHUB_RESULTS[github] ?? GITHUB_RESULTS.failed;
-		if (github === "connected") toast.success(note);
-		else toast.error("Couldn't connect GitHub", { desc: note });
-		void navigate({
-			search: (s) => ({ ...s, github: undefined }),
-			replace: true,
-		});
-	}, [github, navigate]);
+	useGitHubResult();
 	const { user } = Route.useRouteContext();
 	// custom permissions live in the workspace settings the shell already loaded
 	const settings = useQuery(SHELL, { variables: { slug } }).data?.workspace
@@ -327,6 +308,7 @@ function ProjectPage() {
 							index={0}
 							count={1}
 							allowed={(p) => can(workspace.role, p, settings)}
+							openGitHub={github === "account"}
 						/>
 					</div>
 				</div>

@@ -254,6 +254,17 @@ export async function exportAccount(userId: string) {
 			text: docToMarkdown(n.title, n.doc),
 		})),
 		bookmarks,
+		// the username only: the token stays sealed and is never exported
+		github:
+			(
+				await db
+					.select({
+						login: tables.github_account.login,
+						connectedAt: tables.github_account.created_at,
+					})
+					.from(tables.github_account)
+					.where(eq(tables.github_account.user_id, userId))
+			)[0] ?? null,
 		assistant: {
 			keys,
 			messages: messages.filter(
