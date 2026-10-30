@@ -5,6 +5,7 @@ export * from "./chat";
 export * from "./comments";
 export * from "./enums";
 export * from "./favorite";
+export * from "./github";
 export * from "./jobs";
 export * from "./note";
 export * from "./oauth";

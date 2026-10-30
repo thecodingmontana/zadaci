@@ -37,6 +37,7 @@ import { Route as ApiAccountExportRouteImport } from './routes/api/account/expor
 import { Route as ApiAiModelsRouteImport } from './routes/api/ai/models'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronDailyRouteImport } from './routes/api/cron/daily'
+import { Route as ApiGithubProjectIdRouteImport } from './routes/api/github/$projectId'
 import { Route as ApiUploadImageRouteImport } from './routes/api/upload/image'
 import { Route as AuthTwoFactorIndexRouteImport } from './routes/auth/two-factor/index'
 import { Route as AuthedWSlugIndexRouteImport } from './routes/_authed/w/$slug/index'
@@ -206,6 +207,11 @@ const ApiCronDailyRoute = ApiCronDailyRouteImport.update({
   path: '/api/cron/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGithubProjectIdRoute = ApiGithubProjectIdRouteImport.update({
+  id: '/api/github/$projectId',
+  path: '/api/github/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiUploadImageRoute = ApiUploadImageRouteImport.update({
   id: '/api/upload/image',
   path: '/api/upload/image',
@@ -356,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/api/ai/models': typeof ApiAiModelsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
+  '/api/github/$projectId': typeof ApiGithubProjectIdRoute
   '/api/upload/image': typeof ApiUploadImageRoute
   '/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
@@ -408,6 +415,7 @@ export interface FileRoutesByTo {
   '/api/ai/models': typeof ApiAiModelsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
+  '/api/github/$projectId': typeof ApiGithubProjectIdRoute
   '/api/upload/image': typeof ApiUploadImageRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
@@ -463,6 +471,7 @@ export interface FileRoutesById {
   '/api/ai/models': typeof ApiAiModelsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
+  '/api/github/$projectId': typeof ApiGithubProjectIdRoute
   '/api/upload/image': typeof ApiUploadImageRoute
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
@@ -518,6 +527,7 @@ export interface FileRouteTypes {
     | '/api/ai/models'
     | '/api/auth/$'
     | '/api/cron/daily'
+    | '/api/github/$projectId'
     | '/api/upload/image'
     | '/workspace/'
     | '/auth/two-factor/'
@@ -570,6 +580,7 @@ export interface FileRouteTypes {
     | '/api/ai/models'
     | '/api/auth/$'
     | '/api/cron/daily'
+    | '/api/github/$projectId'
     | '/api/upload/image'
     | '/workspace'
     | '/auth/two-factor'
@@ -624,6 +635,7 @@ export interface FileRouteTypes {
     | '/api/ai/models'
     | '/api/auth/$'
     | '/api/cron/daily'
+    | '/api/github/$projectId'
     | '/api/upload/image'
     | '/_authed/workspace/'
     | '/auth/two-factor/'
@@ -673,6 +685,7 @@ export interface RootRouteChildren {
   ApiAiModelsRoute: typeof ApiAiModelsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronDailyRoute: typeof ApiCronDailyRoute
+  ApiGithubProjectIdRoute: typeof ApiGithubProjectIdRoute
   ApiUploadImageRoute: typeof ApiUploadImageRoute
   AuthTwoFactorIndexRoute: typeof AuthTwoFactorIndexRoute
 }
@@ -873,6 +886,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cron/daily'
       fullPath: '/api/cron/daily'
       preLoaderRoute: typeof ApiCronDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/github/$projectId': {
+      id: '/api/github/$projectId'
+      path: '/api/github/$projectId'
+      fullPath: '/api/github/$projectId'
+      preLoaderRoute: typeof ApiGithubProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/upload/image': {
@@ -1173,18 +1193,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiModelsRoute: ApiAiModelsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronDailyRoute: ApiCronDailyRoute,
+  ApiGithubProjectIdRoute: ApiGithubProjectIdRoute,
   ApiUploadImageRoute: ApiUploadImageRoute,
   AuthTwoFactorIndexRoute: AuthTwoFactorIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
