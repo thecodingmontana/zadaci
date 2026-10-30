@@ -1,5 +1,5 @@
-import { execute, parse } from "graphql";
-import { schema } from "#/graphql/yoga.server";
+import { execute, type GraphQLError, parse } from "graphql";
+import { isUnexpected, schema } from "#/graphql/yoga.server";
 import { withEmails } from "#/lib/email.server";
 import { announceChange, mutationSlugs } from "#/lib/realtime.server";
 import { asAssistant } from "./assistant-scope.server";
@@ -19,6 +19,20 @@ export type AiContext = {
 	/** an outside AI agent signed in as the person (MCP): its changes are plainly theirs, not "via assistant" */
 	asYou?: boolean;
 };
+
+/** What an error tells the model or agent: refusals as written; a bug is logged here (the app's
+ * own requests log them in yoga.server.ts) and reads as a plain line, with no database details. */
+export const errorText = (errors: readonly GraphQLError[]) =>
+	errors
+		.map((e) => {
+			if (!isUnexpected(e)) return e.message;
+			console.error(
+				`[run] ${e.path?.join(".") ?? "request"}:`,
+				e.originalError,
+			);
+			return "Something went wrong. Try again in a moment.";
+		})
+		.join("; ");
 
 /** Runs one operation; returns its data, or a short error message the model can act on. */
 export async function run<T = Record<string, unknown>>(
@@ -40,8 +54,7 @@ export async function run<T = Record<string, unknown>>(
 	const result = await withEmails(() =>
 		ctx.asYou ? exec() : asAssistant(exec),
 	);
-	if (result.errors?.length)
-		return { error: result.errors.map((e) => e.message).join("; ") };
+	if (result.errors?.length) return { error: errorText(result.errors) };
 	// Zad's changes reach everyone who has the workspace open, like changes made in the app
 	for (const slug of mutationSlugs(document, variableValues))
 		announceChange(slug);
