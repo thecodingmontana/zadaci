@@ -1,8 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
-import { MCP_RESOURCE } from "#/lib/auth";
-import { githubSecret, parseRepo } from "#/lib/github.server";
+import { githubSecret, parseRepo, webhookUrl } from "#/lib/github.server";
 import {
 	addWebhook,
 	disconnectGitHubAccount,
@@ -76,7 +75,7 @@ export const githubTypeDefs = /* GraphQL */ `
 
 const shape = (projectId: string, repo: string, nonce: string) => ({
 	repo,
-	webhookUrl: `${new URL(MCP_RESOURCE).origin}/api/github/${projectId}`,
+	webhookUrl: webhookUrl(projectId),
 	secret: githubSecret(projectId, nonce),
 });
 
@@ -191,7 +190,7 @@ export const githubResolvers = {
 				await removeWebhook(
 					account.token,
 					gone.repo,
-					shape(project.id, gone.repo, "").webhookUrl,
+					webhookUrl(project.id),
 				).catch(() => {});
 			return true;
 		},

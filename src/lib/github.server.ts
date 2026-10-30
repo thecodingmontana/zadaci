@@ -4,11 +4,16 @@ import { db, tables } from "#/db";
 import { STATUS } from "#/db/enums";
 import { run } from "#/lib/ai/gql.server";
 import { userClock } from "#/lib/ai/limits.server";
+import { MCP_RESOURCE } from "#/lib/auth";
 import { requireEnv } from "#/lib/env";
 import { announceChange } from "#/lib/realtime.server";
 
 // GitHub → Zadaci: a repo's webhook tells us about its pull requests. A PR that mentions a task's
 // key (PSA-4) in its title, branch or description shows on that task; merging it completes the task.
+
+/** Where GitHub sends a linked project's pull requests (see githubWebhook). */
+export const webhookUrl = (projectId: string) =>
+	`${new URL(MCP_RESOURCE).origin}/api/github/${projectId}`;
 
 /** The webhook secret for a link: derived, never stored, and new whenever the link is remade. */
 export const githubSecret = (projectId: string, nonce: string) =>

@@ -4,6 +4,7 @@ import { db, tables } from "#/db";
 import { openKey, sealKey } from "#/lib/ai/keys.server";
 import { auth, MCP_RESOURCE } from "#/lib/auth";
 import { requireEnv } from "#/lib/env";
+import { webhookUrl } from "#/lib/github.server";
 
 // "Connect GitHub": someone connects their GitHub account once (Settings → Connected apps, or
 // from a project). We keep the token sealed like AI keys and use it only to list the repos they
@@ -199,11 +200,9 @@ export async function disconnectGitHubAccount(userId: string) {
 		});
 	if (account)
 		for (const l of links)
-			await removeWebhook(
-				account.token,
-				l.repo,
-				`${ORIGIN}/api/github/${l.projectId}`,
-			).catch(() => {});
+			await removeWebhook(account.token, l.repo, webhookUrl(l.projectId)).catch(
+				() => {},
+			);
 	await db
 		.delete(tables.github_account)
 		.where(eq(tables.github_account.user_id, userId));
