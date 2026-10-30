@@ -52,8 +52,8 @@ function Terms() {
 				You can connect AI agents (like Claude Code or Cursor) to use Zadaci as
 				you. An agent acts with your account and your role in each workspace,
 				and what it does counts as done by you, so connect only agents you trust
-				and check their work. You can disconnect one at any time in Settings.
-				If you link a GitHub repo to a project, merging a pull request that
+				and check their work. You can disconnect one at any time in Settings. If
+				you link a GitHub repo to a project, merging a pull request that
 				mentions a task marks it done as you.
 			</p>
 
