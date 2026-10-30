@@ -8,7 +8,7 @@ export const Route = createFileRoute("/privacy")({
 
 function Privacy() {
 	return (
-		<LegalPage title="Privacy Policy" updated="October 25, 2026">
+		<LegalPage title="Privacy Policy" updated="October 30, 2026">
 			<p>
 				This explains what Zadaci keeps about you, why, and what you can do
 				about it.
@@ -33,6 +33,10 @@ function Privacy() {
 					Keys are encrypted before they're stored, tied to your account, and
 					never shown again.
 				</li>
+				<li>
+					<b>Connected apps:</b> AI agents you connect (like Claude Code), what
+					you approved, and the short-lived sign-in tokens they use.
+				</li>
 			</ul>
 
 			<h2>Why</h2>
@@ -50,7 +54,9 @@ function Privacy() {
 				Messages to the assistant go to OpenRouter's AI models, or to the
 				provider of the key you connect (Anthropic, OpenAI, Google or
 				OpenRouter). Free AI models may log prompts, so don't share anything
-				sensitive with the assistant.
+				sensitive with the assistant. When you connect an AI agent, what it
+				reads in Zadaci goes to that agent and the AI service behind it, under
+				their terms.
 			</p>
 
 			<h2>Cookies</h2>
@@ -64,6 +70,10 @@ function Privacy() {
 				<li>Change your notifications in Settings → Notifications.</li>
 				<li>
 					Remove AI keys and clear the assistant's chat whenever you like.
+				</li>
+				<li>
+					Disconnect an AI agent in Settings → Sessions → Connected apps; it
+					stops at once.
 				</li>
 				<li>
 					Download all your data, or delete your account, in Settings → Your

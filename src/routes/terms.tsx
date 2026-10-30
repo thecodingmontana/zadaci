@@ -8,7 +8,7 @@ export const Route = createFileRoute("/terms")({
 
 function Terms() {
 	return (
-		<LegalPage title="Terms of Service" updated="October 25, 2026">
+		<LegalPage title="Terms of Service" updated="October 30, 2026">
 			<p>
 				These terms cover your use of Zadaci, a tool for planning projects,
 				tasks, notes and bookmarks with your team. By signing in you agree to
@@ -45,6 +45,14 @@ function Terms() {
 				answers come from AI models and can be wrong, so check anything
 				important. If you connect your own AI key, the provider bills you for
 				what the assistant uses, under their terms.
+			</p>
+
+			<h2>AI agents you connect</h2>
+			<p>
+				You can connect AI agents (like Claude Code or Cursor) to use Zadaci as
+				you. An agent acts with your account and your role in each workspace,
+				and what it does counts as done by you, so connect only agents you trust
+				and check their work. You can disconnect one at any time in Settings.
 			</p>
 
 			<h2>Acceptable use</h2>

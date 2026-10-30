@@ -16,6 +16,8 @@ export type AiContext = {
 	today: string;
 	/** tasks changed without approval during this one message (at most 3 allowed) */
 	edited: Set<string>;
+	/** an outside AI agent signed in as the person (MCP): its changes are plainly theirs, not "via assistant" */
+	asYou?: boolean;
 };
 
 /** Runs one operation; returns its data, or a short error message the model can act on. */
@@ -28,15 +30,15 @@ export async function run<T = Record<string, unknown>>(
 	const variableValues = { slug: ctx.slug, ...variables };
 	// anything this changes is logged as done "via assistant"
 	// and what it notifies people about goes out once this step is done
+	const exec = async () =>
+		execute({
+			schema,
+			document,
+			variableValues,
+			contextValue: { user: ctx.user },
+		});
 	const result = await withEmails(() =>
-		asAssistant(async () =>
-			execute({
-				schema,
-				document,
-				variableValues,
-				contextValue: { user: ctx.user },
-			}),
-		),
+		ctx.asYou ? exec() : asAssistant(exec),
 	);
 	if (result.errors?.length)
 		return { error: result.errors.map((e) => e.message).join("; ") };

@@ -22,6 +22,7 @@ import { Route as AuthedOnboardingRouteImport } from './routes/_authed/onboardin
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiGraphqlRouteImport } from './routes/api/graphql'
+import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
 import { Route as OauthConsentRouteImport } from './routes/oauth/consent'
 import { Route as OauthSigninRouteImport } from './routes/oauth/signin'
@@ -126,6 +127,11 @@ const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
 const ApiGraphqlRoute = ApiGraphqlRouteImport.update({
   id: '/api/graphql',
   path: '/api/graphql',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMcpRoute = ApiMcpRouteImport.update({
+  id: '/api/mcp',
+  path: '/api/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSigninRoute = AuthSigninRouteImport.update({
@@ -336,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/auth/signin': typeof AuthSigninRoute
   '/oauth/consent': typeof OauthConsentRoute
   '/oauth/signin': typeof OauthSigninRoute
@@ -388,6 +395,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/auth/signin': typeof AuthSigninRoute
   '/oauth/consent': typeof OauthConsentRoute
   '/oauth/signin': typeof OauthSigninRoute
@@ -441,6 +449,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
   '/api/graphql': typeof ApiGraphqlRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/auth/signin': typeof AuthSigninRoute
   '/oauth/consent': typeof OauthConsentRoute
   '/oauth/signin': typeof OauthSigninRoute
@@ -495,6 +504,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/client-error'
     | '/api/graphql'
+    | '/api/mcp'
     | '/auth/signin'
     | '/oauth/consent'
     | '/oauth/signin'
@@ -547,6 +557,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/client-error'
     | '/api/graphql'
+    | '/api/mcp'
     | '/auth/signin'
     | '/oauth/consent'
     | '/oauth/signin'
@@ -599,6 +610,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/client-error'
     | '/api/graphql'
+    | '/api/mcp'
     | '/auth/signin'
     | '/oauth/consent'
     | '/oauth/signin'
@@ -652,6 +664,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiGraphqlRoute: typeof ApiGraphqlRoute
+  ApiMcpRoute: typeof ApiMcpRoute
   AuthSigninRoute: typeof AuthSigninRoute
   OauthConsentRoute: typeof OauthConsentRoute
   OauthSigninRoute: typeof OauthSigninRoute
@@ -755,6 +768,13 @@ declare module '@tanstack/react-router' {
       path: '/api/graphql'
       fullPath: '/api/graphql'
       preLoaderRoute: typeof ApiGraphqlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mcp': {
+      id: '/api/mcp'
+      path: '/api/mcp'
+      fullPath: '/api/mcp'
+      preLoaderRoute: typeof ApiMcpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/signin': {
@@ -1144,6 +1164,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
   ApiGraphqlRoute: ApiGraphqlRoute,
+  ApiMcpRoute: ApiMcpRoute,
   AuthSigninRoute: AuthSigninRoute,
   OauthConsentRoute: OauthConsentRoute,
   OauthSigninRoute: OauthSigninRoute,

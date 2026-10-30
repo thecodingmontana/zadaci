@@ -11,6 +11,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 - **Tasks** with subtasks, assignees, priorities, labels, due and start dates, estimates, dependencies, repeating tasks, comments with @mentions and reactions, attachments, favorites and bulk edits.
 - **My Tasks, Inbox and Notifications**, plus a workspace activity feed and a command menu (`Ctrl/⌘ K`).
 - **Assistant** (`Ctrl/⌘ J` or the sparkle in the top bar): a side drawer with one saved chat per workspace that you can clear. Ask it what's due, or tell it to create, update, assign, move, tag, comment, plan projects, edit notes or save bookmarks. It works only through your own permissions, shows each step it takes ("Thinking… Worked for 7s") with the items it found, lists the tasks, projects and notes it touched so you can open them, and asks before deleting, archiving or changing more than 3 tasks. Type `@` to point it at a project, task or note. It sticks to work in the workspace and politely declines anything else. Runs on shared free OpenRouter models (2 messages a day per person), rotating between them when one is busy. In **Settings → AI assistant** people connect their own Claude, ChatGPT, Gemini or OpenRouter key, pick a model, and use it as much as they like; keys are checked with the provider, encrypted and tied to their account, and never shown again.
+- **AI agents (MCP):** connect Claude Code, Cursor, Codex, VS Code or any MCP client to Zadaci and it works as you: `claude mcp add --transport http zadaci https://zadaci.vercel.app/api/mcp`. The first time, your browser opens, you sign in and approve it ("Claude Code wants to use Zadaci as you"). The agent then uses Zad's tools (find, list, create, update, assign, move, comment, plan projects, notes, bookmarks, time tracking) with exactly your role in each workspace, and what it does is yours, shown live to your team. It learns what Zadaci is when it connects. Tokens last 10 minutes and only work for `/api/mcp`; disconnect an agent in **Settings → Sessions → Connected apps** and it stops at once.
 - **Chat:** Slack-style team chat on its own page, with a slide-out list on phones.
   - **Conversations:** open and private channels, a #general everyone joins, one channel per team, direct messages (and notes to yourself), and a chat for any project or task, opened in a side panel from the project or the task. A project's and its tasks' chats include exactly whoever can see the project: people added to it are in at once, people taken off it are out (their messages stay).
   - **Messages:** threads, reactions, edits, @mentions (they land in the Inbox with "Open in chat"), one pinned message per conversation shown under the header, files and images (uploaded only when you press send), voice notes, and live cards for shared tasks, projects, notes and bookmarks, each shown only as far as the reader can see it.
@@ -105,7 +106,7 @@ DATABASE_URL=postgres://…/zadaci_test pnpm db:migrate
 DATABASE_URL=postgres://…/zadaci_test pnpm test
 ```
 
-They cover permissions and sharing, tasks, projects, members and invites, notes, bookmarks and safe link previews, the note document sanitizer, embeds and covers, reminders and digests, push, time tracking, share links, import, team chat (access, mentions, shares, pins, project and task chats), workspace setup, the assistant's tools, chat storage, limits and model rotation, and a check that every query the app sends fits the API's request limits.
+They cover permissions and sharing, tasks, projects, members and invites, notes, bookmarks and safe link previews, the note document sanitizer, embeds and covers, reminders and digests, push, time tracking, share links, import, team chat (access, mentions, shares, pins, project and task chats), workspace setup, AI agent sign-in and the MCP server (roles, forged and revoked tokens), the assistant's tools, chat storage, limits and model rotation, and a check that every query the app sends fits the API's request limits.
 
 `tests/ai-eval.manual.ts` sends real prompts to the free models and prints which model answered and which tools it picked. It's not part of `pnpm test` because each prompt uses the account's free daily requests:
 
@@ -119,12 +120,12 @@ DATABASE_URL=postgres://…/zadaci_test node --env-file=.env.local --import tsx 
 src/
   routes/        pages and API routes (file-based, TanStack Router)
     _authed/     everything behind sign-in: workspaces, projects, tasks, notes, settings
-    api/         /api/graphql, /api/auth, /api/chat (assistant), /api/cron (reminders, digests)
+    api/         /api/graphql, /api/auth, /api/chat (assistant), /api/mcp (AI agents), /api/cron (reminders, digests)
   graphql/       schema and resolvers (*.server.ts) and the client operations
   components/    UI by area: tasks, projects, notes, chat, shell, settings, auth, …
   db/            Drizzle schema and migrations
   lib/           shared logic: permissions, auth, note sanitizer, embeds, time, toasts
-    ai/          the assistant: tools, prompt, model rotation, limits, chat storage
+    ai/          the assistant: tools, prompt, model rotation, limits, chat storage (the MCP server reuses its tools)
   emails/        React Email templates
 tests/           API tests
 ```

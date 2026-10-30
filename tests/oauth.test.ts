@@ -1,74 +1,13 @@
 import assert from "node:assert/strict";
-import { createHash, randomBytes } from "node:crypto";
 import { after, test } from "node:test";
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { auth, MCP_RESOURCE } from "#/lib/auth";
 import { protectedResource } from "#/lib/mcp-metadata";
+import { authorizeUrl, BASE, call, exchange, register } from "./agent";
 import { cleanup, makeUser } from "./helpers";
 
 after(cleanup);
 
-// An AI agent connecting the way MCP clients do: discover, register itself, send the person to
-// approve, swap the code for a token for /api/mcp.
-const BASE = "http://localhost:3000";
-const call = (path: string, init: RequestInit & { cookie?: string } = {}) =>
-	auth.handler(
-		new Request(BASE + path, {
-			...init,
-			redirect: "manual",
-			headers: { origin: BASE, ...(init.cookie ? { cookie: init.cookie } : {}), ...(init.headers as Record<string, string>) },
-		}),
-	);
-const b64url = (b: Buffer) => b.toString("base64url");
-const CALLBACK = "http://127.0.0.1:33418/callback";
-
-// one registered agent for the whole file: registration is rate-limited per IP, like in production
-let registered: Promise<{ client_id: string }> | undefined;
-const register = () => (registered ??= registerOnce());
-async function registerOnce() {
-	const res = await call("/api/auth/oauth2/register", {
-		method: "POST",
-		headers: { "content-type": "application/json" },
-		body: JSON.stringify({
-			client_name: "Test Agent",
-			redirect_uris: [CALLBACK],
-			token_endpoint_auth_method: "none",
-			grant_types: ["authorization_code", "refresh_token"],
-			response_types: ["code"],
-		}),
-	});
-	assert.ok(res.status < 300, await res.clone().text());
-	return (await res.json()) as { client_id: string };
-}
-
-function authorizeUrl(clientId: string) {
-	const verifier = b64url(randomBytes(32));
-	const q = new URLSearchParams({
-		response_type: "code",
-		client_id: clientId,
-		redirect_uri: CALLBACK,
-		scope: "profile email offline_access",
-		state: "xyz",
-		code_challenge: b64url(createHash("sha256").update(verifier).digest()),
-		code_challenge_method: "S256",
-		resource: MCP_RESOURCE,
-	});
-	return { url: `/api/auth/oauth2/authorize?${q}`, verifier };
-}
-
-const exchange = (code: string, clientId: string, verifier: string) =>
-	call("/api/auth/oauth2/token", {
-		method: "POST",
-		headers: { "content-type": "application/x-www-form-urlencoded" },
-		body: new URLSearchParams({
-			grant_type: "authorization_code",
-			code,
-			redirect_uri: CALLBACK,
-			client_id: clientId,
-			code_verifier: verifier,
-			resource: MCP_RESOURCE,
-		}),
-	});
 
 test("an AI agent discovers Zadaci's sign-in for /api/mcp", async () => {
 	const pr = (await protectedResource().json()) as { resource: string; authorization_servers: string[] };

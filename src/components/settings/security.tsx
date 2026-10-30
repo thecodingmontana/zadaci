@@ -348,6 +348,99 @@ export function SessionsSection({ title }: { title: string }) {
 					load();
 				}}
 			/>
+			<ConnectedApps />
+		</>
+	);
+}
+
+type Consent = { id: string; clientId: string; createdAt: string };
+
+/** AI agents (Claude Code, Cursor…) you let use Zadaci as you, through its MCP server. */
+function ConnectedApps() {
+	const [apps, setApps] = useState<(Consent & { name: string })[] | null>(null);
+	const load = useCallback(async () => {
+		const res = await fetch("/api/auth/oauth2/get-consents");
+		const list = res.ok ? ((await res.json()) as Consent[]) : [];
+		const named = await Promise.all(
+			list.map(async (c) => {
+				const r = await fetch(
+					`/api/auth/oauth2/public-client?client_id=${encodeURIComponent(c.clientId)}`,
+				);
+				const info = r.ok ? ((await r.json()) as { client_name?: string }) : {};
+				return { ...c, name: info.client_name || "An app" };
+			}),
+		);
+		setApps(named);
+	}, []);
+	useEffect(() => {
+		load();
+	}, [load]);
+
+	return (
+		<>
+			<div style={{ marginTop: 36 }}>
+				<SettingsHeader
+					title="Connected apps"
+					lead="AI agents you let use Zadaci as you, with your role in each workspace. Disconnecting stops one at once."
+				/>
+			</div>
+			{apps === null ? (
+				<div className="srow">
+					<span className="sk" style={{ height: 14, width: 200 }} />
+				</div>
+			) : apps.length === 0 ? (
+				<div className="srow">
+					<p className="muted grow" style={{ fontSize: 13 }}>
+						No apps connected. Connect one with{" "}
+						<code>
+							claude mcp add --transport http zadaci {window.location.origin}
+							/api/mcp
+						</code>
+					</p>
+				</div>
+			) : (
+				apps.map((a) => (
+					<SRow
+						key={a.id}
+						t={
+							<span className="row" style={{ gap: 8 }}>
+								<span
+									className="icon-[solar--plug-circle-linear] size-4 shrink-0"
+									aria-hidden="true"
+								/>
+								{a.name}
+							</span>
+						}
+						d={`Connected ${ago(a.createdAt)}`}
+					>
+						<button
+							type="button"
+							className="btn btn-secondary btn-sm"
+							onClick={() => {
+								toast
+									.promise(
+										fetch("/api/auth/oauth2/delete-consent", {
+											method: "POST",
+											headers: { "content-type": "application/json" },
+											body: JSON.stringify({ id: a.id }),
+										}).then((r) => {
+											if (!r.ok) throw new Error("failed");
+										}),
+										{
+											loading: `Disconnecting ${a.name}…`,
+											success: `${a.name} disconnected`,
+											error: "Couldn't disconnect it",
+										},
+									)
+									.then(load)
+									.catch(() => {});
+							}}
+						>
+							Disconnect
+						</button>
+					</SRow>
+				))
+			)}
 		</>
 	);
 }
