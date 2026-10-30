@@ -5,6 +5,7 @@ import { openKey, sealKey } from "#/lib/ai/keys.server";
 import { auth, MCP_RESOURCE } from "#/lib/auth";
 import { requireEnv } from "#/lib/env";
 import { webhookUrl } from "#/lib/github.server";
+import { safePath } from "#/lib/next-path";
 
 // "Connect GitHub": someone connects their GitHub account once (Settings → Connected apps, or
 // from a project). We keep the token sealed like AI keys and use it only to list the repos they
@@ -39,10 +40,6 @@ function unpack(value: string | null): State | null {
 	return state.e > Date.now() ? state : null;
 }
 
-/** Only paths on this site, never "//elsewhere.com". */
-const safePath = (path: string | null) =>
-	path && /^\/(?!\/)/.test(path) ? path : "/";
-
 /** Back to where they started, with `github=<result>` for a toast. */
 function back(path: string, result: string) {
 	const url = new URL(path, ORIGIN);
@@ -55,7 +52,8 @@ export async function githubConnect(request: Request) {
 	if (!githubConnectReady()) return new Response("Not set up", { status: 404 });
 	const session = await auth.api.getSession({ headers: request.headers });
 	if (!session) return new Response("Sign in first", { status: 401 });
-	const b = safePath(new URL(request.url).searchParams.get("back"));
+	// only a path on this site (not //elsewhere or /\elsewhere, which browsers read the same)
+	const b = safePath(new URL(request.url).searchParams.get("back")) ?? "/";
 	const url = new URL("https://github.com/login/oauth/authorize");
 	url.search = new URLSearchParams({
 		client_id: requireEnv("GITHUB_CLIENT_ID"),

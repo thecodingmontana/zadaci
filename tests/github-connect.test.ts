@@ -75,6 +75,11 @@ test("github connect: connect your account once, then linking a repo adds, updat
 
 	const done = location(await back(owner, state));
 	assert.equal(done.pathname, "/", "a path to another site goes home instead");
+	// a backslash is a slash to browsers: "/\\evil.com" must not leave the site either
+	const sneaky = location(await get(githubConnect, owner, `/api/github/connect?back=${encodeURIComponent("/\\evil.com/x")}`));
+	const sneakyBack = location(await back(owner, sneaky.searchParams.get("state") ?? ""));
+	assert.equal(sneakyBack.origin, done.origin);
+	assert.equal(sneakyBack.pathname, "/");
 	assert.equal(done.searchParams.get("github"), "account");
 	const [row] = await db.select().from(tables.github_account).where(eq(tables.github_account.user_id, owner.id));
 	assert.equal(row.login, "octo");
