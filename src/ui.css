@@ -6671,3 +6671,10 @@ a.chat-at:hover {
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+.mcp-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--q-divider);
+}

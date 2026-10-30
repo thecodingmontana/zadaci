@@ -353,8 +353,129 @@ export function SessionsSection({ title }: { title: string }) {
 	);
 }
 
-// Claude Code's one-liner; other MCP clients take the same address
+// every MCP client takes the same address; how you give it to them differs
 const MCP_URL = () => `${window.location.origin}/api/mcp`;
+const SETUPS: {
+	id: string;
+	label: string;
+	icon: string;
+	how: string;
+	code: (url: string) => string;
+}[] = [
+	{
+		id: "claude",
+		label: "Claude",
+		icon: "icon-[logos--claude-icon]",
+		how: "In Claude (web, desktop or mobile): Settings → Connectors → Add custom connector, and paste this address.",
+		code: (u) => u,
+	},
+	{
+		id: "claude-code",
+		label: "Claude Code",
+		icon: "icon-[logos--claude-icon]",
+		how: "Run this in your terminal, then ask Claude Code anything about your Zadaci work.",
+		code: (u) => `claude mcp add --transport http zadaci ${u}`,
+	},
+	{
+		id: "codex",
+		label: "Codex",
+		icon: "icon-[logos--openai-icon]",
+		how: "Run these in your terminal: add Zadaci, then sign in.",
+		code: (u) => `codex mcp add zadaci --url ${u}\ncodex mcp login zadaci`,
+	},
+	{
+		id: "cursor",
+		label: "Cursor",
+		icon: "icon-[simple-icons--cursor]",
+		how: "Add this to ~/.cursor/mcp.json (or .cursor/mcp.json in a project).",
+		code: (u) =>
+			JSON.stringify({ mcpServers: { zadaci: { url: u } } }, null, 2),
+	},
+	{
+		id: "vscode",
+		label: "VS Code",
+		icon: "icon-[logos--visual-studio-code]",
+		how: "Run this in your terminal to add Zadaci to VS Code.",
+		code: (u) =>
+			`code --add-mcp '${JSON.stringify({ name: "zadaci", type: "http", url: u })}'`,
+	},
+	{
+		id: "gemini",
+		label: "Gemini CLI",
+		icon: "icon-[simple-icons--googlegemini]",
+		how: "Run this in your terminal.",
+		code: (u) => `gemini mcp add --transport http zadaci ${u}`,
+	},
+	{
+		id: "other",
+		label: "Other",
+		icon: "icon-[solar--plug-circle-linear]",
+		how: "Any app that supports remote MCP servers over HTTP: give it this address. It signs you in with Zadaci the first time.",
+		code: (u) => u,
+	},
+];
+
+/** How to connect each agent: pick yours, copy its setup. */
+function ConnectAgent() {
+	const [id, setId] = useState(SETUPS[0]?.id);
+	const setup = SETUPS.find((s) => s.id === id) ?? SETUPS[0];
+	if (!setup) return null;
+	const code = setup.code(MCP_URL());
+	return (
+		<div className="mcp-connect">
+			<b style={{ fontWeight: 500 }}>Connect an agent</b>
+			<div
+				className="seg"
+				role="tablist"
+				aria-label="Your agent"
+				style={{ flexWrap: "wrap", alignSelf: "flex-start" }}
+			>
+				{SETUPS.map((s) => (
+					<button
+						key={s.id}
+						type="button"
+						role="tab"
+						aria-selected={s.id === id}
+						className={cn(s.id === id && "on")}
+						onClick={() => setId(s.id)}
+					>
+						<span className={cn(s.icon, "size-3.5")} aria-hidden="true" />
+						{s.label}
+					</button>
+				))}
+			</div>
+			<p className="muted" style={{ fontSize: 13 }}>
+				{setup.how}
+			</p>
+			<div className="row" style={{ alignItems: "flex-start", gap: 10 }}>
+				<pre
+					className="mcp-cmd grow"
+					style={{ whiteSpace: "pre-wrap", margin: 0 }}
+				>
+					{code}
+				</pre>
+				<button
+					type="button"
+					className="btn btn-secondary btn-sm"
+					onClick={() =>
+						copy(
+							code,
+							setup.id === "claude" || setup.id === "other"
+								? "address"
+								: "setup",
+						)
+					}
+				>
+					<span
+						className="icon-[solar--copy-linear] size-3.5"
+						aria-hidden="true"
+					/>
+					Copy
+				</button>
+			</div>
+		</div>
+	);
+}
 
 // the app's own logo when we know it by name: colour logos where they're square, simple-icons
 // marks where the colour one is a wide wordmark (written out in full so Tailwind generates them)
@@ -488,31 +609,7 @@ function ConnectedApps() {
 					</SRow>
 				))
 			)}
-			<SRow
-				t="Connect an agent"
-				d={
-					<code className="mcp-cmd">
-						claude mcp add --transport http zadaci {MCP_URL()}
-					</code>
-				}
-			>
-				<button
-					type="button"
-					className="btn btn-secondary btn-sm"
-					onClick={() =>
-						copy(
-							`claude mcp add --transport http zadaci ${MCP_URL()}`,
-							"command",
-						)
-					}
-				>
-					<span
-						className="icon-[solar--copy-linear] size-3.5"
-						aria-hidden="true"
-					/>
-					Copy
-				</button>
-			</SRow>
+			<ConnectAgent />
 		</>
 	);
 }
