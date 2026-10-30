@@ -153,29 +153,40 @@ export function GitHubModal({
 						</p>
 					</>
 				) : (
-					<form onSubmit={submit} className="row" style={{ gap: 8 }}>
-						<input
-							className="input grow"
-							value={repo}
-							onChange={(e) => setRepo(e.target.value)}
-							placeholder="owner/repo, or the repo's GitHub URL"
-							aria-label="GitHub repo"
-							required
-						/>
-						<button
-							type="submit"
-							className={cn(
-								"btn btn-primary",
-								connecting.loading && "is-loading",
-							)}
-							disabled={connecting.loading}
-						>
-							<span
-								className="icon-[simple-icons--github] size-4"
-								aria-hidden="true"
+					<form onSubmit={submit}>
+						<label className="label" htmlFor="gh-repo">
+							Which repo?
+						</label>
+						<div className="row" style={{ gap: 8 }}>
+							<input
+								id="gh-repo"
+								className="input grow"
+								value={repo}
+								onChange={(e) => setRepo(e.target.value)}
+								placeholder="octocat/hello-world, or paste its GitHub link"
+								required
 							/>
-							{ready ? "Connect with GitHub" : "Link repo"}
-						</button>
+							<button
+								type="submit"
+								className={cn(
+									"btn btn-primary",
+									connecting.loading && "is-loading",
+								)}
+								disabled={connecting.loading || !repo.trim()}
+							>
+								<span
+									className="icon-[simple-icons--github] size-4"
+									aria-hidden="true"
+								/>
+								{ready ? "Connect with GitHub" : "Link repo"}
+							</button>
+						</div>
+						{ready && (
+							<p className="faint" style={{ fontSize: 12, marginTop: 8 }}>
+								GitHub asks you to approve, then we add the webhook to that repo
+								for you. You need admin access to it.
+							</p>
+						)}
 					</form>
 				)}
 			</div>
