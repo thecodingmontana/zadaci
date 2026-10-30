@@ -186,9 +186,24 @@ export async function removeWebhook(token: string, repo: string, url: string) {
 	if (mine) await github(token, `/repos/${repo}/hooks/${mine.id}`, "DELETE");
 }
 
-/** Forget their GitHub account here and revoke our access on GitHub (best effort). */
+/** Unlink the projects they linked (webhooks off the repos), forget their GitHub account, and
+ * revoke our access on GitHub. GitHub calls are best effort: the links go either way. */
 export async function disconnectGitHubAccount(userId: string) {
 	const account = await githubAccount(userId);
+	const links = await db
+		.delete(tables.project_github)
+		.where(eq(tables.project_github.connected_by, userId))
+		.returning({
+			projectId: tables.project_github.project_id,
+			repo: tables.project_github.repo,
+		});
+	if (account)
+		for (const l of links)
+			await removeWebhook(
+				account.token,
+				l.repo,
+				`${ORIGIN}/api/github/${l.projectId}`,
+			).catch(() => {});
 	await db
 		.delete(tables.github_account)
 		.where(eq(tables.github_account.user_id, userId));

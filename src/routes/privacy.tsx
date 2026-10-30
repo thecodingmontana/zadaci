@@ -86,9 +86,10 @@ function Privacy() {
 					stops at once.
 				</li>
 				<li>
-					Unlink a GitHub repo in the project's menu → Connect with GitHub, and
-					disconnect your GitHub account in Settings → Sessions → Connected
-					apps; we delete the token and revoke it on GitHub.
+					Unlink a GitHub repo in the project's menu → GitHub, or disconnect
+					your GitHub account in Settings → Sessions → Connected apps: we unlink
+					the projects you linked, remove their webhooks, delete the token and
+					revoke it on GitHub.
 				</li>
 				<li>
 					Download all your data, or delete your account, in Settings → Your

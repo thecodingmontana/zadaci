@@ -17,7 +17,8 @@ export function GitHubAccountRow() {
 	useGitHubResult();
 	const { data } = useQuery(GITHUB_ACCOUNT, { fetchPolicy: "network-only" });
 	const [disconnect] = useMutation(DISCONNECT_GITHUB_ACCOUNT, {
-		refetchQueries: ["GitHubAccount"],
+		// linked projects get unlinked: refresh the menus that show their repo
+		refetchQueries: ["GitHubAccount", "Shell", "ProjectPage"],
 		awaitRefetchQueries: true,
 	});
 	const [confirming, setConfirming] = useState(false);
@@ -90,15 +91,15 @@ function DisconnectNote({
 	return (
 		<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 			<p>
-				We delete your GitHub access here and revoke Zadaci on GitHub. You won't
-				be able to pick repos or add webhooks until you connect again.
+				We delete your GitHub access here and revoke Zadaci on GitHub. To link a
+				repo again, you connect again.
 			</p>
 			{linked.length > 0 ? (
 				<>
 					<p>
-						These projects stay linked and keep getting pull requests; merges
-						still complete tasks as you. To stop one, unlink it from its
-						project's ⋯ → GitHub first.
+						These projects get unlinked and their webhooks removed from the
+						repos, so new pull requests stop showing on tasks. The ones already
+						on tasks stay.
 					</p>
 					<ul style={{ paddingLeft: 18, listStyle: "disc" }}>
 						{linked.map((l) => (

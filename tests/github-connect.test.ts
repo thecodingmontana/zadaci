@@ -116,9 +116,13 @@ test("github connect: connect your account once, then linking a repo adds, updat
 	await gql(owner, `mutation($s: String!, $p: ID!) { disconnectGitHub(slug: $s, projectId: $p) }`, { s: slug, p: project.id });
 	assert.ok(calls.some((c) => c.method === "DELETE" && c.url === "https://api.github.com/repos/octo/mine/hooks/1"));
 
-	// disconnecting the account forgets it and revokes Zadaci on GitHub
+	// disconnecting the account unlinks its projects (webhooks off the repos), forgets it and
+	// revokes Zadaci on GitHub
+	await gql(owner, CONNECT, { s: slug, p: project.id, r: "octo/mine" });
 	calls.length = 0;
 	assert.equal((await gql(owner, `mutation { disconnectGitHubAccount }`)).data?.disconnectGitHubAccount, true);
 	assert.ok(calls.some((c) => c.method === "DELETE" && c.url.endsWith("/applications/test-client/grant")));
+	assert.ok(calls.some((c) => c.method === "DELETE" && c.url === "https://api.github.com/repos/octo/mine/hooks/1"));
+	assert.equal((await gql(owner, LINK, { s: slug, p: project.id })).data?.projectGitHub, null);
 	assert.equal((await gql(owner, ACCOUNT)).data?.githubAccount, null);
 });
