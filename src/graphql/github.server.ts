@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
 import { MCP_RESOURCE } from "#/lib/auth";
@@ -30,6 +30,13 @@ export const githubTypeDefs = /* GraphQL */ `
 		login: String!
 		"repos you admin (so we can add a webhook), most recently pushed first; public ones only"
 		repos: [String!]!
+		"projects you linked to a repo: they keep getting pull requests if you disconnect"
+		linkedProjects: [GitHubLinkedProject!]!
+	}
+
+	type GitHubLinkedProject {
+		title: String!
+		repo: String!
 	}
 
 	type GitHubPr {
@@ -60,6 +67,11 @@ export const githubTypeDefs = /* GraphQL */ `
 	extend type Task {
 		githubPrs: [GitHubPr!]!
 	}
+
+	extend type Project {
+		"owner/name of the linked GitHub repo, or null"
+		githubRepo: String
+	}
 `;
 
 const shape = (projectId: string, repo: string, nonce: string) => ({
@@ -74,8 +86,11 @@ export const githubResolvers = {
 			requireUser(ctx);
 			return githubConnectReady();
 		},
-		githubAccount: (_: unknown, __: unknown, ctx: GraphQLContext) =>
-			githubAccount(requireUser(ctx).id),
+		githubAccount: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+			const userId = requireUser(ctx).id;
+			const account = await githubAccount(userId);
+			return account && { ...account, userId };
+		},
 		projectGitHub: async (
 			_: unknown,
 			args: { slug: string; projectId: string },
@@ -181,8 +196,36 @@ export const githubResolvers = {
 			return true;
 		},
 	},
+	Project: {
+		// shortcut: one query per project (fine for tens of projects); batch with a DataLoader
+		githubRepo: async (p: { id: string }) =>
+			(
+				await db
+					.select({ repo: tables.project_github.repo })
+					.from(tables.project_github)
+					.where(eq(tables.project_github.project_id, p.id))
+			)[0]?.repo ?? null,
+	},
 	GitHubAccount: {
 		repos: (a: { token: string }) => githubRepos(a.token),
+		linkedProjects: (a: { userId: string }) =>
+			db
+				.select({
+					title: tables.project.title,
+					repo: tables.project_github.repo,
+				})
+				.from(tables.project_github)
+				.innerJoin(
+					tables.project,
+					eq(tables.project.id, tables.project_github.project_id),
+				)
+				.where(
+					and(
+						eq(tables.project_github.connected_by, a.userId),
+						isNull(tables.project.deleted_at),
+					),
+				)
+				.orderBy(asc(tables.project.title)),
 	},
 	Task: {
 		// shortcut: one query per task; it's only asked for on an open task

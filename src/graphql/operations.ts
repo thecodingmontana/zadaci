@@ -159,6 +159,8 @@ export type ShellProject = {
 	access: string;
 	/** the viewer's right: view, comment, edit or full */
 	myAccess: import("#/lib/permissions").ProjectRight | null;
+	/** owner/name of the linked GitHub repo */
+	githubRepo?: string | null;
 };
 export type ShellTeam = {
 	id: string;
@@ -205,6 +207,7 @@ export const SHELL: TypedDocumentNode<
 				isFavorite
 				access
 				myAccess
+				githubRepo
 			}
 			teams {
 				id
@@ -1150,6 +1153,7 @@ export type SavedView = {
 };
 
 export type ProjectDetail = ProjectSummary & {
+	githubRepo: string | null;
 	savedViews: SavedView[];
 	milestones: { id: string; name: string; date: string }[];
 	members: ProjectMember[];
@@ -1178,6 +1182,7 @@ export const PROJECT_PAGE: TypedDocumentNode<
 			role
 			project(id: $projectId) {
 				...ProjectFields
+				githubRepo
 				savedViews {
 					id
 					name

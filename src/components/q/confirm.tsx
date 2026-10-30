@@ -81,13 +81,13 @@ export function ConfirmModal({
 									>
 										{title}
 									</Dialog.Title>
-									<p
+									<div
 										id="confirm-body"
 										className="muted"
 										style={{ margin: 0, fontSize: 13, lineHeight: 1.55 }}
 									>
 										{body}
-									</p>
+									</div>
 								</div>
 							</div>
 							{typeName && (

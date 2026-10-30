@@ -93,6 +93,10 @@ test("github connect: connect your account once, then linking a repo adds, updat
 	assert.deepEqual(added?.body?.events, ["pull_request"]);
 	assert.deepEqual(added?.body?.config, { url: link.webhookUrl, content_type: "json", secret: link.secret, insecure_ssl: "0" });
 
+	// Settings lists what's linked through the account, so disconnecting is never a surprise
+	assert.deepEqual((await gql(owner, `{ githubAccount { linkedProjects { repo } } }`)).data?.githubAccount.linkedProjects, [{ repo: "octo/mine" }]);
+	assert.equal((await gql(owner, `query($s: String!) { workspace(slug: $s) { project(id: "${project.id}") { githubRepo } } }`, { s: slug })).data?.workspace.project.githubRepo, "octo/mine");
+
 	// again: the same webhook gets the new secret instead of a second one
 	calls.length = 0;
 	const again = (await gql(owner, CONNECT, { s: slug, p: project.id, r: "octo/mine" })).data?.connectGitHub;

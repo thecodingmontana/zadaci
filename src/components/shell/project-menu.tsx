@@ -214,8 +214,15 @@ export function ProjectMenu({
 						<MenuItem
 							icon="icon-[simple-icons--github]"
 							onSelect={() => setGithub(true)}
+							r={
+								project.githubRepo && (
+									<span className="faint trunc" style={{ maxWidth: 110 }}>
+										{project.githubRepo.split("/")[1]}
+									</span>
+								)
+							}
 						>
-							Connect with GitHub
+							{project.githubRepo ? "GitHub" : "Connect with GitHub"}
 						</MenuItem>
 					)}
 					<MenuItem

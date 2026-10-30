@@ -505,6 +505,9 @@ type Consent = { id: string; clientId: string; createdAt: string };
 function ConnectedApps() {
 	const [apps, setApps] = useState<(Consent & { name: string })[] | null>(null);
 	const [refreshing, setRefreshing] = useState(false);
+	const [leaving, setLeaving] = useState<(Consent & { name: string }) | null>(
+		null,
+	);
 	const load = useCallback(async () => {
 		const res = await fetch("/api/auth/oauth2/get-consents");
 		const list = res.ok ? ((await res.json()) as Consent[]) : [];
@@ -586,31 +589,42 @@ function ConnectedApps() {
 						<button
 							type="button"
 							className="btn btn-secondary btn-sm"
-							onClick={() => {
-								toast
-									.promise(
-										fetch("/api/auth/oauth2/delete-consent", {
-											method: "POST",
-											headers: { "content-type": "application/json" },
-											body: JSON.stringify({ id: a.id }),
-										}).then((r) => {
-											if (!r.ok) throw new Error("failed");
-										}),
-										{
-											loading: `Disconnecting ${a.name}…`,
-											success: `${a.name} disconnected`,
-											error: "Couldn't disconnect it",
-										},
-									)
-									.then(load)
-									.catch(() => {});
-							}}
+							onClick={() => setLeaving(a)}
 						>
 							Disconnect
 						</button>
 					</SRow>
 				))
 			)}
+			<ConfirmModal
+				open={!!leaving}
+				onOpenChange={(o) => !o && setLeaving(null)}
+				title={`Disconnect ${leaving?.name ?? "this app"}?`}
+				ok="Disconnect"
+				danger
+				body={`${leaving?.name ?? "It"} stops working with Zadaci right away, even mid-task. What it already did stays, and shows as done by you. To use it again, connect it again (it asks you to approve).`}
+				onConfirm={() => {
+					const a = leaving;
+					if (!a) return;
+					return toast
+						.promise(
+							fetch("/api/auth/oauth2/delete-consent", {
+								method: "POST",
+								headers: { "content-type": "application/json" },
+								body: JSON.stringify({ id: a.id }),
+							}).then((r) => {
+								if (!r.ok) throw new Error("failed");
+							}),
+							{
+								loading: `Disconnecting ${a.name}…`,
+								success: `${a.name} disconnected`,
+								error: "Couldn't disconnect it",
+							},
+						)
+						.then(load)
+						.catch(() => {});
+				}}
+			/>
 			<ConnectAgent />
 		</>
 	);

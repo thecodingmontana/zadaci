@@ -1,8 +1,10 @@
 import { useMutation, useQuery } from "@apollo/client/react";
+import { useState } from "react";
 import {
 	connectGitHubAccount,
 	useGitHubResult,
 } from "#/components/projects/github-modal";
+import { ConfirmModal } from "#/components/q/confirm";
 import {
 	DISCONNECT_GITHUB_ACCOUNT,
 	GITHUB_ACCOUNT,
@@ -18,6 +20,7 @@ export function GitHubAccountRow() {
 		refetchQueries: ["GitHubAccount"],
 		awaitRefetchQueries: true,
 	});
+	const [confirming, setConfirming] = useState(false);
 	// not set up on this server (no GitHub OAuth app): nothing to connect
 	if (!data?.githubConnectReady) return null;
 	const account = data.githubAccount;
@@ -42,15 +45,7 @@ export function GitHubAccountRow() {
 				<button
 					type="button"
 					className="btn btn-secondary btn-sm"
-					onClick={() =>
-						void toast
-							.promise(disconnect(), {
-								loading: "Disconnecting GitHub…",
-								success: "GitHub disconnected",
-								error: "Couldn't disconnect it",
-							})
-							.catch(() => {})
-					}
+					onClick={() => setConfirming(true)}
 				>
 					Disconnect
 				</button>
@@ -63,6 +58,59 @@ export function GitHubAccountRow() {
 					Connect GitHub
 				</button>
 			)}
+			{account && (
+				<ConfirmModal
+					open={confirming}
+					onOpenChange={setConfirming}
+					title="Disconnect GitHub?"
+					ok="Disconnect"
+					danger
+					body={<DisconnectNote linked={account.linkedProjects} />}
+					onConfirm={() =>
+						toast
+							.promise(disconnect(), {
+								loading: "Disconnecting GitHub…",
+								success: "GitHub disconnected",
+								error: "Couldn't disconnect it",
+							})
+							.catch(() => {})
+					}
+				/>
+			)}
 		</SRow>
+	);
+}
+
+/** What disconnecting does, and doesn't, change. */
+function DisconnectNote({
+	linked,
+}: {
+	linked: { title: string; repo: string }[];
+}) {
+	return (
+		<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+			<p>
+				We delete your GitHub access here and revoke Zadaci on GitHub. You won't
+				be able to pick repos or add webhooks until you connect again.
+			</p>
+			{linked.length > 0 ? (
+				<>
+					<p>
+						These projects stay linked and keep getting pull requests; merges
+						still complete tasks as you. To stop one, unlink it from its
+						project's ⋯ → GitHub first.
+					</p>
+					<ul style={{ paddingLeft: 18, listStyle: "disc" }}>
+						{linked.map((l) => (
+							<li key={`${l.title}:${l.repo}`}>
+								<b>{l.title}</b> <span className="faint">→ {l.repo}</span>
+							</li>
+						))}
+					</ul>
+				</>
+			) : (
+				<p>No projects are linked through your account.</p>
+			)}
+		</div>
 	);
 }

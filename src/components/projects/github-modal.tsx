@@ -72,7 +72,11 @@ export function GitHubModal({
 		skip: !open,
 		fetchPolicy: "network-only",
 	});
-	const opts = { refetchQueries: ["ProjectGitHub"], awaitRefetchQueries: true };
+	// the project menu shows the linked repo, so refresh it too
+	const opts = {
+		refetchQueries: ["ProjectGitHub", "Shell", "ProjectPage"],
+		awaitRefetchQueries: true,
+	};
 	const [connect, connecting] = useMutation(CONNECT_GITHUB, opts);
 	const [disconnect] = useMutation(DISCONNECT_GITHUB, opts);
 	const [repo, setRepo] = useState("");
@@ -272,7 +276,7 @@ export function GitHubModal({
 		<Modal
 			open={open}
 			onOpenChange={onOpenChange}
-			title="Connect with GitHub"
+			title={link ? "GitHub" : "Connect with GitHub"}
 			sub="Pull requests that mention a task's key (like WEB-12 in the title, or a branch named web-12-login) show on the task, and merging one completes it."
 		>
 			<div

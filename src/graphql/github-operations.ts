@@ -61,13 +61,23 @@ export const DISCONNECT_GITHUB: TypedDocumentNode<
 
 // your GitHub account (Settings → Connected apps)
 export const GITHUB_ACCOUNT: TypedDocumentNode<
-	{ githubConnectReady: boolean; githubAccount: { login: string } | null },
+	{
+		githubConnectReady: boolean;
+		githubAccount: {
+			login: string;
+			linkedProjects: { title: string; repo: string }[];
+		} | null;
+	},
 	Record<string, never>
 > = gql`
 	query GitHubAccount {
 		githubConnectReady
 		githubAccount {
 			login
+			linkedProjects {
+				title
+				repo
+			}
 		}
 	}
 `;
