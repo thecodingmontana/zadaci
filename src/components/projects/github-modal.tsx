@@ -2,7 +2,20 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Modal } from "#/components/q/modal";
-import { PickList, PickPopover } from "#/components/tasks/pick";
+import { Button } from "#/components/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "#/components/ui/command";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "#/components/ui/popover";
 import {
 	CONNECT_GITHUB,
 	DISCONNECT_GITHUB,
@@ -186,43 +199,54 @@ export function GitHubModal({
 					<span className="label" id="gh-pick-l">
 						Repo
 					</span>
-					<PickPopover
-						open={picking}
-						onOpenChange={setPicking}
-						width={436}
-						trigger={
-							<button
+					<Popover open={picking} onOpenChange={setPicking}>
+						<PopoverTrigger asChild>
+							<Button
 								type="button"
-								className={cn("input row", connecting.loading && "is-loading")}
-								style={{ width: "100%", gap: 8, cursor: "pointer" }}
+								variant="outline"
+								role="combobox"
+								aria-expanded={picking}
 								aria-labelledby="gh-pick-l"
+								className="w-full justify-start font-normal"
 								disabled={connecting.loading}
 							>
 								{ghIcon}
-								<span className="grow faint" style={{ textAlign: "left" }}>
+								<span className="grow text-left text-muted-foreground">
 									{connecting.loading ? "Linking…" : "Choose a repo…"}
 								</span>
 								<span
-									className="icon-[solar--alt-arrow-down-linear] size-3.5"
+									className="icon-[solar--alt-arrow-down-linear] size-3.5 opacity-50"
 									aria-hidden="true"
 								/>
-							</button>
-						}
-					>
-						<PickList
-							items={account.repos.map((r) => ({
-								id: r,
-								name: r,
-								icon: ghIcon,
-							}))}
-							search="Search your repos"
-							empty="No repos you admin match"
-							onPick={(r) => {
-								setPicking(false);
-								void linkRepo(r);
-							}}
-						/>
-					</PickPopover>
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent
+							className="w-(--radix-popover-trigger-width) p-0"
+							align="start"
+						>
+							<Command>
+								<CommandInput placeholder="Search your repos…" />
+								<CommandList>
+									<CommandEmpty>No repos you admin match.</CommandEmpty>
+									<CommandGroup>
+										{account.repos.map((r) => (
+											<CommandItem
+												key={r}
+												value={r}
+												onSelect={() => {
+													setPicking(false);
+													void linkRepo(r);
+												}}
+											>
+												{ghIcon}
+												{r}
+											</CommandItem>
+										))}
+									</CommandGroup>
+								</CommandList>
+							</Command>
+						</PopoverContent>
+					</Popover>
 					<p className="faint" style={{ fontSize: 12, marginTop: 8 }}>
 						Connected as <b>@{account.login}</b>. The list shows public repos
 						you admin; we add the webhook for you.
