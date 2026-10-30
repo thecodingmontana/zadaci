@@ -353,6 +353,9 @@ export function SessionsSection({ title }: { title: string }) {
 	);
 }
 
+// Claude Code's one-liner; other MCP clients take the same address
+const MCP_URL = () => `${window.location.origin}/api/mcp`;
+
 type Consent = { id: string; clientId: string; createdAt: string };
 
 /** AI agents (Claude Code, Cursor…) you let use Zadaci as you, through its MCP server. */
@@ -391,11 +394,7 @@ function ConnectedApps() {
 			) : apps.length === 0 ? (
 				<div className="srow">
 					<p className="muted grow" style={{ fontSize: 13 }}>
-						No apps connected. Connect one with{" "}
-						<code>
-							claude mcp add --transport http zadaci {window.location.origin}
-							/api/mcp
-						</code>
+						No apps connected yet.
 					</p>
 				</div>
 			) : (
@@ -441,6 +440,31 @@ function ConnectedApps() {
 					</SRow>
 				))
 			)}
+			<SRow
+				t="Connect an agent"
+				d={
+					<code className="mcp-cmd">
+						claude mcp add --transport http zadaci {MCP_URL()}
+					</code>
+				}
+			>
+				<button
+					type="button"
+					className="btn btn-secondary btn-sm"
+					onClick={() =>
+						copy(
+							`claude mcp add --transport http zadaci ${MCP_URL()}`,
+							"command",
+						)
+					}
+				>
+					<span
+						className="icon-[solar--copy-linear] size-3.5"
+						aria-hidden="true"
+					/>
+					Copy
+				</button>
+			</SRow>
 		</>
 	);
 }

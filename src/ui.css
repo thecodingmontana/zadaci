@@ -6659,3 +6659,15 @@ a.chat-at:hover {
     animation: none;
   }
 }
+
+/* Settings → Connected apps: the connect command, readable and copyable */
+.mcp-cmd {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: var(--q-r-sm);
+  background: var(--q-surface-2);
+  font-family: var(--q-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
