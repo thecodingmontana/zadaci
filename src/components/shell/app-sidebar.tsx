@@ -217,7 +217,7 @@ export function AppSidebar({
 	const [showCredits, setShowCredits] = useState(false);
 	const isActive = useActive(slug);
 	const { collapsed, toggleSide } = useShell();
-	const { openPalette, openShortcuts } = useCommandMenu();
+	const { openPalette, openShortcuts, openFeedback } = useCommandMenu();
 	const mod = useModKey();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -625,6 +625,15 @@ export function AppSidebar({
 						</MenuItem>
 					</MenuContent>
 				</Menu>
+				<SideTip label="Send feedback">
+					<button type="button" className="sitem" onClick={openFeedback}>
+						<span
+							className="i icon-[solar--chat-square-like-linear] size-4 shrink-0"
+							aria-hidden="true"
+						/>
+						<span>Send feedback</span>
+					</button>
+				</SideTip>
 				<SItem
 					slug={slug}
 					item={SETTINGS_NAV}

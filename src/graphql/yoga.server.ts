@@ -15,6 +15,7 @@ import { activityResolvers, activityTypeDefs } from "./activity.server";
 import { aiResolvers, aiTypeDefs } from "./ai.server";
 import { bookmarksResolvers, bookmarksTypeDefs } from "./bookmarks.server";
 import { chatResolvers, chatTypeDefs } from "./chat.server";
+import { feedbackResolvers, feedbackTypeDefs } from "./feedback.server";
 import { githubResolvers, githubTypeDefs } from "./github.server";
 import { membersResolvers, membersTypeDefs } from "./members.server";
 import { notesResolvers, notesTypeDefs } from "./notes.server";
@@ -60,6 +61,7 @@ export const schema = createSchema<GraphQLContext>({
 		aiTypeDefs,
 		chatTypeDefs,
 		githubTypeDefs,
+		feedbackTypeDefs,
 	],
 	resolvers: [
 		resolvers,
@@ -80,6 +82,7 @@ export const schema = createSchema<GraphQLContext>({
 		aiResolvers,
 		chatResolvers,
 		githubResolvers,
+		feedbackResolvers,
 	],
 });
 

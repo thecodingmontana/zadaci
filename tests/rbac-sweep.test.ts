@@ -28,6 +28,7 @@ const ACCOUNT_LEVEL = new Set([
 	"unsplash",
 	"unsplashEnabled",
 	"githubConnectReady",
+	"sendFeedback",
 	"githubAppInstallUrl",
 	"githubAccount",
 	"disconnectGitHubAccount",

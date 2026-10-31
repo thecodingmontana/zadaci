@@ -26,6 +26,8 @@ export async function sendEmail(
 	react: ReactElement,
 	/** for notification and digest emails: where to turn them off (mail apps show an Unsubscribe link) */
 	unsubscribeUrl?: string,
+	/** who a reply goes to (feedback: the person who sent it); support by default */
+	replyTo = SUPPORT_EMAIL,
 ) {
 	if (!resend) {
 		console.info(
@@ -45,7 +47,7 @@ export async function sendEmail(
 			html,
 			text,
 			// replies reach a person, and mail apps can offer Unsubscribe; both help keep us out of spam
-			replyTo: SUPPORT_EMAIL,
+			replyTo,
 			...(unsubscribeUrl && {
 				headers: { "List-Unsubscribe": `<${unsubscribeUrl}>` },
 			}),

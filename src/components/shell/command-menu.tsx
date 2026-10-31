@@ -32,6 +32,7 @@ import { isDark, setAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
 import { can } from "#/lib/permissions";
 import { cn } from "#/lib/utils";
+import { FeedbackModal } from "./feedback-modal";
 import {
 	ARCHIVE_NAV,
 	MAIN_NAV,
@@ -65,6 +66,7 @@ type CommandMenu = {
 	openPalette: () => void;
 	openSearch: () => void;
 	openShortcuts: () => void;
+	openFeedback: () => void;
 };
 const CommandMenuContext = createContext<CommandMenu | null>(null);
 
@@ -283,6 +285,7 @@ export function CommandMenuProvider({
 	const newTask = useNewTask();
 	const createNote = useCreateNote(slug);
 	const [creatingProject, setCreatingProject] = useState(false);
+	const [feedback, setFeedback] = useState(false);
 
 	// every page and settings section comes from nav.ts, so the menu grows with the app
 	const gKey = Object.fromEntries(
@@ -387,6 +390,13 @@ export function CommandMenuProvider({
 			run: settings("sessions"),
 		},
 		{
+			id: "c-feedback",
+			name: "Send feedback",
+			icon: "icon-[solar--chat-square-like-linear]",
+			keywords: "bug report idea suggestion problem support contact",
+			run: () => setFeedback(true),
+		},
+		{
 			id: "c-ws",
 			name: "Switch workspace…",
 			icon: "icon-[solar--transfer-horizontal-linear]",
@@ -446,6 +456,10 @@ export function CommandMenuProvider({
 				openPalette: () => open("cmd"),
 				openSearch: () => open("search"),
 				openShortcuts: showShortcuts,
+				openFeedback: () => {
+					setMnav(false);
+					setFeedback(true);
+				},
 			}}
 		>
 			{children}
@@ -513,6 +527,7 @@ export function CommandMenuProvider({
 					))}
 				</div>
 			</Modal>
+			<FeedbackModal open={feedback} onOpenChange={setFeedback} slug={slug} />
 			{creatingProject && (
 				<ProjectModalLoader
 					open={creatingProject}

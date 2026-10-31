@@ -2089,3 +2089,31 @@ export const REALTIME_CONFIG: TypedDocumentNode<{
 		}
 	}
 `;
+
+/** Send feedback: a bug report, idea or anything else, to the support inbox (feedback.server.ts). */
+export const SEND_FEEDBACK: TypedDocumentNode<
+	{ sendFeedback: boolean },
+	{
+		kind: "bug" | "idea" | "other";
+		message: string;
+		slug: string;
+		page: string;
+		browser: string;
+	}
+> = gql`
+	mutation SendFeedback(
+		$kind: String!
+		$message: String!
+		$slug: String
+		$page: String
+		$browser: String
+	) {
+		sendFeedback(
+			kind: $kind
+			message: $message
+			slug: $slug
+			page: $page
+			browser: $browser
+		)
+	}
+`;

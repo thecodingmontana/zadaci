@@ -38,6 +38,11 @@ function Privacy() {
 					you approved, and the short-lived sign-in tokens they use.
 				</li>
 				<li>
+					<b>Feedback you send:</b> your message, name, email, the page you were
+					on and your browser go by email to our support inbox, so we can reply.
+					We don't store them in Zadaci.
+				</li>
+				<li>
 					<b>GitHub:</b> for a project linked to a repo, the repo's name and the
 					title, number, link and state of pull requests that mention a task. If
 					you connect your GitHub account, your GitHub username and an access
