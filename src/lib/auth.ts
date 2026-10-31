@@ -2,12 +2,16 @@ import { oauthProvider } from "@better-auth/oauth-provider";
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import {
+	APIError,
+	createAuthMiddleware,
+	getSessionFromCtx,
+} from "better-auth/api";
 import { deleteSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
 import { jwt, magicLink, twoFactor } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { createElement } from "react";
 import { db, tables } from "#/db";
 import { generateNanoId } from "#/db/utils";
@@ -73,6 +77,47 @@ export const MCP_RESOURCE = `${(process.env.BETTER_AUTH_URL ?? SITE_URL).replace
 /** What an agent can ask for: to act as you (offline_access: it stays connected between sessions). */
 export const MCP_SCOPES = ["profile", "email", "offline_access"];
 
+/**
+ * Disconnecting an agent (Settings → Connected apps) deletes its approval, and /api/mcp already
+ * refuses its access tokens then. Its refresh tokens would still mint new ones, so the agent's app
+ * would think it's connected and show no tools: end them too, and it asks you to sign in again.
+ */
+async function endAgentTokens(
+	ctx: Parameters<Parameters<typeof createAuthMiddleware>[0]>[0],
+) {
+	const id = (ctx.body as { id?: unknown } | undefined)?.id;
+	const session = await getSessionFromCtx(ctx);
+	if (typeof id !== "string" || !session) return;
+	const [consent] = await db
+		.select({ clientId: tables.oauthConsent.clientId })
+		.from(tables.oauthConsent)
+		.where(
+			and(
+				eq(tables.oauthConsent.id, id),
+				// only your own: nobody ends someone else's connection with a guessed id
+				eq(tables.oauthConsent.userId, session.user.id),
+			),
+		);
+	if (!consent) return;
+	const mine = (
+		table: typeof tables.oauthRefreshToken | typeof tables.oauthAccessToken,
+	) =>
+		and(
+			eq(table.userId, session.user.id),
+			eq(table.clientId, consent.clientId),
+			isNull(table.revoked),
+		);
+	const now = new Date();
+	await db
+		.update(tables.oauthRefreshToken)
+		.set({ revoked: now })
+		.where(mine(tables.oauthRefreshToken));
+	await db
+		.update(tables.oauthAccessToken)
+		.set({ revoked: now })
+		.where(mine(tables.oauthAccessToken));
+}
+
 export const auth = betterAuth({
 	appName: "Zadaci",
 	secret: requireEnv("BETTER_AUTH_SECRET"),
@@ -137,6 +182,7 @@ export const auth = betterAuth({
 		// forbids local callbacks. RFC 8252: a client with no secret whose callbacks are all on
 		// this machine is a native app, so say so for it (nothing else changes).
 		before: createAuthMiddleware(async (ctx) => {
+			if (ctx.path === "/oauth2/delete-consent") return endAgentTokens(ctx);
 			if (ctx.path !== "/oauth2/register") return;
 			const body = ctx.body as
 				| {

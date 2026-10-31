@@ -3,7 +3,7 @@ import { after, test } from "node:test";
 import { and, eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { mcpResponse } from "#/lib/mcp.server";
-import { connectAgent } from "./agent";
+import { call, connectAgent, refresh } from "./agent";
 import { cleanup, gql, join, makeUser, makeWorkspace } from "./helpers";
 
 after(cleanup);
@@ -88,4 +88,28 @@ test("mcp: disconnecting an agent stops it at once", async () => {
 	assert.equal((await rpc(token, "tools/list")).status, 200);
 	await db.delete(tables.oauthConsent).where(and(eq(tables.oauthConsent.userId, me.id), eq(tables.oauthConsent.clientId, clientId)));
 	assert.equal((await rpc(token, "tools/list")).status, 401, "the token still looks valid, but the approval is gone");
+});
+
+test("mcp: Disconnect in Settings also ends the agent's refresh token, so it asks to sign in again", async () => {
+	const me = await makeUser("mcp-disconnect", false);
+	const { refreshToken, clientId } = await connectAgent(me.cookie);
+	// still connected: a refresh works (and hands back the next refresh token)
+	const before = await refresh(refreshToken, clientId);
+	assert.equal(before.status, 200, await before.clone().text());
+	const next = ((await before.json()) as { refresh_token: string }).refresh_token;
+
+	// Disconnect, the way Settings → Connected apps does it
+	const consents = (await (await call("/api/auth/oauth2/get-consents", { cookie: me.cookie })).json()) as { id: string; clientId: string }[];
+	const mine = consents.find((c) => c.clientId === clientId);
+	assert.ok(mine);
+	const gone = await call("/api/auth/oauth2/delete-consent", {
+		method: "POST",
+		cookie: me.cookie,
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({ id: mine.id }),
+	});
+	assert.ok(gone.ok, await gone.clone().text());
+
+	// no fresh tokens after that: the agent's app has to send the person to approve again
+	assert.ok((await refresh(next, clientId)).status >= 400, "a disconnected agent can't refresh");
 });

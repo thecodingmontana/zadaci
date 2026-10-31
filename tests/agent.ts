@@ -76,7 +76,20 @@ export async function connectAgent(cookie: string) {
 		body: JSON.stringify({ accept: true, oauth_query: consent.split("?")[1] ?? "" }),
 	});
 	const code = new URL(((await approved.json()) as { url: string }).url).searchParams.get("code") ?? "";
-	const tokens = (await (await exchange(code, client_id, verifier)).json()) as { access_token?: string };
+	const tokens = (await (await exchange(code, client_id, verifier)).json()) as { access_token?: string; refresh_token?: string };
 	assert.ok(tokens.access_token, JSON.stringify(tokens));
-	return { token: tokens.access_token, clientId: client_id };
+	return { token: tokens.access_token, refreshToken: tokens.refresh_token ?? "", clientId: client_id };
 }
+
+/** What an agent does when its access token runs out: swap the refresh token for a new one. */
+export const refresh = (refreshToken: string, clientId: string) =>
+	call("/api/auth/oauth2/token", {
+		method: "POST",
+		headers: { "content-type": "application/x-www-form-urlencoded" },
+		body: new URLSearchParams({
+			grant_type: "refresh_token",
+			refresh_token: refreshToken,
+			client_id: clientId,
+			resource: MCP_RESOURCE,
+		}),
+	});
