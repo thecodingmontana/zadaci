@@ -110,6 +110,9 @@ export const yoga = createYoga<object, GraphQLContext>({
 	schema,
 	// Yoga 6 logs every request at "info": keep the logs to problems (crashes still log below)
 	logging: "warn",
+	// crashes reach the browser as "Unexpected error." (logged below with the details); said
+	// here, not left to Yoga's default, so an upgrade can't quietly change it
+	maskedErrors: true,
 	plugins: [
 		maxAliasesPlugin({ n: LIMITS.aliases }),
 		maxDepthPlugin({ n: LIMITS.depth }),
