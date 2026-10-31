@@ -24,7 +24,11 @@ export const PROJECT_GITHUB: TypedDocumentNode<
 		projectGitHub: ProjectGitHub | null;
 		githubConnectReady: boolean;
 		githubAppInstallUrl: string | null;
-		githubAccount: { login: string; repos: string[] } | null;
+		githubAccount: {
+			login: string;
+			repos: string[];
+			needsReconnect: boolean;
+		} | null;
 	},
 	{ slug: string; projectId: string }
 > = gql`
@@ -41,6 +45,7 @@ export const PROJECT_GITHUB: TypedDocumentNode<
 		githubAccount {
 			login
 			repos
+			needsReconnect
 		}
 	}
 `;

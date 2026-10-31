@@ -142,15 +142,20 @@ export async function githubAccount(userId: string) {
 	return row && token ? { login: row.login, token } : null;
 }
 
+/** GitHub turned the token down (expired, revoked, or from the old OAuth app): they reconnect. */
+const refused = (res: Response) => res.status === 401 || res.status === 403;
+
 /** Repos they can link: with the GitHub App, every repo it's installed on that they can see
- * (private too); without it, the ones they admin (so we can add a webhook), most recent first. */
-export async function githubRepos(token: string) {
+ * (private too); without it, the ones they admin (so we can add a webhook), most recent first.
+ * null when GitHub refuses the token, so they're asked to reconnect, not shown an empty list. */
+export async function githubRepos(token: string): Promise<string[] | null> {
 	if (githubApp()) return appRepos(token);
 	// shortcut: the first 100 repos they can reach; typing the name still works past that
 	const res = await github(
 		token,
 		"/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member",
 	);
+	if (refused(res)) return null;
 	if (!res.ok) return [];
 	const repos = (await res.json()) as {
 		full_name: string;
@@ -162,6 +167,7 @@ export async function githubRepos(token: string) {
 // shortcut: the first 100 installations and 100 repos in each; more rarely matters for one person
 async function appRepos(token: string) {
 	const res = await github(token, "/user/installations?per_page=100");
+	if (refused(res)) return null;
 	if (!res.ok) return [];
 	const { installations } = (await res.json()) as {
 		installations: { id: number }[];

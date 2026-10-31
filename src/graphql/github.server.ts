@@ -34,6 +34,8 @@ export const githubTypeDefs = /* GraphQL */ `
 		login: String!
 		"repos you admin (so we can add a webhook), most recently pushed first; public ones only"
 		repos: [String!]!
+		"GitHub turned down the saved sign-in (expired or revoked): connect GitHub again"
+		needsReconnect: Boolean!
 		"projects you linked to a repo: they keep getting pull requests if you disconnect"
 		linkedProjects: [GitHubLinkedProject!]!
 	}
@@ -120,7 +122,11 @@ export const githubResolvers = {
 		githubAccount: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
 			const userId = requireUser(ctx).id;
 			const account = await githubAccount(userId);
-			return account && { ...account, userId };
+			if (!account) return null;
+			// repos and needsReconnect share one trip to GitHub
+			let list: Promise<string[] | null> | undefined;
+			const repos = () => (list ??= githubRepos(account.token));
+			return { ...account, userId, repos };
 		},
 		projectGitHub: async (
 			_: unknown,
@@ -166,13 +172,12 @@ export const githubResolvers = {
 			// with the GitHub App: only a repo it's installed on that they can see, and its one
 			// webhook brings the pull requests, so nothing is added to the repo
 			const viaApp = !!(githubApp() && account);
-			if (
-				viaApp &&
-				account &&
-				!(await githubRepos(account.token)).some(
-					(r) => r.toLowerCase() === repo.toLowerCase(),
-				)
-			)
+			const repos = viaApp && account ? await githubRepos(account.token) : [];
+			if (repos === null)
+				badInput(
+					"GitHub signed Zadaci out. Reconnect GitHub in Settings → Connected apps.",
+				);
+			if (viaApp && !repos.some((r) => r.toLowerCase() === repo.toLowerCase()))
 				badInput(
 					`Install the Zadaci GitHub App on ${repo} first (or ask whoever owns it to)`,
 				);
@@ -267,7 +272,10 @@ export const githubResolvers = {
 			)[0]?.repo ?? null,
 	},
 	GitHubAccount: {
-		repos: (a: { token: string }) => githubRepos(a.token),
+		repos: async (a: { repos: () => Promise<string[] | null> }) =>
+			(await a.repos()) ?? [],
+		needsReconnect: async (a: { repos: () => Promise<string[] | null> }) =>
+			(await a.repos()) === null,
 		linkedProjects: (a: { userId: string }) =>
 			db
 				.select({

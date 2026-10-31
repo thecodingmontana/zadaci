@@ -21,6 +21,8 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 	const url = String(input);
 	if (!url.startsWith("https://api.github.com/") && !url.startsWith("https://github.com/")) return realFetch(input, init);
 	calls.push({ url, method: init?.method ?? "GET" });
+	// a token GitHub no longer accepts (expired, or from the old OAuth app)
+	if (new Headers(init?.headers).get("authorization") === "Bearer ghu_expired") return new Response("Bad credentials", { status: 401 });
 	if (url.includes("/user/installations?")) return Response.json({ installations: [{ id: 7 }] });
 	if (url.includes("/user/installations/7/repositories"))
 		return Response.json({ repositories: [{ full_name: "octo/secret-plans" }, { full_name: "octo/website" }] });
@@ -86,4 +88,15 @@ test("github app: private repos it's installed on can be linked, and its one web
 	await gql(owner, `mutation($s: String!, $p: ID!) { disconnectGitHub(slug: $s, projectId: $p) }`, { s: slug, p: project.id });
 	assert.ok(!calls.some((c) => c.url.includes("/hooks")));
 	assert.deepEqual(await (await deliver(opened)).json(), { linked: 0, completed: 0 }, "nothing arrives once unlinked");
+});
+
+test("github app: a token GitHub refuses asks you to reconnect, instead of showing no repos", async () => {
+	const me = await makeUser("gha-expired", false);
+	const { slug } = await makeWorkspace(me);
+	const project = (await gql(me, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
+	await db.insert(tables.github_account).values({ user_id: me.id, login: "octo", token: sealKey("ghu_expired", me.id, "github") });
+
+	assert.deepEqual((await gql(me, `{ githubAccount { repos needsReconnect } }`)).data?.githubAccount, { repos: [], needsReconnect: true });
+	const linked = await gql(me, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "octo/secret-plans") { repo } }`, { s: slug, p: project.id });
+	assert.match(linked.errors?.[0].message ?? "", /Reconnect GitHub/, "not a misleading 'install the app' message");
 });

@@ -170,12 +170,13 @@ export function GitHubModal({
 
 	function notLinked() {
 		if (!ready) return repoForm;
-		if (!account)
+		if (!account || account.needsReconnect)
 			return (
 				<>
 					<p style={{ fontSize: 13 }}>
-						Connect your GitHub account once, then pick the repo here and we add
-						its webhook for you.
+						{account
+							? `GitHub signed Zadaci out of @${account.login} (the sign-in expired or was revoked). Connect again to pick a repo.`
+							: "Connect your GitHub account once, then pick the repo here and we add its webhook for you."}
 					</p>
 					<div>
 						<button
@@ -187,7 +188,7 @@ export function GitHubModal({
 								className="icon-[simple-icons--github] size-4"
 								aria-hidden="true"
 							/>
-							Connect GitHub
+							{account ? "Reconnect GitHub" : "Connect GitHub"}
 						</button>
 					</div>
 					{byHand(repoForm)}
