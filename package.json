@@ -110,7 +110,7 @@
     "dompurify": "^3.4.17",
     "drizzle-orm": "1.0.0-rc.5",
     "frimousse": "0.4.0",
-    "graphql": "^16.10.0",
+    "graphql": "^17.0.2",
     "graphql-yoga": "^5.24.5",
     "input-otp": "^1.5.0",
     "katex": "^0.19.1",
