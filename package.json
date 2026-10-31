@@ -150,7 +150,7 @@
     "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.0.1",
     "dotenv": "^18.0.9",
-    "drizzle-kit": "1.0.0-rc.4",
+    "drizzle-kit": "1.0.0-rc.5",
     "react-email": "^6.11.6",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",
