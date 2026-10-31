@@ -6,6 +6,7 @@ import {
 	addWebhook,
 	disconnectGitHubAccount,
 	githubAccount,
+	githubApp,
 	githubConnectReady,
 	githubRepos,
 	removeWebhook,
@@ -24,6 +25,8 @@ export const githubTypeDefs = /* GraphQL */ `
 		secret: String!
 		"who merged pull requests complete tasks as: whoever linked the repo; null once they've left the workspace or deleted their account"
 		mergesAs: String
+		"linked through the Zadaci GitHub App (its one webhook), so there's nothing to set up by hand"
+		viaApp: Boolean!
 	}
 
 	"your GitHub account, connected in Settings → Connected apps"
@@ -54,6 +57,8 @@ export const githubTypeDefs = /* GraphQL */ `
 		projectGitHub(slug: String!, projectId: ID!): ProjectGitHub
 		"true when Connect with GitHub is set up on this server"
 		githubConnectReady: Boolean!
+		"where to install the Zadaci GitHub App on more repos; null when this server has no app"
+		githubAppInstallUrl: String
 		githubAccount: GitHubAccount
 	}
 
@@ -104,6 +109,10 @@ const shape = (projectId: string, repo: string, nonce: string) => ({
 
 export const githubResolvers = {
 	Query: {
+		githubAppInstallUrl: (_: unknown, __: unknown, ctx: GraphQLContext) => {
+			requireUser(ctx);
+			return githubApp()?.installUrl ?? null;
+		},
 		githubConnectReady: (_: unknown, __: unknown, ctx: GraphQLContext) => {
 			requireUser(ctx);
 			return githubConnectReady();
@@ -129,6 +138,7 @@ export const githubResolvers = {
 				? {
 						...shape(project.id, link.repo, link.nonce),
 						mergesAs: await mergesAs(link.connected_by, project.workspace_id),
+						viaApp: link.via_app,
 					}
 				: null;
 		},
@@ -152,17 +162,35 @@ export const githubResolvers = {
 				.select()
 				.from(tables.project_github)
 				.where(eq(tables.project_github.project_id, project.id));
+			const account = await githubAccount(user.id);
+			// with the GitHub App: only a repo it's installed on that they can see, and its one
+			// webhook brings the pull requests, so nothing is added to the repo
+			const viaApp = !!(githubApp() && account);
+			if (
+				viaApp &&
+				account &&
+				!(await githubRepos(account.token)).some(
+					(r) => r.toLowerCase() === repo.toLowerCase(),
+				)
+			)
+				badInput(
+					`Install the Zadaci GitHub App on ${repo} first (or ask whoever owns it to)`,
+				);
 			const nonce = generateNanoId();
+			const values = { repo, nonce, connected_by: user.id, via_app: viaApp };
 			await db
 				.insert(tables.project_github)
-				.values({ project_id: project.id, repo, nonce, connected_by: user.id })
+				.values({ project_id: project.id, ...values })
 				.onConflictDoUpdate({
 					target: tables.project_github.project_id,
-					set: { repo, nonce, connected_by: user.id, created_at: new Date() },
+					set: { ...values, created_at: new Date() },
 				});
-			const link = { ...shape(project.id, repo, nonce), mergesAs: user.name };
-			const account = await githubAccount(user.id);
-			if (!account) return link;
+			const link = {
+				...shape(project.id, repo, nonce),
+				mergesAs: user.name,
+				viaApp,
+			};
+			if (!account || viaApp) return link;
 			const added = await addWebhook(
 				account.token,
 				repo,
@@ -178,6 +206,7 @@ export const githubResolvers = {
 						repo: before.repo,
 						nonce: before.nonce,
 						connected_by: before.connected_by,
+						via_app: before.via_app,
 					})
 					.where(eq(tables.project_github.id, before.id));
 			else
@@ -212,8 +241,12 @@ export const githubResolvers = {
 			const [gone] = await db
 				.delete(tables.project_github)
 				.where(eq(tables.project_github.project_id, project.id))
-				.returning({ repo: tables.project_github.repo });
-			const account = gone && (await githubAccount(user.id));
+				.returning({
+					repo: tables.project_github.repo,
+					viaApp: tables.project_github.via_app,
+				});
+			// a webhook only exists on repos linked without the GitHub App
+			const account = gone && !gone.viaApp && (await githubAccount(user.id));
 			if (account)
 				await removeWebhook(
 					account.token,

@@ -41,8 +41,10 @@ function Privacy() {
 					<b>GitHub:</b> for a project linked to a repo, the repo's name and the
 					title, number, link and state of pull requests that mention a task. If
 					you connect your GitHub account, your GitHub username and an access
-					token that can only manage repo webhooks, encrypted before it's
-					stored. We use it to list repos you admin and add or remove a
+					token, encrypted before it's stored. It can only manage repo webhooks,
+					or, through the Zadaci GitHub App, read the repos you installed the
+					app on and their pull requests (never your code). We use it to list
+					the repos you can link and, without the app, to add or remove a
 					project's webhook.
 				</li>
 			</ul>

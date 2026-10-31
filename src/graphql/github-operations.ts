@@ -8,6 +8,8 @@ export type ProjectGitHub = {
 	secret: string;
 	/** whoever linked the repo, while they're still in the workspace */
 	mergesAs: string | null;
+	/** linked through the Zadaci GitHub App: nothing to set up by hand */
+	viaApp: boolean;
 };
 export type GitHubPr = {
 	repo: string;
@@ -21,6 +23,7 @@ export const PROJECT_GITHUB: TypedDocumentNode<
 	{
 		projectGitHub: ProjectGitHub | null;
 		githubConnectReady: boolean;
+		githubAppInstallUrl: string | null;
 		githubAccount: { login: string; repos: string[] } | null;
 	},
 	{ slug: string; projectId: string }
@@ -31,8 +34,10 @@ export const PROJECT_GITHUB: TypedDocumentNode<
 			webhookUrl
 			secret
 			mergesAs
+			viaApp
 		}
 		githubConnectReady
+		githubAppInstallUrl
 		githubAccount {
 			login
 			repos
@@ -50,6 +55,7 @@ export const CONNECT_GITHUB: TypedDocumentNode<
 			webhookUrl
 			secret
 			mergesAs
+			viaApp
 		}
 	}
 `;

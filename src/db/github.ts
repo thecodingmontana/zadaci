@@ -1,4 +1,5 @@
 import {
+	boolean,
 	index,
 	integer,
 	text,
@@ -40,6 +41,8 @@ export const project_github = pgTable(
 		repo: text("repo").notNull(),
 		/** the webhook secret is derived from this and the app's secret (never stored); a new one on reconnect */
 		nonce: text("nonce").notNull(),
+		/** linked through the Zadaci GitHub App (its one webhook), not a webhook on this repo */
+		via_app: boolean("via_app").notNull().default(false),
 		/** merges are applied as this person (their role, their name in the activity) */
 		connected_by: varchar("connected_by", { length: 16 }).references(
 			() => user.id,

@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { STATUS } from "#/db/enums";
 import { run } from "#/lib/ai/gql.server";
@@ -73,10 +73,19 @@ type PullRequestEvent = {
 	};
 };
 
-/** POST /api/github/<projectId>: one delivery from GitHub. */
-export async function githubWebhook(projectId: string, request: Request) {
-	const [link] = await db
+type Link = {
+	projectId: string;
+	repo: string;
+	connectedBy: string | null;
+	key: string;
+	slug: string;
+};
+
+/** Linked projects (not deleted), with what a delivery needs: the repo, key and workspace. */
+const links = (where: SQL | undefined) =>
+	db
 		.select({
+			projectId: tables.project_github.project_id,
 			repo: tables.project_github.repo,
 			nonce: tables.project_github.nonce,
 			connectedBy: tables.project_github.connected_by,
@@ -92,12 +101,11 @@ export async function githubWebhook(projectId: string, request: Request) {
 			tables.workspace,
 			eq(tables.workspace.id, tables.project.workspace_id),
 		)
-		.where(
-			and(
-				eq(tables.project_github.project_id, projectId),
-				isNull(tables.project.deleted_at),
-			),
-		);
+		.where(and(where, isNull(tables.project.deleted_at)));
+
+/** POST /api/github/<projectId>: one delivery from a webhook added to a single repo. */
+export async function githubWebhook(projectId: string, request: Request) {
+	const [link] = await links(eq(tables.project_github.project_id, projectId));
 	if (!link) return new Response("Not connected", { status: 404 });
 	const body = await request.text();
 	if (
@@ -112,16 +120,55 @@ export async function githubWebhook(projectId: string, request: Request) {
 	const event = request.headers.get("x-github-event");
 	if (event === "ping") return Response.json({ ok: true });
 	if (event !== "pull_request") return new Response(null, { status: 204 });
-	const {
-		action,
-		repository,
-		pull_request: pr,
-	} = JSON.parse(body) as PullRequestEvent;
-	if (!pr || repository?.full_name?.toLowerCase() !== link.repo.toLowerCase())
+	const payload = JSON.parse(body) as PullRequestEvent;
+	if (
+		!payload.pull_request ||
+		payload.repository?.full_name?.toLowerCase() !== link.repo.toLowerCase()
+	)
 		return new Response("Not this project's repo", { status: 400 });
+	return Response.json(await applyPullRequest(link, payload));
+}
 
+/** POST /api/github/app: one delivery from the Zadaci GitHub App, for every project that linked
+ * that repo through it (a link is only made by someone the app lets see the repo). */
+export async function githubAppWebhook(request: Request) {
+	const secret = process.env.GITHUB_APP_WEBHOOK_SECRET;
+	if (!secret) return new Response("Not set up", { status: 404 });
+	const body = await request.text();
+	if (!signedByGitHub(body, request.headers.get("x-hub-signature-256"), secret))
+		return new Response("Bad signature", { status: 401 });
+
+	const event = request.headers.get("x-github-event");
+	if (event === "ping") return Response.json({ ok: true });
+	if (event !== "pull_request") return new Response(null, { status: 204 });
+	const payload = JSON.parse(body) as PullRequestEvent;
+	const repo = payload.repository?.full_name;
+	if (!payload.pull_request || !repo)
+		return new Response("No pull request", { status: 400 });
+	let linked = 0;
+	let completed = 0;
+	for (const link of await links(
+		and(
+			eq(tables.project_github.via_app, true),
+			sql`lower(${tables.project_github.repo}) = lower(${repo})`,
+		),
+	)) {
+		const done = await applyPullRequest(link, payload);
+		linked += done.linked;
+		completed += done.completed;
+	}
+	return Response.json({ linked, completed });
+}
+
+/** The PR shows on the tasks it mentions; merging it completes them. */
+async function applyPullRequest(
+	link: Link,
+	{ action, pull_request: pr }: PullRequestEvent,
+) {
+	if (!pr) return { linked: 0, completed: 0 };
+	const { projectId } = link;
 	const numbers = taskNumbers(link.key, pr.title, pr.head?.ref, pr.body);
-	if (!numbers.length) return Response.json({ linked: 0 });
+	if (!numbers.length) return { linked: 0, completed: 0 };
 	const tasks = await db
 		.select({ id: tables.task.id, status: tables.task.status })
 		.from(tables.task)
@@ -201,5 +248,5 @@ export async function githubWebhook(projectId: string, request: Request) {
 		}
 	}
 	announceChange(link.slug);
-	return Response.json({ linked: tasks.length, completed });
+	return { linked: tasks.length, completed };
 }

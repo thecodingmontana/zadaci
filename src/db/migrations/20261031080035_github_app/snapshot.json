@@ -1,0 +1,47 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "afc29e20-7904-4523-9174-33fba1503774",
+  "prevIds": [
+    "877c3ed1-bf52-4691-b083-b6846001ab20"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "app_project_github",
+        "via_app"
+      ],
+      "writes": [
+        "s|col|public.app_project_github.via_app",
+        "n|col|public.app_project_github.via_app",
+        "e|col|public.app_project_github.via_app"
+      ],
+      "reads": [
+        "n|tbl|public.app_project_github",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_project_github",
+        "name": "via_app",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

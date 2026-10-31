@@ -1,0 +1,1 @@
+ALTER TABLE "app_project_github" ADD COLUMN "via_app" boolean DEFAULT false NOT NULL;

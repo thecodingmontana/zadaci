@@ -84,6 +84,8 @@ export function GitHubModal({
 	const link = data?.projectGitHub;
 	const account = data?.githubAccount;
 	const ready = !!data?.githubConnectReady;
+	// the Zadaci GitHub App is set up on this server: its repos, private ones too
+	const installUrl = data?.githubAppInstallUrl ?? null;
 
 	async function linkRepo(name: string) {
 		try {
@@ -231,7 +233,11 @@ export function GitHubModal({
 							<Command>
 								<CommandInput placeholder="Search your repos…" />
 								<CommandList>
-									<CommandEmpty>No repos you admin match.</CommandEmpty>
+									<CommandEmpty>
+										{installUrl
+											? "No repos the app is installed on match."
+											: "No repos you admin match."}
+									</CommandEmpty>
 									<CommandGroup>
 										{account.repos.map((r) => (
 											<CommandItem
@@ -252,8 +258,19 @@ export function GitHubModal({
 						</PopoverContent>
 					</Popover>
 					<p className="faint" style={{ fontSize: 12, marginTop: 8 }}>
-						Connected as <b>@{account.login}</b>. The list shows public repos
-						you admin; we add the webhook for you.
+						Connected as <b>@{account.login}</b>.{" "}
+						{installUrl ? (
+							<>
+								The list shows repos the Zadaci GitHub App is installed on,
+								private ones too.{" "}
+								<a href={installUrl} target="_blank" rel="noopener noreferrer">
+									Install it on more repos
+								</a>
+								, then reopen this.
+							</>
+						) : (
+							"The list shows public repos you admin; we add the webhook for you."
+						)}
 					</p>
 				</div>
 			</>
@@ -317,13 +334,15 @@ export function GitHubModal({
 								Unlink
 							</button>
 						</div>
-						{account ? byHand(manual) : manual}
+						{link.viaApp ? null : account ? byHand(manual) : manual}
 						{link.mergesAs ? (
 							<p className="faint" style={{ fontSize: 12 }}>
 								Merges complete tasks as {link.mergesAs}, who linked the repo.
-								{account
-									? " Unlinking removes the webhook from the repo too."
-									: " Linking again makes a new secret."}
+								{link.viaApp
+									? " Unlinking stops its pull requests showing here."
+									: account
+										? " Unlinking removes the webhook from the repo too."
+										: " Linking again makes a new secret."}
 							</p>
 						) : (
 							<p style={{ fontSize: 12, color: "var(--q-red)" }}>

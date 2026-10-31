@@ -17,6 +17,19 @@ const STATE_TTL = 10 * 60 * 1000;
 // webhooks only: GitHub doesn't let this list private repos (that needs full "repo" access)
 const SCOPE = "admin:repo_hook";
 
+/**
+ * The Zadaci GitHub App, when it's set up: people install it on the repos they choose (private
+ * ones too), and its one webhook (/api/github/app) brings every linked repo's pull requests. Its
+ * client id and secret are GITHUB_CLIENT_ID/SECRET, so "Connect GitHub" works the same way.
+ * Without it, the OAuth app adds a webhook to each linked repo instead (public repos in the list).
+ */
+export const githubApp = () => {
+	const slug = process.env.GITHUB_APP_SLUG;
+	return slug && process.env.GITHUB_APP_WEBHOOK_SECRET
+		? { installUrl: `https://github.com/apps/${slug}/installations/new` }
+		: null;
+};
+
 /** Both GitHub OAuth app settings are present (self-hosters may leave them out). */
 export const githubConnectReady = () =>
 	!!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
@@ -129,8 +142,10 @@ export async function githubAccount(userId: string) {
 	return row && token ? { login: row.login, token } : null;
 }
 
-/** Repos they can add webhooks to (they admin), most recently pushed first. */
+/** Repos they can link: with the GitHub App, every repo it's installed on that they can see
+ * (private too); without it, the ones they admin (so we can add a webhook), most recent first. */
 export async function githubRepos(token: string) {
+	if (githubApp()) return appRepos(token);
 	// shortcut: the first 100 repos they can reach; typing the name still works past that
 	const res = await github(
 		token,
@@ -142,6 +157,28 @@ export async function githubRepos(token: string) {
 		permissions?: { admin?: boolean };
 	}[];
 	return repos.filter((r) => r.permissions?.admin).map((r) => r.full_name);
+}
+
+// shortcut: the first 100 installations and 100 repos in each; more rarely matters for one person
+async function appRepos(token: string) {
+	const res = await github(token, "/user/installations?per_page=100");
+	if (!res.ok) return [];
+	const { installations } = (await res.json()) as {
+		installations: { id: number }[];
+	};
+	const repos: string[] = [];
+	for (const { id } of installations) {
+		const list = await github(
+			token,
+			`/user/installations/${id}/repositories?per_page=100`,
+		);
+		if (!list.ok) continue;
+		const { repositories } = (await list.json()) as {
+			repositories: { full_name: string }[];
+		};
+		repos.push(...repositories.map((r) => r.full_name));
+	}
+	return [...new Set(repos)].sort((a, b) => a.localeCompare(b));
 }
 
 /** Add the project's webhook to the repo, or give the one already there the new secret. */

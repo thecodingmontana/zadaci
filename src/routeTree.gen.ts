@@ -38,6 +38,7 @@ import { Route as ApiAiModelsRouteImport } from './routes/api/ai/models'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronDailyRouteImport } from './routes/api/cron/daily'
 import { Route as ApiGithubProjectIdRouteImport } from './routes/api/github/$projectId'
+import { Route as ApiGithubAppRouteImport } from './routes/api/github/app'
 import { Route as ApiGithubCallbackRouteImport } from './routes/api/github/callback'
 import { Route as ApiGithubConnectRouteImport } from './routes/api/github/connect'
 import { Route as ApiUploadImageRouteImport } from './routes/api/upload/image'
@@ -214,6 +215,11 @@ const ApiGithubProjectIdRoute = ApiGithubProjectIdRouteImport.update({
   path: '/api/github/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGithubAppRoute = ApiGithubAppRouteImport.update({
+  id: '/api/github/app',
+  path: '/api/github/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGithubCallbackRoute = ApiGithubCallbackRouteImport.update({
   id: '/api/github/callback',
   path: '/api/github/callback',
@@ -375,6 +381,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/api/github/$projectId': typeof ApiGithubProjectIdRoute
+  '/api/github/app': typeof ApiGithubAppRoute
   '/api/github/callback': typeof ApiGithubCallbackRoute
   '/api/github/connect': typeof ApiGithubConnectRoute
   '/api/upload/image': typeof ApiUploadImageRoute
@@ -430,6 +437,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/api/github/$projectId': typeof ApiGithubProjectIdRoute
+  '/api/github/app': typeof ApiGithubAppRoute
   '/api/github/callback': typeof ApiGithubCallbackRoute
   '/api/github/connect': typeof ApiGithubConnectRoute
   '/api/upload/image': typeof ApiUploadImageRoute
@@ -488,6 +496,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/daily': typeof ApiCronDailyRoute
   '/api/github/$projectId': typeof ApiGithubProjectIdRoute
+  '/api/github/app': typeof ApiGithubAppRoute
   '/api/github/callback': typeof ApiGithubCallbackRoute
   '/api/github/connect': typeof ApiGithubConnectRoute
   '/api/upload/image': typeof ApiUploadImageRoute
@@ -546,6 +555,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/api/github/$projectId'
+    | '/api/github/app'
     | '/api/github/callback'
     | '/api/github/connect'
     | '/api/upload/image'
@@ -601,6 +611,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/api/github/$projectId'
+    | '/api/github/app'
     | '/api/github/callback'
     | '/api/github/connect'
     | '/api/upload/image'
@@ -658,6 +669,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/daily'
     | '/api/github/$projectId'
+    | '/api/github/app'
     | '/api/github/callback'
     | '/api/github/connect'
     | '/api/upload/image'
@@ -710,6 +722,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronDailyRoute: typeof ApiCronDailyRoute
   ApiGithubProjectIdRoute: typeof ApiGithubProjectIdRoute
+  ApiGithubAppRoute: typeof ApiGithubAppRoute
   ApiGithubCallbackRoute: typeof ApiGithubCallbackRoute
   ApiGithubConnectRoute: typeof ApiGithubConnectRoute
   ApiUploadImageRoute: typeof ApiUploadImageRoute
@@ -919,6 +932,13 @@ declare module '@tanstack/react-router' {
       path: '/api/github/$projectId'
       fullPath: '/api/github/$projectId'
       preLoaderRoute: typeof ApiGithubProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/github/app': {
+      id: '/api/github/app'
+      path: '/api/github/app'
+      fullPath: '/api/github/app'
+      preLoaderRoute: typeof ApiGithubAppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/github/callback': {
@@ -1234,6 +1254,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronDailyRoute: ApiCronDailyRoute,
   ApiGithubProjectIdRoute: ApiGithubProjectIdRoute,
+  ApiGithubAppRoute: ApiGithubAppRoute,
   ApiGithubCallbackRoute: ApiGithubCallbackRoute,
   ApiGithubConnectRoute: ApiGithubConnectRoute,
   ApiUploadImageRoute: ApiUploadImageRoute,
