@@ -22,6 +22,10 @@ updates:
       # the types follow the Node the app runs on (24, in CI and on Vercel), not the newest Node
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # graphql-armor (our depth, alias and cost limits) still needs GraphQL 16; two copies of
+      # graphql break its types and could weaken the limits. Lift this once it supports 17.
+      - dependency-name: "graphql"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
