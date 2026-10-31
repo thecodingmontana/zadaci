@@ -144,7 +144,7 @@
     "@iconify/tailwind4": "^1.2.3",
     "@tanstack/devtools-vite": "0.8.5",
     "@tanstack/router-cli": "^1.167.46",
-    "@types/node": "^22.10.2",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/web-push": "^3.6.4",
