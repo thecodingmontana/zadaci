@@ -238,7 +238,7 @@ async function requireComment(ctx: GraphQLContext, slug: string, id: string) {
 			comment,
 			...(await requireNote(ctx, slug, comment.entity_id, "comment")),
 		};
-	if (!comment || comment.entity_type !== "task") badInput("Comment not found");
+	if (comment?.entity_type !== "task") badInput("Comment not found");
 	return {
 		comment,
 		...(await requireTask(ctx, slug, comment.entity_id, "comment")),

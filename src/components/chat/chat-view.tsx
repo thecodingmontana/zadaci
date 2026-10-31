@@ -911,80 +911,78 @@ function StartDialog({
 			}
 		>
 			<div className="modal-b chat-start">
-				<>
-					<input
-						className="input"
-						placeholder="Name, like design-reviews"
-						aria-label="Channel name"
-						aria-invalid={taken}
-						aria-describedby={taken ? "chat-name-taken" : undefined}
-						value={name}
-						maxLength={80}
-						onChange={(e) => setName(e.target.value)}
-					/>
-					{taken && (
-						<p id="chat-name-taken" className="chat-field-error">
-							#general is the workspace's channel for everyone. Pick another
-							name.
-						</p>
-					)}
-					<input
-						className="input"
-						placeholder="What it's for (optional)"
-						aria-label="Topic"
-						value={topic}
-						maxLength={250}
-						onChange={(e) => setTopic(e.target.value)}
-					/>
-					<div className="chat-linkto">
-						<span className="faint">Link to</span>
-						<div className="seg">
-							{(["none", "project", "task"] as const).map((k) => (
-								<button
-									key={k}
-									type="button"
-									aria-pressed={linkKind === k}
-									className={cn(linkKind === k && "on")}
-									onClick={() => {
-										setLinkKind(k);
-										setLink(null);
-									}}
-								>
-									{k === "none"
-										? "Nothing"
-										: k === "project"
-											? "A project"
-											: "A task"}
-								</button>
-							))}
-						</div>
+				<input
+					className="input"
+					placeholder="Name, like design-reviews"
+					aria-label="Channel name"
+					aria-invalid={taken}
+					aria-describedby={taken ? "chat-name-taken" : undefined}
+					value={name}
+					maxLength={80}
+					onChange={(e) => setName(e.target.value)}
+				/>
+				{taken && (
+					<p id="chat-name-taken" className="chat-field-error">
+						#general is the workspace's channel for everyone. Pick another name.
+					</p>
+				)}
+				<input
+					className="input"
+					placeholder="What it's for (optional)"
+					aria-label="Topic"
+					value={topic}
+					maxLength={250}
+					onChange={(e) => setTopic(e.target.value)}
+				/>
+				<div className="chat-linkto">
+					<span className="faint">Link to</span>
+					<div className="seg">
+						{(["none", "project", "task"] as const).map((k) => (
+							<button
+								key={k}
+								type="button"
+								aria-pressed={linkKind === k}
+								className={cn(linkKind === k && "on")}
+								onClick={() => {
+									setLinkKind(k);
+									setLink(null);
+								}}
+							>
+								{k === "none"
+									? "Nothing"
+									: k === "project"
+										? "A project"
+										: "A task"}
+							</button>
+						))}
 					</div>
-					{linkKind !== "none" && (
-						<Select
-							label={linkKind === "task" ? "Task" : "Project"}
-							className="w-full"
-							value={link?.id ?? ""}
-							options={[
-								["", linkKind === "task" ? "Pick a task" : "Pick a project"],
-								...choices.map((c) => [c.id, c.label] as const),
-							]}
-							onChange={(id) => {
-								const picked = choices.find((c) => c.id === id);
-								setLink(picked ? { id, name: picked.name } : null);
-								// a channel about it is named after it, unless you named it already
-								if (picked && !name.trim()) setName(picked.name);
-							}}
-						/>
-					)}
-					<label className="row chat-check">
-						<input
-							type="checkbox"
-							checked={isPrivate}
-							onChange={(e) => setPrivate(e.target.checked)}
-						/>
-						Private: only the people you add can see it
-					</label>
-				</>
+				</div>
+				{linkKind !== "none" && (
+					<Select
+						label={linkKind === "task" ? "Task" : "Project"}
+						className="w-full"
+						value={link?.id ?? ""}
+						options={[
+							["", linkKind === "task" ? "Pick a task" : "Pick a project"],
+							...choices.map((c) => [c.id, c.label] as const),
+						]}
+						onChange={(id) => {
+							const picked = choices.find((c) => c.id === id);
+							setLink(picked ? { id, name: picked.name } : null);
+							// a channel about it is named after it, unless you named it already
+							if (picked && !name.trim()) setName(picked.name);
+						}}
+					/>
+				)}
+				<label className="row chat-check">
+					<input
+						type="checkbox"
+						checked={isPrivate}
+						onChange={(e) => setPrivate(e.target.checked)}
+					/>
+					Private: only the people you add can see it
+				</label>
+
 				{isPrivate && (
 					<fieldset className="chat-pick">
 						<legend className="sr-only">People</legend>
