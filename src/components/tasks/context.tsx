@@ -40,6 +40,14 @@ export const TASK_REFETCH = [
 	"NotificationCounts",
 ];
 
+/** After a project is archived, deleted or restored: its tasks leave (or rejoin) every list too. */
+export const PROJECT_REFETCH = [
+	...TASK_REFETCH,
+	"Shell",
+	"Settings",
+	"Archive",
+];
+
 type Ctx = {
 	slug: string;
 	members: SettingsMember[];

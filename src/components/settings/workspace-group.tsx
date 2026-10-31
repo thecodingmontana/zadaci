@@ -16,6 +16,7 @@ import {
 	MenuTrigger,
 } from "#/components/q/menu";
 import { Modal } from "#/components/q/modal";
+import { PROJECT_REFETCH } from "#/components/tasks/context";
 import {
 	ARCHIVE_PROJECT,
 	DELETE_PROJECT,
@@ -664,7 +665,7 @@ export function ProjectsSection({ slug, workspace, title }: SectionProps) {
 		id: string;
 		title: string;
 	} | null>(null);
-	const projectRefetch = { refetchQueries: ["Settings", "Shell"] };
+	const projectRefetch = { refetchQueries: PROJECT_REFETCH };
 	const [archive] = useMutation(ARCHIVE_PROJECT, projectRefetch);
 	const [removeProject] = useMutation(DELETE_PROJECT, projectRefetch);
 	const [update] = useMutation(UPDATE_WORKSPACE, {

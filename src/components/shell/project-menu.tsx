@@ -12,6 +12,7 @@ import {
 	MenuSeparator,
 	MenuTrigger,
 } from "#/components/q/menu";
+import { PROJECT_REFETCH } from "#/components/tasks/context";
 import {
 	ARCHIVE_PROJECT,
 	DELETE_PROJECT,
@@ -57,15 +58,7 @@ export function ProjectMenu({
 	const navigate = useNavigate();
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
-	const refetch = {
-		refetchQueries: [
-			"Shell",
-			"Settings",
-			"Projects",
-			"ProjectPage",
-			"NotificationCounts",
-		],
-	};
+	const refetch = { refetchQueries: PROJECT_REFETCH };
 	// starring only flips the cached flag (sidebar, cards and Favorites share it)
 	const [toggleFavorite] = useMutation(TOGGLE_FAVORITE, {
 		update: (cache, { data }) =>

@@ -11,6 +11,7 @@ import { PIcon } from "#/components/projects/bits";
 import { ConfirmModal } from "#/components/q/confirm";
 import { StatusIcon } from "#/components/q/status-icon";
 import { ArchiveSkeleton } from "#/components/shell/page-skeletons";
+import { PROJECT_REFETCH } from "#/components/tasks/context";
 import {
 	ARCHIVE,
 	ARCHIVE_PROJECT,
@@ -30,7 +31,7 @@ import { cn } from "#/lib/utils";
 // Ported from the reference app's Archive page: archived tasks and projects, restored or
 // deleted for good.
 
-const REFETCH = { refetchQueries: ["Archive", "Shell", "NotificationCounts"] };
+const REFETCH = { refetchQueries: PROJECT_REFETCH };
 
 export const Route = createFileRoute("/_authed/w/$slug/archive")({
 	validateSearch: z.object({ tab: z.enum(["tasks", "projects"]).optional() }),
