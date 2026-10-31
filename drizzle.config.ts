@@ -8,7 +8,6 @@ export default defineConfig({
   out: "./src/db/migrations",
   dialect: "postgresql",
   verbose: true,
-  strict: true,
   breakpoints: true,
   // ssl comes from the URL (?sslmode=require) so local Postgres works without it
   dbCredentials: {
