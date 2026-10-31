@@ -77,10 +77,10 @@ function PopoverDescription({
 
 export {
 	Popover,
-	PopoverTrigger,
-	PopoverContent,
 	PopoverAnchor,
+	PopoverContent,
+	PopoverDescription,
 	PopoverHeader,
 	PopoverTitle,
-	PopoverDescription,
+	PopoverTrigger,
 };

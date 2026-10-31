@@ -150,7 +150,7 @@ export function TimelineView({
 		weekStartsOn: 1,
 	});
 	const nDays = zoom === "week" ? 7 * 13 : 7 * 34;
-	const X = (day: string) =>
+	const dayX = (day: string) =>
 		differenceInCalendarDays(parseISO(day), start) * dw;
 	const by = group === "project" && project ? "status" : group;
 	const groups = groupTasks(
@@ -260,7 +260,7 @@ export function TimelineView({
 		const s = t.startDate && t.startDate <= due ? t.startDate : due;
 		return {
 			s,
-			x: X(s),
+			x: dayX(s),
 			w: Math.max(
 				dw,
 				(differenceInCalendarDays(parseISO(due), parseISO(s)) + 1) * dw,
@@ -417,7 +417,7 @@ export function TimelineView({
 										<div className="tl-rowbg" style={{ top: y }} />
 										<MilestoneLane
 											milestones={milestones}
-											X={X}
+											dayX={dayX}
 											dw={dw}
 											y={y}
 										/>
@@ -497,7 +497,7 @@ export function TimelineView({
 									.map((d) => {
 										const a = tasks.find((x) => x.id === d);
 										if (!a?.dueDate || !t.dueDate) return null;
-										const x1 = X(a.dueDate) + dw;
+										const x1 = dayX(a.dueDate) + dw;
 										const y1 = rowY.get(d) as number;
 										const x2 = span(t).x;
 										const y2 = rowY.get(t.id) as number;
@@ -611,12 +611,12 @@ function Bar({
  */
 function MilestoneLane({
 	milestones,
-	X,
+	dayX,
 	dw,
 	y,
 }: {
 	milestones: Milestone[];
-	X: (day: string) => number;
+	dayX: (day: string) => number;
 	dw: number;
 	y: number;
 }) {
@@ -625,7 +625,7 @@ function MilestoneLane({
 		byDate.set(m.date, [...(byDate.get(m.date) ?? []), m]);
 	const pts = [...byDate.entries()]
 		.sort(([a], [b]) => (a > b ? 1 : -1))
-		.map(([date, list]) => ({ date, list, x: X(date) + dw / 2 }));
+		.map(([date, list]) => ({ date, list, x: dayX(date) + dw / 2 }));
 	return (
 		<>
 			{pts.map((pt, i) => {

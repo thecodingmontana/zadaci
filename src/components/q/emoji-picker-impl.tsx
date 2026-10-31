@@ -1,8 +1,35 @@
-import { EmojiPicker as Picker } from "frimousse";
+import {
+	type EmojiPickerListComponents,
+	EmojiPicker as Picker,
+} from "frimousse";
 
 // The one emoji picker, used wherever an emoji is chosen: page and collection icons, comment
 // reactions, the comment box and notes. Frimousse does search, categories and skin tones; the
 // emoji list is fetched once from its CDN and then cached by the browser.
+
+// defined once here, not inside the picker: a component made during render remounts every time
+const LIST: EmojiPickerListComponents = {
+	CategoryHeader: ({ category, ...props }) => (
+		<div className="emoji-cat" {...props}>
+			{category.label}
+		</div>
+	),
+	Row: ({ children, ...props }) => (
+		<div className="emoji-row" {...props}>
+			{children}
+		</div>
+	),
+	Emoji: ({ emoji, ...props }) => (
+		<button
+			type="button"
+			className="emoji-btn"
+			data-active={emoji.isActive || undefined}
+			{...props}
+		>
+			{emoji.emoji}
+		</button>
+	),
+};
 
 export default function EmojiPickerImpl({
 	onPick,
@@ -26,31 +53,7 @@ export default function EmojiPickerImpl({
 			<Picker.Viewport className="emoji-viewport">
 				<Picker.Loading className="emoji-note faint">Loading…</Picker.Loading>
 				<Picker.Empty className="emoji-note faint">No emoji found</Picker.Empty>
-				<Picker.List
-					className="emoji-list"
-					components={{
-						CategoryHeader: ({ category, ...props }) => (
-							<div className="emoji-cat" {...props}>
-								{category.label}
-							</div>
-						),
-						Row: ({ children, ...props }) => (
-							<div className="emoji-row" {...props}>
-								{children}
-							</div>
-						),
-						Emoji: ({ emoji, ...props }) => (
-							<button
-								type="button"
-								className="emoji-btn"
-								data-active={emoji.isActive || undefined}
-								{...props}
-							>
-								{emoji.emoji}
-							</button>
-						),
-					}}
-				/>
+				<Picker.List className="emoji-list" components={LIST} />
 			</Picker.Viewport>
 			<div className="emoji-foot">
 				<Picker.ActiveEmoji>

@@ -143,4 +143,4 @@ function DataTips() {
 	);
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, DataTips };
+export { DataTips, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };

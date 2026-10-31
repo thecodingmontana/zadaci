@@ -134,11 +134,11 @@ function CommandShortcut({
 
 export {
 	Command,
-	CommandInput,
-	CommandList,
 	CommandEmpty,
 	CommandGroup,
+	CommandInput,
 	CommandItem,
-	CommandShortcut,
+	CommandList,
 	CommandSeparator,
+	CommandShortcut,
 };
