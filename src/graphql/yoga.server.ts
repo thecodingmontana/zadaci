@@ -108,6 +108,8 @@ const announceChanges: Plugin = {
 
 export const yoga = createYoga<object, GraphQLContext>({
 	schema,
+	// Yoga 6 logs every request at "info": keep the logs to problems (crashes still log below)
+	logging: "warn",
 	plugins: [
 		maxAliasesPlugin({ n: LIMITS.aliases }),
 		maxDepthPlugin({ n: LIMITS.depth }),
