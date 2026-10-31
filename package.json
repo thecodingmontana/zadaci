@@ -115,7 +115,7 @@
     "input-otp": "^1.5.0",
     "katex": "^0.19.1",
     "motion": "^14.8.0",
-    "nanoid": "^5.1.16",
+    "nanoid": "^6.0.2",
     "nitro": "3.0.260610-beta",
     "postgres": "^3.4.9",
     "qrcode.react": "^4.2.0",
