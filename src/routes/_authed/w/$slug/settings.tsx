@@ -31,6 +31,10 @@ import {
 	ProjectsSection,
 	TeamsSection,
 } from "#/components/settings/workspace-group";
+import {
+	SETTINGS_SECTIONS,
+	type SettingsSection,
+} from "#/components/shell/nav";
 import { SettingsSkeleton } from "#/components/shell/page-skeletons";
 import { SETTINGS } from "#/graphql/operations";
 import { reloadOnEnter } from "#/lib/routing";
@@ -39,81 +43,21 @@ import { cn } from "#/lib/utils";
 
 // Ported from the reference settings page; Billing is omitted (Zadaci is free) and
 // Password became Passkeys (Google sign-in has no password).
-const SECTIONS = [
-	"workspace",
-	"appearance",
-	"language",
-	"datetime",
-	"members",
-	"teams",
-	"projects",
-	"notes",
-	"bookmarks",
-	"collections",
-	"permissions",
-	"notif-email",
-	"notif-push",
-	"notif-mentions",
-	"notif-assign",
-	"profile",
-	"preferences",
-	"ai",
-	"shortcuts",
-	"passkeys",
-	"sessions",
-	"2fa",
-] as const;
-type Section = (typeof SECTIONS)[number];
+// the sections live in nav.ts, shared with the command menu
+const SECTIONS = SETTINGS_SECTIONS.map((s) => s.sec) as [
+	SettingsSection,
+	...SettingsSection[],
+];
+type Section = SettingsSection;
 
 const SET_NAV: [string, [Section, string, string][]][] = [
-	[
-		"General",
-		[
-			["workspace", "Workspace", "icon-[solar--buildings-2-linear]"],
-			["appearance", "Appearance", "icon-[solar--pallete-2-linear]"],
-			["language", "Language", "icon-[hugeicons--translate]"],
-			["datetime", "Date & time", "icon-[solar--clock-circle-linear]"],
-		],
-	],
-	[
-		"Workspace",
-		[
-			["members", "Members", "icon-[solar--users-group-rounded-linear]"],
-			["teams", "Teams", "icon-[solar--users-group-two-rounded-linear]"],
-			["projects", "Projects", "icon-[solar--folder-with-files-linear]"],
-			["notes", "Notes", "icon-[solar--document-text-linear]"],
-			["bookmarks", "Bookmarks", "icon-[solar--bookmark-linear]"],
-			["collections", "Collections", "icon-[solar--folder-linear]"],
-			["permissions", "Permissions", "icon-[solar--shield-linear]"],
-		],
-	],
-	[
-		"Notifications",
-		[
-			["notif-email", "Email", "icon-[solar--letter-linear]"],
-			["notif-push", "Push", "icon-[solar--smartphone-linear]"],
-			["notif-mentions", "Mentions", "icon-[hugeicons--at]"],
-			["notif-assign", "Task assignments", "icon-[solar--user-check-linear]"],
-		],
-	],
-	[
-		"Personal",
-		[
-			["profile", "Profile", "icon-[solar--user-linear]"],
-			["preferences", "Preferences", "icon-[solar--tuning-2-linear]"],
-			["ai", "Zad", "icon-[hugeicons--ai-magic]"],
-			["shortcuts", "Keyboard shortcuts", "icon-[solar--keyboard-linear]"],
-		],
-	],
-	[
-		"Security",
-		[
-			["passkeys", "Passkeys", "icon-[solar--key-minimalistic-linear]"],
-			["sessions", "Sessions", "icon-[solar--devices-linear]"],
-			["2fa", "Two-factor authentication", "icon-[solar--shield-check-linear]"],
-		],
-	],
-];
+	...new Set(SETTINGS_SECTIONS.map((s) => s.group)),
+].map((group) => [
+	group,
+	SETTINGS_SECTIONS.filter((s) => s.group === group).map(
+		(s) => [s.sec, s.label, s.icon] as [Section, string, string],
+	),
+]);
 
 export const Route = createFileRoute("/_authed/w/$slug/settings")({
 	validateSearch: z.object({

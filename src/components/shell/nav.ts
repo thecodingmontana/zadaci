@@ -112,3 +112,166 @@ const ALL = [
 	TEAMS_NAV,
 ];
 export const navItem = (path: string) => ALL.find((item) => item.path === path);
+
+/**
+ * Every Settings section, for the settings page's own menu and the command menu (with words people
+ * may search for, like "github" for Sessions). Add a new section here and both pick it up.
+ */
+export const SETTINGS_SECTIONS = [
+	{
+		group: "General",
+		sec: "workspace",
+		label: "Workspace",
+		icon: "icon-[solar--buildings-2-linear]",
+		keywords: "name logo address delete workspace",
+	},
+	{
+		group: "General",
+		sec: "appearance",
+		label: "Appearance",
+		icon: "icon-[solar--pallete-2-linear]",
+		keywords: "theme dark light mode colors",
+	},
+	{
+		group: "General",
+		sec: "language",
+		label: "Language",
+		icon: "icon-[hugeicons--translate]",
+		keywords: "locale",
+	},
+	{
+		group: "General",
+		sec: "datetime",
+		label: "Date & time",
+		icon: "icon-[solar--clock-circle-linear]",
+		keywords: "time zone week start format",
+	},
+	{
+		group: "Workspace",
+		sec: "members",
+		label: "Members",
+		icon: "icon-[solar--users-group-rounded-linear]",
+		keywords: "invite people roles remove",
+	},
+	{
+		group: "Workspace",
+		sec: "teams",
+		label: "Teams",
+		icon: "icon-[solar--users-group-two-rounded-linear]",
+		keywords: "groups",
+	},
+	{
+		group: "Workspace",
+		sec: "projects",
+		label: "Projects",
+		icon: "icon-[solar--folder-with-files-linear]",
+		keywords: "statuses defaults",
+	},
+	{
+		group: "Workspace",
+		sec: "notes",
+		label: "Notes",
+		icon: "icon-[solar--document-text-linear]",
+		keywords: "pages docs",
+	},
+	{
+		group: "Workspace",
+		sec: "bookmarks",
+		label: "Bookmarks",
+		icon: "icon-[solar--bookmark-linear]",
+		keywords: "links",
+	},
+	{
+		group: "Workspace",
+		sec: "collections",
+		label: "Collections",
+		icon: "icon-[solar--folder-linear]",
+		keywords: "bookmark folders",
+	},
+	{
+		group: "Workspace",
+		sec: "permissions",
+		label: "Permissions",
+		icon: "icon-[solar--shield-linear]",
+		keywords: "roles access guests who can",
+	},
+	{
+		group: "Notifications",
+		sec: "notif-email",
+		label: "Email",
+		icon: "icon-[solar--letter-linear]",
+		keywords: "digest reminders email",
+	},
+	{
+		group: "Notifications",
+		sec: "notif-push",
+		label: "Push",
+		icon: "icon-[solar--smartphone-linear]",
+		keywords: "phone browser devices",
+	},
+	{
+		group: "Notifications",
+		sec: "notif-mentions",
+		label: "Mentions",
+		icon: "icon-[hugeicons--at]",
+		keywords: "@ mentions",
+	},
+	{
+		group: "Notifications",
+		sec: "notif-assign",
+		label: "Task assignments",
+		icon: "icon-[solar--user-check-linear]",
+		keywords: "assigned",
+	},
+	{
+		group: "Personal",
+		sec: "profile",
+		label: "Profile",
+		icon: "icon-[solar--user-linear]",
+		keywords: "name picture avatar your data export download delete account",
+	},
+	{
+		group: "Personal",
+		sec: "preferences",
+		label: "Preferences",
+		icon: "icon-[solar--tuning-2-linear]",
+		keywords: "default view start page",
+	},
+	{
+		group: "Personal",
+		sec: "ai",
+		label: "Zad",
+		icon: "icon-[hugeicons--ai-magic]",
+		keywords: "assistant ai keys models anthropic openai openrouter",
+	},
+	{
+		group: "Personal",
+		sec: "shortcuts",
+		label: "Keyboard shortcuts",
+		icon: "icon-[solar--keyboard-linear]",
+		keywords: "keys hotkeys",
+	},
+	{
+		group: "Security",
+		sec: "passkeys",
+		label: "Passkeys",
+		icon: "icon-[solar--key-minimalistic-linear]",
+		keywords: "sign in face touch id security key",
+	},
+	{
+		group: "Security",
+		sec: "sessions",
+		label: "Sessions",
+		icon: "icon-[solar--devices-linear]",
+		keywords:
+			"devices sign out connected apps github ai agents mcp claude cursor codex disconnect",
+	},
+	{
+		group: "Security",
+		sec: "2fa",
+		label: "Two-factor authentication",
+		icon: "icon-[solar--shield-check-linear]",
+		keywords: "2fa totp authenticator recovery codes",
+	},
+] as const;
+export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]["sec"];

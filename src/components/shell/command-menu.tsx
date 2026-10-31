@@ -12,21 +12,33 @@ import {
 	useState,
 } from "react";
 import { useAssistant } from "#/components/ai/assistant-context";
+import { useCreateNote } from "#/components/notes/notes-tree";
 import { projectColor } from "#/components/projects/bits";
+import { ProjectModalLoader } from "#/components/projects/project-modal";
 import { Av } from "#/components/q/av";
 import { Modal } from "#/components/q/modal";
 import { StatusIcon } from "#/components/q/status-icon";
 import { WsLogo } from "#/components/q/ws-logo";
 import { undoLastTaskEdit } from "#/components/tasks/context";
+import { useCanCreateTask, useNewTask } from "#/components/tasks/new-task";
 import { ZadaciLogo } from "#/components/zadaci-logo";
 import {
 	SEARCH,
+	SHELL,
 	type ShellProject,
 	type WorkspaceSummary,
 } from "#/graphql/operations";
 import { isDark, setAppearance } from "#/lib/appearance";
 import { authClient } from "#/lib/auth-client";
+import { can } from "#/lib/permissions";
 import { cn } from "#/lib/utils";
+import {
+	ARCHIVE_NAV,
+	MAIN_NAV,
+	SETTINGS_SECTIONS,
+	TEAMS_NAV,
+	WORKSPACE_NAV,
+} from "./nav";
 import { useShell } from "./shell-state";
 
 // Command palette ported from the reference app: three modes (commands, search, workspace switch),
@@ -40,6 +52,8 @@ type Item = {
 	node?: ReactNode;
 	name: string;
 	sub?: string;
+	/** more words it's found by (what a settings section holds, say) */
+	keywords?: string;
 	r?: string;
 	kbd?: string[];
 	run: () => void;
@@ -260,6 +274,26 @@ export function CommandMenuProvider({
 		return () => window.removeEventListener("keydown", onKey);
 	});
 
+	// what you may create, from the workspace the shell already loaded
+	const { data: shell } = useQuery(SHELL, { variables: { slug } });
+	const ws = shell?.workspace;
+	const canCreateProjects = can(ws?.role, "createProjects", ws?.settings);
+	const canAddPages = can(ws?.role, "workspaceContent", ws?.settings);
+	const canCreateTask = useCanCreateTask();
+	const newTask = useNewTask();
+	const createNote = useCreateNote(slug);
+	const [creatingProject, setCreatingProject] = useState(false);
+
+	// every page and settings section comes from nav.ts, so the menu grows with the app
+	const gKey = Object.fromEntries(
+		Object.entries(G_ROUTES).map(([key, path]) => [
+			path,
+			["G", key.toUpperCase()],
+		]),
+	);
+	const pages = [...MAIN_NAV, ...WORKSPACE_NAV, TEAMS_NAV, ARCHIVE_NAV];
+	const settings = (sec: string) => () => go("settings", `sec=${sec}`);
+
 	const commands: Item[] = [
 		{
 			id: "c-search",
@@ -269,58 +303,60 @@ export function CommandMenuProvider({
 			run: () => open("search"),
 		},
 		{
-			id: "c-home",
-			name: "Go to Home",
-			icon: "icon-[solar--home-2-linear]",
-			kbd: ["G", "H"],
-			run: () => go(""),
+			id: "c-zad",
+			name: "Ask Zad",
+			icon: "icon-[hugeicons--ai-magic]",
+			keywords: "assistant ai chat help",
+			kbd: ["mod", "J"],
+			run: () => assistant.setOpen(true),
 		},
+		...(canCreateTask
+			? [
+					{
+						id: "c-new-task",
+						name: "New task",
+						icon: "icon-[solar--check-circle-linear]",
+						keywords: "create add todo",
+						run: () => newTask(),
+					},
+				]
+			: []),
+		...(canCreateProjects
+			? [
+					{
+						id: "c-new-project",
+						name: "New project",
+						icon: "icon-[solar--folder-with-files-linear]",
+						keywords: "create add",
+						run: () => setCreatingProject(true),
+					},
+				]
+			: []),
+		...(canAddPages
+			? [
+					{
+						id: "c-new-page",
+						name: "New page",
+						icon: "icon-[solar--document-add-linear]",
+						keywords: "create add note doc",
+						run: () => void createNote(),
+					},
+				]
+			: []),
 		{
-			id: "c-inbox",
-			name: "Go to Inbox",
-			icon: "icon-[solar--inbox-linear]",
-			kbd: ["G", "I"],
-			run: () => go("inbox"),
+			id: "c-new-team",
+			name: "New team",
+			icon: "icon-[solar--users-group-two-rounded-linear]",
+			keywords: "create add group",
+			run: () => go("teams"),
 		},
-		{
-			id: "c-my",
-			name: "Go to My Tasks",
-			icon: "icon-[solar--check-circle-linear]",
-			kbd: ["G", "T"],
-			run: () => go("my-tasks"),
-		},
-		{
-			id: "c-projs",
-			name: "Go to Projects",
-			icon: "icon-[solar--folder-with-files-linear]",
-			kbd: ["G", "P"],
-			run: () => go("projects"),
-		},
-		{
-			id: "c-cal",
-			name: "Go to Calendar",
-			icon: "icon-[solar--calendar-linear]",
-			kbd: ["G", "C"],
-			run: () => go("calendar"),
-		},
-		{
-			id: "c-bm",
-			name: "Go to Bookmarks",
-			icon: "icon-[solar--bookmark-linear]",
-			run: () => go("bookmarks"),
-		},
-		{
-			id: "c-tl",
-			name: "Go to Timeline",
-			icon: "icon-[hugeicons--chart-gantt]",
-			run: () => go("timeline"),
-		},
-		{
-			id: "c-mem",
-			name: "Go to Members",
-			icon: "icon-[solar--users-group-rounded-linear]",
-			run: () => go("members"),
-		},
+		...pages.map((page) => ({
+			id: `c-go-${page.path || "home"}`,
+			name: `Go to ${page.label}`,
+			icon: page.icon,
+			kbd: gKey[page.path],
+			run: () => go(page.path),
+		})),
 		{
 			id: "c-set",
 			name: "Open settings",
@@ -328,11 +364,27 @@ export function CommandMenuProvider({
 			kbd: ["G", "S"],
 			run: () => go("settings"),
 		},
+		...SETTINGS_SECTIONS.map((section) => ({
+			id: `c-set-${section.sec}`,
+			name: `Settings: ${section.label}`,
+			sub: section.group,
+			icon: section.icon,
+			keywords: section.keywords,
+			run: settings(section.sec),
+		})),
 		{
-			id: "c-app",
-			name: "Appearance settings",
-			icon: "icon-[solar--pallete-2-linear]",
-			run: () => go("settings", "sec=appearance"),
+			id: "c-github",
+			name: "Connect GitHub",
+			icon: "icon-[simple-icons--github]",
+			keywords: "repo pull requests link",
+			run: settings("sessions"),
+		},
+		{
+			id: "c-agent",
+			name: "Connect an AI agent",
+			icon: "icon-[solar--plug-circle-linear]",
+			keywords: "mcp claude cursor codex vs code gemini",
+			run: settings("sessions"),
 		},
 		{
 			id: "c-ws",
@@ -359,7 +411,8 @@ export function CommandMenuProvider({
 			id: "c-inv",
 			name: "Invite member",
 			icon: "icon-[solar--user-plus-linear]",
-			run: () => go("settings", "sec=members"),
+			keywords: "add people email",
+			run: settings("members"),
 		},
 		{
 			id: "c-side",
@@ -379,6 +432,7 @@ export function CommandMenuProvider({
 			id: "c-out",
 			name: "Sign out",
 			icon: "icon-[solar--logout-2-linear]",
+			keywords: "log out",
 			run: async () => {
 				await authClient.signOut();
 				navigate({ to: "/auth/signin" });
@@ -459,6 +513,13 @@ export function CommandMenuProvider({
 					))}
 				</div>
 			</Modal>
+			{creatingProject && (
+				<ProjectModalLoader
+					open={creatingProject}
+					onOpenChange={setCreatingProject}
+					slug={slug}
+				/>
+			)}
 		</CommandMenuContext.Provider>
 	);
 }
@@ -518,7 +579,11 @@ function PaletteDialog({
 		}
 		if (pal.mode === "cmd") {
 			const cmds = commands.filter(
-				(c) => !ql || c.name.toLowerCase().includes(ql),
+				(c) =>
+					!ql ||
+					`${c.name} ${c.sub ?? ""} ${c.keywords ?? ""}`
+						.toLowerCase()
+						.includes(ql),
 			);
 			if (!q) {
 				out.push({
@@ -534,7 +599,7 @@ function PaletteDialog({
 				});
 				return out;
 			}
-			if (cmds.length) out.push({ name: "Commands", items: cmds.slice(0, 5) });
+			if (cmds.length) out.push({ name: "Commands", items: cmds.slice(0, 8) });
 		}
 		const scope = pal.mode === "search" ? pal.scope : "all";
 		const lim = scope === "all" ? 4 : 12;
