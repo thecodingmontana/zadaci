@@ -67,7 +67,7 @@ export function GitHubModal({
 	onOpenChange: (open: boolean) => void;
 }) {
 	const vars = { slug, projectId };
-	const { data, loading } = useQuery(PROJECT_GITHUB, {
+	const { data, loading, refetch } = useQuery(PROJECT_GITHUB, {
 		variables: vars,
 		skip: !open,
 		fetchPolicy: "network-only",
@@ -192,6 +192,38 @@ export function GitHubModal({
 						</button>
 					</div>
 					{byHand(repoForm)}
+				</>
+			);
+		// the app is set up but installed on none of their repos yet: say so, not "no matches"
+		if (installUrl && account.repos.length === 0)
+			return (
+				<>
+					<p style={{ fontSize: 13 }}>
+						Connected as <b>@{account.login}</b>, but the Zadaci GitHub App
+						isn't installed on any of your repos yet. Install it on the repos
+						you want (private ones too), then check again.
+					</p>
+					<div className="row" style={{ gap: 8 }}>
+						<a
+							className="btn btn-primary"
+							href={installUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							<span
+								className="icon-[simple-icons--github] size-4"
+								aria-hidden="true"
+							/>
+							Install the GitHub App
+						</a>
+						<button
+							type="button"
+							className="btn btn-secondary"
+							onClick={() => void refetch()}
+						>
+							Check again
+						</button>
+					</div>
 				</>
 			);
 		const ghIcon = (
