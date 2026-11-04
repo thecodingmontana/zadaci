@@ -72,6 +72,13 @@ export function GitHubModal({
 		skip: !open,
 		fetchPolicy: "network-only",
 	});
+	// back from GitHub (installing the app on more repos, in another tab): show the new list
+	useEffect(() => {
+		if (!open) return;
+		const reload = () => void refetch();
+		window.addEventListener("focus", reload);
+		return () => window.removeEventListener("focus", reload);
+	}, [open, refetch]);
 	// the project menu shows the linked repo, so refresh it too
 	const opts = {
 		refetchQueries: ["ProjectGitHub", "Shell", "ProjectPage"],
@@ -298,7 +305,7 @@ export function GitHubModal({
 							<a href={installUrl} target="_blank" rel="noopener noreferrer">
 								Install it on more repos
 							</a>
-							, then reopen this.
+							; the list updates when you come back.
 						</>
 					) : (
 						"The list shows public repos you admin; we add the webhook for you."
