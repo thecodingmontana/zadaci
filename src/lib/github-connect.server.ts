@@ -193,40 +193,55 @@ const refused = (res: Response) => res.status === 401 || res.status === 403;
  * null when GitHub refuses the token, so they're asked to reconnect, not shown an empty list. */
 export async function githubRepos(token: string): Promise<string[] | null> {
 	if (githubApp()) return appRepos(token);
-	// shortcut: the first 100 repos they can reach; typing the name still works past that
-	const res = await github(
+	const repos = await allPages(
 		token,
-		"/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member",
+		"/user/repos?sort=pushed&affiliation=owner,collaborator,organization_member",
+		(json) =>
+			json as { full_name: string; permissions?: { admin?: boolean } }[],
 	);
-	if (refused(res)) return null;
-	if (!res.ok) return [];
-	const repos = (await res.json()) as {
-		full_name: string;
-		permissions?: { admin?: boolean };
-	}[];
-	return repos.filter((r) => r.permissions?.admin).map((r) => r.full_name);
+	return (
+		repos?.filter((r) => r.permissions?.admin).map((r) => r.full_name) ?? null
+	);
 }
 
-// shortcut: the first 100 installations and 100 repos in each; more rarely matters for one person
-async function appRepos(token: string) {
-	const res = await github(token, "/user/installations?per_page=100");
-	if (refused(res)) return null;
-	if (!res.ok) return [];
-	const { installations } = (await res.json()) as {
-		installations: { id: number }[];
-	};
-	const repos: string[] = [];
-	for (const { id } of installations) {
-		const list = await github(
+/** Every page of a GitHub list (100 a page); null when GitHub refuses the token. */
+async function allPages<T>(
+	token: string,
+	path: string,
+	pick: (json: unknown) => T[],
+): Promise<T[] | null> {
+	const items: T[] = [];
+	// shortcut: 10 pages (1,000 items) at most, so a huge account can't stall the window
+	for (let page = 1; page <= 10; page++) {
+		const res = await github(
 			token,
-			`/user/installations/${id}/repositories?per_page=100`,
+			`${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`,
 		);
-		if (!list.ok) continue;
-		const { repositories } = (await list.json()) as {
-			repositories: { full_name: string }[];
-		};
-		repos.push(...repositories.map((r) => r.full_name));
+		if (refused(res)) return page === 1 ? null : items;
+		if (!res.ok) break;
+		const batch = pick(await res.json());
+		items.push(...batch);
+		if (batch.length < 100) break;
 	}
+	return items;
+}
+
+async function appRepos(token: string) {
+	const installations = await allPages(
+		token,
+		"/user/installations",
+		(json) => (json as { installations: { id: number }[] }).installations,
+	);
+	if (!installations) return null;
+	const repos: string[] = [];
+	for (const { id } of installations)
+		for (const r of (await allPages(
+			token,
+			`/user/installations/${id}/repositories`,
+			(json) =>
+				(json as { repositories: { full_name: string }[] }).repositories,
+		)) ?? [])
+			repos.push(r.full_name);
 	return [...new Set(repos)].sort((a, b) => a.localeCompare(b));
 }
 

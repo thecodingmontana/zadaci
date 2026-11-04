@@ -34,6 +34,13 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 				: { error: "bad_refresh_token" },
 		);
 	}
+	// someone with 150 repos in one installation: two pages
+	if (new Headers(init?.headers).get("authorization") === "Bearer ghu_many") {
+		if (url.includes("/user/installations?")) return Response.json({ installations: [{ id: 9 }] });
+		const page = Number(new URL(url).searchParams.get("page"));
+		const names = Array.from({ length: 150 }, (_, i) => `octo/repo-${String(i).padStart(3, "0")}`);
+		return Response.json({ repositories: names.slice((page - 1) * 100, page * 100).map((full_name) => ({ full_name })) });
+	}
 	if (url.includes("/user/installations?")) return Response.json({ installations: [{ id: 7 }] });
 	if (url.includes("/user/installations/7/repositories"))
 		return Response.json({ repositories: [{ full_name: "octo/secret-plans" }, { full_name: "octo/website" }] });
@@ -130,4 +137,12 @@ test("github app: a sign-in that expires is renewed with its refresh token befor
 	assert.equal(openKey(row.token, me.id, "github"), "ghu_renewed");
 	assert.equal(openKey(row.refresh_token ?? "", me.id, "github-refresh"), "ghr_next", "GitHub rotates the refresh token");
 	assert.ok((row.expires_at?.getTime() ?? 0) > Date.now() + 60 * 60 * 1000, "good for hours again");
+});
+
+test("github app: every repo is listed, past GitHub's 100 a page", async () => {
+	const me = await makeUser("gha-many", false);
+	await db.insert(tables.github_account).values({ user_id: me.id, login: "octo", token: sealKey("ghu_many", me.id, "github") });
+	const repos: string[] = (await gql(me, `{ githubAccount { repos } }`)).data?.githubAccount.repos;
+	assert.equal(repos.length, 150);
+	assert.ok(repos.includes("octo/repo-149"), "the last one, on the second page");
 });
