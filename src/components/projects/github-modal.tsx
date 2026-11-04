@@ -20,6 +20,7 @@ import {
 	CONNECT_GITHUB,
 	DISCONNECT_GITHUB,
 	PROJECT_GITHUB,
+	SYNC_GITHUB,
 } from "#/graphql/github-operations";
 import { copy, toast } from "#/lib/toast";
 import { cn } from "#/lib/utils";
@@ -86,6 +87,7 @@ export function GitHubModal({
 	};
 	const [connect, connecting] = useMutation(CONNECT_GITHUB, opts);
 	const [disconnect] = useMutation(DISCONNECT_GITHUB, opts);
+	const [syncNow, syncing] = useMutation(SYNC_GITHUB);
 	const [repo, setRepo] = useState("");
 	const [picking, setPicking] = useState(false);
 	const link = data?.projectGitHub;
@@ -356,6 +358,35 @@ export function GitHubModal({
 							>
 								{link.repo}
 							</a>
+							{link.viaApp && (
+								<button
+									type="button"
+									className={cn(
+										"btn btn-secondary btn-sm",
+										syncing.loading && "is-loading",
+									)}
+									disabled={syncing.loading}
+									onClick={() =>
+										void syncNow({ variables: vars })
+											.then(() =>
+												toast.success("Syncing with GitHub", {
+													desc: "Tasks and issues line up in a minute or so.",
+												}),
+											)
+											.catch((err: Error) =>
+												toast.error("Couldn't start the sync", {
+													desc: err.message,
+												}),
+											)
+									}
+								>
+									<span
+										className="icon-[solar--refresh-linear] size-3.5"
+										aria-hidden="true"
+									/>
+									Sync now
+								</button>
+							)}
 							<button
 								type="button"
 								className="btn btn-danger-ghost btn-sm"

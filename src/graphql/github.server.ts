@@ -69,6 +69,8 @@ export const githubTypeDefs = /* GraphQL */ `
 		"link the project to a repo (owner/name); a new secret each time. With your GitHub account connected, this also adds the webhook on GitHub"
 		connectGitHub(slug: String!, projectId: ID!, repo: String!): ProjectGitHub!
 		disconnectGitHub(slug: String!, projectId: ID!): Boolean!
+		"tasks and issues brought in step again (linked through the app): what a sync that stopped part-way missed"
+		syncGitHub(slug: String!, projectId: ID!): Boolean!
 		"forget your GitHub account here and revoke Zadaci on GitHub"
 		disconnectGitHubAccount: Boolean!
 	}
@@ -233,6 +235,23 @@ export const githubResolvers = {
 			ctx: GraphQLContext,
 		) => {
 			await disconnectGitHubAccount(requireUser(ctx).id);
+			return true;
+		},
+		syncGitHub: async (
+			_: unknown,
+			args: { slug: string; projectId: string },
+			ctx: GraphQLContext,
+		) => {
+			const { project } = await requireProject(ctx, args.slug, args.projectId, {
+				right: "full",
+			});
+			const [link] = await db
+				.select({ viaApp: tables.project_github.via_app })
+				.from(tables.project_github)
+				.where(eq(tables.project_github.project_id, project.id));
+			if (!link?.viaApp)
+				badInput("Link this project through the Zadaci GitHub App first");
+			queueLinkedProjectSync(project.id);
 			return true;
 		},
 		disconnectGitHub: async (

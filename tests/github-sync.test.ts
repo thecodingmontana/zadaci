@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
-import { after, test } from "node:test";
+import { after, mock, test } from "node:test";
 import { eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { sealKey } from "#/lib/ai/keys.server";
@@ -18,10 +18,12 @@ process.env.GITHUB_CLIENT_ID = "app-client";
 process.env.GITHUB_CLIENT_SECRET = "app-secret";
 process.env.GITHUB_APP_SLUG = "zadaci-test";
 process.env.GITHUB_APP_WEBHOOK_SECRET = "app-webhook-secret";
+process.env.GITHUB_SYNC_PAUSE_MS = "0";
 
 type Call = { method: string; path: string; body?: Record<string, unknown> };
 const calls: Call[] = [];
 let next = 100;
+const failOnce = new Set<string>();
 const realFetch = globalThis.fetch;
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 	const url = String(input);
@@ -37,6 +39,9 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 			{ number: 41, title: "Existing bug", body: "Reported on GitHub", state: "open" },
 			{ number: 42, title: "A pull request", body: null, state: "open", pull_request: {} },
 		]);
+	// GitHub's secondary rate limit, once, for whichever write is listed here
+	if (failOnce.delete(`${method} ${path}`))
+		return Response.json({ message: "You have exceeded a secondary rate limit" }, { status: 403 });
 	if (method === "POST") return Response.json({ number: next++ }, { status: 201 });
 	if (method === "PATCH") return Response.json({ number: Number(path.split("/").pop()) });
 	return new Response("Not Found", { status: 404 });
@@ -179,4 +184,35 @@ test("github sync: linking imports open issues and opens issues for open tasks; 
 	// deleted on GitHub: the task goes too (restorable from the Archive)
 	await deliver("issues", { action: "deleted", repository, issue: { number: 77, title: "Crash on save", body: null, state: "open" } });
 	assert.ok((await task(crash.id)).deleted_at);
+});
+
+test("github sync: a write GitHub refuses is logged with its reason, the rest still sync, and Sync now repairs it", async () => {
+	const owner = await makeUser("ghs-retry", false);
+	const { slug } = await makeWorkspace(owner);
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
+	const done = (await act(owner, CREATE, { s: slug, i: { projectId: project.id, title: "Finished early", status: "completed" } })).data?.createTask.id;
+	await db.insert(tables.github_account).values({ user_id: owner.id, login: "octo", token: sealKey("ghu_fake", owner.id, "github") });
+
+	// closing the completed task's new issue hits GitHub's rate limit
+	next = 500;
+	const firstNew = 500 + 6; // the sample project's 6 open tasks get 500–505 first
+	failOnce.add(`PATCH /repos/octo/board/issues/${firstNew}`);
+	const log = mock.method(console, "error", () => {});
+	try {
+		calls.length = 0;
+		await act(owner, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "octo/board") { viaApp } }`, { s: slug, p: project.id });
+		assert.ok(log.mock.calls.some((c) => String(c.arguments[1]).includes("secondary rate limit")), "GitHub's reason is logged");
+	} finally {
+		log.mock.restore();
+	}
+	assert.ok(writes().filter((c) => c.method === "POST").length >= 7, "the other tasks still got their issues");
+	const issueOf = async (taskId: string) =>
+		(await db.select().from(tables.task_github_issue).where(eq(tables.task_github_issue.task_id, taskId)))[0];
+	assert.equal((await issueOf(done)).number, firstNew, "its issue exists, but wasn't closed");
+
+	// Sync now finishes the job: the completed task's issue gets closed, nothing is duplicated
+	calls.length = 0;
+	await act(owner, `mutation($s: String!, $p: ID!) { syncGitHub(slug: $s, projectId: $p) }`, { s: slug, p: project.id });
+	assert.ok(writes().some((c) => c.method === "PATCH" && c.path === `/repos/octo/board/issues/${firstNew}` && c.body?.state === "closed"));
+	assert.equal(writes().filter((c) => c.method === "POST").length, 0, "no new issues for tasks that already have one");
 });

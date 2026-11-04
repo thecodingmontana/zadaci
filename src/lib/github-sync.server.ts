@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
-import { and, asc, eq, isNull, notExists, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { STATUS } from "#/db/enums";
 import { userClock } from "#/lib/ai/limits.server";
@@ -75,20 +75,30 @@ async function linkOf(projectId: string) {
 		: null;
 }
 
+/** GitHub said no: keep its reason (a status alone hides rate limits and missing permissions). */
+async function refused(res: Response, what: string) {
+	const reason = ((await res.json().catch(() => ({}))) as { message?: string })
+		.message;
+	return new Error(
+		`GitHub answered ${res.status} for ${what}${reason ? `: ${reason.slice(0, 200)}` : ""}`,
+	);
+}
+
 const fingerprint = (issue: object) =>
 	createHash("sha1").update(JSON.stringify(issue)).digest("hex");
 
-/** Write one task's issue: open it, change it, or close it, only if something changed. */
-export async function syncTask(taskId: string): Promise<void> {
+/** Write one task's issue: open it, change it, or close it, only if something changed. True when
+ * it wrote to GitHub. */
+export async function syncTask(taskId: string): Promise<boolean> {
 	const [task] = await db
 		.select()
 		.from(tables.task)
 		.where(eq(tables.task.id, taskId));
-	if (!task) return;
+	if (!task) return false;
 	// a subtask is a checklist line in its parent's issue
 	if (task.parent_task_id) return syncTask(task.parent_task_id);
 	const link = await linkOf(task.project_id);
-	if (!link) return;
+	if (!link) return false;
 	const subtasks = await db
 		.select({ name: tables.task.name, status: tables.task.status })
 		.from(tables.task)
@@ -113,16 +123,15 @@ export async function syncTask(taskId: string): Promise<void> {
 		.where(eq(tables.task_github_issue.task_id, task.id));
 	// linked to another repo since: this one gets its own issue
 	const same = mapped && mapped.repo.toLowerCase() === link.repo.toLowerCase();
-	if (same && mapped.synced_hash === hash) return;
-	if (!same && gone) return; // a deleted or archived task gets no issue
+	if (same && mapped.synced_hash === hash) return false;
+	if (!same && gone) return false; // a deleted or archived task gets no issue
 	let number = same ? mapped.number : 0;
 	if (!same) {
 		const res = await github(link.token, `/repos/${link.repo}/issues`, "POST", {
 			title: issue.title,
 			body: issue.body,
 		});
-		if (!res.ok)
-			throw new Error(`GitHub answered ${res.status} for ${link.repo}`);
+		if (!res.ok) throw await refused(res, `${link.repo} (${task.name})`);
 		number = ((await res.json()) as { number: number }).number;
 		// saved before anything else, so GitHub's "opened" event finds it is ours
 		await remember(
@@ -145,10 +154,10 @@ export async function syncTask(taskId: string): Promise<void> {
 				}),
 			},
 		);
-		if (!res.ok)
-			throw new Error(`GitHub answered ${res.status} for ${link.repo}`);
+		if (!res.ok) throw await refused(res, `${link.repo} (${task.name})`);
 	}
 	await remember(task.id, link.repo, number, hash);
+	return true;
 }
 
 const remember = (taskId: string, repo: string, number: number, hash: string) =>
@@ -201,8 +210,7 @@ export async function syncLinkedProject(projectId: string) {
 		link.token,
 		`/repos/${link.repo}/issues?state=open&per_page=100`,
 	);
-	if (!res.ok)
-		throw new Error(`GitHub answered ${res.status} listing ${link.repo}`);
+	if (!res.ok) throw await refused(res, `listing ${link.repo}'s issues`);
 	const issues = ((await res.json()) as Issue[]).filter((i) => !i.pull_request);
 	const known = new Set(
 		(
@@ -216,10 +224,21 @@ export async function syncLinkedProject(projectId: string) {
 	);
 	const ctx = await actingAs(link);
 	if (!ctx) return;
+	// one failure (a rate limit, say) doesn't stop the rest; running it again picks up what's left
+	const each = async (what: string, work: () => Promise<unknown>) => {
+		try {
+			if (await work()) await pause();
+		} catch (error) {
+			console.error(`[github] ${what}:`, (error as Error).message);
+		}
+	};
 	for (const issue of issues.filter((i) => !known.has(i.number)))
-		await importIssue(ctx, projectId, link.repo, issue);
-	// shortcut: one request after another, fine for hundreds of tasks; batch past GitHub's rate limit
-	const open = await db
+		await each(`${link.repo}#${issue.number}`, () =>
+			importIssue(ctx, projectId, link.repo, issue),
+		);
+	// every task, not only those without an issue: an earlier sync that stopped part-way gets
+	// finished (syncTask writes nothing when GitHub already matches)
+	const tasks = await db
 		.select({ id: tables.task.id })
 		.from(tables.task)
 		.where(
@@ -228,17 +247,19 @@ export async function syncLinkedProject(projectId: string) {
 				isNull(tables.task.parent_task_id),
 				isNull(tables.task.deleted_at),
 				isNull(tables.task.archived_at),
-				notExists(
-					db
-						.select()
-						.from(tables.task_github_issue)
-						.where(eq(tables.task_github_issue.task_id, tables.task.id)),
-				),
 			),
 		)
 		.orderBy(asc(tables.task.number));
-	for (const t of open) await syncTask(t.id);
+	for (const t of tasks) await each(`task ${t.id}`, () => syncTask(t.id));
 }
+
+// GitHub asks for about a second between writes that create content, or it answers 403 (its
+// secondary rate limit). shortcut: a project with hundreds of tasks takes minutes; queue it if so
+// (tests set GITHUB_SYNC_PAUSE_MS=0)
+const pause = () =>
+	new Promise((r) =>
+		setTimeout(r, Number(process.env.GITHUB_SYNC_PAUSE_MS ?? 1000)),
+	);
 
 /** Queue the first sync of a newly linked project. */
 export function queueLinkedProjectSync(projectId: string) {

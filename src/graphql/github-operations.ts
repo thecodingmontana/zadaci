@@ -105,3 +105,13 @@ export const DISCONNECT_GITHUB_ACCOUNT: TypedDocumentNode<
 		disconnectGitHubAccount
 	}
 `;
+
+/** Tasks and issues brought in step again (projects linked through the app). */
+export const SYNC_GITHUB: TypedDocumentNode<
+	{ syncGitHub: boolean },
+	{ slug: string; projectId: string }
+> = gql`
+	mutation SyncGitHub($slug: String!, $projectId: ID!) {
+		syncGitHub(slug: $slug, projectId: $projectId)
+	}
+`;

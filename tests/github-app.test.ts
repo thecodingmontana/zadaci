@@ -15,6 +15,7 @@ process.env.GITHUB_CLIENT_ID = "app-client";
 process.env.GITHUB_CLIENT_SECRET = "app-secret";
 process.env.GITHUB_APP_SLUG = "zadaci-test";
 process.env.GITHUB_APP_WEBHOOK_SECRET = "app-webhook-secret";
+process.env.GITHUB_SYNC_PAUSE_MS = "0";
 
 const calls: { url: string; method: string }[] = [];
 const realFetch = globalThis.fetch;
