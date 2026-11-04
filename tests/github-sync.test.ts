@@ -7,7 +7,7 @@ import { sealKey } from "#/lib/ai/keys.server";
 import { withEmails } from "#/lib/email.server";
 import { run } from "#/lib/ai/gql.server";
 import { githubAppWebhook } from "#/lib/github.server";
-import { githubSyncSettled, syncTask } from "#/lib/github-sync.server";
+import { githubSyncSettled, syncAllLinkedProjects, syncTask } from "#/lib/github-sync.server";
 import { cleanup, gql, makeUser, makeWorkspace, type TestUser } from "./helpers";
 
 after(cleanup);
@@ -186,7 +186,7 @@ test("github sync: linking imports open issues and opens issues for open tasks; 
 	assert.ok((await task(crash.id)).deleted_at);
 });
 
-test("github sync: a write GitHub refuses is logged with its reason, the rest still sync, and Sync now repairs it", async () => {
+test("github sync: a write GitHub refuses is logged with its reason, the rest still sync, and the hourly job repairs it", async () => {
 	const owner = await makeUser("ghs-retry", false);
 	const { slug } = await makeWorkspace(owner);
 	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
@@ -210,9 +210,14 @@ test("github sync: a write GitHub refuses is logged with its reason, the rest st
 		(await db.select().from(tables.task_github_issue).where(eq(tables.task_github_issue.task_id, taskId)))[0];
 	assert.equal((await issueOf(done)).number, firstNew, "its issue exists, but wasn't closed");
 
-	// Sync now finishes the job: the completed task's issue gets closed, nothing is duplicated
+	// the hourly job finishes it on its own: the completed task's issue gets closed, nothing is duplicated
+	calls.length = 0;
+	await syncAllLinkedProjects();
+	const mine = writes().filter((c) => c.path.startsWith("/repos/octo/board/"));
+	assert.ok(mine.some((c) => c.method === "PATCH" && c.path === `/repos/octo/board/issues/${firstNew}` && c.body?.state === "closed"));
+	assert.equal(mine.filter((c) => c.method === "POST").length, 0, "no new issues for tasks that already have one");
+	// Sync now does the same by hand, and finds nothing left to do
 	calls.length = 0;
 	await act(owner, `mutation($s: String!, $p: ID!) { syncGitHub(slug: $s, projectId: $p) }`, { s: slug, p: project.id });
-	assert.ok(writes().some((c) => c.method === "PATCH" && c.path === `/repos/octo/board/issues/${firstNew}` && c.body?.state === "closed"));
-	assert.equal(writes().filter((c) => c.method === "POST").length, 0, "no new issues for tasks that already have one");
+	assert.equal(writes().filter((c) => c.path.startsWith("/repos/octo/board/")).length, 0);
 });

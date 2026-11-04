@@ -261,6 +261,20 @@ const pause = () =>
 		setTimeout(r, Number(process.env.GITHUB_SYNC_PAUSE_MS ?? 1000)),
 	);
 
+/** The hourly job's repair pass: finishes whatever a refused or interrupted write left behind,
+ * so nobody has to press Sync now. Unchanged tasks cost no GitHub calls. */
+export async function syncAllLinkedProjects() {
+	const links = await db
+		.select({ id: tables.project_github.project_id })
+		.from(tables.project_github)
+		.where(eq(tables.project_github.via_app, true));
+	for (const { id } of links)
+		await syncLinkedProject(id).catch((error) =>
+			console.error(`[github] project ${id}:`, (error as Error).message),
+		);
+	return links.length;
+}
+
 /** Queue the first sync of a newly linked project. */
 export function queueLinkedProjectSync(projectId: string) {
 	afterRequest(() =>

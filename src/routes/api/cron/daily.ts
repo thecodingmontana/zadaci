@@ -1,8 +1,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 import { runDaily } from "#/lib/daily.server";
+import { syncAllLinkedProjects } from "#/lib/github-sync.server";
 
-// Called every hour by .github/workflows/daily-notifications.yml with the CRON_SECRET.
+// Called every hour by .github/workflows/daily-notifications.yml with the CRON_SECRET: reminders,
+// digests, and a GitHub repair pass for linked projects.
 const digest = (value: string) => createHash("sha256").update(value).digest();
 
 export function authorized(
@@ -19,7 +21,8 @@ export const Route = createFileRoute("/api/cron/daily")({
 			POST: async ({ request }) => {
 				if (!authorized(request.headers.get("authorization")))
 					return new Response("Unauthorized", { status: 401 });
-				return Response.json(await runDaily());
+				const daily = await runDaily();
+				return Response.json({ ...daily, github: await syncAllLinkedProjects() });
 			},
 		},
 	},
