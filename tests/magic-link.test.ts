@@ -97,7 +97,7 @@ test("one address gets at most 5 sign-in links an hour, whoever asks", async () 
 test("a link opened from an email app or another site asks whose account it is before signing in", async () => {
 	const me = await makeUser("link-confirm", false);
 	const link = await linkFor(me.email, "203.0.113.7");
-	const fromElsewhere = await auth.handler(new Request(link, { headers: { "sec-fetch-site": "cross-site" } }));
+	const fromElsewhere = await auth.handler(new Request(link, { headers: { "sec-fetch-site": "cross-site", "x-forwarded-for": "203.0.113.7" } }));
 	assert.equal(fromElsewhere.status, 302);
 	const to = fromElsewhere.headers.get("location") ?? "";
 	assert.match(to, /^\/auth\/confirm-sign-in\?/, "to the confirm page first");
@@ -114,6 +114,6 @@ test("a link opened from an email app or another site asks whose account it is b
 	assert.equal(JSON.parse(row.value).email, me.email, "the page shows the right email");
 
 	// Continue on that page is a same-origin request: it signs in
-	const fromPage = await auth.handler(new Request(link, { headers: { "sec-fetch-site": "same-origin" } }));
+	const fromPage = await auth.handler(new Request(link, { headers: { "sec-fetch-site": "same-origin", "x-forwarded-for": "203.0.113.7" } }));
 	assert.match(fromPage.headers.get("set-cookie") ?? "", /session_token=/, `${fromPage.status} ${fromPage.headers.get("location")}`);
 });
