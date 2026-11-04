@@ -219,3 +219,39 @@ test("a profile's due dates are plain days, like everywhere else", async () => {
 	const tasks = (await gql(owner, `query($s: String!, $m: ID!) { workspace(slug: $s) { memberProfile(memberId: $m) { tasks { name dueDate } } } }`, { s: slug, m: me })).data?.workspace.memberProfile.tasks;
 	assert.equal(tasks.find((t: { name: string }) => t.name === "Due Halloween")?.dueDate, "2026-10-31");
 });
+
+test("only the owner makes, changes or removes admins, so one admin can't take a workspace over", async () => {
+	const owner = await makeUser("adm-owner");
+	const alice = await makeUser("adm-alice");
+	const bob = await makeUser("adm-bob");
+	const carol = await makeUser("adm-carol");
+	const { slug, inviteCode } = await makeWorkspace(owner);
+	for (const u of [alice, bob, carol]) await join(u, inviteCode);
+	const ids = async () =>
+		Object.fromEntries(
+			(await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id email } } }`, { s: slug })).data?.workspace.members.map(
+				(m: { id: string; email: string }) => [m.email, m.id],
+			),
+		);
+	const id = await ids();
+	const ROLE = `mutation($s: String!, $m: ID!, $r: String!) { updateMemberRole(slug: $s, memberId: $m, role: $r) { role } }`;
+	const REMOVE = `mutation($s: String!, $m: ID!) { removeMember(slug: $s, memberId: $m) }`;
+	const error = (res: { errors?: { message: string }[] }) => res.errors?.[0]?.message ?? "";
+
+	// the owner makes two admins
+	assert.equal((await gql(owner, ROLE, { s: slug, m: id[alice.email], r: "moderator" })).data?.updateMemberRole.role, "moderator");
+	assert.equal((await gql(owner, ROLE, { s: slug, m: id[bob.email], r: "moderator" })).data?.updateMemberRole.role, "moderator");
+
+	// an admin can't demote or remove another admin, promote someone, or invite an admin
+	assert.match(error(await gql(alice, ROLE, { s: slug, m: id[bob.email], r: "member" })), /Only the workspace owner/);
+	assert.match(error(await gql(alice, REMOVE, { s: slug, m: id[bob.email] })), /Only the workspace owner/);
+	assert.match(error(await gql(alice, ROLE, { s: slug, m: id[carol.email], r: "moderator" })), /Only the workspace owner/);
+	assert.match(
+		error(await gql(alice, `mutation($s: String!) { inviteMembers(slug: $s, emails: ["x@test.zadaci"], role: "moderator") { id } }`, { s: slug })),
+		/Only the workspace owner/,
+	);
+	// they still manage members and guests
+	assert.equal((await gql(alice, ROLE, { s: slug, m: id[carol.email], r: "guest" })).data?.updateMemberRole.role, "guest");
+	// and the owner can change an admin
+	assert.equal((await gql(owner, ROLE, { s: slug, m: id[bob.email], r: "member" })).data?.updateMemberRole.role, "member");
+});

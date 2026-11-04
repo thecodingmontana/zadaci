@@ -144,6 +144,13 @@ const INVITE_ROLES = z.enum([
 	USER_ROLE.GUEST,
 ]);
 
+/** Admins are the owner's to make, change and remove: otherwise an admin could promote an
+ * accomplice, or demote and remove the other admins and take the workspace over. */
+function ownerOnlyForAdmins(actorRole: string | undefined, ...roles: string[]) {
+	if (actorRole !== USER_ROLE.OWNER && roles.includes(USER_ROLE.MODERATOR))
+		badInput("Only the workspace owner can add, change or remove admins");
+}
+
 /** The signed-in user's workspace, failing unless their role is in `roles`. */
 export async function requireWorkspace(
 	ctx: GraphQLContext,
@@ -534,6 +541,7 @@ export const settingsResolvers = {
 		) => {
 			const { user, workspace } = await requireWorkspace(ctx, args.slug);
 			const role = parse(INVITE_ROLES, args.role);
+			ownerOnlyForAdmins(workspace.role, role);
 			// Guests can be invited by members when "Members can invite guests" is on.
 			const needed =
 				role === USER_ROLE.GUEST ? "inviteGuests" : "inviteMembers";
@@ -688,6 +696,7 @@ export const settingsResolvers = {
 			if (!target) badInput("Member not found");
 			if (target.role === USER_ROLE.OWNER)
 				badInput("The workspace owner's role can't be changed");
+			ownerOnlyForAdmins(workspace.role, role, target.role);
 			await db
 				.update(tables.workspace_members)
 				.set({ role })
@@ -737,6 +746,7 @@ export const settingsResolvers = {
 			if (!target) badInput("Member not found");
 			if (target.role === USER_ROLE.OWNER)
 				badInput("The workspace owner can't be removed");
+			ownerOnlyForAdmins(workspace.role, target.role);
 			// New invite code in the same transaction, so the removed member's old link stops working.
 			await db.transaction(async (tx) => {
 				// They lose their projects, teams and task assignments too (reference removeMember).
