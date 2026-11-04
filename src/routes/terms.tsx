@@ -56,8 +56,8 @@ function Terms() {
 				you link a GitHub repo to a project, merging a pull request that
 				mentions a task marks it done as you. Through the Zadaci GitHub App, its
 				tasks and the repo's issues also stay in step: Zadaci opens, edits and
-				closes issues as you, and changes to those issues on GitHub change the
-				tasks.
+				closes issues as you, makes a project board for the repo and moves its
+				cards as you, and changes to those issues on GitHub change the tasks.
 			</p>
 
 			<h2>Acceptable use</h2>

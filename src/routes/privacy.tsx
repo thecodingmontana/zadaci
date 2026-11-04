@@ -49,11 +49,12 @@ function Privacy() {
 					token (plus, for sign-ins that expire, the token that renews it),
 					encrypted before it's stored. It can only manage repo webhooks, or,
 					through the Zadaci GitHub App, read the repos you installed the app
-					on, their pull requests and issues, and write issues (never your
-					code). We use it to list the repos you can link, to keep a linked
-					project's tasks and the repo's issues in step (a task's title,
-					description, subtasks, priority, due date and a link back go into its
-					issue), and, without the app, to add or remove a project's webhook.
+					on, their pull requests and issues, and write issues and a project
+					board (never your code). We use it to list the repos you can link, to
+					keep a linked project's tasks and the repo's issues in step (a task's
+					title, description, subtasks, priority, due date and a link back go
+					into its issue, and its status goes onto the repo's board), and,
+					without the app, to add or remove a project's webhook.
 				</li>
 			</ul>
 

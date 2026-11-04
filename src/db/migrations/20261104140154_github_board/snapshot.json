@@ -1,0 +1,149 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "ba08dd53-5257-4000-8aff-03152a38b308",
+  "prevIds": [
+    "69382819-089f-4c29-b783-7b048b08662f"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "app_project_github",
+        "board"
+      ],
+      "writes": [
+        "s|col|public.app_project_github.board",
+        "n|col|public.app_project_github.board",
+        "e|col|public.app_project_github.board"
+      ],
+      "reads": [
+        "n|tbl|public.app_project_github",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "app_project_github",
+        "board_error"
+      ],
+      "writes": [
+        "s|col|public.app_project_github.board_error",
+        "n|col|public.app_project_github.board_error",
+        "e|col|public.app_project_github.board_error"
+      ],
+      "reads": [
+        "n|tbl|public.app_project_github",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "app_task_github_issue",
+        "card"
+      ],
+      "writes": [
+        "s|col|public.app_task_github_issue.card",
+        "n|col|public.app_task_github_issue.card",
+        "e|col|public.app_task_github_issue.card"
+      ],
+      "reads": [
+        "n|tbl|public.app_task_github_issue",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "app_task_github_issue",
+        "card_status"
+      ],
+      "writes": [
+        "s|col|public.app_task_github_issue.card_status",
+        "n|col|public.app_task_github_issue.card_status",
+        "e|col|public.app_task_github_issue.card_status"
+      ],
+      "reads": [
+        "n|tbl|public.app_task_github_issue",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_project_github",
+        "name": "board",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_project_github",
+        "name": "board_error",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "card",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "card_status",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

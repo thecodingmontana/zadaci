@@ -2,6 +2,7 @@ import {
 	boolean,
 	index,
 	integer,
+	jsonb,
 	text,
 	timestamp,
 	uniqueIndex,
@@ -51,6 +52,15 @@ export const project_github = pgTable(
 			() => user.id,
 			{ onDelete: "set null" },
 		),
+		/** the GitHub Projects board Zadaci made for this repo, and its Status field's options */
+		board: jsonb("board").$type<{
+			id: string;
+			url: string;
+			field: string;
+			options: Record<string, string>;
+		}>(),
+		/** why GitHub wouldn't make the board (shown in the project's GitHub window) */
+		board_error: text("board_error"),
 		created_at: when("created_at").notNull().defaultNow(),
 	},
 	(t) => [uniqueIndex("project_github_project_unique").on(t.project_id)],
@@ -90,6 +100,9 @@ export const task_github_issue = pgTable(
 		number: integer("number").notNull(),
 		/** fingerprint of what was last written either way, so an echo of our own change is skipped */
 		synced_hash: text("synced_hash").notNull().default(""),
+		/** the issue's card on the project's board, and the Status last written to it */
+		card: text("card"),
+		card_status: text("card_status"),
 		updated_at: when("updated_at").notNull().defaultNow(),
 	},
 	(t) => [uniqueIndex("task_github_issue_repo_number").on(t.repo, t.number)],

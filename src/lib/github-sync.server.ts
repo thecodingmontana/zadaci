@@ -6,6 +6,7 @@ import { STATUS } from "#/db/enums";
 import { userClock } from "#/lib/ai/limits.server";
 import { MCP_RESOURCE } from "#/lib/auth";
 import { afterRequest } from "#/lib/email.server";
+import { ensureBoard, syncCard } from "#/lib/github-board.server";
 import { github, githubAccount } from "#/lib/github-connect.server";
 
 // Tasks ↔ GitHub issues, for projects linked through the Zadaci GitHub App. Zadaci → GitHub: every
@@ -50,6 +51,8 @@ async function linkOf(projectId: string) {
 			repo: tables.project_github.repo,
 			linker: tables.project_github.connected_by,
 			key: tables.project.key,
+			name: tables.project.title,
+			board: tables.project_github.board,
 			slug: tables.workspace.slug,
 		})
 		.from(tables.project_github)
@@ -123,8 +126,8 @@ export async function syncTask(taskId: string): Promise<boolean> {
 		.where(eq(tables.task_github_issue.task_id, task.id));
 	// linked to another repo since: this one gets its own issue
 	const same = mapped && mapped.repo.toLowerCase() === link.repo.toLowerCase();
-	if (same && mapped.synced_hash === hash) return false;
 	if (!same && gone) return false; // a deleted or archived task gets no issue
+	const wrote = !same || mapped.synced_hash !== hash;
 	let number = same ? mapped.number : 0;
 	if (!same) {
 		const res = await github(link.token, `/repos/${link.repo}/issues`, "POST", {
@@ -142,7 +145,7 @@ export async function syncTask(taskId: string): Promise<boolean> {
 		);
 	}
 	// GitHub opens every new issue: a completed task's is closed straight after
-	if (same || issue.state === "closed") {
+	if ((same && wrote) || (!same && issue.state === "closed")) {
 		const res = await github(
 			link.token,
 			`/repos/${link.repo}/issues/${number}`,
@@ -156,8 +159,23 @@ export async function syncTask(taskId: string): Promise<boolean> {
 		);
 		if (!res.ok) throw await refused(res, `${link.repo} (${task.name})`);
 	}
-	await remember(task.id, link.repo, number, hash);
-	return true;
+	if (wrote) await remember(task.id, link.repo, number, hash);
+	if (!link.board) return wrote;
+	// the issue's card on the project's board follows the task's status
+	const carded = await syncCard(
+		link.token,
+		link.board,
+		{
+			task_id: task.id,
+			repo: link.repo,
+			number,
+			card: same ? mapped.card : null,
+			card_status: same ? mapped.card_status : null,
+		},
+		task.status,
+		gone,
+	);
+	return wrote || carded;
 }
 
 const remember = (taskId: string, repo: string, number: number, hash: string) =>
@@ -224,6 +242,8 @@ export async function syncLinkedProject(projectId: string) {
 	);
 	const ctx = await actingAs(link);
 	if (!ctx) return;
+	// the repo's board, before the tasks below put their issues on it
+	await ensureBoard({ ...link, projectId });
 	// one failure (a rate limit, say) doesn't stop the rest; running it again picks up what's left
 	const each = async (what: string, work: () => Promise<unknown>) => {
 		try {

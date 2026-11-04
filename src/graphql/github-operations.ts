@@ -10,6 +10,9 @@ export type ProjectGitHub = {
 	mergesAs: string | null;
 	/** linked through the Zadaci GitHub App: nothing to set up by hand */
 	viaApp: boolean;
+	/** the GitHub Projects board Zadaci made for the repo, or why GitHub wouldn't */
+	boardUrl: string | null;
+	boardError: string | null;
 };
 export type GitHubPr = {
 	repo: string;
@@ -39,6 +42,8 @@ export const PROJECT_GITHUB: TypedDocumentNode<
 			secret
 			mergesAs
 			viaApp
+			boardUrl
+			boardError
 		}
 		githubConnectReady
 		githubAppInstallUrl
@@ -61,6 +66,8 @@ export const CONNECT_GITHUB: TypedDocumentNode<
 			secret
 			mergesAs
 			viaApp
+			boardUrl
+			boardError
 		}
 	}
 `;

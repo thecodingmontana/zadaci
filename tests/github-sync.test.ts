@@ -7,7 +7,7 @@ import { sealKey } from "#/lib/ai/keys.server";
 import { withEmails } from "#/lib/email.server";
 import { run } from "#/lib/ai/gql.server";
 import { githubAppWebhook } from "#/lib/github.server";
-import { githubSyncSettled, syncAllLinkedProjects, syncTask } from "#/lib/github-sync.server";
+import { githubSyncSettled, syncAllLinkedProjects, syncLinkedProject, syncTask } from "#/lib/github-sync.server";
 import { cleanup, gql, makeUser, makeWorkspace, type TestUser } from "./helpers";
 
 after(cleanup);
@@ -24,6 +24,25 @@ type Call = { method: string; path: string; body?: Record<string, unknown> };
 const calls: Call[] = [];
 let next = 100;
 const failOnce = new Set<string>();
+// GitHub makes boards for organizations' apps; on a personal account it refuses
+let boards = false;
+const OPTIONS = [
+	{ id: "o-todo", name: "Todo" },
+	{ id: "o-progress", name: "In Progress" },
+	{ id: "o-done", name: "Done" },
+];
+function boardApi(query: string, v: Record<string, string>) {
+	if (!boards) return Response.json({ errors: [{ message: "Resource not accessible by integration" }] });
+	if (query.includes("repository(")) return Response.json({ data: { repository: { id: "R_board", owner: { id: "U_octo" } } } });
+	if (query.includes("createProjectV2"))
+		return Response.json({
+			data: { createProjectV2: { projectV2: { id: "PVT_1", url: "https://github.com/users/octo/projects/1", field: { id: "F_status", options: OPTIONS } } } },
+		});
+	if (query.includes("addProjectV2ItemById")) return Response.json({ data: { addProjectV2ItemById: { item: { id: `card-${v.c}` } } } });
+	if (query.includes("updateProjectV2ItemFieldValue")) return Response.json({ data: { updateProjectV2ItemFieldValue: { projectV2Item: { id: v.i } } } });
+	if (query.includes("deleteProjectV2Item")) return Response.json({ data: { deleteProjectV2Item: { deletedItemId: v.i } } });
+	return Response.json({ errors: [{ message: "unknown query" }] });
+}
 const realFetch = globalThis.fetch;
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 	const url = String(input);
@@ -32,6 +51,8 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 	const path = url.replace("https://api.github.com", "");
 	const body = init?.body ? JSON.parse(String(init.body)) : undefined;
 	calls.push({ method, path, body });
+	if (path === "/graphql") return boardApi(String(body?.query), body?.variables ?? {});
+	if (method === "GET" && /\/issues\/\d+$/.test(path)) return Response.json({ node_id: `issue-${path.split("/").pop()}` });
 	if (path.startsWith("/user/installations?")) return Response.json({ installations: [{ id: 7 }] });
 	if (path.startsWith("/user/installations/7/repositories")) return Response.json({ repositories: [{ full_name: "octo/board" }] });
 	if (method === "GET" && path.startsWith("/repos/octo/board/issues"))
@@ -75,7 +96,9 @@ const deliver = async (event: string, payload: object) => {
 	await githubSyncSettled();
 	return res.json();
 };
-const writes = () => calls.filter((c) => c.method !== "GET");
+// issue writes (the board's GraphQL calls are checked on their own)
+const writes = () => calls.filter((c) => c.method !== "GET" && c.path !== "/graphql");
+const board = (mutation: string) => calls.filter((c) => c.path === "/graphql" && String(c.body?.query).includes(mutation));
 const CREATE = `mutation($s: String!, $i: TaskInput!) { createTask(slug: $s, input: $i) { id } }`;
 const UPDATE = `mutation($s: String!, $id: ID!, $p: TaskPatch!) { updateTask(slug: $s, id: $id, patch: $p) { id } }`;
 
@@ -220,4 +243,57 @@ test("github sync: a write GitHub refuses is logged with its reason, the rest st
 	calls.length = 0;
 	await act(owner, `mutation($s: String!, $p: ID!) { syncGitHub(slug: $s, projectId: $p) }`, { s: slug, p: project.id });
 	assert.equal(writes().filter((c) => c.path.startsWith("/repos/octo/board/")).length, 0);
+});
+
+test("github board: linking makes the repo a board with every task's issue in its status's column, and keeps it in step", async () => {
+	boards = true;
+	try {
+		const owner = await makeUser("ghs-board", false);
+		const { slug } = await makeWorkspace(owner);
+		const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id title } } }`, { s: slug })).data?.workspace.projects[0];
+		await db.insert(tables.github_account).values({ user_id: owner.id, login: "octo", token: sealKey("ghu_fake", owner.id, "github") });
+		const shipped = (await act(owner, CREATE, { s: slug, i: { projectId: project.id, title: "Shipped", status: "completed" } })).data?.createTask.id;
+		calls.length = 0;
+		const linked = await act(owner, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "octo/board") { viaApp } }`, { s: slug, p: project.id });
+		assert.equal(linked.errors, undefined);
+		const [made] = board("createProjectV2");
+		assert.deepEqual(made.body?.variables, { o: "U_octo", r: "R_board", t: project.title }, "owned by the repo's owner, linked to the repo, named after the project");
+		const issues = await db.select().from(tables.task_github_issue).where(eq(tables.task_github_issue.repo, "octo/board"));
+		const mine = issues.filter((i) => i.card);
+		assert.ok(mine.length >= 7, "every task's issue is on the board");
+		assert.equal((await db.select().from(tables.task_github_issue).where(eq(tables.task_github_issue.task_id, shipped)))[0].card_status, "Done");
+		const shown = await gql(owner, `query($s: String!, $p: ID!) { projectGitHub(slug: $s, projectId: $p) { boardUrl boardError } }`, { s: slug, p: project.id });
+		assert.deepEqual(shown.data?.projectGitHub, { boardUrl: "https://github.com/users/octo/projects/1", boardError: null });
+
+		// a status change moves the card; nothing is added twice
+		const task = (await act(owner, CREATE, { s: slug, i: { projectId: project.id, title: "Board me" } })).data?.createTask.id;
+		calls.length = 0;
+		await act(owner, UPDATE, { s: slug, id: task, p: { status: "in_progress" } });
+		assert.equal(board("addProjectV2ItemById").length, 0);
+		assert.deepEqual(board("updateProjectV2ItemFieldValue").map((c) => (c.body?.variables as Record<string, string>).o), ["o-progress"]);
+		// syncing again finds the board in step: no writes at all
+		calls.length = 0;
+		await syncLinkedProject(project.id);
+		assert.equal(writes().length, 0);
+		for (const m of ["createProjectV2", "addProjectV2ItemById", "updateProjectV2ItemFieldValue"]) assert.equal(board(m).length, 0, m);
+		// a deleted task's card comes off the board
+		calls.length = 0;
+		await act(owner, `mutation($s: String!, $ids: [ID!]!) { deleteTasks(slug: $s, ids: $ids) }`, { s: slug, ids: [task] });
+		assert.equal(board("deleteProjectV2Item").length, 1);
+	} finally {
+		boards = false;
+	}
+});
+
+test("github board: on a personal account GitHub refuses the board; the window says why and issues still sync", async () => {
+	const owner = await makeUser("ghs-noboard", false);
+	const { slug } = await makeWorkspace(owner);
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
+	await db.insert(tables.github_account).values({ user_id: owner.id, login: "octo", token: sealKey("ghu_fake", owner.id, "github") });
+	calls.length = 0;
+	await act(owner, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "octo/board") { viaApp } }`, { s: slug, p: project.id });
+	const shown = await gql(owner, `query($s: String!, $p: ID!) { projectGitHub(slug: $s, projectId: $p) { boardUrl boardError } }`, { s: slug, p: project.id });
+	assert.equal(shown.data?.projectGitHub.boardUrl, null);
+	assert.match(shown.data?.projectGitHub.boardError ?? "", /personal accounts/);
+	assert.ok(writes().filter((c) => c.method === "POST").length >= 6, "issues were still opened");
 });

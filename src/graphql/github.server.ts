@@ -28,6 +28,10 @@ export const githubTypeDefs = /* GraphQL */ `
 		mergesAs: String
 		"linked through the Zadaci GitHub App (its one webhook), so there's nothing to set up by hand"
 		viaApp: Boolean!
+		"the GitHub Projects board Zadaci made for the repo (through the app)"
+		boardUrl: String
+		"why GitHub wouldn't make that board"
+		boardError: String
 	}
 
 	"your GitHub account, connected in Settings → Connected apps"
@@ -148,6 +152,8 @@ export const githubResolvers = {
 						...shape(project.id, link.repo, link.nonce),
 						mergesAs: await mergesAs(link.connected_by, project.workspace_id),
 						viaApp: link.via_app,
+						boardUrl: link.board?.url ?? null,
+						boardError: link.board_error,
 					}
 				: null;
 		},

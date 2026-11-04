@@ -403,6 +403,27 @@ export function GitHubModal({
 								Unlink
 							</button>
 						</div>
+						{link.boardUrl ? (
+							<a
+								className="row"
+								style={{ gap: 6, fontSize: 12.5, alignItems: "center" }}
+								href={link.boardUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								<span
+									className="icon-[solar--widget-5-linear] size-3.5"
+									aria-hidden="true"
+								/>
+								Its board on GitHub, kept in step with this project
+							</a>
+						) : (
+							link.boardError && (
+								<p className="faint" style={{ fontSize: 12 }}>
+									No GitHub board: {link.boardError}
+								</p>
+							)
+						)}
 						{link.viaApp ? null : account ? byHand(manual) : manual}
 						{link.mergesAs ? (
 							<p className="faint" style={{ fontSize: 12 }}>
