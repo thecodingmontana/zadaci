@@ -116,6 +116,8 @@ export const yoga = createYoga<object, GraphQLContext>({
 	// crashes reach the browser as "Unexpected error." (logged below with the details); said
 	// here, not left to Yoga's default, so an upgrade can't quietly change it
 	maskedErrors: true,
+	// same-origin only: Yoga's default CORS answers any site (with cookies), which nothing here needs
+	cors: false,
 	plugins: [
 		maxAliasesPlugin({ n: LIMITS.aliases }),
 		maxDepthPlugin({ n: LIMITS.depth }),

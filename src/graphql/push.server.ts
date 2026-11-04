@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { pushPublicKey, sendPushes } from "#/lib/push.server";
+import { takeAllowance } from "#/lib/rate-limit.server";
 import { SITE_URL } from "#/lib/seo";
 import { badInput, type GraphQLContext, requireUser } from "./schema.server";
 
@@ -23,8 +24,15 @@ export const pushTypeDefs = /* GraphQL */ `
 `;
 
 const subscription = z.object({
-	// push services only hand out https endpoints
-	endpoint: z.url({ protocol: /^https$/ }).max(1000),
+	// only the browsers' own push services: the server posts to this address, so it can't be
+	// pointed at another host (Chrome/Edge/Opera, Firefox, Windows, Safari)
+	endpoint: z
+		.url({
+			protocol: /^https$/,
+			hostname:
+				/(^|\.)(fcm\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com|push\.apple\.com)$/,
+		})
+		.max(1000),
 	p256dh: z.string().min(1).max(200),
 	auth: z.string().min(1).max(100),
 });
@@ -68,15 +76,19 @@ export const pushResolvers = {
 				);
 			return true;
 		},
-		testPush: (_: unknown, __: unknown, ctx: GraphQLContext) =>
-			sendPushes([
+		testPush: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+			const user = requireUser(ctx);
+			if (!(await takeAllowance(`test-push:${user.id}`, 1, 5, 60 * 60 * 1000)))
+				badInput("That's 5 test notifications this hour. Try again later.");
+			return sendPushes([
 				{
-					userId: requireUser(ctx).id,
+					userId: user.id,
 					title: "Push notifications are on",
 					body: "This is how Zadaci will reach you.",
 					url: SITE_URL,
 					tag: "test",
 				},
-			]),
+			]);
+		},
 	},
 };

@@ -6,6 +6,7 @@ import {
 	signCloudinary,
 } from "#/graphql/settings.server";
 import { auth } from "#/lib/auth";
+import { crossSite, forbidden } from "#/lib/same-origin";
 
 // Profile and workspace pictures: the image comes here first, sharp turns it into a small square
 // WebP, and only that goes to Cloudinary, so pictures load fast and never store a 5 MB original.
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/api/upload/image")({
 	server: {
 		handlers: {
 			POST: async ({ request }) => {
+				if (crossSite(request)) return forbidden(); // CSRF: only this site's pages
 				const session = await auth.api.getSession({ headers: request.headers });
 				if (!session) return fail(401, "Sign in first");
 				const form = await request.formData().catch(() => null);

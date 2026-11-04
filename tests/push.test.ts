@@ -12,7 +12,7 @@ const UNSUB = `mutation($e: String!) { unsubscribePush(endpoint: $e) }`;
 test("each device's push subscription belongs to whoever signed in on it last", async () => {
 	const ann = await makeUser("ann");
 	const bob = await makeUser("bob");
-	const endpoint = `https://push.example.com/send/${Date.now()}`;
+	const endpoint = `https://fcm.googleapis.com/fcm/send/${Date.now()}`;
 	const owner = async () =>
 		(await db.select().from(tables.push_subscription).where(eq(tables.push_subscription.endpoint, endpoint)))[0]?.user_id;
 
@@ -20,6 +20,11 @@ test("each device's push subscription belongs to whoever signed in on it last", 
 		(await gql(ann, SUB, { e: "http://insecure.example.com/x", p: "k", a: "a" })).errors?.[0]?.extensions?.code,
 		"BAD_USER_INPUT",
 		"only https push services",
+	);
+	assert.equal(
+		(await gql(ann, SUB, { e: "https://internal.example.com/hook", p: "k", a: "a" })).errors?.[0]?.extensions?.code,
+		"BAD_USER_INPUT",
+		"only the browsers' push services: the server would post to any other host",
 	);
 	assert.ok((await gql(null, SUB, { e: endpoint, p: "k", a: "a" })).errors, "signed-out people can't subscribe");
 

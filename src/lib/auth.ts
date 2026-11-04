@@ -118,6 +118,31 @@ async function endAgentTokens(
 		.where(mine(tables.oauthAccessToken));
 }
 
+/**
+ * Turning off two-factor sign-in, making new backup codes, showing the authenticator secret and
+ * removing a passkey need a recent sign-in, not just a session: with no password to ask for, a
+ * stolen cookie or an unlocked laptop could otherwise strip the second factor.
+ */
+const FRESH_ONLY = new Set([
+	"/two-factor/disable",
+	"/two-factor/generate-backup-codes",
+	"/two-factor/get-totp-uri",
+	"/passkey/delete-passkey",
+]);
+const FRESH_MINUTES = 10;
+
+async function requireFreshSignIn(
+	ctx: Parameters<Parameters<typeof createAuthMiddleware>[0]>[0],
+) {
+	const session = await getSessionFromCtx(ctx);
+	if (!session) return; // the endpoint itself turns signed-out callers away
+	const age = Date.now() - new Date(session.session.createdAt).getTime();
+	if (age > FRESH_MINUTES * 60_000)
+		throw new APIError("FORBIDDEN", {
+			message: `For your security, sign out and back in, then try again within ${FRESH_MINUTES} minutes.`,
+		});
+}
+
 export const auth = betterAuth({
 	appName: "Zadaci",
 	secret: requireEnv("BETTER_AUTH_SECRET"),
@@ -183,6 +208,7 @@ export const auth = betterAuth({
 		// this machine is a native app, so say so for it (nothing else changes).
 		before: createAuthMiddleware(async (ctx) => {
 			if (ctx.path === "/oauth2/delete-consent") return endAgentTokens(ctx);
+			if (FRESH_ONLY.has(ctx.path)) return requireFreshSignIn(ctx);
 			if (ctx.path !== "/oauth2/register") return;
 			const body = ctx.body as
 				| {

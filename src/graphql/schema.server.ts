@@ -29,6 +29,7 @@ import {
 } from "#/lib/onboarding";
 import { can, projectRight } from "#/lib/permissions";
 import { makeKey } from "#/lib/projects";
+import { takeAllowance } from "#/lib/rate-limit.server";
 import { announceChange } from "#/lib/realtime.server";
 import { snippet } from "#/lib/search";
 import { adminUserIds, logActivity, notify } from "./activity.server";
@@ -45,7 +46,10 @@ const openInvite = () =>
 	);
 
 /** What a join link points at: the workspace's shared code, or one open emailed invite by its id. */
-async function findInvite(code: string) {
+async function findInvite(code: string, userId: string) {
+	// a valid code shows the workspace's name and picture: cap the guesses
+	if (!(await takeAllowance(`invite-lookup:${userId}`, 1, 30, 60_000)))
+		badInput("Too many tries. Wait a minute, then try again.");
 	const value = code.trim();
 	const [byCode] = await db
 		.select()
@@ -561,7 +565,7 @@ const resolvers = {
 			ctx: GraphQLContext,
 		) => {
 			const user = requireUser(ctx);
-			const found = await findInvite(args.code);
+			const found = await findInvite(args.code, user.id);
 			if (!found) return null;
 			const { workspace, invite } = found;
 			const [[members], [inviter], [joined]] = await Promise.all([
@@ -602,7 +606,7 @@ const resolvers = {
 			ctx: GraphQLContext,
 		) => {
 			const user = requireUser(ctx);
-			const found = await findInvite(args.code);
+			const found = await findInvite(args.code, user.id);
 			// the shared link, or an invite that's already used or gone: nothing to turn down
 			if (!found?.invite) return true;
 			const { workspace, invite } = found;
@@ -640,7 +644,7 @@ const resolvers = {
 		) => {
 			const user = requireUser(ctx);
 			// The workspace link (only admins see it) or one emailed invite, by its id
-			const found = await findInvite(args.code);
+			const found = await findInvite(args.code, user.id);
 			if (!found)
 				badInput("This invite link isn't valid anymore. Ask for a new one.");
 			const { workspace, invite } = found;

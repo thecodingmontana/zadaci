@@ -35,6 +35,7 @@ import {
 import { READ_TOOLS } from "#/lib/ai/tools.server";
 import { WRITE_TOOLS } from "#/lib/ai/write-tools.server";
 import { auth } from "#/lib/auth";
+import { crossSite, forbidden } from "#/lib/same-origin";
 
 // The assistant: streams the model's answer for the signed-in person, inside one workspace.
 
@@ -94,6 +95,7 @@ export const Route = createFileRoute("/api/chat")({
 				});
 			},
 			POST: async ({ request }) => {
+				if (crossSite(request)) return forbidden(); // CSRF: only this site's pages
 				const session = await auth.api.getSession({ headers: request.headers });
 				if (!session) return json(401, "Sign in to use Zad");
 				// the person's own key (any provider), when they've chosen one

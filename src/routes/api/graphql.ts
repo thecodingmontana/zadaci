@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { yoga } from "#/graphql/yoga.server";
 import { withEmails } from "#/lib/email.server";
+import { crossSite, forbidden } from "#/lib/same-origin";
 
 // A plain Request for Yoga: the Node server's own request object is built lazily, and Yoga 6's body
 // size limit reads it after locking the body, which fails ("body object should not be disturbed").
@@ -21,8 +22,13 @@ export const Route = createFileRoute("/api/graphql")({
 		handlers: {
 			GET: async ({ request }) => yoga.fetch(await plain(request)),
 			// notification emails queued during the request go out before it answers
-			POST: ({ request }) =>
-				withEmails(async () => yoga.fetch(await plain(request))),
+			POST: ({ request }) => {
+				// CSRF: only this site's own pages, and only JSON (a plain HTML form can't send it)
+				if (crossSite(request)) return forbidden();
+				if (!request.headers.get("content-type")?.includes("application/json"))
+					return new Response("Send JSON", { status: 415 });
+				return withEmails(async () => yoga.fetch(await plain(request)));
+			},
 		},
 	},
 });
