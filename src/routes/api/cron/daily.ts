@@ -22,7 +22,10 @@ export const Route = createFileRoute("/api/cron/daily")({
 				if (!authorized(request.headers.get("authorization")))
 					return new Response("Unauthorized", { status: 401 });
 				const daily = await runDaily();
-				return Response.json({ ...daily, github: await syncAllLinkedProjects() });
+				return Response.json({
+					...daily,
+					github: await syncAllLinkedProjects(),
+				});
 			},
 		},
 	},
