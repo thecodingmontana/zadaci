@@ -136,6 +136,13 @@ export async function withEmails<T>(work: () => Promise<T>): Promise<T> {
 	return result;
 }
 
+/** Runs `start` once this request's changes are saved (with its emails), or right away outside one. */
+export function afterRequest(start: () => Promise<unknown>) {
+	const queue = requestQueue.getStore();
+	if (queue) queue.push({ notificationIds: [], start });
+	else waitUntil(start());
+}
+
 /** Capped so sends can't hang the request. */
 async function send(queue: Send[], limitMs = 3000) {
 	if (!queue.length) return;

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/terms")({
 
 function Terms() {
 	return (
-		<LegalPage title="Terms of Service" updated="October 31, 2026">
+		<LegalPage title="Terms of Service" updated="November 4, 2026">
 			<p>
 				These terms cover your use of Zadaci, a tool for planning projects,
 				tasks, notes and bookmarks with your team. By signing in you agree to
@@ -54,7 +54,10 @@ function Terms() {
 				and what it does counts as done by you, so connect only agents you trust
 				and check their work. You can disconnect one at any time in Settings. If
 				you link a GitHub repo to a project, merging a pull request that
-				mentions a task marks it done as you.
+				mentions a task marks it done as you. Through the Zadaci GitHub App, its
+				tasks and the repo's issues also stay in step: Zadaci opens, edits and
+				closes issues as you, and changes to those issues on GitHub change the
+				tasks.
 			</p>
 
 			<h2>Acceptable use</h2>

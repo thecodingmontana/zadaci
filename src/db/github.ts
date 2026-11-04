@@ -78,3 +78,19 @@ export const task_github_pr = pgTable(
 		index("task_github_pr_task_idx").on(t.task_id),
 	],
 );
+
+/** A task's GitHub issue (projects linked through the GitHub App sync both ways). */
+export const task_github_issue = pgTable(
+	"task_github_issue",
+	{
+		task_id: varchar("task_id", { length: 16 })
+			.primaryKey()
+			.references(() => task.id, { onDelete: "cascade" }),
+		repo: text("repo").notNull(),
+		number: integer("number").notNull(),
+		/** fingerprint of what was last written either way, so an echo of our own change is skipped */
+		synced_hash: text("synced_hash").notNull().default(""),
+		updated_at: when("updated_at").notNull().defaultNow(),
+	},
+	(t) => [uniqueIndex("task_github_issue_repo_number").on(t.repo, t.number)],
+);

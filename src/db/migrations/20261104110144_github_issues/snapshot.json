@@ -1,0 +1,229 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "69382819-089f-4c29-b783-7b048b08662f",
+  "prevIds": [
+    "40478d84-9cb8-4fef-83b5-6791bf44c838"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "app_task_github_issue"
+      ],
+      "writes": [
+        "s|tbl|public.app_task_github_issue",
+        "n|tbl|public.app_task_github_issue",
+        "e|tbl|public.app_task_github_issue",
+        "n|rel|public.app_task_github_issue",
+        "n|type|public.app_task_github_issue",
+        "n|rel|public.app_task_github_issue_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "app_task_github_issue",
+        "task_github_issue_repo_number"
+      ],
+      "writes": [
+        "s|idx|public.task_github_issue_repo_number",
+        "n|idx|public.task_github_issue_repo_number",
+        "e|idx|public.task_github_issue_repo_number",
+        "n|rel|public.task_github_issue_repo_number"
+      ],
+      "reads": [
+        "n|tbl|public.app_task_github_issue",
+        "n|sch|public",
+        "n|col|public.app_task_github_issue.repo",
+        "n|col|public.app_task_github_issue.number"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "app_task_github_issue"
+      ],
+      "writes": [
+        "s|fk|public.app_task_github_issue.app_task_github_issue_task_id_app_tasks_id_fkey",
+        "n|fk|public.app_task_github_issue.app_task_github_issue_task_id_app_tasks_id_fkey",
+        "e|fk|public.app_task_github_issue.app_task_github_issue_task_id_app_tasks_id_fkey",
+        "n|con|public.app_task_github_issue.app_task_github_issue_task_id_app_tasks_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.app_task_github_issue",
+        "n|sch|public",
+        "n|tbl|public.app_tasks",
+        "n|sch|public",
+        "n|col|public.app_task_github_issue.task_id",
+        "n|col|public.app_tasks.id",
+        "e|uniqueness|public.app_tasks.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "app_task_github_issue",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "task_id",
+        "type": "varchar(16)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "repo",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "number",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "synced_hash",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "''",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "updated_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "task_github_issue_repo_number",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "repo",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "number",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "app_task_github_issue_task_id_app_tasks_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "task_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "app_tasks",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_issue",
+        "name": "app_task_github_issue_pkey",
+        "columns": [
+          "task_id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

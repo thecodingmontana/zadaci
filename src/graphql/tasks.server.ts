@@ -17,6 +17,7 @@ import {
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { PRIORITY, STATUS } from "#/db/enums";
+import { queueGitHubSync } from "#/lib/github-sync.server";
 import type { ProjectRight } from "#/lib/permissions";
 import { fromDay, toDay } from "#/lib/projects";
 import {
@@ -483,8 +484,10 @@ const taskActivity = (
 	verb: string,
 	extra?: string,
 	q: Tx | typeof db = db,
-) =>
-	logActivity(q, {
+) => {
+	// its GitHub issue (projects linked through the app) follows, once this is saved
+	queueGitHubSync(task.parent_task_id ?? task.id);
+	return logActivity(q, {
 		workspace_id: actor.workspace.id,
 		actor_id: actor.userId,
 		kind: "task",
@@ -494,6 +497,7 @@ const taskActivity = (
 		project_id: task.project_id,
 		task_id: task.parent_task_id ?? task.id,
 	});
+};
 
 async function notifyAssignee(actor: Actor, task: TaskRow, memberId: string) {
 	const person = await memberName(memberId);
@@ -1271,6 +1275,8 @@ export const tasksResolvers = {
 					.set({ deleted_at: now })
 					.where(inArray(tables.task.id, ids));
 			});
+			// their GitHub issues close (deleting logs no activity, so queued here)
+			for (const id of ids) queueGitHubSync(id);
 			return ids.length;
 		},
 
@@ -1313,6 +1319,8 @@ export const tasksResolvers = {
 							),
 						);
 			});
+			// their GitHub issues reopen
+			for (const id of ids) queueGitHubSync(id);
 			return ids.length;
 		},
 

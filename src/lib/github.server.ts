@@ -2,10 +2,10 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { STATUS } from "#/db/enums";
-import { run } from "#/lib/ai/gql.server";
 import { userClock } from "#/lib/ai/limits.server";
 import { MCP_RESOURCE } from "#/lib/auth";
 import { requireEnv } from "#/lib/env";
+import { applyIssueEvent, type IssueEvent } from "#/lib/github-sync.server";
 import { announceChange } from "#/lib/realtime.server";
 
 // GitHub → Zadaci: a repo's webhook tells us about its pull requests. A PR that mentions a task's
@@ -140,6 +140,9 @@ export async function githubAppWebhook(request: Request) {
 
 	const event = request.headers.get("x-github-event");
 	if (event === "ping") return Response.json({ ok: true });
+	// issues opened, edited, closed or reopened on GitHub change their tasks (github-sync)
+	if (event === "issues")
+		return Response.json(await applyIssueEvent(JSON.parse(body) as IssueEvent));
 	if (event !== "pull_request") return new Response(null, { status: 204 });
 	const payload = JSON.parse(body) as PullRequestEvent;
 	const repo = payload.repository?.full_name;
@@ -234,6 +237,8 @@ async function applyPullRequest(
 				asYou: true,
 			};
 			for (const t of open) {
+				// loaded here, not up top: gql.server builds the schema, which imports this module's users
+				const { run } = await import("#/lib/ai/gql.server");
 				const res = await run(
 					ctx,
 					`mutation($slug: String!, $id: ID!) { updateTask(slug: $slug, id: $id, patch: { status: "completed" }) { id } }`,

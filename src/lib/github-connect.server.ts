@@ -140,7 +140,12 @@ const sealGrant = (userId: string, grant: Grant) => ({
 		: null,
 });
 
-const github = (token: string, path: string, method = "GET", body?: object) =>
+export const github = (
+	token: string,
+	path: string,
+	method = "GET",
+	body?: object,
+) =>
 	fetch(`https://api.github.com${path}`, {
 		method,
 		headers: {

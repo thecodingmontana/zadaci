@@ -11,6 +11,7 @@ import {
 	githubRepos,
 	removeWebhook,
 } from "#/lib/github-connect.server";
+import { queueLinkedProjectSync } from "#/lib/github-sync.server";
 import { requireProject } from "./projects.server";
 import { badInput, type GraphQLContext, requireUser } from "./schema.server";
 
@@ -195,6 +196,8 @@ export const githubResolvers = {
 				mergesAs: user.name,
 				viaApp,
 			};
+			// through the app: its open issues become tasks and open tasks get issues, after this
+			if (viaApp) queueLinkedProjectSync(project.id);
 			if (!account || viaApp) return link;
 			const added = await addWebhook(
 				account.token,
