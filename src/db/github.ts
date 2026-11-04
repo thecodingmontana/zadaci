@@ -25,6 +25,9 @@ export const github_account = pgTable("github_account", {
 	login: text("login").notNull(),
 	/** the OAuth token, sealed like AI keys (keys.server.ts): only ciphertext is stored */
 	token: text("token").notNull(),
+	/** sealed too; GitHub App sign-ins that expire (8 hours) are renewed with it */
+	refresh_token: text("refresh_token"),
+	expires_at: when("expires_at"),
 	created_at: when("created_at").notNull().defaultNow(),
 });
 

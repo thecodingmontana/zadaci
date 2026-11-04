@@ -1,0 +1,81 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "40478d84-9cb8-4fef-83b5-6791bf44c838",
+  "prevIds": [
+    "afc29e20-7904-4523-9174-33fba1503774"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "app_github_account",
+        "refresh_token"
+      ],
+      "writes": [
+        "s|col|public.app_github_account.refresh_token",
+        "n|col|public.app_github_account.refresh_token",
+        "e|col|public.app_github_account.refresh_token"
+      ],
+      "reads": [
+        "n|tbl|public.app_github_account",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "app_github_account",
+        "expires_at"
+      ],
+      "writes": [
+        "s|col|public.app_github_account.expires_at",
+        "n|col|public.app_github_account.expires_at",
+        "e|col|public.app_github_account.expires_at"
+      ],
+      "reads": [
+        "n|tbl|public.app_github_account",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_github_account",
+        "name": "refresh_token",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_github_account",
+        "name": "expires_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

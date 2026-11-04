@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { after, test } from "node:test";
 import { db, tables } from "#/db";
-import { sealKey } from "#/lib/ai/keys.server";
+import { eq } from "drizzle-orm";
+import { openKey, sealKey } from "#/lib/ai/keys.server";
 import { githubAppWebhook } from "#/lib/github.server";
 import { cleanup, gql, makeUser, makeWorkspace } from "./helpers";
 
@@ -22,7 +23,17 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 	if (!url.startsWith("https://api.github.com/") && !url.startsWith("https://github.com/")) return realFetch(input, init);
 	calls.push({ url, method: init?.method ?? "GET" });
 	// a token GitHub no longer accepts (expired, or from the old OAuth app)
-	if (new Headers(init?.headers).get("authorization") === "Bearer ghu_expired") return new Response("Bad credentials", { status: 401 });
+	if (["Bearer ghu_expired", "Bearer ghu_stale"].includes(new Headers(init?.headers).get("authorization") ?? ""))
+		return new Response("Bad credentials", { status: 401 });
+	// renewing an expiring sign-in with its refresh token
+	if (url.endsWith("/login/oauth/access_token")) {
+		const body = JSON.parse(String(init?.body));
+		return Response.json(
+			body.grant_type === "refresh_token" && body.refresh_token === "ghr_good"
+				? { access_token: "ghu_renewed", refresh_token: "ghr_next", expires_in: 28800 }
+				: { error: "bad_refresh_token" },
+		);
+	}
 	if (url.includes("/user/installations?")) return Response.json({ installations: [{ id: 7 }] });
 	if (url.includes("/user/installations/7/repositories"))
 		return Response.json({ repositories: [{ full_name: "octo/secret-plans" }, { full_name: "octo/website" }] });
@@ -99,4 +110,24 @@ test("github app: a token GitHub refuses asks you to reconnect, instead of showi
 	assert.deepEqual((await gql(me, `{ githubAccount { repos needsReconnect } }`)).data?.githubAccount, { repos: [], needsReconnect: true });
 	const linked = await gql(me, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "octo/secret-plans") { repo } }`, { s: slug, p: project.id });
 	assert.match(linked.errors?.[0].message ?? "", /Reconnect GitHub/, "not a misleading 'install the app' message");
+});
+
+test("github app: a sign-in that expires is renewed with its refresh token before it runs out", async () => {
+	const me = await makeUser("gha-renew", false);
+	await db.insert(tables.github_account).values({
+		user_id: me.id,
+		login: "octo",
+		token: sealKey("ghu_stale", me.id, "github"),
+		refresh_token: sealKey("ghr_good", me.id, "github-refresh"),
+		expires_at: new Date(Date.now() - 1000),
+	});
+	// renewed first, so the list comes back instead of "reconnect"
+	assert.deepEqual((await gql(me, `{ githubAccount { repos needsReconnect } }`)).data?.githubAccount, {
+		repos: ["octo/secret-plans", "octo/website"],
+		needsReconnect: false,
+	});
+	const [row] = await db.select().from(tables.github_account).where(eq(tables.github_account.user_id, me.id));
+	assert.equal(openKey(row.token, me.id, "github"), "ghu_renewed");
+	assert.equal(openKey(row.refresh_token ?? "", me.id, "github-refresh"), "ghr_next", "GitHub rotates the refresh token");
+	assert.ok((row.expires_at?.getTime() ?? 0) > Date.now() + 60 * 60 * 1000, "good for hours again");
 });

@@ -91,33 +91,54 @@ export async function githubCallback(request: Request) {
 	const code = q.get("code");
 	if (!code) return back(state.b, "cancelled");
 
+	const grant = await exchange({ code, redirect_uri: CALLBACK });
+	const token = grant.access_token;
+	if (!token) return back(state.b, "failed");
+	const me = await github(token, "/user");
+	if (!me.ok) return back(state.b, "failed");
+	const { login } = (await me.json()) as { login: string };
+	const saved = sealGrant(state.u, grant);
+	await db
+		.insert(tables.github_account)
+		.values({ user_id: state.u, login, ...saved })
+		.onConflictDoUpdate({
+			target: tables.github_account.user_id,
+			set: { login, ...saved, created_at: new Date() },
+		});
+	return back(state.b, "account");
+}
+
+type Grant = {
+	access_token?: string;
+	refresh_token?: string;
+	/** seconds; only when the app's sign-ins expire */
+	expires_in?: number;
+};
+
+/** A code (on connect) or a refresh token (on renewal) swapped for a sign-in. */
+async function exchange(params: Record<string, string>): Promise<Grant> {
 	const res = await fetch("https://github.com/login/oauth/access_token", {
 		method: "POST",
 		headers: { accept: "application/json", "content-type": "application/json" },
 		body: JSON.stringify({
 			client_id: requireEnv("GITHUB_CLIENT_ID"),
 			client_secret: requireEnv("GITHUB_CLIENT_SECRET"),
-			code,
-			redirect_uri: CALLBACK,
+			...params,
 		}),
 	});
-	const token = (
-		(await res.json().catch(() => ({}))) as { access_token?: string }
-	).access_token;
-	if (!token) return back(state.b, "failed");
-	const me = await github(token, "/user");
-	if (!me.ok) return back(state.b, "failed");
-	const { login } = (await me.json()) as { login: string };
-	const sealed = sealKey(token, state.u, "github");
-	await db
-		.insert(tables.github_account)
-		.values({ user_id: state.u, login, token: sealed })
-		.onConflictDoUpdate({
-			target: tables.github_account.user_id,
-			set: { login, token: sealed, created_at: new Date() },
-		});
-	return back(state.b, "account");
+	return (await res.json().catch(() => ({}))) as Grant;
 }
+
+/** What's stored: both tokens sealed like AI keys, and when the sign-in runs out. */
+const sealGrant = (userId: string, grant: Grant) => ({
+	token: sealKey(grant.access_token ?? "", userId, "github"),
+	refresh_token: grant.refresh_token
+		? sealKey(grant.refresh_token, userId, "github-refresh")
+		: null,
+	expires_at: grant.expires_in
+		? new Date(Date.now() + grant.expires_in * 1000)
+		: null,
+});
 
 const github = (token: string, path: string, method = "GET", body?: object) =>
 	fetch(`https://api.github.com${path}`, {
@@ -132,14 +153,36 @@ const github = (token: string, path: string, method = "GET", body?: object) =>
 		body: body && JSON.stringify(body),
 	});
 
-/** Their connected GitHub account and token, or null. */
+/** Their connected GitHub account and a live token (renewed a minute before it runs out), or null. */
 export async function githubAccount(userId: string) {
 	const [row] = await db
 		.select()
 		.from(tables.github_account)
 		.where(eq(tables.github_account.user_id, userId));
 	const token = row && openKey(row.token, userId, "github");
-	return row && token ? { login: row.login, token } : null;
+	if (!row || !token) return null;
+	const refresh =
+		row.refresh_token && openKey(row.refresh_token, userId, "github-refresh");
+	if (
+		row.expires_at &&
+		refresh &&
+		row.expires_at.getTime() < Date.now() + 60_000
+	) {
+		// shortcut: two requests renewing at once race (GitHub rotates the refresh token), and the
+		// loser asks to reconnect; lock the row if that shows up
+		const grant = await exchange({
+			grant_type: "refresh_token",
+			refresh_token: refresh,
+		}).catch(() => ({}) as Grant);
+		if (grant.access_token) {
+			await db
+				.update(tables.github_account)
+				.set(sealGrant(userId, grant))
+				.where(eq(tables.github_account.user_id, userId));
+			return { login: row.login, token: grant.access_token };
+		}
+	}
+	return { login: row.login, token };
 }
 
 /** GitHub turned the token down (expired, revoked, or from the old OAuth app): they reconnect. */
