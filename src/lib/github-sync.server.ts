@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
-import { and, asc, eq, isNull, ne, notExists, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, notExists, sql } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { STATUS } from "#/db/enums";
 import { userClock } from "#/lib/ai/limits.server";
@@ -10,7 +10,7 @@ import { github, githubAccount } from "#/lib/github-connect.server";
 
 // Tasks ↔ GitHub issues, for projects linked through the Zadaci GitHub App. Zadaci → GitHub: every
 // task change queues its issue to be written (after the request's changes are saved), as whoever
-// linked the repo. Linking imports the repo's open issues as tasks and opens issues for open tasks.
+// linked the repo. Linking imports the repo's open issues as tasks and gives every task an issue.
 
 const ORIGIN = new URL(MCP_RESOURCE).origin;
 // loaded on first use: tasks.server imports this module, and gql.server builds the schema from
@@ -114,26 +114,40 @@ export async function syncTask(taskId: string): Promise<void> {
 	// linked to another repo since: this one gets its own issue
 	const same = mapped && mapped.repo.toLowerCase() === link.repo.toLowerCase();
 	if (same && mapped.synced_hash === hash) return;
-	if (!same && issue.state === "closed") return; // no issue just to close it
-	const res = same
-		? await github(
-				link.token,
-				`/repos/${mapped.repo}/issues/${mapped.number}`,
-				"PATCH",
-				{
-					...issue,
-					...(issue.state === "closed" && {
-						state_reason: gone ? "not_planned" : "completed",
-					}),
-				},
-			)
-		: await github(link.token, `/repos/${link.repo}/issues`, "POST", {
-				title: issue.title,
-				body: issue.body,
-			});
-	if (!res.ok)
-		throw new Error(`GitHub answered ${res.status} for ${link.repo}`);
-	const { number } = (await res.json()) as { number: number };
+	if (!same && gone) return; // a deleted or archived task gets no issue
+	let number = same ? mapped.number : 0;
+	if (!same) {
+		const res = await github(link.token, `/repos/${link.repo}/issues`, "POST", {
+			title: issue.title,
+			body: issue.body,
+		});
+		if (!res.ok)
+			throw new Error(`GitHub answered ${res.status} for ${link.repo}`);
+		number = ((await res.json()) as { number: number }).number;
+		// saved before anything else, so GitHub's "opened" event finds it is ours
+		await remember(
+			task.id,
+			link.repo,
+			number,
+			fingerprint({ ...issue, state: "open" }),
+		);
+	}
+	// GitHub opens every new issue: a completed task's is closed straight after
+	if (same || issue.state === "closed") {
+		const res = await github(
+			link.token,
+			`/repos/${link.repo}/issues/${number}`,
+			"PATCH",
+			{
+				...issue,
+				...(issue.state === "closed" && {
+					state_reason: gone ? "not_planned" : "completed",
+				}),
+			},
+		);
+		if (!res.ok)
+			throw new Error(`GitHub answered ${res.status} for ${link.repo}`);
+	}
 	await remember(task.id, link.repo, number, hash);
 }
 
@@ -178,7 +192,7 @@ type Issue = {
 	pull_request?: unknown;
 };
 
-/** Right after linking: the repo's open issues become tasks, and open tasks get issues. */
+/** Right after linking: the repo's open issues become tasks, and its tasks get issues (closed for done ones). */
 export async function syncLinkedProject(projectId: string) {
 	const link = await linkOf(projectId);
 	if (!link) return;
@@ -214,7 +228,6 @@ export async function syncLinkedProject(projectId: string) {
 				isNull(tables.task.parent_task_id),
 				isNull(tables.task.deleted_at),
 				isNull(tables.task.archived_at),
-				ne(tables.task.status, STATUS.COMPLETED),
 				notExists(
 					db
 						.select()

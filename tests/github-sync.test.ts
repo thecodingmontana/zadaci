@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { sealKey } from "#/lib/ai/keys.server";
 import { withEmails } from "#/lib/email.server";
+import { run } from "#/lib/ai/gql.server";
 import { githubAppWebhook } from "#/lib/github.server";
 import { githubSyncSettled, syncTask } from "#/lib/github-sync.server";
 import { cleanup, gql, makeUser, makeWorkspace, type TestUser } from "./helpers";
@@ -94,7 +95,13 @@ test("github sync: linking imports open issues and opens issues for open tasks; 
 	const opened = writes().filter((c) => c.method === "POST");
 	const titles = opened.map((c) => c.body?.title);
 	assert.ok(titles.includes("Login page"), "open tasks get issues (the sample project's too)");
-	assert.ok(!titles.includes("Shipped thing"), "a completed task gets no issue");
+	assert.ok(titles.includes("Shipped thing"), "a completed task gets an issue too…");
+	const shipped = (await db.select().from(tables.task).where(eq(tables.task.name, "Shipped thing")))[0];
+	const shippedIssue = (await issueOf(shipped.id)).number;
+	assert.ok(
+		writes().some((c) => c.method === "PATCH" && c.path === `/repos/octo/board/issues/${shippedIssue}` && c.body?.state === "closed" && c.body?.state_reason === "completed"),
+		"…closed as completed",
+	);
 	assert.equal((await db.select().from(tables.task).where(eq(tables.task.name, "A pull request"))).length, 0, "a pull request gets no task");
 	assert.match(String(opened.at(-1)?.body?.body), /Open in Zadaci/);
 	const loginIssue = (await issueOf(login)).number;
@@ -161,6 +168,13 @@ test("github sync: linking imports open issues and opens issues for open tasks; 
 	const before = (await db.select().from(tables.task).where(eq(tables.task.project_id, project.id))).length;
 	await deliver("issues", { action: "opened", repository, issue: { number: 200, title: "Sign up", body: `… [Open in Zadaci](https://x/w/s/p/p?task=${signup})`, state: "open" } });
 	assert.equal((await db.select().from(tables.task).where(eq(tables.task.project_id, project.id))).length, before);
+
+	// a change made through the MCP connector (Zad's tools, run as the person) updates the issue too
+	const [me] = await db.select({ id: tables.user.id, email: tables.user.email, name: tables.user.name }).from(tables.user).where(eq(tables.user.id, owner.id));
+	calls.length = 0;
+	await run({ user: me, slug, today: "2026-11-04", edited: new Set(), asYou: true }, UPDATE.replace("$s", "$slug").replace("slug: $s", "slug: $slug"), { id: signup, p: { title: "Sign up via MCP" } });
+	await githubSyncSettled();
+	assert.deepEqual(writes().map((c) => [c.method, c.path, c.body?.title]), [["PATCH", "/repos/octo/board/issues/200", "Sign up via MCP"]]);
 
 	// deleted on GitHub: the task goes too (restorable from the Archive)
 	await deliver("issues", { action: "deleted", repository, issue: { number: 77, title: "Crash on save", body: null, state: "open" } });
