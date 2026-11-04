@@ -7,7 +7,7 @@ import { cleanup, makeUser } from "./helpers";
 after(cleanup);
 
 /** Asks for a link the way the sign-in form does, and returns it (it's printed without Resend). */
-async function linkFor(email: string) {
+async function linkFor(email: string, ip?: string) {
 	const said: string[] = [];
 	const info = console.info;
 	console.info = (...a: unknown[]) => said.push(a.join(" "));
@@ -15,7 +15,12 @@ async function linkFor(email: string) {
 		const res = await auth.handler(
 			new Request("http://localhost:3000/api/auth/sign-in/magic-link", {
 				method: "POST",
-				headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+				headers: {
+					"content-type": "application/json",
+					origin: "http://localhost:3000",
+					// sign-in links are rate-limited per address: a test of its own can ask from its own
+					...(ip ? { "x-forwarded-for": ip } : {}),
+				},
 				body: JSON.stringify({ email, callbackURL: "/workspace" }),
 			}),
 		);
@@ -87,4 +92,28 @@ test("one address gets at most 5 sign-in links an hour, whoever asks", async () 
 	);
 	assert.equal(res.status, 429, "the sixth is refused, however the address is written");
 	assert.ok(await linkFor((await makeUser("other", false)).email), "someone else still gets theirs");
+});
+
+test("a link opened from an email app or another site asks whose account it is before signing in", async () => {
+	const me = await makeUser("link-confirm", false);
+	const link = await linkFor(me.email, "203.0.113.7");
+	const fromElsewhere = await auth.handler(new Request(link, { headers: { "sec-fetch-site": "cross-site" } }));
+	assert.equal(fromElsewhere.status, 302);
+	const to = fromElsewhere.headers.get("location") ?? "";
+	assert.match(to, /^\/auth\/confirm-sign-in\?/, "to the confirm page first");
+	assert.doesNotMatch(fromElsewhere.headers.get("set-cookie") ?? "", /session_token=[^;]{10,}/, "not signed in yet");
+
+	// the confirm page finds the email the way it's stored: magic-link: + base64url(sha256(token))
+	const token = new URL(link).searchParams.get("token") ?? "";
+	const { createHash } = await import("node:crypto");
+	const { eq } = await import("drizzle-orm");
+	const [row] = await db
+		.select({ value: tables.verification.value })
+		.from(tables.verification)
+		.where(eq(tables.verification.identifier, `magic-link:${createHash("sha256").update(token).digest("base64url")}`));
+	assert.equal(JSON.parse(row.value).email, me.email, "the page shows the right email");
+
+	// Continue on that page is a same-origin request: it signs in
+	const fromPage = await auth.handler(new Request(link, { headers: { "sec-fetch-site": "same-origin" } }));
+	assert.match(fromPage.headers.get("set-cookie") ?? "", /session_token=/, `${fromPage.status} ${fromPage.headers.get("location")}`);
 });

@@ -143,6 +143,23 @@ async function requireFreshSignIn(
 		});
 }
 
+/**
+ * A sign-in link opened from an email app or another site goes to a page that says whose account
+ * it signs into ("Sign in as ann@…?") before it does: otherwise someone could get you to open a
+ * link for THEIR account and you'd work in it unawares. Continuing from that page (same-origin)
+ * signs in; so do callers that send no browser headers (tests, old browsers).
+ */
+function confirmLinkFirst(
+	ctx: Parameters<Parameters<typeof createAuthMiddleware>[0]>[0],
+) {
+	const site = (ctx.request?.headers ?? ctx.headers)?.get("sec-fetch-site");
+	if (!site || site === "same-origin") return;
+	const query = new URLSearchParams(
+		Object.entries((ctx.query ?? {}) as Record<string, string>),
+	);
+	throw ctx.redirect(`/auth/confirm-sign-in?${query}`);
+}
+
 export const auth = betterAuth({
 	appName: "Zadaci",
 	secret: requireEnv("BETTER_AUTH_SECRET"),
@@ -209,6 +226,7 @@ export const auth = betterAuth({
 		before: createAuthMiddleware(async (ctx) => {
 			if (ctx.path === "/oauth2/delete-consent") return endAgentTokens(ctx);
 			if (FRESH_ONLY.has(ctx.path)) return requireFreshSignIn(ctx);
+			if (ctx.path === "/magic-link/verify") return confirmLinkFirst(ctx);
 			if (ctx.path !== "/oauth2/register") return;
 			const body = ctx.body as
 				| {
