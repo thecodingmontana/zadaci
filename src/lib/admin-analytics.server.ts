@@ -1,6 +1,7 @@
 import { type SQL, sql } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { db, tables } from "#/db";
+import { inTurn } from "#/lib/admin.server";
 
 // The admin Dashboard: totals, what people do with Zadaci day by day (60 days, so the last 30
 // compare with the 30 before), and how it splits up. Counts only, never what anyone wrote.
@@ -69,21 +70,23 @@ async function activePeople() {
 
 export async function adminDashboard() {
 	const t = tables;
-	const [people, workspaces, projects, tasks, signedIn, active] =
-		await Promise.all([
-			total(sql`select count(*)::int as n from ${t.user}`),
-			total(sql`select count(*)::int as n from ${t.workspace}`),
+	const [people, workspaces, projects, tasks, signedIn, active] = await inTurn([
+		() => total(sql`select count(*)::int as n from ${t.user}`),
+		() => total(sql`select count(*)::int as n from ${t.workspace}`),
+		() =>
 			total(
 				sql`select count(*)::int as n from ${t.project} where ${t.project.deleted_at} is null`,
 			),
+		() =>
 			total(
 				sql`select count(*)::int as n from ${t.task} where ${t.task.deleted_at} is null`,
 			),
+		() =>
 			total(
 				sql`select count(distinct ${t.session.userId})::int as n from ${t.session} where ${t.session.expiresAt} > now()`,
 			),
-			activePeople(),
-		]);
+		() => activePeople(),
+	]);
 	return {
 		at: new Date().toISOString(),
 		totals: { people, workspaces, projects, tasks, signedIn, active },
@@ -106,29 +109,34 @@ async function adminAnalytics() {
 		errCron,
 		errClient,
 		heat,
-	] = await Promise.all([
-		perDay(t.user, t.user.createdAt, DAYS),
-		perDay(t.activity, t.activity.created_at, DAYS, {
-			distinct: t.activity.actor_id,
-		}),
-		perDay(t.session, t.session.createdAt, DAYS),
-		perDay(t.task, t.task.created_at, DAYS),
-		perDay(t.task, t.task.completed_at, DAYS),
-		perDay(t.comment, t.comment.created_at, DAYS),
-		perDay(t.chat_message, t.chat_message.created_at, DAYS),
-		perDay(t.ai_message, t.ai_message.created_at, DAYS, {
-			where: sql`${t.ai_message.role} = 'user'`,
-		}),
-		perDay(t.error_log, t.error_log.at, DAYS, {
-			where: sql`${t.error_log.source} = 'github'`,
-		}),
-		perDay(t.error_log, t.error_log.at, DAYS, {
-			where: sql`${t.error_log.source} = 'cron'`,
-		}),
-		perDay(t.error_log, t.error_log.at, DAYS, {
-			where: sql`${t.error_log.source} = 'client'`,
-		}),
-		perDay(t.activity, t.activity.created_at, HEATMAP_DAYS),
+	] = await inTurn([
+		() => perDay(t.user, t.user.createdAt, DAYS),
+		() =>
+			perDay(t.activity, t.activity.created_at, DAYS, {
+				distinct: t.activity.actor_id,
+			}),
+		() => perDay(t.session, t.session.createdAt, DAYS),
+		() => perDay(t.task, t.task.created_at, DAYS),
+		() => perDay(t.task, t.task.completed_at, DAYS),
+		() => perDay(t.comment, t.comment.created_at, DAYS),
+		() => perDay(t.chat_message, t.chat_message.created_at, DAYS),
+		() =>
+			perDay(t.ai_message, t.ai_message.created_at, DAYS, {
+				where: sql`${t.ai_message.role} = 'user'`,
+			}),
+		() =>
+			perDay(t.error_log, t.error_log.at, DAYS, {
+				where: sql`${t.error_log.source} = 'github'`,
+			}),
+		() =>
+			perDay(t.error_log, t.error_log.at, DAYS, {
+				where: sql`${t.error_log.source} = 'cron'`,
+			}),
+		() =>
+			perDay(t.error_log, t.error_log.at, DAYS, {
+				where: sql`${t.error_log.source} = 'client'`,
+			}),
+		() => perDay(t.activity, t.activity.created_at, HEATMAP_DAYS),
 	]);
 	const at = (m: Map<string, number>, day: string) => m.get(day) ?? 0;
 	const daily = dayKeys(DAYS).map((day) => ({
@@ -146,15 +154,17 @@ async function adminAnalytics() {
 		client: at(errClient, day),
 	}));
 
-	const [statuses, providers, models, workspaces] = await Promise.all([
-		split(t.task, t.task.status, sql`${t.task.deleted_at} is null`),
-		split(t.account, t.account.providerId),
-		split(
-			t.ai_message,
-			t.ai_message.model,
-			sql`${t.ai_message.role} = 'assistant' and ${t.ai_message.created_at} > now() - interval '30 days'`,
-		),
-		db.execute(sql`
+	const [statuses, providers, models, workspaces] = await inTurn([
+		() => split(t.task, t.task.status, sql`${t.task.deleted_at} is null`),
+		() => split(t.account, t.account.providerId),
+		() =>
+			split(
+				t.ai_message,
+				t.ai_message.model,
+				sql`${t.ai_message.role} = 'assistant' and ${t.ai_message.created_at} > now() - interval '30 days'`,
+			),
+		() =>
+			db.execute(sql`
 			select w.slug, w.name,
 				(select count(*)::int from ${t.workspace_members} m where m.workspace_id = w.id and m.deleted_at is null) as members,
 				(select count(*)::int from ${t.task} k join ${t.project} p on p.id = k.project_id where p.workspace_id = w.id and k.deleted_at is null) as tasks,
@@ -163,14 +173,14 @@ async function adminAnalytics() {
 			order by tasks desc
 			limit 10
 		`) as unknown as Promise<
-			{
-				slug: string;
-				name: string;
-				members: number;
-				tasks: number;
-				last_active: string | Date | null;
-			}[]
-		>,
+				{
+					slug: string;
+					name: string;
+					members: number;
+					tasks: number;
+					last_active: string | Date | null;
+				}[]
+			>,
 	]);
 
 	return {

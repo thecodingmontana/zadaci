@@ -6,6 +6,17 @@ import { db, tables } from "#/db";
 
 const DAY = 86_400_000;
 
+/** Runs the queries one after another. Through Supabase's transaction pooler, more queries at
+ * once than the client has connections can stall until the request times out (the admin
+ * dashboard did), and these pages are read rarely, so a few extra milliseconds are fine. */
+export async function inTurn<T extends readonly (() => Promise<unknown>)[]>(
+	queries: [...T],
+): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {
+	const out: unknown[] = [];
+	for (const query of queries) out.push(await query());
+	return out as { [K in keyof T]: Awaited<ReturnType<T[K]>> };
+}
+
 /** A job's result as label → value rows: { github: { linked: 2 } } becomes "github linked": 2. */
 function flatten(
 	result: Record<string, unknown>,
@@ -26,28 +37,32 @@ const n = sql<number>`count(*)::int`;
 /** System: the hourly job, kept errors, GitHub links and the database. */
 export async function adminSystem() {
 	const t = tables;
-	const [jobs, errors, github, sizeRows, biggest] = await Promise.all([
-		db.select().from(t.job_run),
-		db.select().from(t.error_log).orderBy(desc(t.error_log.at)).limit(200),
-		db
-			.select({
-				repo: t.project_github.repo,
-				project: t.project.title,
-				workspace: t.workspace.slug,
-				viaApp: t.project_github.via_app,
-				boardUrl: sql<string | null>`${t.project_github.board}->>'url'`,
-				boardError: t.project_github.board_error,
-				linkedBy: t.user.name,
-				issues: sql<number>`(select count(*)::int from ${t.task_github_issue} where lower(${t.task_github_issue.repo}) = lower(${t.project_github.repo}))`,
-			})
-			.from(t.project_github)
-			.innerJoin(t.project, eq(t.project.id, t.project_github.project_id))
-			.innerJoin(t.workspace, eq(t.workspace.id, t.project.workspace_id))
-			.leftJoin(t.user, eq(t.user.id, t.project_github.connected_by)),
-		db.execute(
-			sql`select pg_database_size(current_database())::bigint as size`,
-		) as unknown as Promise<{ size: string }[]>,
-		db.execute(sql`
+	const [jobs, errors, github, sizeRows, biggest] = await inTurn([
+		() => db.select().from(t.job_run),
+		() =>
+			db.select().from(t.error_log).orderBy(desc(t.error_log.at)).limit(200),
+		() =>
+			db
+				.select({
+					repo: t.project_github.repo,
+					project: t.project.title,
+					workspace: t.workspace.slug,
+					viaApp: t.project_github.via_app,
+					boardUrl: sql<string | null>`${t.project_github.board}->>'url'`,
+					boardError: t.project_github.board_error,
+					linkedBy: t.user.name,
+					issues: sql<number>`(select count(*)::int from ${t.task_github_issue} where lower(${t.task_github_issue.repo}) = lower(${t.project_github.repo}))`,
+				})
+				.from(t.project_github)
+				.innerJoin(t.project, eq(t.project.id, t.project_github.project_id))
+				.innerJoin(t.workspace, eq(t.workspace.id, t.project.workspace_id))
+				.leftJoin(t.user, eq(t.user.id, t.project_github.connected_by)),
+		() =>
+			db.execute(
+				sql`select pg_database_size(current_database())::bigint as size`,
+			) as unknown as Promise<{ size: string }[]>,
+		() =>
+			db.execute(sql`
 			select relname as name, pg_total_relation_size(relid)::bigint as bytes, n_live_tup::bigint as rows
 			from pg_stat_user_tables order by pg_total_relation_size(relid) desc limit 8
 		`) as unknown as Promise<{ name: string; bytes: string; rows: string }[]>,
@@ -112,26 +127,28 @@ export async function adminSystem() {
 export async function adminDirectory() {
 	const t = tables;
 	// shortcut: the newest 500 of each, searched in the browser; page on the server past that
-	const [people, workspaces] = await Promise.all([
-		db.execute(sql`
+	const [people, workspaces] = await inTurn([
+		() =>
+			db.execute(sql`
 			select u.id, u.name, u.email, u.created_at as joined, u.two_factor_enabled as two_factor,
 				(select count(*)::int from ${t.workspace_members} m where m.user_id = u.id and m.deleted_at is null) as workspaces,
 				(select max(s.updated_at) from ${t.session} s where s.user_id = u.id) as last_seen,
 				(select string_agg(distinct a.provider_id, ',') from ${t.account} a where a.user_id = u.id) as methods
 			from ${t.user} u order by u.created_at desc limit 500
 		`) as unknown as Promise<
-			{
-				id: string;
-				name: string;
-				email: string;
-				joined: string | Date;
-				two_factor: boolean | null;
-				workspaces: number;
-				last_seen: string | Date | null;
-				methods: string | null;
-			}[]
-		>,
-		db.execute(sql`
+				{
+					id: string;
+					name: string;
+					email: string;
+					joined: string | Date;
+					two_factor: boolean | null;
+					workspaces: number;
+					last_seen: string | Date | null;
+					methods: string | null;
+				}[]
+			>,
+		() =>
+			db.execute(sql`
 			select w.id, w.name, w.slug, w.created_at as created,
 				(select count(*)::int from ${t.workspace_members} m where m.workspace_id = w.id and m.deleted_at is null) as members,
 				(select count(*)::int from ${t.project} p where p.workspace_id = w.id and p.deleted_at is null) as projects,
@@ -139,17 +156,17 @@ export async function adminDirectory() {
 				(select max(a.created_at) from ${t.activity} a where a.workspace_id = w.id) as last_active
 			from ${t.workspace} w order by w.created_at desc limit 500
 		`) as unknown as Promise<
-			{
-				id: string;
-				name: string;
-				slug: string;
-				created: string | Date;
-				members: number;
-				projects: number;
-				tasks: number;
-				last_active: string | Date | null;
-			}[]
-		>,
+				{
+					id: string;
+					name: string;
+					slug: string;
+					created: string | Date;
+					members: number;
+					projects: number;
+					tasks: number;
+					last_active: string | Date | null;
+				}[]
+			>,
 	]);
 	const iso = (d: string | Date | null) =>
 		d ? new Date(d).toISOString() : null;
