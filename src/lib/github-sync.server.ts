@@ -75,7 +75,12 @@ async function linkOf(projectId: string) {
 	if (!link?.linker) return null;
 	const account = await githubAccount(link.linker);
 	return account
-		? { ...link, linker: link.linker, token: account.token }
+		? {
+				...link,
+				linker: link.linker,
+				token: account.token,
+				login: account.login,
+			}
 		: null;
 }
 
@@ -220,6 +225,7 @@ type Issue = {
 	body: string | null;
 	state?: string;
 	pull_request?: unknown;
+	user?: { login?: string } | null;
 };
 
 /** Right after linking: the repo's open issues become tasks, and its tasks get issues (closed for done ones). */
@@ -421,10 +427,32 @@ export async function applyIssueEvent({
 			);
 		if (!mapped) {
 			if (action !== "opened") continue;
-			// one we just opened for a task (GitHub can tell us before we saved its number)
+			// one we just opened for a task (GitHub can tell us before we saved its number). The
+			// body is anyone's text, so only trust it from the linker, for a task of this project
+			// that has no issue yet: never move an existing link to someone else's issue.
 			const ours = issue.body?.match(/\?task=([A-Za-z0-9_-]{8,32})\)/)?.[1];
-			if (ours) {
-				await remember(ours, repo, issue.number, "");
+			const byLinker =
+				issue.user?.login?.toLowerCase() === link.login.toLowerCase();
+			if (ours && byLinker) {
+				const [task] = await db
+					.select({ id: tables.task.id })
+					.from(tables.task)
+					.where(
+						and(
+							eq(tables.task.id, ours),
+							eq(tables.task.project_id, projectId),
+						),
+					);
+				if (task)
+					await db
+						.insert(tables.task_github_issue)
+						.values({
+							task_id: task.id,
+							repo,
+							number: issue.number,
+							synced_hash: "",
+						})
+						.onConflictDoNothing();
 				continue;
 			}
 			if (await importIssue(ctx, projectId, link.repo, issue)) changed++;

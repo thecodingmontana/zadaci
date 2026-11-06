@@ -194,8 +194,17 @@ test("github sync: linking imports open issues and opens issues for open tasks; 
 
 	// "opened" for an issue we opened ourselves (GitHub can say so before we saved its number): no copy
 	const before = (await db.select().from(tables.task).where(eq(tables.task.project_id, project.id))).length;
-	await deliver("issues", { action: "opened", repository, issue: { number: 200, title: "Sign up", body: `… [Open in Zadaci](https://x/w/s/p/p?task=${signup})`, state: "open" } });
+	await deliver("issues", { action: "opened", repository, issue: { number: 200, title: "Sign up", body: `… [Open in Zadaci](https://x/w/s/p/p?task=${signup})`, state: "open", user: { login: "octo" } } });
 	assert.equal((await db.select().from(tables.task).where(eq(tables.task.project_id, project.id))).length, before);
+
+	// someone else's issue quoting a task's link can't take that task over: it's just a new issue
+	const signupIssue = (await issueOf(signup)).number;
+	const signupBefore = (await db.select().from(tables.task).where(eq(tables.task.id, signup)))[0];
+	await deliver("issues", { action: "opened", repository, issue: { number: 666, title: "Hijack", body: `[x](https://x/w/s/p/p?task=${signup})`, state: "open", user: { login: "stranger" } } });
+	assert.equal((await issueOf(signup)).number, signupIssue, "the task keeps its own issue");
+	await deliver("issues", { action: "closed", repository, issue: { number: 666, title: "Hijack", body: "", state: "closed", user: { login: "stranger" } } });
+	const signupAfter = (await db.select().from(tables.task).where(eq(tables.task.id, signup)))[0];
+	assert.deepEqual([signupAfter.name, signupAfter.status], [signupBefore.name, signupBefore.status], "their issue doesn't touch the task");
 
 	// a change made through the MCP connector (Zad's tools, run as the person) updates the issue too
 	const [me] = await db.select({ id: tables.user.id, email: tables.user.email, name: tables.user.name }).from(tables.user).where(eq(tables.user.id, owner.id));
