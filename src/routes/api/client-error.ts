@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { recordError } from "#/lib/ops.server";
 import { takeAllowance } from "#/lib/rate-limit.server";
 
-// Crashes reported by the browser's error page (lib/report-error), written to the server logs.
+// Crashes reported by the browser's error page (lib/report-error), logged and kept for /admin.
 // Only the message, a short stack and the path are kept: no note text, emails or user data.
 const MAX = 4000;
 
@@ -25,8 +26,11 @@ export const Route = createFileRoute("/api/client-error")({
 				// one line per field, so a report can't fake other log lines
 				const str = (v: unknown, n: number) =>
 					typeof v === "string" ? v.slice(0, n).replace(/[\r\n]+/g, " ⏎ ") : "";
-				console.error(
-					`[client] ${str(report.path, 200)}: ${str(report.message, 500)}\n${str(report.stack, 2000)}`,
+				// the stack goes to the logs only; the admin page keeps where and what
+				console.error(`[client] stack: ${str(report.stack, 2000)}`);
+				await recordError(
+					"client",
+					`${str(report.path, 200)}: ${str(report.message, 500)}`,
 				);
 				return new Response(null, { status: 204 });
 			},

@@ -8,6 +8,7 @@ import { MCP_RESOURCE } from "#/lib/auth";
 import { afterRequest } from "#/lib/email.server";
 import { ensureBoard, syncCard } from "#/lib/github-board.server";
 import { github, githubAccount } from "#/lib/github-connect.server";
+import { recordError } from "#/lib/ops.server";
 
 // Tasks ↔ GitHub issues, for projects linked through the Zadaci GitHub App. Zadaci → GitHub: every
 // task change queues its issue to be written (after the request's changes are saved), as whoever
@@ -38,7 +39,7 @@ export function queueGitHubSync(taskId: string) {
 		queued.delete(taskId);
 		return track(
 			syncTask(taskId).catch((error) =>
-				console.error(`[github] task ${taskId}:`, (error as Error).message),
+				recordError("github", `task ${taskId}: ${(error as Error).message}`),
 			),
 		);
 	});
@@ -134,7 +135,8 @@ export async function syncTask(taskId: string): Promise<boolean> {
 			title: issue.title,
 			body: issue.body,
 		});
-		if (!res.ok) throw await refused(res, `${link.repo} (${task.name})`);
+		if (!res.ok)
+			throw await refused(res, `${link.repo} (${link.key}-${task.number})`);
 		number = ((await res.json()) as { number: number }).number;
 		// saved before anything else, so GitHub's "opened" event finds it is ours
 		await remember(
@@ -157,7 +159,8 @@ export async function syncTask(taskId: string): Promise<boolean> {
 				}),
 			},
 		);
-		if (!res.ok) throw await refused(res, `${link.repo} (${task.name})`);
+		if (!res.ok)
+			throw await refused(res, `${link.repo} (${link.key}-${task.number})`);
 	}
 	if (wrote) await remember(task.id, link.repo, number, hash);
 	if (!link.board) return wrote;
@@ -249,7 +252,7 @@ export async function syncLinkedProject(projectId: string) {
 		try {
 			if (await work()) await pause();
 		} catch (error) {
-			console.error(`[github] ${what}:`, (error as Error).message);
+			await recordError("github", `${what}: ${(error as Error).message}`);
 		}
 	};
 	for (const issue of issues.filter((i) => !known.has(i.number)))
@@ -290,7 +293,7 @@ export async function syncAllLinkedProjects() {
 		.where(eq(tables.project_github.via_app, true));
 	for (const { id } of links)
 		await syncLinkedProject(id).catch((error) =>
-			console.error(`[github] project ${id}:`, (error as Error).message),
+			recordError("github", `project ${id}: ${(error as Error).message}`),
 		);
 	return links.length;
 }
@@ -300,9 +303,9 @@ export function queueLinkedProjectSync(projectId: string) {
 	afterRequest(() =>
 		track(
 			syncLinkedProject(projectId).catch((error) =>
-				console.error(
-					`[github] project ${projectId}:`,
-					(error as Error).message,
+				recordError(
+					"github",
+					`project ${projectId}: ${(error as Error).message}`,
 				),
 			),
 		),
@@ -458,7 +461,7 @@ export async function applyIssueEvent({
 							: null;
 		if (!done) continue;
 		if ("error" in done) {
-			console.error(`[github] ${repo}#${issue.number}: ${done.error}`);
+			await recordError("github", `${repo}#${issue.number}: ${done.error}`);
 			continue;
 		}
 		// what GitHub has now is in sync: the next change on either side is the real one

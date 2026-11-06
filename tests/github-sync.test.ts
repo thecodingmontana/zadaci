@@ -224,7 +224,7 @@ test("github sync: a write GitHub refuses is logged with its reason, the rest st
 	try {
 		calls.length = 0;
 		await act(owner, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "octo/board") { viaApp } }`, { s: slug, p: project.id });
-		assert.ok(log.mock.calls.some((c) => String(c.arguments[1]).includes("secondary rate limit")), "GitHub's reason is logged");
+		assert.ok(log.mock.calls.some((c) => c.arguments.join(" ").includes("secondary rate limit")), "GitHub's reason is logged");
 	} finally {
 		log.mock.restore();
 	}

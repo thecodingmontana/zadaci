@@ -1,4 +1,7 @@
 import {
+	boolean,
+	index,
+	jsonb,
 	pgTable,
 	primaryKey,
 	text,
@@ -35,3 +38,25 @@ export const daily_sent = appTable(
 	},
 	(table) => [primaryKey({ columns: [table.user_id, table.day] })],
 );
+
+// Errors kept for the admin page (/admin): the host's logs only last an hour. Browser crashes,
+// GitHub writes it refused and the hourly job's failures; pruned after 14 days by that job.
+export const error_log = appTable(
+	"error_log",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		/** client, github or cron */
+		source: varchar("source", { length: 20 }).notNull(),
+		message: text("message").notNull(),
+		at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [index("error_log_at_idx").on(table.at)],
+);
+
+// The last run of each background job, so the admin page shows a job that stopped or ran late.
+export const job_run = appTable("job_run", {
+	name: varchar("name", { length: 40 }).primaryKey(),
+	at: timestamp("at", { withTimezone: true }).notNull(),
+	ok: boolean("ok").notNull(),
+	result: jsonb("result"),
+});

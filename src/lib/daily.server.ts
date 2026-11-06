@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { db, tables } from "#/db";
 import DailyDigest from "#/emails/daily-digest";
 import { sendEmail } from "#/lib/email.server";
+import { recordError } from "#/lib/ops.server";
 import { PREF_DEFAULTS } from "#/lib/preferences";
 import { fromDay } from "#/lib/projects";
 import { sendPushes } from "#/lib/push.server";
@@ -87,7 +88,10 @@ export async function runDaily(now = new Date()) {
 					),
 				)
 				.catch(() => {});
-			console.error("[daily] reminders failed for a person:", String(error));
+			await recordError(
+				"cron",
+				`reminders failed for a person: ${String(error)}`,
+			);
 			continue;
 		}
 		result.people++;
@@ -100,7 +104,10 @@ export async function runDaily(now = new Date()) {
 			try {
 				if (await sendDigest(person, since, hour)) result.digests++;
 			} catch (error) {
-				console.error("[daily] digest failed for a person:", String(error));
+				await recordError(
+					"cron",
+					`digest failed for a person: ${String(error)}`,
+				);
 			}
 		}
 	}
