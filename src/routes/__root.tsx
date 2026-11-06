@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
+import { AppStatus } from "#/components/shell/app-status";
 import { Toaster } from "#/components/toast/toaster";
 import { APPEARANCE_SCRIPT } from "#/lib/appearance";
 import { startPwa } from "#/lib/install";
@@ -101,6 +102,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			{/* browser extensions (e.g. ColorZilla) add attributes to body before hydration */}
 			<body suppressHydrationWarning>
 				{children}
+				<AppStatus />
 				<Toaster position="top-center" />
 				<TanStackDevtools
 					config={{

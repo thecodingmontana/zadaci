@@ -38,6 +38,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
   - **Directory:** everyone who signed up (how they sign in, two-step, workspaces, joined, last seen) and every workspace (members, projects, tasks, last change), searchable.
   - Anyone else gets *Page not found*, and every admin request checks the list on the server too.
 - Light and dark themes, responsive layout with a mobile bottom nav.
+- **Offline and updates:** a bar across the top says when you're offline (changes won't save until the connection is back, with *Try again*), and when a new version has been deployed since the page (or the installed app) opened: *Reload* gets it. Pages compare their build with `/api/version` when you come back to them and every 15 minutes.
 
 ## Tech stack
 
