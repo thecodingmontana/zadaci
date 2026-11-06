@@ -30,17 +30,17 @@ export const Route = createFileRoute("/_authed")({
 				to: "/auth/signin",
 				search: { redirect: location.href },
 			});
-		return { user: session.user };
+		return { user: session.user, admin: session.admin };
 	},
 	head: () => ({ meta: [NOINDEX] }),
 	component: AuthedLayout,
 });
 
 function AuthedLayout() {
-	const { user } = Route.useRouteContext();
+	const { user, admin } = Route.useRouteContext();
 	// The server checked the session to render this page, so the first click inside the app
 	// can reuse that check instead of waiting on another round trip.
 	if (typeof window !== "undefined" && !last.checked)
-		last.checked = { at: Date.now(), session: { user } };
+		last.checked = { at: Date.now(), session: { user, admin } };
 	return <Outlet />;
 }

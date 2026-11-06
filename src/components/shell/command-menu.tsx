@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client/react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { Dialog, VisuallyHidden } from "radix-ui";
 import {
 	createContext,
@@ -192,6 +192,9 @@ export function CommandMenuProvider({
 	children: ReactNode;
 }) {
 	const navigate = useNavigate();
+	// people ADMIN_EMAILS lists get the admin page too
+	const admin = !!(useRouteContext({ strict: false }) as { admin?: boolean })
+		.admin;
 	const mod = useModKey();
 	const { toggleSide: toggleSidebar, setMnav } = useShell();
 	const [pal, setPal] = useState<Palette | null>(null);
@@ -438,6 +441,31 @@ export function CommandMenuProvider({
 			kbd: ["?"],
 			run: showShortcuts,
 		},
+		...(admin
+			? [
+					{
+						id: "c-admin",
+						name: "Admin dashboard",
+						icon: "icon-[solar--shield-user-linear]",
+						keywords: "analytics charts usage people active sign-ups",
+						run: () => navigate({ to: "/admin" }),
+					},
+					{
+						id: "c-admin-system",
+						name: "Admin: System",
+						icon: "icon-[solar--pulse-2-linear]",
+						keywords: "monitor errors health hourly job github database",
+						run: () => navigate({ to: "/admin/system" }),
+					},
+					{
+						id: "c-admin-directory",
+						name: "Admin: Directory",
+						icon: "icon-[solar--users-group-rounded-linear]",
+						keywords: "people users accounts workspaces search",
+						run: () => navigate({ to: "/admin/directory" }),
+					},
+				]
+			: []),
 		{
 			id: "c-out",
 			name: "Sign out",

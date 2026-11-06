@@ -1994,6 +1994,11 @@ h3.sub {
   grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
   gap: 16px;
 }
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
 .stack {
   display: flex;
   flex-direction: column;
@@ -4614,7 +4619,8 @@ button.tl-row {
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1100px) {
-  .grid2 {
+  .grid2,
+  .grid3 {
     grid-template-columns: minmax(0, 1fr);
   }
   .topsearch {

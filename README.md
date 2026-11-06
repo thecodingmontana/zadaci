@@ -32,6 +32,11 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 - **Sign-in** with Google, an emailed sign-in link (single use, expires in 10 minutes) or a passkey. A sign-in link opened from an email app or another site first shows whose account it signs into, with **Continue** and **Not me**, so nobody can slip you a link to their account. Optional two-step verification with an authenticator app, which every sign-in method respects. Turning it off, making new backup codes or removing a passkey needs a sign-in from the last 10 minutes, not just a session. Requests that change things only come from Zadaci's own pages: the API refuses other sites (CSRF) and answers no cross-site CORS, and GraphQL takes JSON only.
 - **Settings** for appearance (light, dark, accent, density, motion), language, date and time, notifications, profile, sessions and security.
 - **Pictures** for your profile and workspace: upload one (the server squares and compresses it to WebP with sharp before it goes to Cloudinary), or **Choose avatar** from generated avatars or Unsplash photos. Attachments: images up to 5 MB, videos 20 MB, other files 25 MB.
+- **Admin area** (`/admin`, only for the addresses in `ADMIN_EMAILS`; also in their command menu), with the app's own sidebar and charts by [EvilCharts](https://evilcharts.com):
+  - **Dashboard:** people, active people, workspaces and tasks, each with its change against the previous 30 days; a day-by-day activity chart whose tabs switch between active people, sign-ups, tasks made and done, messages and sign-ins; tasks by status, sign-in methods and which assistant models answered; a heatmap of every change over 6 months; the biggest workspaces.
+  - **System:** whether the hourly job ran on time and what it did, errors per day by source (GitHub, the hourly job, the browser) and the error log kept 14 days (Vercel's logs last an hour; it holds ids and keys, never task text), GitHub links with their issues and boards, and the database's size and biggest tables.
+  - **Directory:** everyone who signed up (how they sign in, two-step, workspaces, joined, last seen) and every workspace (members, projects, tasks, last change), searchable.
+  - Anyone else gets *Page not found*, and every admin request checks the list on the server too.
 - Light and dark themes, responsive layout with a mobile bottom nav.
 
 ## Tech stack
@@ -43,7 +48,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 | Data | PostgreSQL (Supabase), Drizzle ORM and drizzle-kit migrations |
 | Auth | Better Auth (Google, email sign-in links, passkeys, TOTP two-step) |
 | Editor | Tiptap 3, Shiki, Novel-style global drag handle |
-| UI | Tailwind CSS 4, Radix UI, Motion, Iconify icons (Solar, Hugeicons, Logos) |
+| UI | Tailwind CSS 4, Radix UI, Motion, Iconify icons (Solar, Hugeicons, Logos), EvilCharts on Recharts (admin charts) |
 | Files and email | Cloudinary (signed uploads), Resend with React Email, Web Push |
 | AI | TanStack AI with OpenRouter free models, or people's own Claude, OpenAI, Gemini or OpenRouter keys; AI persistence in Postgres |
 | Quality | Biome, TypeScript, Node's built-in test runner |
@@ -58,6 +63,8 @@ cp .env.example .env.local   # then fill it in
 pnpm db:migrate              # create the tables
 pnpm dev                     # http://localhost:3000
 ```
+
+To use the admin area, put your own sign-in email in `ADMIN_EMAILS` (comma-separate several) and open `/admin`. Its charts are [EvilCharts](https://evilcharts.com) components copied into `src/components/evilcharts` by the shadcn CLI (`components.json` lists the `@evilcharts` registry); add more with `pnpm dlx shadcn@latest add @evilcharts/<chart>`. That folder is left out of Biome, as third-party code.
 
 ### Environment variables
 
@@ -74,6 +81,7 @@ pnpm dev                     # http://localhost:3000
 | `VITE_SITE_URL` | no | Public address for canonical links, the sitemap and emails. Defaults to `https://zadaci.vercel.app`. |
 | `UNSPLASH_ACCESS_KEY` | no | Turns on the Unsplash tab in image pickers. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | no | Web push notifications. Generate with `npx web-push generate-vapid-keys`. |
+| `ADMIN_EMAILS` | no | Comma-separated sign-in emails that can open the admin area (**/admin**: Dashboard, System, Directory; also in their command menu). Leave empty and nobody can. |
 | `CRON_SECRET` | no | Protects `/api/cron/daily` (hourly reminders and digests) and `/api/ai/models`. Any long random string. |
 | `OPENROUTER_API_KEY` | no | Turns on the assistant. Server only; get one at [openrouter.ai/keys](https://openrouter.ai/keys). Without it the rest of the app works and the assistant says it isn't set up. |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | no | Live updates, live chat and who's online, through Supabase Realtime (Project Settings → API). Without them, pages still refresh when you open them. |
@@ -123,9 +131,11 @@ DATABASE_URL=postgres://…/zadaci_test node --env-file=.env.local --import tsx 
 src/
   routes/        pages and API routes (file-based, TanStack Router)
     _authed/     everything behind sign-in: workspaces, projects, tasks, notes, settings
+      admin/     the admin area: dashboard, system, directory (admin-analytics.server.ts, admin.server.ts)
     api/         /api/graphql, /api/auth, /api/chat (assistant), /api/mcp (AI agents), /api/cron (reminders, digests)
   graphql/       schema and resolvers (*.server.ts) and the client operations
-  components/    UI by area: tasks, projects, notes, chat, shell, settings, auth, …
+  components/    UI by area: tasks, projects, notes, chat, shell, settings, auth, admin, …
+    evilcharts/  chart components from the EvilCharts registry (third-party, not linted)
   db/            Drizzle schema and migrations
   lib/           shared logic: permissions, auth, note sanitizer, embeds, time, toasts
     ai/          the assistant: tools, prompt, model rotation, limits, chat storage (the MCP server reuses its tools)
@@ -135,7 +145,7 @@ tests/           API tests
 
 ## Deployment
 
-The app deploys to Vercel. Push to `main` and Vercel builds it. Set the environment variables above in the Vercel project, and run `pnpm db:migrate` against the production database when a change adds a migration. Keep the Vercel functions and the Supabase database in the same region (`fra1` and `eu-central-1`): the build stops if they don't match (`src/lib/deploy-region.ts`). A GitHub Actions workflow calls `/api/cron/daily` every hour with the `CRON_SECRET` for reminders and digests.
+The app deploys to Vercel. Push to `main` and Vercel builds it. Set the environment variables above in the Vercel project, and run `pnpm db:migrate` against the production database when a change adds a migration. Keep the Vercel functions and the Supabase database in the same region (`fra1` and `eu-central-1`): the build stops if they don't match (`src/lib/deploy-region.ts`). A GitHub Actions workflow calls `/api/cron/daily` every hour with the `CRON_SECRET` for reminders, digests and GitHub repair (GitHub runs it late or skips runs at times; **/admin** shows when it last ran).
 
 ## Support and credits
 

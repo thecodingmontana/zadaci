@@ -1,12 +1,20 @@
+import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie, getRequestHeaders } from "@tanstack/react-start/server";
+import {
+	getCookie,
+	getRequestHeaders,
+	setResponseHeaders,
+} from "@tanstack/react-start/server";
 import { auth } from "#/lib/auth";
 
 // Only the user goes to the client; the session token must stay in the HttpOnly cookie.
 export const getSession = createServerFn({ method: "GET" }).handler(
 	async () => {
 		const session = await auth.api.getSession({ headers: getRequestHeaders() });
-		return session ? { user: session.user } : null;
+		if (!session) return null;
+		const { isAdmin } = await import("#/lib/ops.server");
+		// shows the Admin page in the command menu; the page's data checks again on the server
+		return { user: session.user, admin: isAdmin(session.user.email) };
 	},
 );
 
@@ -44,3 +52,36 @@ export const getSignInLinkEmail = createServerFn({ method: "GET" })
 			return null;
 		}
 	});
+
+/** Stops anyone ADMIN_EMAILS doesn't list with "not found" (the page guard alone protects
+ * nothing: these functions are reachable directly). Admin answers are never cached. */
+async function requireAdmin() {
+	const session = await auth.api.getSession({ headers: getRequestHeaders() });
+	const { isAdmin } = await import("#/lib/ops.server");
+	if (!isAdmin(session?.user.email)) throw notFound();
+	setResponseHeaders(new Headers({ "Cache-Control": "no-store" }));
+}
+
+export const getAdminDashboard = createServerFn({ method: "GET" }).handler(
+	async () => {
+		await requireAdmin();
+		const { adminDashboard } = await import("#/lib/admin-analytics.server");
+		return adminDashboard();
+	},
+);
+
+export const getAdminSystem = createServerFn({ method: "GET" }).handler(
+	async () => {
+		await requireAdmin();
+		const { adminSystem } = await import("#/lib/admin.server");
+		return adminSystem();
+	},
+);
+
+export const getAdminDirectory = createServerFn({ method: "GET" }).handler(
+	async () => {
+		await requireAdmin();
+		const { adminDirectory } = await import("#/lib/admin.server");
+		return adminDirectory();
+	},
+);

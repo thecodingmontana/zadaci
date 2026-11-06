@@ -8,7 +8,7 @@ export const Route = createFileRoute("/privacy")({
 
 function Privacy() {
 	return (
-		<LegalPage title="Privacy Policy" updated="November 4, 2026">
+		<LegalPage title="Privacy Policy" updated="November 6, 2026">
 			<p>
 				This explains what Zadaci keeps about you, why, and what you can do
 				about it.
@@ -56,6 +56,12 @@ function Privacy() {
 					into its issue, and its status goes onto the repo's board), and,
 					without the app, to add or remove a project's webhook.
 				</li>
+				<li>
+					<b>Errors:</b> when something fails (a page crashes, GitHub refuses a
+					change, a background job breaks), what failed and where: the page's
+					address, the error message, and a task's or project's id or key, never
+					its text. Kept 14 days so we can fix it, then deleted.
+				</li>
 			</ul>
 
 			<h2>Why</h2>
@@ -63,6 +69,14 @@ function Privacy() {
 				Only to run Zadaci: to sign you in, show your work to you and the people
 				you share it with, send the notifications you choose, and keep your
 				account secure. We don't sell your data or use it for ads.
+			</p>
+			<p>
+				The people who run Zadaci have an admin area to keep it healthy. It
+				shows your name and email, how you sign in, whether two-step
+				verification is on, when you joined and were last seen, and how many
+				workspaces you're in; for workspaces, their name, size and when they
+				last changed; and totals and counts of what happens in Zadaci. It never
+				shows your tasks, notes, comments or messages.
 			</p>
 
 			<h2>Who helps us run it</h2>

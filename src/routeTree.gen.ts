@@ -18,6 +18,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as DotwellKnownOauthAuthorizationServerRouteImport } from './routes/[.]well-known/oauth-authorization-server'
 import { Route as DotwellKnownOauthProtectedResourceRouteImport } from './routes/[.]well-known/oauth-protected-resource'
 import { Route as DotwellKnownOpenidConfigurationRouteImport } from './routes/[.]well-known/openid-configuration'
+import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
 import { Route as AuthedOnboardingRouteImport } from './routes/_authed/onboarding'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
@@ -30,6 +31,9 @@ import { Route as OauthSigninRouteImport } from './routes/oauth/signin'
 import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as DotwellKnownOauthAuthorizationServerSplatRouteImport } from './routes/[.]well-known/oauth-authorization-server.$'
 import { Route as DotwellKnownOauthProtectedResourceSplatRouteImport } from './routes/[.]well-known/oauth-protected-resource.$'
+import { Route as AuthedAdminIndexRouteImport } from './routes/_authed/admin/index'
+import { Route as AuthedAdminDirectoryRouteImport } from './routes/_authed/admin/directory'
+import { Route as AuthedAdminSystemRouteImport } from './routes/_authed/admin/system'
 import { Route as AuthedJoinCodeRouteImport } from './routes/_authed/join.$code'
 import { Route as AuthedSaveSlugRouteImport } from './routes/_authed/save.$slug'
 import { Route as AuthedWSlugRouteImport } from './routes/_authed/w/$slug'
@@ -114,6 +118,11 @@ const DotwellKnownOpenidConfigurationRoute =
     path: '/.well-known/openid-configuration',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthedAdminRoute = AuthedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedOnboardingRoute = AuthedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -176,6 +185,21 @@ const DotwellKnownOauthProtectedResourceSplatRoute =
     path: '/$',
     getParentRoute: () => DotwellKnownOauthProtectedResourceRoute,
   } as any)
+const AuthedAdminIndexRoute = AuthedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedAdminRoute,
+} as any)
+const AuthedAdminDirectoryRoute = AuthedAdminDirectoryRouteImport.update({
+  id: '/directory',
+  path: '/directory',
+  getParentRoute: () => AuthedAdminRoute,
+} as any)
+const AuthedAdminSystemRoute = AuthedAdminSystemRouteImport.update({
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => AuthedAdminRoute,
+} as any)
 const AuthedJoinCodeRoute = AuthedJoinCodeRouteImport.update({
   id: '/join/$code',
   path: '/join/$code',
@@ -368,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRouteWithChildren
   '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
+  '/admin': typeof AuthedAdminRouteWithChildren
   '/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -380,6 +405,8 @@ export interface FileRoutesByFullPath {
   '/s/$token': typeof STokenRoute
   '/.well-known/oauth-authorization-server/$': typeof DotwellKnownOauthAuthorizationServerSplatRoute
   '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
+  '/admin/directory': typeof AuthedAdminDirectoryRoute
+  '/admin/system': typeof AuthedAdminSystemRoute
   '/join/$code': typeof AuthedJoinCodeRoute
   '/save/$slug': typeof AuthedSaveSlugRoute
   '/w/$slug': typeof AuthedWSlugRouteWithChildren
@@ -392,6 +419,7 @@ export interface FileRoutesByFullPath {
   '/api/github/callback': typeof ApiGithubCallbackRoute
   '/api/github/connect': typeof ApiGithubConnectRoute
   '/api/upload/image': typeof ApiUploadImageRoute
+  '/admin/': typeof AuthedAdminIndexRoute
   '/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -438,6 +466,8 @@ export interface FileRoutesByTo {
   '/s/$token': typeof STokenRoute
   '/.well-known/oauth-authorization-server/$': typeof DotwellKnownOauthAuthorizationServerSplatRoute
   '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
+  '/admin/directory': typeof AuthedAdminDirectoryRoute
+  '/admin/system': typeof AuthedAdminSystemRoute
   '/join/$code': typeof AuthedJoinCodeRoute
   '/save/$slug': typeof AuthedSaveSlugRoute
   '/api/account/export': typeof ApiAccountExportRoute
@@ -449,6 +479,7 @@ export interface FileRoutesByTo {
   '/api/github/callback': typeof ApiGithubCallbackRoute
   '/api/github/connect': typeof ApiGithubConnectRoute
   '/api/upload/image': typeof ApiUploadImageRoute
+  '/admin': typeof AuthedAdminIndexRoute
   '/workspace': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor': typeof AuthTwoFactorIndexRoute
   '/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -485,6 +516,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRouteWithChildren
   '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceRouteWithChildren
   '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
+  '/_authed/admin': typeof AuthedAdminRouteWithChildren
   '/_authed/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
@@ -497,6 +529,8 @@ export interface FileRoutesById {
   '/s/$token': typeof STokenRoute
   '/.well-known/oauth-authorization-server/$': typeof DotwellKnownOauthAuthorizationServerSplatRoute
   '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
+  '/_authed/admin/directory': typeof AuthedAdminDirectoryRoute
+  '/_authed/admin/system': typeof AuthedAdminSystemRoute
   '/_authed/join/$code': typeof AuthedJoinCodeRoute
   '/_authed/save/$slug': typeof AuthedSaveSlugRoute
   '/_authed/w/$slug': typeof AuthedWSlugRouteWithChildren
@@ -509,6 +543,7 @@ export interface FileRoutesById {
   '/api/github/callback': typeof ApiGithubCallbackRoute
   '/api/github/connect': typeof ApiGithubConnectRoute
   '/api/upload/image': typeof ApiUploadImageRoute
+  '/_authed/admin/': typeof AuthedAdminIndexRoute
   '/_authed/workspace/': typeof AuthedWorkspaceIndexRoute
   '/auth/two-factor/': typeof AuthTwoFactorIndexRoute
   '/_authed/w/$slug/$': typeof AuthedWSlugSplatRoute
@@ -545,6 +580,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-authorization-server'
     | '/.well-known/oauth-protected-resource'
     | '/.well-known/openid-configuration'
+    | '/admin'
     | '/onboarding'
     | '/api/chat'
     | '/api/client-error'
@@ -557,6 +593,8 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/.well-known/oauth-authorization-server/$'
     | '/.well-known/oauth-protected-resource/$'
+    | '/admin/directory'
+    | '/admin/system'
     | '/join/$code'
     | '/save/$slug'
     | '/w/$slug'
@@ -569,6 +607,7 @@ export interface FileRouteTypes {
     | '/api/github/callback'
     | '/api/github/connect'
     | '/api/upload/image'
+    | '/admin/'
     | '/workspace/'
     | '/auth/two-factor/'
     | '/w/$slug/$'
@@ -615,6 +654,8 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/.well-known/oauth-authorization-server/$'
     | '/.well-known/oauth-protected-resource/$'
+    | '/admin/directory'
+    | '/admin/system'
     | '/join/$code'
     | '/save/$slug'
     | '/api/account/export'
@@ -626,6 +667,7 @@ export interface FileRouteTypes {
     | '/api/github/callback'
     | '/api/github/connect'
     | '/api/upload/image'
+    | '/admin'
     | '/workspace'
     | '/auth/two-factor'
     | '/w/$slug/$'
@@ -661,6 +703,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-authorization-server'
     | '/.well-known/oauth-protected-resource'
     | '/.well-known/openid-configuration'
+    | '/_authed/admin'
     | '/_authed/onboarding'
     | '/api/chat'
     | '/api/client-error'
@@ -673,6 +716,8 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/.well-known/oauth-authorization-server/$'
     | '/.well-known/oauth-protected-resource/$'
+    | '/_authed/admin/directory'
+    | '/_authed/admin/system'
     | '/_authed/join/$code'
     | '/_authed/save/$slug'
     | '/_authed/w/$slug'
@@ -685,6 +730,7 @@ export interface FileRouteTypes {
     | '/api/github/callback'
     | '/api/github/connect'
     | '/api/upload/image'
+    | '/_authed/admin/'
     | '/_authed/workspace/'
     | '/auth/two-factor/'
     | '/_authed/w/$slug/$'
@@ -807,6 +853,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotwellKnownOpenidConfigurationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/admin': {
+      id: '/_authed/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthedAdminRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/onboarding': {
       id: '/_authed/onboarding'
       path: '/onboarding'
@@ -890,6 +943,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/.well-known/oauth-protected-resource/$'
       preLoaderRoute: typeof DotwellKnownOauthProtectedResourceSplatRouteImport
       parentRoute: typeof DotwellKnownOauthProtectedResourceRoute
+    }
+    '/_authed/admin/': {
+      id: '/_authed/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthedAdminIndexRouteImport
+      parentRoute: typeof AuthedAdminRoute
+    }
+    '/_authed/admin/directory': {
+      id: '/_authed/admin/directory'
+      path: '/directory'
+      fullPath: '/admin/directory'
+      preLoaderRoute: typeof AuthedAdminDirectoryRouteImport
+      parentRoute: typeof AuthedAdminRoute
+    }
+    '/_authed/admin/system': {
+      id: '/_authed/admin/system'
+      path: '/system'
+      fullPath: '/admin/system'
+      preLoaderRoute: typeof AuthedAdminSystemRouteImport
+      parentRoute: typeof AuthedAdminRoute
     }
     '/_authed/join/$code': {
       id: '/_authed/join/$code'
@@ -1146,6 +1220,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthedAdminRouteChildren {
+  AuthedAdminDirectoryRoute: typeof AuthedAdminDirectoryRoute
+  AuthedAdminSystemRoute: typeof AuthedAdminSystemRoute
+  AuthedAdminIndexRoute: typeof AuthedAdminIndexRoute
+}
+
+const AuthedAdminRouteChildren: AuthedAdminRouteChildren = {
+  AuthedAdminDirectoryRoute: AuthedAdminDirectoryRoute,
+  AuthedAdminSystemRoute: AuthedAdminSystemRoute,
+  AuthedAdminIndexRoute: AuthedAdminIndexRoute,
+}
+
+const AuthedAdminRouteWithChildren = AuthedAdminRoute._addFileChildren(
+  AuthedAdminRouteChildren,
+)
+
 interface AuthedWSlugRouteChildren {
   AuthedWSlugSplatRoute: typeof AuthedWSlugSplatRoute
   AuthedWSlugActivityRoute: typeof AuthedWSlugActivityRoute
@@ -1201,6 +1291,7 @@ const AuthedWSlugRouteWithChildren = AuthedWSlugRoute._addFileChildren(
 )
 
 interface AuthedRouteChildren {
+  AuthedAdminRoute: typeof AuthedAdminRouteWithChildren
   AuthedOnboardingRoute: typeof AuthedOnboardingRoute
   AuthedJoinCodeRoute: typeof AuthedJoinCodeRoute
   AuthedSaveSlugRoute: typeof AuthedSaveSlugRoute
@@ -1209,6 +1300,7 @@ interface AuthedRouteChildren {
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedAdminRoute: AuthedAdminRouteWithChildren,
   AuthedOnboardingRoute: AuthedOnboardingRoute,
   AuthedJoinCodeRoute: AuthedJoinCodeRoute,
   AuthedSaveSlugRoute: AuthedSaveSlugRoute,
