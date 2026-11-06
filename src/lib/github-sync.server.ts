@@ -77,6 +77,7 @@ async function linkOf(projectId: string) {
 	return account
 		? {
 				...link,
+				projectId,
 				linker: link.linker,
 				token: account.token,
 				login: account.login,
@@ -98,15 +99,21 @@ const fingerprint = (issue: object) =>
 
 /** Write one task's issue: open it, change it, or close it, only if something changed. True when
  * it wrote to GitHub. */
-export async function syncTask(taskId: string): Promise<boolean> {
+type Link = NonNullable<Awaited<ReturnType<typeof linkOf>>>;
+
+export async function syncTask(taskId: string, known?: Link): Promise<boolean> {
 	const [task] = await db
 		.select()
 		.from(tables.task)
 		.where(eq(tables.task.id, taskId));
 	if (!task) return false;
 	// a subtask is a checklist line in its parent's issue
-	if (task.parent_task_id) return syncTask(task.parent_task_id);
-	const link = await linkOf(task.project_id);
+	if (task.parent_task_id) return syncTask(task.parent_task_id, known);
+	// a project's sync passes its link in, rather than loading it (and the token) once per task
+	const link =
+		known?.projectId === task.project_id
+			? known
+			: await linkOf(task.project_id);
 	if (!link) return false;
 	const subtasks = await db
 		.select({ name: tables.task.name, status: tables.task.status })
@@ -332,7 +339,7 @@ async function syncLinkedProjectNow(projectId: string, deadline: number) {
 	const ctx = await actingAs(link);
 	if (!ctx) return "done";
 	// the repo's board, before the tasks below put their issues on it
-	await ensureBoard({ ...link, projectId });
+	const board = await ensureBoard(link);
 	// one failure (a rate limit, say) doesn't stop the rest; running it again picks up what's left
 	let stopped = false;
 	const each = async (what: string, work: () => Promise<unknown>) => {
@@ -371,7 +378,9 @@ async function syncLinkedProjectNow(projectId: string, deadline: number) {
 			),
 		)
 		.orderBy(asc(tables.task.number));
-	for (const t of tasks) await each(`task ${t.id}`, () => syncTask(t.id));
+	const synced = { ...link, board };
+	for (const t of tasks)
+		await each(`task ${t.id}`, () => syncTask(t.id, synced));
 	return stopped ? "stopped" : "done";
 }
 
