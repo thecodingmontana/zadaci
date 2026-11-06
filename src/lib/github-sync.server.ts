@@ -131,17 +131,23 @@ export async function syncTask(taskId: string): Promise<boolean> {
 		.from(tables.task_github_issue)
 		.where(eq(tables.task_github_issue.task_id, task.id));
 	// linked to another repo since: this one gets its own issue
-	const same = mapped && mapped.repo.toLowerCase() === link.repo.toLowerCase();
+	const same =
+		mapped?.number != null &&
+		mapped.repo.toLowerCase() === link.repo.toLowerCase();
 	if (!same && gone) return false; // a deleted or archived task gets no issue
 	const wrote = !same || mapped.synced_hash !== hash;
-	let number = same ? mapped.number : 0;
+	let number = same ? (mapped.number as number) : 0;
 	if (!same) {
+		// another sync is opening it right now (a quick second edit, the hourly run)
+		if (!(await claimIssue(task.id, link.repo))) return false;
 		const res = await github(link.token, `/repos/${link.repo}/issues`, "POST", {
 			title: issue.title,
 			body: issue.body,
 		});
-		if (!res.ok)
+		if (!res.ok) {
+			await releaseIssue(task.id);
 			throw await refused(res, `${link.repo} (${link.key}-${task.number})`);
+		}
 		number = ((await res.json()) as { number: number }).number;
 		// saved before anything else, so GitHub's "opened" event finds it is ours
 		await remember(
@@ -186,6 +192,45 @@ export async function syncTask(taskId: string): Promise<boolean> {
 	return wrote || carded;
 }
 
+const CLAIM_MS = 5 * 60_000;
+
+/** Claim a task before opening its issue, so of two syncs at once only one opens it: the mapping
+ * row goes in first, without a number. One a crashed sync left behind can be claimed again after
+ * 5 minutes. True for the sync that got it. */
+async function claimIssue(taskId: string, repo: string) {
+	const t = tables.task_github_issue;
+	const stale = new Date(Date.now() - CLAIM_MS);
+	const claimed = await db
+		.insert(t)
+		.values({ task_id: taskId, repo, number: null, synced_hash: "" })
+		.onConflictDoUpdate({
+			target: t.task_id,
+			set: {
+				repo,
+				number: null,
+				synced_hash: "",
+				card: null,
+				card_status: null,
+				updated_at: new Date(),
+			},
+			// linked to another repo since, or a claim that ran out
+			setWhere: sql`lower(${t.repo}) <> lower(${repo}) or (${t.number} is null and ${t.updated_at} < ${stale})`,
+		})
+		.returning({ id: t.task_id });
+	return claimed.length > 0;
+}
+
+/** GitHub refused to open it: let the next sync try. */
+const releaseIssue = (taskId: string) =>
+	db
+		.delete(tables.task_github_issue)
+		.where(
+			and(
+				eq(tables.task_github_issue.task_id, taskId),
+				isNull(tables.task_github_issue.number),
+			),
+		);
+
 const remember = (taskId: string, repo: string, number: number, hash: string) =>
 	db
 		.insert(tables.task_github_issue)
@@ -229,7 +274,34 @@ type Issue = {
 };
 
 /** Right after linking: the repo's open issues become tasks, and its tasks get issues (closed for done ones). */
+const LEASE = sql`now() + interval '10 minutes'`;
+
+/** One sync of a project at a time (linking, Sync now and the hourly run can overlap, and two at
+ * once would import the same issues twice): claim the project, and skip it if another sync has. */
 export async function syncLinkedProject(projectId: string) {
+	const pg = tables.project_github;
+	const [claimed] = await db
+		.update(pg)
+		.set({ sync_until: LEASE })
+		.where(
+			and(
+				eq(pg.project_id, projectId),
+				sql`(${pg.sync_until} is null or ${pg.sync_until} < now())`,
+			),
+		)
+		.returning({ id: pg.project_id });
+	if (!claimed) return;
+	try {
+		await syncLinkedProjectNow(projectId);
+	} finally {
+		await db
+			.update(pg)
+			.set({ sync_until: null })
+			.where(eq(pg.project_id, projectId));
+	}
+}
+
+async function syncLinkedProjectNow(projectId: string) {
 	const link = await linkOf(projectId);
 	if (!link) return;
 	// shortcut: the 100 most recent open issues; page through more if repos get bigger

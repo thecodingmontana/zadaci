@@ -61,6 +61,8 @@ export const project_github = pgTable(
 		}>(),
 		/** why GitHub wouldn't make the board (shown in the project's GitHub window) */
 		board_error: text("board_error"),
+		/** a sync of this project is running until then (one at a time; a crashed one's claim runs out) */
+		sync_until: when("sync_until"),
 		created_at: when("created_at").notNull().defaultNow(),
 	},
 	(t) => [uniqueIndex("project_github_project_unique").on(t.project_id)],
@@ -97,7 +99,8 @@ export const task_github_issue = pgTable(
 			.primaryKey()
 			.references(() => task.id, { onDelete: "cascade" }),
 		repo: text("repo").notNull(),
-		number: integer("number").notNull(),
+		/** null while a sync is opening the issue (it claims the task first, so two syncs never open two) */
+		number: integer("number"),
 		/** fingerprint of what was last written either way, so an echo of our own change is skipped */
 		synced_hash: text("synced_hash").notNull().default(""),
 		/** the issue's card on the project's board, and the Status last written to it */

@@ -1,0 +1,72 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "d2af2e8e-0353-456d-945d-6140373460e3",
+  "prevIds": [
+    "4284566d-3147-4905-ba38-7c7b684c523d"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "app_project_github",
+        "sync_until"
+      ],
+      "writes": [
+        "s|col|public.app_project_github.sync_until",
+        "n|col|public.app_project_github.sync_until",
+        "e|col|public.app_project_github.sync_until"
+      ],
+      "reads": [
+        "n|tbl|public.app_project_github",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "app_task_github_issue",
+        "number"
+      ],
+      "writes": [
+        "s|colprop|public.app_task_github_issue.number.notNull"
+      ],
+      "reads": [
+        "n|tbl|public.app_task_github_issue",
+        "n|sch|public",
+        "n|col|public.app_task_github_issue.number"
+      ],
+      "sqlHash": "c787785c856e44df"
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_project_github",
+        "name": "sync_until",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"app_task_github_issue\",\"number\"]",
+      "set": {
+        "notNull": false
+      }
+    }
+  ]
+}

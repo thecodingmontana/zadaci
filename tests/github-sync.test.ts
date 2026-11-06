@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { after, mock, test } from "node:test";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { sealKey } from "#/lib/ai/keys.server";
 import { withEmails } from "#/lib/email.server";
@@ -305,4 +305,35 @@ test("github board: on a personal account GitHub refuses the board; the window s
 	assert.equal(shown.data?.projectGitHub.boardUrl, null);
 	assert.match(shown.data?.projectGitHub.boardError ?? "", /personal accounts/);
 	assert.ok(writes().filter((c) => c.method === "POST").length >= 6, "issues were still opened");
+});
+
+test("github sync: two syncs at once open one issue for a task, and import each issue once", async () => {
+	const owner = await makeUser("ghs-race", false);
+	const { slug } = await makeWorkspace(owner);
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
+	await db.insert(tables.github_account).values({ user_id: owner.id, login: "octo", token: sealKey("ghu_fake", owner.id, "github") });
+	const task = (await gql(owner, CREATE, { s: slug, i: { projectId: project.id, title: "Race me" } })).data?.createTask.id;
+	// linked afterwards (once the create's own queued sync is done), so the task has no issue yet
+	await githubSyncSettled();
+	await db.insert(tables.project_github).values({ project_id: project.id, repo: "octo/board", nonce: "n", via_app: true, connected_by: owner.id });
+
+	// a quick second edit and the hourly run reach the task together
+	calls.length = 0;
+	await Promise.all([syncTask(task), syncTask(task), syncTask(task)]);
+	const posts = writes().filter((c) => c.method === "POST" && c.body?.title === "Race me");
+	assert.equal(posts.length, 1, "one issue, not three");
+	const rows = await db.select().from(tables.task_github_issue).where(eq(tables.task_github_issue.task_id, task));
+	assert.equal(rows.length, 1);
+	assert.ok(rows[0].number, "its number is saved");
+
+	// linking (or Sync now) and the hourly run overlap: the repo's issue #41 becomes one task
+	await Promise.all([syncLinkedProject(project.id), syncLinkedProject(project.id)]);
+	const imported = await db
+		.select()
+		.from(tables.task)
+		.where(and(eq(tables.task.project_id, project.id), eq(tables.task.name, "Existing bug")));
+	// (another test's project may have imported #41 from the same fake repo already)
+	assert.ok(imported.length <= 1, "never two copies");
+	const [link] = await db.select().from(tables.project_github).where(eq(tables.project_github.project_id, project.id));
+	assert.equal(link.sync_until, null, "the claim is let go when the sync ends");
 });
