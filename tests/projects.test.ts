@@ -108,3 +108,11 @@ test("moving a project up skips past projects you can't see, so the button alway
 	assert.equal(moved.data?.moveProject, true, JSON.stringify(moved.errors));
 	assert.deepEqual(await seen(), [a, c], "A moved above C in the member's sidebar");
 });
+
+test("two projects created at the same moment get different keys", async () => {
+	const owner = await makeUser("owner");
+	const { slug } = await makeWorkspace(owner);
+	const made = await Promise.all([1, 2, 3, 4].map(() => gql(owner, CREATE, { s: slug, i: input("Website") })));
+	const keys = made.map((r) => r.data?.createProject.key);
+	assert.equal(new Set(keys).size, keys.length, `all different: ${keys.join(", ")}`);
+});

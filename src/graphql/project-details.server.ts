@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gt, isNull, max, min } from "drizzle-orm";
+import { and, asc, count, eq, gt, isNull, max, min, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, tables } from "#/db";
 import { PRIORITY, PROJECT_STATUS, STATUS } from "#/db/enums";
@@ -316,6 +316,10 @@ export const projectDetailsResolvers = {
 			await checkRefs(workspace.id, { teamId: input.teamId, leadId });
 
 			const project = await db.transaction(async (tx) => {
+				// one new key per workspace at a time: two creates at once would pick the same one
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtext(${`pkey:${workspace.id}`}))`,
+				);
 				const siblings = await tx
 					.select({
 						key: tables.project.key,

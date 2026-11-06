@@ -371,6 +371,10 @@ export const projectsResolvers = {
 			const copy = await db.transaction(async (tx) => {
 				const { id: _id, created_at: _c, updated_at: _u, ...rest } = project;
 				// the copy needs its own key, or its tasks read WR-1, WR-2 like the original's
+				// one new key per workspace at a time: two copies at once would pick the same one
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtext(${`pkey:${workspace.id}`}))`,
+				);
 				const taken = await tx
 					.select({ key: tables.project.key })
 					.from(tables.project)
