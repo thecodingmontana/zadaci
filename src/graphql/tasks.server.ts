@@ -278,6 +278,15 @@ export async function enrichTasks(
 					dependsOn: tables.task_dependency.depends_on_id,
 				})
 				.from(tables.task_dependency)
+				// a deleted task isn't waited on (the row stays, so restoring it brings it back);
+				// listing it made every later dependency edit fail
+				.innerJoin(
+					tables.task,
+					and(
+						eq(tables.task.id, tables.task_dependency.depends_on_id),
+						isNull(tables.task.deleted_at),
+					),
+				)
 				.where(inArray(tables.task_dependency.task_id, ids)),
 			db
 				.select({ taskId: tables.favorite.entity_id })

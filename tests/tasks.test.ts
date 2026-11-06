@@ -261,6 +261,23 @@ test("two reactions at the same moment both count, and tasks can't wait on each 
 	assert.equal(code(await gql(owner, DEPS, { s: slug, id: b, d: [a] })), "BAD_USER_INPUT");
 });
 
+test("deleting a task another waits on doesn't lock that task's dependencies", async () => {
+	const { owner, slug, create } = await setup();
+	const DEPS = `mutation($s: String!, $id: ID!, $d: [ID!]!) { setDependencies(slug: $s, id: $id, dependsOn: $d) { id } }`;
+	const ONE = `query($s: String!, $t: ID!) { workspace(slug: $s) { task(id: $t) { dependsOn } } }`;
+	const [a, b, c] = await Promise.all(
+		["Waiter", "Gone", "Other"].map(async (title) => (await create(owner, { title })).data?.createTask.id),
+	);
+	await gql(owner, DEPS, { s: slug, id: a, d: [b] });
+	await gql(owner, `mutation($s: String!, $ids: [ID!]!) { deleteTasks(slug: $s, ids: $ids) }`, { s: slug, ids: [b] });
+	const deps = (await gql(owner, ONE, { s: slug, t: a })).data?.workspace.task.dependsOn;
+	assert.deepEqual(deps, [], "the deleted task isn't listed");
+	// the drawer sends the list it shows plus the new one: that must save
+	const res = await gql(owner, DEPS, { s: slug, id: a, d: [...deps, c] });
+	assert.equal(res.errors, undefined);
+	assert.deepEqual((await gql(owner, ONE, { s: slug, t: a })).data?.workspace.task.dependsOn, [c]);
+});
+
 test("duplicating a project copies tasks in bulk and keeps subtasks under their copied parent", async () => {
 	const { owner, slug, project, create } = await setup();
 	const parent = (await create(owner, { title: "Launch" })).data?.createTask.id;
