@@ -14,7 +14,12 @@ export const Route = createFileRoute("/api/client-error")({
 				const ip =
 					request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
 					"unknown";
-				if (!(await takeAllowance(`client-error:${ip}`, 1, 30, 60_000)))
+				// per address, and for everyone together: rotating addresses can't flood the error
+				// log and push real errors off the admin page
+				if (
+					!(await takeAllowance(`client-error:${ip}`, 1, 30, 60_000)) ||
+					!(await takeAllowance("client-error:all", 1, 300, 60_000))
+				)
 					return new Response(null, { status: 429 });
 				const text = (await request.text()).slice(0, MAX);
 				let report: { message?: unknown; stack?: unknown; path?: unknown };

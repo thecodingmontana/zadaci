@@ -37,3 +37,11 @@ test("pictures are checked before anything is uploaded", async () => {
 	assert.equal(notAdmin.status, 403, "a member can't change the workspace picture");
 	assert.equal((await send(owner.cookie, { file: png(10), kind: "avatar" })).status, 400, "not a real image");
 });
+
+test("one person can't loop uploads: past 20 a minute they're refused", async () => {
+	const owner = await makeUser("uploader");
+	const statuses: number[] = [];
+	// refused before any image work (a file that isn't an image answers 400, then 429)
+	for (let i = 0; i < 22; i++) statuses.push((await send(owner.cookie, { file: new File(["x"], "a.txt", { type: "text/plain" }), kind: "avatar" })).status);
+	assert.deepEqual([statuses[0], statuses[19], statuses[20]], [400, 400, 429]);
+});

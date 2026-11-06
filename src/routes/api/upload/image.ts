@@ -6,12 +6,15 @@ import {
 	signCloudinary,
 } from "#/graphql/settings.server";
 import { auth } from "#/lib/auth";
+import { takeAllowance } from "#/lib/rate-limit.server";
 import { crossSite, forbidden } from "#/lib/same-origin";
 
 // Profile and workspace pictures: the image comes here first, sharp turns it into a small square
 // WebP, and only that goes to Cloudinary, so pictures load fast and never store a 5 MB original.
 
 const MAX_IMAGE = 5 * 1024 * 1024;
+// a picture is changed now and then: this many a minute stops a loop burning CPU and Cloudinary
+const UPLOADS_PER_MINUTE = 20;
 const SIZE = 512;
 
 const fail = (status: number, error: string) =>
@@ -24,6 +27,15 @@ export const Route = createFileRoute("/api/upload/image")({
 				if (crossSite(request)) return forbidden(); // CSRF: only this site's pages
 				const session = await auth.api.getSession({ headers: request.headers });
 				if (!session) return fail(401, "Sign in first");
+				if (
+					!(await takeAllowance(
+						`upload:${session.user.id}`,
+						1,
+						UPLOADS_PER_MINUTE,
+						60_000,
+					))
+				)
+					return fail(429, "Too many uploads. Wait a minute and try again.");
 				const form = await request.formData().catch(() => null);
 				const file = form?.get("file");
 				const kind = String(form?.get("kind") ?? "");
