@@ -1,5 +1,7 @@
+import { notFound } from "@tanstack/react-router";
 import { lt } from "drizzle-orm";
 import { db, tables } from "#/db";
+import { auth } from "#/lib/auth";
 
 // What the admin page (/admin) watches: errors and background job runs, kept in the database
 // because the host's logs only last an hour.
@@ -42,4 +44,11 @@ export function isAdmin(email: string | null | undefined) {
 		.split(",")
 		.map((e) => e.trim())
 		.includes(email.toLowerCase());
+}
+
+/** Throws "not found" unless these request headers carry an admin's session (the admin data
+ * functions call this first). */
+export async function checkAdmin(headers: Headers) {
+	const session = await auth.api.getSession({ headers });
+	if (!isAdmin(session?.user.email)) throw notFound();
 }

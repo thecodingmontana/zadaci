@@ -62,7 +62,7 @@ test("admin: the dashboard's 60 days line up with today, and the directory lists
 });
 
 test("admin data: a signed-in non-admin (or nobody) gets 'not found'; every admin function checks", async () => {
-	const { checkAdmin } = await import("#/lib/session");
+	const { checkAdmin } = await import("#/lib/ops.server");
 	const { isNotFound } = await import("@tanstack/react-router");
 	const boss = await makeUser("admin-boss", false);
 	const someone = await makeUser("admin-someone", false);

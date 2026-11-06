@@ -1,4 +1,3 @@
-import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import {
 	getCookie,
@@ -56,15 +55,9 @@ export const getSignInLinkEmail = createServerFn({ method: "GET" })
 /** Stops anyone ADMIN_EMAILS doesn't list with "not found" (the page guard alone protects
  * nothing: these functions are reachable directly). Admin answers are never cached. */
 async function requireAdmin() {
+	const { checkAdmin } = await import("#/lib/ops.server");
 	await checkAdmin(getRequestHeaders());
 	setResponseHeaders(new Headers({ "Cache-Control": "no-store" }));
-}
-
-/** Throws "not found" unless these request headers carry an admin's session (tested on its own). */
-export async function checkAdmin(headers: Headers) {
-	const session = await auth.api.getSession({ headers });
-	const { isAdmin } = await import("#/lib/ops.server");
-	if (!isAdmin(session?.user.email)) throw notFound();
 }
 
 export const getAdminDashboard = createServerFn({ method: "GET" }).handler(
