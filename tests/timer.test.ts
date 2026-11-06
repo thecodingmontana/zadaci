@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { cleanup, gql, join, makeUser, makeWorkspace } from "./helpers";
 
@@ -33,4 +33,18 @@ test("one running timer per person; time adds up and a forgotten timer counts 12
 	const guest = await makeUser("viewer");
 	await join(guest, inviteCode);
 	assert.ok((await gql(await makeUser("outsider"), START, { s: slug, t: a.id })).errors, "outsiders can't log time");
+});
+
+test("two starts at the same moment (two tabs, an agent) leave one running timer", async () => {
+	const owner = await makeUser("owner");
+	const { slug } = await makeWorkspace(owner);
+	const [a, b] = (await gql(owner, `query($s: String!) { workspace(slug: $s) { tasks { id } } }`, { s: slug })).data?.workspace.tasks;
+	const results = await Promise.all([gql(owner, START, { s: slug, t: a.id }), gql(owner, START, { s: slug, t: b.id }), gql(owner, START, { s: slug, t: a.id })]);
+	for (const r of results) assert.equal(r.errors, undefined, JSON.stringify(r.errors));
+	const memberId = (await gql(owner, `query($s: String!) { workspace(slug: $s) { members { id isMe } } }`, { s: slug })).data?.workspace.members.find((m: { isMe: boolean }) => m.isMe).id;
+	const running = await db
+		.select()
+		.from(tables.time_entry)
+		.where(and(eq(tables.time_entry.member_id, memberId), isNull(tables.time_entry.ended_at)));
+	assert.equal(running.length, 1, "time isn't counted twice");
 });

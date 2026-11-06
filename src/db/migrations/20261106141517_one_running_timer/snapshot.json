@@ -1,0 +1,57 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "3ae6becc-0582-4a4d-abeb-03b1deafa080",
+  "prevIds": [
+    "d2af2e8e-0353-456d-945d-6140373460e3"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "app_time_entry",
+        "time_entry_one_running"
+      ],
+      "writes": [
+        "s|idx|public.time_entry_one_running",
+        "n|idx|public.time_entry_one_running",
+        "e|idx|public.time_entry_one_running",
+        "n|rel|public.time_entry_one_running"
+      ],
+      "reads": [
+        "n|tbl|public.app_time_entry",
+        "n|sch|public",
+        "n|col|public.app_time_entry.member_id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_time_entry",
+        "name": "time_entry_one_running",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "member_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": "\"ended_at\" is null",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    }
+  ]
+}

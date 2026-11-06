@@ -1,0 +1,3 @@
+-- stop all but each person's newest running timer first, so the rule can be created
+UPDATE "app_time_entry" t SET "ended_at" = now() WHERE t."ended_at" IS NULL AND EXISTS (SELECT 1 FROM "app_time_entry" n WHERE n."member_id" = t."member_id" AND n."ended_at" IS NULL AND (n."started_at", n."id") > (t."started_at", t."id"));--> statement-breakpoint
+CREATE UNIQUE INDEX "time_entry_one_running" ON "app_time_entry" ("member_id") WHERE "ended_at" is null;

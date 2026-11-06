@@ -510,9 +510,11 @@ export const taskExtrasResolvers = {
 			const member = workspace.memberId ?? "";
 			await db.transaction(async (tx) => {
 				await stopRunning(tx, member);
+				// a start at the same moment (another tab, an agent) already got the one running timer
 				await tx
 					.insert(tables.time_entry)
-					.values({ task_id: task.id, member_id: member });
+					.values({ task_id: task.id, member_id: member })
+					.onConflictDoNothing();
 			});
 			return true;
 		},

@@ -305,5 +305,9 @@ export const time_entry = pgTable(
 	(table) => [
 		index("time_entry_task_idx").on(table.task_id),
 		index("time_entry_member_idx").on(table.member_id, table.ended_at),
+		// one running timer per person: two starts at once (two tabs, an agent) can't both count
+		uniqueIndex("time_entry_one_running")
+			.on(table.member_id)
+			.where(sql`${table.ended_at} is null`),
 	],
 );
