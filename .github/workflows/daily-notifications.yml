@@ -18,6 +18,6 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET is not set"; exit 1; fi
-          curl -fsS --max-time 240 -X POST \
+          curl -fsS --max-time 290 -X POST \
             -H "Authorization: Bearer $CRON_SECRET" \
             "$APP_URL/api/cron/daily"
