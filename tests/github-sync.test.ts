@@ -355,3 +355,28 @@ test("github sync: a run that hits its time limit stops, says so, and leaves the
 	assert.equal(await syncLinkedProject(project.id), "done");
 	assert.ok(writes().filter((c) => c.method === "POST").length >= 6, "the sample project's tasks got their issues");
 });
+
+test("github sync: a deleted task whose close GitHub refused gets its issue closed by the next repair", async () => {
+	const owner = await makeUser("ghs-gone", false);
+	const { slug } = await makeWorkspace(owner);
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
+	await db.insert(tables.github_account).values({ user_id: owner.id, login: "octo", token: sealKey("ghu_fake", owner.id, "github") });
+	await act(owner, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "octo/board") { viaApp } }`, { s: slug, p: project.id });
+	const task = (await act(owner, CREATE, { s: slug, i: { projectId: project.id, title: "Short-lived" } })).data?.createTask.id;
+	const { number } = (await db.select().from(tables.task_github_issue).where(eq(tables.task_github_issue.task_id, task)))[0];
+
+	// GitHub refuses the close once (a rate limit)
+	failOnce.add(`PATCH /repos/octo/board/issues/${number}`);
+	const log = mock.method(console, "error", () => {});
+	try {
+		await act(owner, `mutation($s: String!, $ids: [ID!]!) { deleteTasks(slug: $s, ids: $ids) }`, { s: slug, ids: [task] });
+	} finally {
+		log.mock.restore();
+	}
+	calls.length = 0;
+	await syncLinkedProject(project.id);
+	assert.ok(
+		writes().some((c) => c.method === "PATCH" && c.path === `/repos/octo/board/issues/${number}` && c.body?.state === "closed"),
+		"the repair closed it",
+	);
+});

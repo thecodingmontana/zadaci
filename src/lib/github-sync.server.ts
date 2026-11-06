@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
 import { db, tables } from "#/db";
 import { STATUS } from "#/db/enums";
 import { userClock } from "#/lib/ai/limits.server";
@@ -351,16 +351,23 @@ async function syncLinkedProjectNow(projectId: string, deadline: number) {
 			importIssue(ctx, projectId, link.repo, issue),
 		);
 	// every task, not only those without an issue: an earlier sync that stopped part-way gets
-	// finished (syncTask writes nothing when GitHub already matches)
+	// finished (syncTask writes nothing when GitHub already matches). Deleted and archived ones
+	// too while they still have an issue: if closing it failed once, this closes it
 	const tasks = await db
 		.select({ id: tables.task.id })
 		.from(tables.task)
+		.leftJoin(
+			tables.task_github_issue,
+			eq(tables.task_github_issue.task_id, tables.task.id),
+		)
 		.where(
 			and(
 				eq(tables.task.project_id, projectId),
 				isNull(tables.task.parent_task_id),
-				isNull(tables.task.deleted_at),
-				isNull(tables.task.archived_at),
+				or(
+					and(isNull(tables.task.deleted_at), isNull(tables.task.archived_at)),
+					sql`${tables.task_github_issue.task_id} is not null`,
+				),
 			),
 		)
 		.orderBy(asc(tables.task.number));
