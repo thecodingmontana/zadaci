@@ -561,10 +561,22 @@ export async function applyIssueEvent({
 			if (await importIssue(ctx, projectId, link.repo, issue)) changed++;
 			continue;
 		}
+		// events can arrive out of order or be redelivered: act on the issue as it is now on
+		// GitHub, not as this event says it was (else "closed, reopened" arriving reversed leaves
+		// the task done while the issue is open, and the saved fingerprint hides it for good)
+		let current = issue;
+		if (action !== "deleted") {
+			const res = await github(
+				link.token,
+				`/repos/${repo}/issues/${issue.number}`,
+			);
+			const now = res.ok ? ((await res.json()) as Partial<Issue>) : null;
+			if (now?.state && now.title !== undefined) current = { ...issue, ...now };
+		}
 		const seen = fingerprint({
-			title: issue.title,
-			body: issue.body ?? "",
-			state: issue.state,
+			title: current.title,
+			body: current.body ?? "",
+			state: current.state,
 		});
 		if (seen === mapped.hash) continue; // our own write, coming back
 		const write = (query: string, variables: Record<string, unknown>) =>
@@ -578,18 +590,18 @@ export async function applyIssueEvent({
 						`mutation($slug: String!, $ids: [ID!]!) { deleteTasks(slug: $slug, ids: $ids) }`,
 						{ ids: [mapped.taskId] },
 					)
-				: action === "closed"
-					? await write(PATCH, { p: { status: "completed" } })
-					: action === "reopened"
-						? await write(PATCH, { p: { status: "todo" } })
-						: action === "edited"
-							? await write(PATCH, {
-									p: {
-										title: issue.title.slice(0, 500),
-										description: descriptionOf(issue.body),
-									},
-								})
-							: null;
+				: action === "closed" || action === "reopened"
+					? await write(PATCH, {
+							p: { status: current.state === "closed" ? "completed" : "todo" },
+						})
+					: action === "edited"
+						? await write(PATCH, {
+								p: {
+									title: current.title.slice(0, 500),
+									description: descriptionOf(current.body),
+								},
+							})
+						: null;
 		if (!done) continue;
 		if ("error" in done) {
 			await recordError("github", `${repo}#${issue.number}: ${done.error}`);

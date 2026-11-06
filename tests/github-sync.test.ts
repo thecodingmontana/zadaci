@@ -24,6 +24,8 @@ type Call = { method: string; path: string; body?: Record<string, unknown> };
 const calls: Call[] = [];
 let next = 100;
 const failOnce = new Set<string>();
+// an issue as it is on GitHub right now (what a GET answers), when a test sets one
+const issueNow = new Map<number, { number: number; title: string; body: string; state: string }>();
 // GitHub makes boards for organizations' apps; on a personal account it refuses
 let boards = false;
 const OPTIONS = [
@@ -52,7 +54,10 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 	const body = init?.body ? JSON.parse(String(init.body)) : undefined;
 	calls.push({ method, path, body });
 	if (path === "/graphql") return boardApi(String(body?.query), body?.variables ?? {});
-	if (method === "GET" && /\/issues\/\d+$/.test(path)) return Response.json({ node_id: `issue-${path.split("/").pop()}` });
+	if (method === "GET" && /\/issues\/\d+$/.test(path)) {
+		const n = Number(path.split("/").pop());
+		return Response.json({ node_id: `issue-${n}`, ...issueNow.get(n) });
+	}
 	if (path.startsWith("/user/installations?")) return Response.json({ installations: [{ id: 7 }] });
 	if (path.startsWith("/user/installations/7/repositories")) return Response.json({ repositories: [{ full_name: "octo/board" }] });
 	if (method === "GET" && path.startsWith("/repos/octo/board/issues"))
@@ -379,4 +384,23 @@ test("github sync: a deleted task whose close GitHub refused gets its issue clos
 		writes().some((c) => c.method === "PATCH" && c.path === `/repos/octo/board/issues/${number}` && c.body?.state === "closed"),
 		"the repair closed it",
 	);
+});
+
+test("github sync: events arriving out of order follow the issue as it is now", async () => {
+	const owner = await makeUser("ghs-order", false);
+	const { slug } = await makeWorkspace(owner);
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
+	await db.insert(tables.github_account).values({ user_id: owner.id, login: "octo", token: sealKey("ghu_fake", owner.id, "github") });
+	await act(owner, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "octo/board") { viaApp } }`, { s: slug, p: project.id });
+	const task = (await act(owner, CREATE, { s: slug, i: { projectId: project.id, title: "Flip flop" } })).data?.createTask.id;
+	const { number } = (await db.select().from(tables.task_github_issue).where(eq(tables.task_github_issue.task_id, task)))[0];
+	const repository = { full_name: "octo/board" };
+
+	// closed then reopened on GitHub, but "closed" is delivered last: the issue is open now
+	issueNow.set(number as number, { number: number as number, title: "Flip flop", body: "", state: "open" });
+	await deliver("issues", { action: "reopened", repository, issue: { number, title: "Flip flop", body: "", state: "open" } });
+	await deliver("issues", { action: "closed", repository, issue: { number, title: "Flip flop", body: "", state: "closed" } });
+	const [row] = await db.select().from(tables.task).where(eq(tables.task.id, task));
+	assert.notEqual(row.status, "completed", "the issue is open, so the task isn't done");
+	issueNow.clear();
 });
