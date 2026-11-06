@@ -201,3 +201,23 @@ test("mentioning someone in a page tells them once, and only if they can see the
 	const bad = { type: "doc", content: [{ type: "paragraph", content: [{ type: "mention", attrs: { id: "<x>", label: "x" } }] }] };
 	assert.ok((await save(page.id, bad)).errors?.length);
 });
+
+test("two moves at once (A under B, B under A) can't make a loop that hides both pages", async () => {
+	const { owner, member, slug } = await setup();
+	const a = (await create(owner, slug, { title: "Alpha" })).data?.createNote;
+	const b = (await create(owner, slug, { title: "Beta" })).data?.createNote;
+	const MOVE = `mutation($s: String!, $id: ID!, $p: ID, $o: Float!) { moveNote(slug: $s, id: $id, parentId: $p, sortOrder: $o) { id parentId } }`;
+	for (let round = 0; round < 5; round++) {
+		await Promise.all([
+			gql(owner, MOVE, { s: slug, id: a.id, p: null, o: 1 }),
+			gql(owner, MOVE, { s: slug, id: b.id, p: null, o: 2 }),
+		]);
+		await Promise.all([
+			gql(owner, MOVE, { s: slug, id: a.id, p: b.id, o: 1 }),
+			gql(member, MOVE, { s: slug, id: b.id, p: a.id, o: 1 }),
+		]);
+		const pages = await list(owner, slug);
+		const parentOf = (id: string) => pages.find((n) => n.id === id)?.parentId;
+		assert.ok(!(parentOf(a.id) === b.id && parentOf(b.id) === a.id), "never each inside the other");
+	}
+});

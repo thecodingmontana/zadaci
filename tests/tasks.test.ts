@@ -278,6 +278,21 @@ test("deleting a task another waits on doesn't lock that task's dependencies", a
 	assert.deepEqual((await gql(owner, ONE, { s: slug, t: a })).data?.workspace.task.dependsOn, [c]);
 });
 
+test("two people making two tasks wait on each other at the same moment: only one gets through", async () => {
+	const { owner, member, slug, create } = await setup();
+	const DEPS = `mutation($s: String!, $id: ID!, $d: [ID!]!) { setDependencies(slug: $s, id: $id, dependsOn: $d) { id } }`;
+	const ONE = `query($s: String!, $t: ID!) { workspace(slug: $s) { task(id: $t) { dependsOn } } }`;
+	for (let round = 0; round < 5; round++) {
+		const [a, b] = await Promise.all(
+			["Ping", "Pong"].map(async (title) => (await create(owner, { title: `${title} ${round}` })).data?.createTask.id),
+		);
+		await Promise.all([gql(owner, DEPS, { s: slug, id: a, d: [b] }), gql(member, DEPS, { s: slug, id: b, d: [a] })]);
+		const aWaits = (await gql(owner, ONE, { s: slug, t: a })).data?.workspace.task.dependsOn;
+		const bWaits = (await gql(owner, ONE, { s: slug, t: b })).data?.workspace.task.dependsOn;
+		assert.ok(!(aWaits.includes(b) && bWaits.includes(a)), "never waiting on each other");
+	}
+});
+
 test("duplicating a project copies tasks in bulk and keeps subtasks under their copied parent", async () => {
 	const { owner, slug, project, create } = await setup();
 	const parent = (await create(owner, { title: "Launch" })).data?.createTask.id;

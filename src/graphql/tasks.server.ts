@@ -1433,21 +1433,28 @@ export const tasksResolvers = {
 					);
 				if (same.length !== ids.length)
 					badInput("A task can only wait on tasks in the same project");
-				// a task can't wait on something that (through others) waits on it
-				const loop = await db.execute<{ id: string }>(sql`
-					with recursive up as (
-						select task_id as id from ${tables.task_dependency}
-						where depends_on_id = ${task.id}
-						union
-						select d.task_id from ${tables.task_dependency} d join up on d.depends_on_id = up.id
-					)
-					select id from up
-				`);
-				if ([...loop].some((r) => ids.includes(r.id)))
-					badInput("That would make tasks wait on each other");
 			}
 			// replace the list in one go: a double click or a crash can't leave it half-written
 			await db.transaction(async (tx) => {
+				// one dependency change per project at a time, checked inside the write: two at once
+				// (A waits on B, B waits on A) would each pass a check made beforehand
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtext(${`deps:${task.project_id}`}))`,
+				);
+				// a task can't wait on something that (through others) waits on it
+				if (ids.length) {
+					const loop = await tx.execute<{ id: string }>(sql`
+						with recursive up as (
+							select task_id as id from ${tables.task_dependency}
+							where depends_on_id = ${task.id}
+							union
+							select d.task_id from ${tables.task_dependency} d join up on d.depends_on_id = up.id
+						)
+						select id from up
+					`);
+					if ([...loop].some((r) => ids.includes(r.id)))
+						badInput("That would make tasks wait on each other");
+				}
 				await tx
 					.delete(tables.task_dependency)
 					.where(eq(tables.task_dependency.task_id, task.id));

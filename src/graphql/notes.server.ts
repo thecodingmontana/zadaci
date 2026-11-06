@@ -883,7 +883,11 @@ export const notesResolvers = {
 			// moving into another project changes who can see the pages
 			if (projectId !== note.project_id && right !== "full") forbidden();
 			await db.transaction(async (tx) => {
-				// re-check inside the write: two moves at once could otherwise make a loop
+				// re-check inside the write, one move per workspace at a time: two moves at once
+				// (A under B, B under A) would each pass and make a loop that hides both pages
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtext(${`notes:${workspace.id}`}))`,
+				);
 				if (parentId && (await subtree(note.id, tx)).includes(parentId))
 					badInput("A page can't go inside itself");
 				await tx
