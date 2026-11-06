@@ -337,3 +337,21 @@ test("github sync: two syncs at once open one issue for a task, and import each 
 	const [link] = await db.select().from(tables.project_github).where(eq(tables.project_github.project_id, project.id));
 	assert.equal(link.sync_until, null, "the claim is let go when the sync ends");
 });
+
+test("github sync: a run that hits its time limit stops, says so, and leaves the rest for the next run", async () => {
+	const owner = await makeUser("ghs-deadline", false);
+	const { slug } = await makeWorkspace(owner);
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
+	await db.insert(tables.github_account).values({ user_id: owner.id, login: "octo", token: sealKey("ghu_fake", owner.id, "github") });
+	await githubSyncSettled();
+	await db.insert(tables.project_github).values({ project_id: project.id, repo: "octo/board", nonce: "n2", via_app: true, connected_by: owner.id });
+	calls.length = 0;
+	// Vercel would stop the function: past its deadline, the run starts nothing new
+	assert.equal(await syncLinkedProject(project.id, Date.now() - 1), "stopped");
+	assert.equal(writes().filter((c) => c.method === "POST").length, 0);
+	const result = await syncAllLinkedProjects(Date.now() - 1);
+	assert.ok(result.unfinished >= 1 && result.unfinished <= result.linked, JSON.stringify(result));
+	// with time to spare, the next run finishes it
+	assert.equal(await syncLinkedProject(project.id), "done");
+	assert.ok(writes().filter((c) => c.method === "POST").length >= 6, "the sample project's tasks got their issues");
+});

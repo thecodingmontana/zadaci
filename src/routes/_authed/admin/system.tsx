@@ -33,6 +33,8 @@ const RESULT_LABEL: Record<string, string> = {
 	reminders: "Reminders sent",
 	digests: "Digests sent",
 	github: "GitHub links checked",
+	"github linked": "GitHub links checked",
+	"github unfinished": "GitHub links left for the next run",
 	error: "Error",
 };
 

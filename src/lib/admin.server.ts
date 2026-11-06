@@ -5,6 +5,22 @@ import { db, tables } from "#/db";
 // Health and lists only: no task text, notes or messages.
 
 const DAY = 86_400_000;
+
+/** A job's result as label → value rows: { github: { linked: 2 } } becomes "github linked": 2. */
+function flatten(
+	result: Record<string, unknown>,
+	prefix = "",
+): Record<string, string | number | boolean | null> {
+	return Object.fromEntries(
+		Object.entries(result).flatMap(([k, v]) =>
+			v && typeof v === "object"
+				? Object.entries(
+						flatten(v as Record<string, unknown>, `${prefix}${k} `),
+					)
+				: [[`${prefix}${k}`, v as string | number | boolean | null]],
+		),
+	);
+}
 const n = sql<number>`count(*)::int`;
 
 /** System: the hourly job, kept errors, GitHub links and the database. */
@@ -70,10 +86,7 @@ export async function adminSystem() {
 			name: j.name,
 			at: j.at.toISOString(),
 			ok: j.ok,
-			result: (j.result ?? {}) as Record<
-				string,
-				string | number | boolean | null
-			>,
+			result: flatten((j.result ?? {}) as Record<string, unknown>),
 		})),
 		errors: errors.map((e) => ({
 			id: e.id,

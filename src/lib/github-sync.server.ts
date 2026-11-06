@@ -276,9 +276,17 @@ type Issue = {
 /** Right after linking: the repo's open issues become tasks, and its tasks get issues (closed for done ones). */
 const LEASE = sql`now() + interval '10 minutes'`;
 
+/** How long a sync may run: Vercel stops a function at 300 s, so stop starting new work at 240 s
+ * and let the next run carry on from where this one stopped (tests set GITHUB_SYNC_BUDGET_MS). */
+export const syncDeadline = () =>
+	Date.now() + Number(process.env.GITHUB_SYNC_BUDGET_MS ?? 240_000);
+
 /** One sync of a project at a time (linking, Sync now and the hourly run can overlap, and two at
  * once would import the same issues twice): claim the project, and skip it if another sync has. */
-export async function syncLinkedProject(projectId: string) {
+export async function syncLinkedProject(
+	projectId: string,
+	deadline = syncDeadline(),
+): Promise<"done" | "stopped" | "busy"> {
 	const pg = tables.project_github;
 	const [claimed] = await db
 		.update(pg)
@@ -290,9 +298,9 @@ export async function syncLinkedProject(projectId: string) {
 			),
 		)
 		.returning({ id: pg.project_id });
-	if (!claimed) return;
+	if (!claimed) return "busy";
 	try {
-		await syncLinkedProjectNow(projectId);
+		return await syncLinkedProjectNow(projectId, deadline);
 	} finally {
 		await db
 			.update(pg)
@@ -301,9 +309,9 @@ export async function syncLinkedProject(projectId: string) {
 	}
 }
 
-async function syncLinkedProjectNow(projectId: string) {
+async function syncLinkedProjectNow(projectId: string, deadline: number) {
 	const link = await linkOf(projectId);
-	if (!link) return;
+	if (!link) return "done";
 	// shortcut: the 100 most recent open issues; page through more if repos get bigger
 	const res = await github(
 		link.token,
@@ -322,11 +330,16 @@ async function syncLinkedProjectNow(projectId: string) {
 		).map((r) => r.number),
 	);
 	const ctx = await actingAs(link);
-	if (!ctx) return;
+	if (!ctx) return "done";
 	// the repo's board, before the tasks below put their issues on it
 	await ensureBoard({ ...link, projectId });
 	// one failure (a rate limit, say) doesn't stop the rest; running it again picks up what's left
+	let stopped = false;
 	const each = async (what: string, work: () => Promise<unknown>) => {
+		if (stopped || Date.now() > deadline) {
+			stopped = true;
+			return;
+		}
 		try {
 			if (await work()) await pause();
 		} catch (error) {
@@ -352,6 +365,7 @@ async function syncLinkedProjectNow(projectId: string) {
 		)
 		.orderBy(asc(tables.task.number));
 	for (const t of tasks) await each(`task ${t.id}`, () => syncTask(t.id));
+	return stopped ? "stopped" : "done";
 }
 
 // GitHub asks for about a second between writes that create content, or it answers 403 (its
@@ -364,16 +378,26 @@ const pause = () =>
 
 /** The hourly job's repair pass: finishes whatever a refused or interrupted write left behind,
  * so nobody has to press Sync now. Unchanged tasks cost no GitHub calls. */
-export async function syncAllLinkedProjects() {
+export async function syncAllLinkedProjects(deadline = syncDeadline()) {
 	const links = await db
 		.select({ id: tables.project_github.project_id })
 		.from(tables.project_github)
 		.where(eq(tables.project_github.via_app, true));
-	for (const { id } of links)
-		await syncLinkedProject(id).catch((error) =>
-			recordError("github", `project ${id}: ${(error as Error).message}`),
+	let unfinished = 0;
+	for (const { id } of links) {
+		const outcome = await syncLinkedProject(id, deadline).catch(
+			async (error) => {
+				await recordError(
+					"github",
+					`project ${id}: ${(error as Error).message}`,
+				);
+				return "done" as const;
+			},
 		);
-	return links.length;
+		if (outcome === "stopped" || Date.now() > deadline) unfinished++;
+	}
+	// the admin page shows this: a backlog bigger than one run carries on next hour
+	return { linked: links.length, unfinished };
 }
 
 /** Queue the first sync of a newly linked project. */
