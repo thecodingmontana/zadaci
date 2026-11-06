@@ -60,3 +60,26 @@ test("admin: the dashboard's 60 days line up with today, and the directory lists
 	assert.ok(dir.people.some((p) => p.email === me.email && p.joined));
 	assert.ok(Array.isArray(dir.workspaces));
 });
+
+test("admin data: a signed-in non-admin (or nobody) gets 'not found'; every admin function checks", async () => {
+	const { checkAdmin } = await import("#/lib/session");
+	const { isNotFound } = await import("@tanstack/react-router");
+	const boss = await makeUser("admin-boss", false);
+	const someone = await makeUser("admin-someone", false);
+	process.env.ADMIN_EMAILS = boss.email;
+	try {
+		await checkAdmin(new Headers({ cookie: boss.cookie }));
+		for (const headers of [new Headers({ cookie: someone.cookie }), new Headers()]) {
+			await assert.rejects(checkAdmin(headers), (e) => isNotFound(e));
+		}
+	} finally {
+		process.env.ADMIN_EMAILS = "";
+	}
+	// the data functions are only reachable through the guard: removing it from one fails here
+	const { readFileSync } = await import("node:fs");
+	const source = readFileSync("src/lib/session.ts", "utf8");
+	const fns = source.match(/export const getAdmin\w+ = createServerFn\([^)]*\)\.handler\(\s*async \(\) => \{\s*await requireAdmin\(\);/g) ?? [];
+	const all = source.match(/export const getAdmin\w+/g) ?? [];
+	assert.equal(all.length, 3);
+	assert.equal(fns.length, all.length, "each getAdmin* starts with requireAdmin()");
+});
