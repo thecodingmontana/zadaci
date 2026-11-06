@@ -1,11 +1,12 @@
 const KEY = "zadaci.next";
 
-// Only same-site relative paths, so this can't become an open redirect.
+// Only same-site relative paths, so this can't become an open redirect. Tabs, newlines and
+// backslashes are refused: browsers drop or flip them, so "/\t/evil.com" would mean //evil.com.
 export function safePath(path: unknown): string | undefined {
 	return typeof path === "string" &&
 		path.startsWith("/") &&
-		!path.startsWith("//") &&
-		!path.startsWith("/\\")
+		!/[\t\r\n\\]/.test(path) &&
+		new URL(path, "http://x").host === "x"
 		? path
 		: undefined;
 }
