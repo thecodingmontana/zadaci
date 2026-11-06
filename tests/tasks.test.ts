@@ -420,6 +420,18 @@ test("a notification shows once in the inbox after its task moves to another pro
 	assert.equal(new Set(ids).size, ids.length, "no notification twice");
 });
 
+test("an edit refused for its assignee saves none of its other changes", async () => {
+	const { owner, slug, create } = await setup();
+	const task = (await create(owner, { title: "Keep me" })).data?.createTask;
+	const res = await gql(owner, UPDATE, { s: slug, id: task.id, p: { title: "Half saved", priority: "urgent", assigneeId: "not-a-member" } });
+	assert.ok(res.errors?.length, "refused");
+	const one = await gql(owner, `query($s: String!, $t: ID!) { workspace(slug: $s) { task(id: $t) { name priority } } }`, { s: slug, t: task.id });
+	const now = one.data?.workspace.task;
+	assert.ok(now, JSON.stringify(one.errors));
+	assert.equal(now.name, "Keep me", "not renamed");
+	assert.notEqual(now.priority, "urgent", "priority not changed");
+});
+
 test("undoing a delete brings back everyone's stars on the task", async () => {
 	const { owner, member, slug, project, create } = await setup();
 	const task = (await create(owner, { title: "Starred" })).data?.createTask;

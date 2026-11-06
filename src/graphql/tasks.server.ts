@@ -535,7 +535,16 @@ const addDays = (date: Date, days: number) => {
  * completion dates, the "moved/completed/reopened" feed lines, and the next copy of a
  * repeating task when it gets done.
  */
+/** Refuse assignees who can't see the project before anything is written, so a bad one can't
+ * leave half the edit saved. */
+async function checkAssignees(actor: Actor, projectId: string, patch: Patch) {
+	if (patch.assigneeId === undefined && patch.assigneeIds === undefined) return;
+	for (const m of assigneesOf(patch))
+		await checkAssignee(actor.workspace.id, projectId, m);
+}
+
 async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
+	await checkAssignees(actor, task.project_id, patch);
 	const set: Partial<typeof tables.task.$inferInsert> = {};
 	const logs: [string, string?][] = [];
 	if (patch.title !== undefined && patch.title !== task.name) {
@@ -656,8 +665,6 @@ async function applyPatch(actor: Actor, task: TaskRow, patch: Patch) {
 	if (statusApplied) logs.splice(statusAt, 0, ...statusLogs);
 	if (patch.assigneeId !== undefined || patch.assigneeIds !== undefined) {
 		const next = assigneesOf(patch);
-		for (const m of next)
-			await checkAssignee(actor.workspace.id, task.project_id, m);
 		// lock the task so two edits at once can't leave a mix of both lists
 		const { added, removed } = await db.transaction(async (tx) => {
 			await tx
@@ -1202,6 +1209,8 @@ export const tasksResolvers = {
 				const target = await requireProject(ctx, args.slug, patch.projectId, {
 					right: "edit",
 				});
+				// checked against where it's going, before it moves
+				await checkAssignees(actor, patch.projectId, patch);
 				await moveToProject(actor, task, patch.projectId, target.project.title);
 			}
 			await applyPatch(
