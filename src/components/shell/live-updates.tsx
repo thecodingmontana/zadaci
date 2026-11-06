@@ -43,12 +43,14 @@ export function LiveUpdates({
 			// and Supabase refuses the private channel
 			if (config.private) await realtime.setAuth();
 			if (gone) return realtime.disconnect();
-			const refresh = spaced(() =>
-				client.refetchQueries({ include: "active" }),
+			const refresh = whenSeen(
+				spaced(() => client.refetchQueries({ include: "active" })),
 			);
-			const refreshChats = spaced(
-				() => client.refetchQueries({ include: ["ChatChannels"] }),
-				CHAT_GAP_MS,
+			const refreshChats = whenSeen(
+				spaced(
+					() => client.refetchQueries({ include: ["ChatChannels"] }),
+					CHAT_GAP_MS,
+				),
 			);
 			let connected = false;
 			const channel = realtime
@@ -113,6 +115,34 @@ export function spaced(run: () => unknown, gapMs = MIN_GAP_MS) {
 		);
 	};
 	call.cancel = () => clearTimeout(timer);
+	return call;
+}
+
+/** A tab in the background doesn't reload anything: it notes that something changed and catches
+ * up once when it's shown again (otherwise one person typing reloads every open tab). */
+export function whenSeen(
+	run: (() => unknown) & { cancel: () => void },
+	page: Pick<
+		Document,
+		"visibilityState" | "addEventListener" | "removeEventListener"
+	> = document,
+) {
+	let missed = false;
+	const call = () => {
+		if (page.visibilityState === "hidden") missed = true;
+		else run();
+	};
+	const onShow = () => {
+		if (missed && page.visibilityState === "visible") {
+			missed = false;
+			run();
+		}
+	};
+	page.addEventListener("visibilitychange", onShow);
+	call.cancel = () => {
+		run.cancel();
+		page.removeEventListener("visibilitychange", onShow);
+	};
 	return call;
 }
 

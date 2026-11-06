@@ -118,6 +118,19 @@ export function announceChat(
 }
 
 /** The workspace a mutation changed: its fields' `slug` argument, as written or as a variable. */
+// changes nobody else sees (your favourites, a running timer) or that save nothing (signing an
+// upload): announcing them would make every teammate's page reload for nothing
+const UNSEEN = new Set([
+	"attachmentUpload",
+	"noteCoverUpload",
+	"chatUpload",
+	"toggleFavorite",
+	"toggleTaskFavorite",
+	"toggleNoteFavorite",
+	"toggleBookmarkFavorite",
+	"startTimer",
+]);
+
 export function mutationSlugs(
 	document: DocumentNode,
 	variables: Record<string, unknown> | null | undefined,
@@ -130,6 +143,7 @@ export function mutationSlugs(
 		if (field.kind !== Kind.FIELD) continue;
 		// chat sends its own, narrower updates (announceChat): a message mustn't reload every page
 		if (field.name.value.includes("Chat")) continue;
+		if (UNSEEN.has(field.name.value)) continue;
 		const arg = field.arguments?.find((a) => a.name.value === "slug")?.value;
 		const value =
 			arg?.kind === Kind.STRING

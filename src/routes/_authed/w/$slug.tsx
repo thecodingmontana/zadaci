@@ -121,6 +121,8 @@ function ShellLayout() {
 	const counts = useQuery(NOTIFICATION_COUNTS, {
 		variables: { slug },
 		pollInterval: 60_000,
+		// not while the tab is in the background (live updates catch it up when it's shown)
+		skipPollAttempt: () => document.visibilityState === "hidden",
 	}).data?.workspace;
 	const unread = {
 		all: counts?.unreadNotifications ?? 0,
