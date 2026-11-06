@@ -141,6 +141,7 @@ export const yoga = createYoga<object, GraphQLContext>({
 		const session = await auth.api.getSession({ headers: request.headers });
 		return {
 			user: session?.user ?? null,
+			signedInAt: session ? new Date(session.session.createdAt) : undefined,
 			tab: tabFrom(request.headers.get("x-tab")),
 		};
 	},

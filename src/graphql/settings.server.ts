@@ -372,6 +372,14 @@ export const settingsResolvers = {
 			const user = requireUser(ctx);
 			if (args.email.trim().toLowerCase() !== user.email.toLowerCase())
 				badInput("Type your email exactly to confirm");
+			// the email is on screen for anyone holding the session: also ask for a recent sign-in
+			if (
+				!ctx.signedInAt ||
+				Date.now() - ctx.signedInAt.getTime() > 10 * 60_000
+			)
+				badInput(
+					"For your security, sign out and back in, then delete your account within 10 minutes.",
+				);
 			try {
 				await deleteAccount(user.id);
 			} catch (error) {

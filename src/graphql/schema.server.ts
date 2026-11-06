@@ -90,6 +90,8 @@ async function findInvite(code: string, userId: string) {
 
 export type GraphQLContext = {
 	user: { id: string; email: string; name: string } | null;
+	/** when this browser session signed in (none for agents), for actions that need a recent sign-in */
+	signedInAt?: Date;
 	/** the browser tab that sent the request (lib/tab), so its own live updates are skipped */
 	tab?: string | null;
 };

@@ -123,10 +123,16 @@ async function endAgentTokens(
  * removing a passkey need a recent sign-in, not just a session: with no password to ask for, a
  * stolen cookie or an unlocked laptop could otherwise strip the second factor.
  */
+// a stolen session cookie alone can't lock the owner out: turning two-step on (with the thief's
+// authenticator) or adding a passkey needs a recent sign-in too
 const FRESH_ONLY = new Set([
+	"/two-factor/enable",
 	"/two-factor/disable",
 	"/two-factor/generate-backup-codes",
 	"/two-factor/get-totp-uri",
+	"/passkey/generate-register-options",
+	"/passkey/verify-registration",
+	"/passkey/register",
 	"/passkey/delete-passkey",
 ]);
 const FRESH_MINUTES = 10;

@@ -55,3 +55,20 @@ test("2fa: turning it off needs a recent sign-in, not just a session cookie", as
 	await db.update(tables.session).set({ createdAt: new Date() }).where(eq(tables.session.userId, me.id));
 	assert.equal((await disable()).status, 200);
 });
+
+test("2fa: turning it on or adding a passkey also needs a recent sign-in (a thief can't lock the owner out)", async () => {
+	const me = await makeUser("fresh-enable", false);
+	await db
+		.update(tables.session)
+		.set({ createdAt: new Date(Date.now() - 60 * 60 * 1000) })
+		.where(eq(tables.session.userId, me.id));
+	for (const path of ["/api/auth/two-factor/enable", "/api/auth/passkey/generate-register-options"]) {
+		const res = await call(path, {
+			method: path.endsWith("enable") ? "POST" : "GET",
+			cookie: me.cookie,
+			headers: { "content-type": "application/json" },
+			...(path.endsWith("enable") ? { body: JSON.stringify({}) } : {}),
+		});
+		assert.equal(res.status, 403, path);
+	}
+});

@@ -32,6 +32,12 @@ test("deleting erases the person, leaves their workspaces, and drops the ones on
 	assert.equal(data.profile?.email, amina.email);
 	assert.equal(data.workspaces.length, 2);
 
+	// an hour-old session (a stolen cookie) can't delete the account, even knowing the email
+	const session = eq(tables.session.userId, amina.id);
+	await db.update(tables.session).set({ createdAt: new Date(Date.now() - 60 * 60_000) }).where(session);
+	assert.match((await gql(amina, DELETE, { e: amina.email })).errors?.[0]?.message ?? "", /sign out and back in/);
+	await db.update(tables.session).set({ createdAt: new Date() }).where(session);
+
 	assert.equal((await gql(amina, DELETE, { e: amina.email.toUpperCase() })).data?.deleteMyAccount, true);
 	const [row] = await db.select().from(tables.user).where(eq(tables.user.id, amina.id));
 	assert.equal(row?.name, "Deleted user");
