@@ -129,7 +129,12 @@ export const Route = createFileRoute("/api/chat")({
 				const answering =
 					!!params.resume?.length &&
 					text === null &&
-					(await awaitingApproval(threadId, session.user.id));
+					(await awaitingApproval(
+						threadId,
+						session.user.id,
+						params.messages.filter((m: { role?: string }) => m.role === "user")
+							.length,
+					));
 				const counted = !own && !answering;
 				if (counted && !(await takeMessage(session.user.id, today)))
 					return sseError(

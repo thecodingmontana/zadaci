@@ -45,7 +45,7 @@ test("a chat only counts as waiting for approval while Zad's last turn has tool 
 	const [ws] = await db.select({ id: tables.workspace.id }).from(tables.workspace).where(eq(tables.workspace.slug, slug));
 	const thread = `t${Date.now()}`;
 	const store = chatStore({ userId: amina.id, workspaceId: ws.id, model: () => null });
-	assert.equal(await awaitingApproval(thread, amina.id), false, "no saved chat");
+	assert.equal(await awaitingApproval(thread, amina.id, 0), false, "no saved chat");
 	const asked: ModelMessage = { role: "user", content: "Delete the old task" };
 	const paused = {
 		role: "assistant",
@@ -53,8 +53,10 @@ test("a chat only counts as waiting for approval while Zad's last turn has tool 
 		toolCalls: [{ id: "c1", type: "function", function: { name: "deleteTask", arguments: "{}" } }],
 	} as ModelMessage;
 	await store.saveThread(thread, [asked, paused]);
-	assert.equal(await awaitingApproval(thread, amina.id), true);
-	assert.equal(await awaitingApproval(thread, brian.id), false, "someone else's chat");
+	assert.equal(await awaitingApproval(thread, amina.id, 1), true);
+	assert.equal(await awaitingApproval(thread, brian.id, 1), false, "someone else's chat");
+	// a history with a question slipped in earlier isn't just an answer: it's counted
+	assert.equal(await awaitingApproval(thread, amina.id, 2), false, "an extra question");
 	await store.saveThread(thread, [asked, paused, { role: "tool", content: "done", toolCallId: "c1" } as ModelMessage, { role: "assistant", content: "Deleted." }]);
-	assert.equal(await awaitingApproval(thread, amina.id), false, "answered already");
+	assert.equal(await awaitingApproval(thread, amina.id, 1), false, "answered already");
 });
