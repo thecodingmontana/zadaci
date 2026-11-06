@@ -244,7 +244,7 @@ async function sendDigest(person: Person, since: Date, hour: number) {
 					: `${appUrl}/w/${r.slug}/notifications`,
 		};
 	});
-	await sendEmail(
+	const sent = await sendEmail(
 		person.email,
 		`Your Zadaci summary: ${items.length} ${items.length === 1 ? "update" : "updates"}`,
 		createElement(DailyDigest, {
@@ -255,5 +255,9 @@ async function sendDigest(person: Person, since: Date, hour: number) {
 		}),
 		`${appUrl}/w/${rows[0].slug}/settings?sec=notif-email`,
 	);
-	return true;
+	// sendEmail answers false when it failed (or isn't set up): a lost digest goes to the error
+	// log instead of being counted as sent
+	if (!sent && process.env.RESEND_API_KEY)
+		throw new Error("the email service didn't send it");
+	return sent;
 }
