@@ -45,7 +45,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
 | Area | Tools |
 |---|---|
 | App | [TanStack Start](https://tanstack.com/start) (React 19, TanStack Router), Vite, Nitro |
-| API | GraphQL Yoga, Apollo Client 4, request limits with graphql-armor |
+| API | GraphQL 17 with GraphQL Yoga, Apollo Client 4; request limits (aliases, depth, cost) in `src/graphql/limits.ts` |
 | Data | PostgreSQL (Supabase), Drizzle ORM and drizzle-kit migrations |
 | Auth | Better Auth (Google, email sign-in links, passkeys, TOTP two-step) |
 | Editor | Tiptap 3, Shiki, Novel-style global drag handle |

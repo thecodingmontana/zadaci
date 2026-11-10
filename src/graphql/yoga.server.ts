@@ -1,7 +1,5 @@
-import { costLimitPlugin } from "@escape.tech/graphql-armor-cost-limit";
-import { maxAliasesPlugin } from "@escape.tech/graphql-armor-max-aliases";
-import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth";
 import { GraphQLError } from "graphql";
+import { requestLimits } from "#/graphql/limits";
 import {
 	createSchema,
 	createYoga,
@@ -90,6 +88,13 @@ export const schema = createSchema<GraphQLContext>({
 export const isUnexpected = (error: GraphQLError) =>
 	!!error.originalError && !(error.originalError instanceof GraphQLError);
 
+// aliases, depth and cost, checked before anything runs (graphql/limits)
+const limitRequests: Plugin = {
+	onValidate({ addValidationRule }) {
+		addValidationRule(requestLimits(LIMITS));
+	},
+};
+
 // a change that went through: tell everyone with that workspace open to refresh
 const announceChanges: Plugin = {
 	onExecute({ args }) {
@@ -119,9 +124,7 @@ export const yoga = createYoga<object, GraphQLContext>({
 	// same-origin only: Yoga's default CORS answers any site (with cookies), which nothing here needs
 	cors: false,
 	plugins: [
-		maxAliasesPlugin({ n: LIMITS.aliases }),
-		maxDepthPlugin({ n: LIMITS.depth }),
-		costLimitPlugin({ maxCost: LIMITS.cost }),
+		limitRequests,
 		// unexpected errors reach Vercel's logs; "forbidden", "not found" and bad input don't
 		// biome-ignore lint/correctness/useHookAtTopLevel: a Yoga plugin factory, not a React hook
 		useErrorHandler(({ errors }) => {
