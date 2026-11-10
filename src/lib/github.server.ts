@@ -5,6 +5,10 @@ import { STATUS } from "#/db/enums";
 import { userClock } from "#/lib/ai/limits.server";
 import { MCP_RESOURCE } from "#/lib/auth";
 import { requireEnv } from "#/lib/env";
+import {
+	applyCommentEvent,
+	type CommentEvent,
+} from "#/lib/github-comments.server";
 import { applyIssueEvent, type IssueEvent } from "#/lib/github-sync.server";
 import { announceChange } from "#/lib/realtime.server";
 
@@ -143,6 +147,10 @@ export async function githubAppWebhook(request: Request) {
 	// issues opened, edited, closed or reopened on GitHub change their tasks (github-sync)
 	if (event === "issues")
 		return Response.json(await applyIssueEvent(JSON.parse(body) as IssueEvent));
+	if (event === "issue_comment")
+		return Response.json(
+			await applyCommentEvent(JSON.parse(body) as CommentEvent),
+		);
 	if (event !== "pull_request") return new Response(null, { status: 204 });
 	const payload = JSON.parse(body) as PullRequestEvent;
 	const repo = payload.repository?.full_name;

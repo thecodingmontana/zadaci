@@ -1,4 +1,5 @@
 import {
+	bigint,
 	boolean,
 	index,
 	integer,
@@ -8,6 +9,7 @@ import {
 	uniqueIndex,
 	varchar,
 } from "drizzle-orm/pg-core";
+import { comment } from "./comments";
 import { project, task } from "./project";
 import { user } from "./user";
 import { generateNanoId, pgTable } from "./utils";
@@ -109,4 +111,18 @@ export const task_github_issue = pgTable(
 		updated_at: when("updated_at").notNull().defaultNow(),
 	},
 	(t) => [uniqueIndex("task_github_issue_repo_number").on(t.repo, t.number)],
+);
+
+/** A task comment's twin on its GitHub issue (comments sync both ways, like the issue itself). */
+export const task_github_comment = pgTable(
+	"task_github_comment",
+	{
+		comment_id: varchar("comment_id", { length: 16 })
+			.primaryKey()
+			.references(() => comment.id, { onDelete: "cascade" }),
+		repo: text("repo").notNull(),
+		github_id: bigint("github_id", { mode: "number" }).notNull(),
+		created_at: when("created_at").notNull().defaultNow(),
+	},
+	(t) => [uniqueIndex("task_github_comment_github").on(t.repo, t.github_id)],
 );

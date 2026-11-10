@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db, tables } from "#/db";
 import { isEmoji } from "#/lib/emoji";
 import { isUploadUrl, MAX_BYTES } from "#/lib/files";
+import { queueCommentSync } from "#/lib/github-comments.server";
 import { hasRight } from "#/lib/permissions";
 import { taskKey } from "#/lib/tasks";
 import { logActivity, notify } from "./activity.server";
@@ -563,6 +564,7 @@ export const taskExtrasResolvers = {
 				task_id: task.id,
 			});
 			await notifyComment(workspace.id, user.id, task, text);
+			queueCommentSync(row.id);
 			return oneComment(row.id, user.id);
 		},
 
@@ -583,6 +585,7 @@ export const taskExtrasResolvers = {
 				.update(tables.comment)
 				.set({ deleted_at: new Date() })
 				.where(eq(tables.comment.id, comment.id));
+			queueCommentSync(comment.id);
 			return true;
 		},
 

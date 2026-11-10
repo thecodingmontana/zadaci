@@ -68,6 +68,8 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 	// GitHub's secondary rate limit, once, for whichever write is listed here
 	if (failOnce.delete(`${method} ${path}`))
 		return Response.json({ message: "You have exceeded a secondary rate limit" }, { status: 403 });
+	if (method === "POST" && path.endsWith("/comments")) return Response.json({ id: 70_000 + next++ }, { status: 201 });
+	if (method === "DELETE" && path.includes("/issues/comments/")) return new Response(null, { status: 204 });
 	if (method === "POST") return Response.json({ number: next++ }, { status: 201 });
 	if (method === "PATCH") return Response.json({ number: Number(path.split("/").pop()) });
 	return new Response("Not Found", { status: 404 });
@@ -403,4 +405,49 @@ test("github sync: events arriving out of order follow the issue as it is now", 
 	const [row] = await db.select().from(tables.task).where(eq(tables.task.id, task));
 	assert.notEqual(row.status, "completed", "the issue is open, so the task isn't done");
 	issueNow.clear();
+});
+
+test("github comments: task comments go onto the issue, issue comments come back as task comments, nothing loops", async () => {
+	const owner = await makeUser("ghs-comments", false);
+	const { slug } = await makeWorkspace(owner);
+	const project = (await gql(owner, `query($s: String!) { workspace(slug: $s) { projects { id } } }`, { s: slug })).data?.workspace.projects[0];
+	await db.insert(tables.github_account).values({ user_id: owner.id, login: "octo", token: sealKey("ghu_fake", owner.id, "github") });
+	await act(owner, `mutation($s: String!, $p: ID!) { connectGitHub(slug: $s, projectId: $p, repo: "octo/board") { viaApp } }`, { s: slug, p: project.id });
+	const task = (await act(owner, CREATE, { s: slug, i: { projectId: project.id, title: "Talk about it" } })).data?.createTask.id;
+	const { number } = (await db.select().from(tables.task_github_issue).where(eq(tables.task_github_issue.task_id, task)))[0];
+	const repository = { full_name: "octo/board" };
+	const COMMENT = `mutation($s: String!, $t: ID!, $text: String!) { addComment(slug: $s, taskId: $t, text: $text) { id } }`;
+
+	// Zadaci → GitHub
+	calls.length = 0;
+	const mine = (await act(owner, COMMENT, { s: slug, t: task, text: "Shipping Friday" })).data?.addComment.id;
+	const posted = writes().find((c) => c.method === "POST" && c.path === `/repos/octo/board/issues/${number}/comments`);
+	assert.ok(posted, "posted on the issue");
+	assert.match(String(posted?.body?.body), /Shipping Friday/);
+	const [twin] = await db.select().from(tables.task_github_comment).where(eq(tables.task_github_comment.comment_id, mine));
+	assert.ok(twin, "paired with its GitHub comment");
+
+	// our own comment coming back adds nothing
+	const before = (await db.select().from(tables.comment).where(eq(tables.comment.entity_id, task))).length;
+	await deliver("issue_comment", { action: "created", repository, issue: { number }, comment: { id: twin.github_id, body: String(posted?.body?.body), user: { login: "octo" } } });
+	assert.equal((await db.select().from(tables.comment).where(eq(tables.comment.entity_id, task))).length, before);
+
+	// GitHub → Zadaci, and it isn't written back
+	calls.length = 0;
+	assert.deepEqual(await deliver("issue_comment", { action: "created", repository, issue: { number }, comment: { id: 99_001, body: "Looks good to me", user: { login: "reviewer" } } }), { changed: 1 });
+	const [theirs] = await db.select().from(tables.task_github_comment).where(eq(tables.task_github_comment.github_id, 99_001));
+	const [added] = await db.select().from(tables.comment).where(eq(tables.comment.id, theirs.comment_id));
+	assert.match(added.content, /@reviewer.*Looks good to me/s);
+	assert.equal(writes().length, 0, "nothing written back to GitHub");
+
+	// edited and deleted on GitHub follow
+	await deliver("issue_comment", { action: "edited", repository, issue: { number }, comment: { id: 99_001, body: "Looks great", user: { login: "reviewer" } } });
+	assert.match((await db.select().from(tables.comment).where(eq(tables.comment.id, theirs.comment_id)))[0].content, /Looks great/);
+	await deliver("issue_comment", { action: "deleted", repository, issue: { number }, comment: { id: 99_001, body: "", user: { login: "reviewer" } } });
+	assert.ok((await db.select().from(tables.comment).where(eq(tables.comment.id, theirs.comment_id)))[0].deleted_at);
+
+	// deleting ours in Zadaci deletes it on GitHub
+	calls.length = 0;
+	await act(owner, `mutation($s: String!, $id: ID!) { deleteComment(slug: $s, id: $id) }`, { s: slug, id: mine });
+	assert.ok(writes().some((c) => c.method === "DELETE" && c.path === `/repos/octo/board/issues/comments/${twin.github_id}`));
 });

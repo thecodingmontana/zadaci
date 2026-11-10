@@ -1,0 +1,213 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "bce0a9d5-2b23-4e8f-a0d2-608817d288ff",
+  "prevIds": [
+    "3ae6becc-0582-4a4d-abeb-03b1deafa080"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "app_task_github_comment"
+      ],
+      "writes": [
+        "s|tbl|public.app_task_github_comment",
+        "n|tbl|public.app_task_github_comment",
+        "e|tbl|public.app_task_github_comment",
+        "n|rel|public.app_task_github_comment",
+        "n|type|public.app_task_github_comment",
+        "n|rel|public.app_task_github_comment_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "app_task_github_comment",
+        "task_github_comment_github"
+      ],
+      "writes": [
+        "s|idx|public.task_github_comment_github",
+        "n|idx|public.task_github_comment_github",
+        "e|idx|public.task_github_comment_github",
+        "n|rel|public.task_github_comment_github"
+      ],
+      "reads": [
+        "n|tbl|public.app_task_github_comment",
+        "n|sch|public",
+        "n|col|public.app_task_github_comment.repo",
+        "n|col|public.app_task_github_comment.github_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "app_task_github_comment"
+      ],
+      "writes": [
+        "s|fk|public.app_task_github_comment.app_task_github_comment_comment_id_app_comment_id_fkey",
+        "n|fk|public.app_task_github_comment.app_task_github_comment_comment_id_app_comment_id_fkey",
+        "e|fk|public.app_task_github_comment.app_task_github_comment_comment_id_app_comment_id_fkey",
+        "n|con|public.app_task_github_comment.app_task_github_comment_comment_id_app_comment_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.app_task_github_comment",
+        "n|sch|public",
+        "n|tbl|public.app_comment",
+        "n|sch|public",
+        "n|col|public.app_task_github_comment.comment_id",
+        "n|col|public.app_comment.id",
+        "e|uniqueness|public.app_comment.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "app_task_github_comment",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_comment",
+        "name": "comment_id",
+        "type": "varchar(16)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_comment",
+        "name": "repo",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_comment",
+        "name": "github_id",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_comment",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_comment",
+        "name": "task_github_comment_github",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "repo",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "github_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_comment",
+        "name": "app_task_github_comment_comment_id_app_comment_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "comment_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "app_comment",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "app_task_github_comment",
+        "name": "app_task_github_comment_pkey",
+        "columns": [
+          "comment_id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/privacy")({
 
 function Privacy() {
 	return (
-		<LegalPage title="Privacy Policy" updated="November 6, 2026">
+		<LegalPage title="Privacy Policy" updated="November 10, 2026">
 			<p>
 				This explains what Zadaci keeps about you, why, and what you can do
 				about it.
@@ -49,12 +49,14 @@ function Privacy() {
 					token (plus, for sign-ins that expire, the token that renews it),
 					encrypted before it's stored. It can only manage repo webhooks, or,
 					through the Zadaci GitHub App, read the repos you installed the app
-					on, their pull requests and issues, and write issues and a project
-					board (never your code). We use it to list the repos you can link, to
-					keep a linked project's tasks and the repo's issues in step (a task's
-					title, description, subtasks, priority, due date and a link back go
-					into its issue, and its status goes onto the repo's board), and,
-					without the app, to add or remove a project's webhook.
+					on, their pull requests and issues, and write issues, issue comments
+					and a project board (never your code). A task comment goes onto its
+					issue with its author's name, so people who can see the repo see it.
+					We use it to list the repos you can link, to keep a linked project's
+					tasks and the repo's issues in step (a task's title, description,
+					subtasks, priority, due date and a link back go into its issue, and
+					its status goes onto the repo's board), and, without the app, to add
+					or remove a project's webhook.
 				</li>
 				<li>
 					<b>Errors:</b> when something fails (a page crashes, GitHub refuses a

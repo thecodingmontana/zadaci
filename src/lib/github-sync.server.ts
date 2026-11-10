@@ -17,13 +17,13 @@ import { recordError } from "#/lib/ops.server";
 const ORIGIN = new URL(MCP_RESOURCE).origin;
 // loaded on first use: tasks.server imports this module, and gql.server builds the schema from
 // tasks.server, so importing it up top would be a cycle that crashes whichever loads first
-const gql = () => import("#/lib/ai/gql.server");
+export const gql = () => import("#/lib/ai/gql.server");
 
 // writes made here (importing issues) don't queue a write back to GitHub
-const quiet = new AsyncLocalStorage<true>();
+export const quiet = new AsyncLocalStorage<true>();
 const queued = new Set<string>();
 const running = new Set<Promise<unknown>>();
-const track = (work: Promise<unknown>) => {
+export const track = (work: Promise<unknown>) => {
 	running.add(work);
 	void work.finally(() => running.delete(work));
 	return work;
@@ -46,7 +46,7 @@ export function queueGitHubSync(taskId: string) {
 }
 
 /** The linked repo (through the app) and who writes to it, for a project. */
-async function linkOf(projectId: string) {
+export async function linkOf(projectId: string) {
 	const [link] = await db
 		.select({
 			repo: tables.project_github.repo,
@@ -387,7 +387,7 @@ async function syncLinkedProjectNow(projectId: string, deadline: number) {
 // GitHub asks for about a second between writes that create content, or it answers 403 (its
 // secondary rate limit). shortcut: a project with hundreds of tasks takes minutes; queue it if so
 // (tests set GITHUB_SYNC_PAUSE_MS=0)
-const pause = () =>
+export const pause = () =>
 	new Promise((r) =>
 		setTimeout(r, Number(process.env.GITHUB_SYNC_PAUSE_MS ?? 1000)),
 	);
@@ -431,7 +431,7 @@ export function queueLinkedProjectSync(projectId: string) {
 }
 
 /** Zadaci changes made for GitHub run as whoever linked the repo, with their rights. */
-async function actingAs(link: { linker: string; slug: string }) {
+export async function actingAs(link: { linker: string; slug: string }) {
 	const [who] = await db
 		.select({
 			id: tables.user.id,
