@@ -149,7 +149,9 @@ export function ProjectOverview({
 								)}
 							</div>
 							<div className="stackbar" style={{ height: 8, marginBottom: 12 }}>
-								{TASK_STATUSES.map((s) => (
+								{/* only statuses with tasks: an empty one still takes its gap, so 100%
+								    done started a few pixels in */}
+								{TASK_STATUSES.filter((s) => count(s.id) > 0).map((s) => (
 									<i
 										key={s.id}
 										style={{

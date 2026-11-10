@@ -244,16 +244,19 @@ function OverviewPage() {
 								className="stackbar"
 								style={{ height: 10, marginBottom: 12 }}
 							>
-								{counts.map(({ s, n }) => (
-									<i
-										key={s.id}
-										style={{
-											width: `${pct(n)}%`,
-											background: `var(--q-st-${s.st})`,
-										}}
-										title={`${s.name}: ${n}`}
-									/>
-								))}
+								{/* only statuses with tasks: an empty one would still take its gap */}
+								{counts
+									.filter(({ n }) => n > 0)
+									.map(({ s, n }) => (
+										<i
+											key={s.id}
+											style={{
+												width: `${pct(n)}%`,
+												background: `var(--q-st-${s.st})`,
+											}}
+											title={`${s.name}: ${n}`}
+										/>
+									))}
 							</div>
 							{counts.map(({ s, n }) => (
 								<div
