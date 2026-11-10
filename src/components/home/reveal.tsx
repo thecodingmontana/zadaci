@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { type CSSProperties, Fragment, type ReactNode } from "react";
 import { cn } from "#/lib/utils";
 
 // Text and block reveals for the landing page, all in CSS (src/styles.css, "Landing reveals"):
@@ -46,11 +46,15 @@ export function RiseLines({
 		<Tag id={id} className={className}>
 			{lines.map((line, i) => (
 				// biome-ignore lint/suspicious/noArrayIndexKey: fixed lines
-				<span key={i} className="lp-line">
-					<span className="lp-rise" style={{ "--i": i } as CSSProperties}>
-						{line}
+				<Fragment key={i}>
+					{/* the lines are blocks: without a space, search engines and screen readers read "Plan ityour way" */}
+					{i > 0 && " "}
+					<span className="lp-line">
+						<span className="lp-rise" style={{ "--i": i } as CSSProperties}>
+							{line}
+						</span>
 					</span>
-				</span>
+				</Fragment>
 			))}
 		</Tag>
 	);

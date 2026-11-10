@@ -11,7 +11,7 @@ import { Hero } from "#/components/home/hero";
 import { LandingNav } from "#/components/home/landing-nav";
 import { Principles } from "#/components/home/principles";
 import { REVEAL_SCRIPT, startReveal } from "#/components/home/reveal-script";
-import { SITE_DESCRIPTION, SITE_URL } from "#/lib/seo";
+import { pageHead, SITE_DESCRIPTION, SITE_URL } from "#/lib/seo";
 import { getSession } from "#/lib/session";
 
 const TITLE = "Zadaci - Collaborative Task Management Platform";
@@ -21,14 +21,7 @@ export const Route = createFileRoute("/")({
 		if (await getSession()) throw redirect({ to: "/workspace" });
 	},
 	head: () => ({
-		meta: [
-			{ title: TITLE },
-			{ name: "description", content: SITE_DESCRIPTION },
-			{ property: "og:title", content: TITLE },
-			{ property: "og:url", content: `${SITE_URL}/` },
-			{ name: "twitter:title", content: TITLE },
-		],
-		links: [{ rel: "canonical", href: `${SITE_URL}/` }],
+		...pageHead(TITLE, SITE_DESCRIPTION, "/"),
 		scripts: [
 			{
 				type: "application/ld+json",

@@ -5,7 +5,25 @@ export const SITE_URL = (
 ).replace(/\/$/, "");
 
 export const SITE_DESCRIPTION =
-	"Zadaci is a collaborative task management platform for modern teams. Organize projects, manage tasks and stay in sync.";
+	"Plan projects on boards and timelines, write notes, chat with your team and let AI agents help, all in one free workspace that syncs with GitHub.";
+
+/** A public page's own title, description and canonical, for search results and link previews. */
+export function pageHead(title: string, description: string, path: string) {
+	const url = `${SITE_URL}${path}`;
+	return {
+		meta: [
+			{ title },
+			{ name: "description", content: description },
+			{ property: "og:title", content: title },
+			{ property: "og:description", content: description },
+			{ property: "og:url", content: url },
+			{ name: "twitter:title", content: title },
+			{ name: "twitter:description", content: description },
+			{ name: "twitter:url", content: url },
+		],
+		links: [{ rel: "canonical", href: url }],
+	};
+}
 
 // App and auth pages are private: keep them out of search results.
 export const NOINDEX = { name: "robots", content: "noindex, nofollow" };

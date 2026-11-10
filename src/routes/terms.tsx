@@ -1,8 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "#/components/legal";
+import { pageHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/terms")({
-	head: () => ({ meta: [{ title: "Terms of Service · Zadaci" }] }),
+	head: () =>
+		pageHead(
+			"Terms of Service · Zadaci",
+			"The rules for using Zadaci: your account, the content you put in your workspaces, the Zad assistant, AI agents you connect and acceptable use.",
+			"/terms",
+		),
 	component: Terms,
 });
 

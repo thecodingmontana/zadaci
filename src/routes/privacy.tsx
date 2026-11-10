@@ -1,8 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "#/components/legal";
+import { pageHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/privacy")({
-	head: () => ({ meta: [{ title: "Privacy Policy · Zadaci" }] }),
+	head: () =>
+		pageHead(
+			"Privacy Policy · Zadaci",
+			"What Zadaci keeps about you and why, who helps run the service, which cookies we use, and how to export or delete your data.",
+			"/privacy",
+		),
 	component: Privacy,
 });
 
