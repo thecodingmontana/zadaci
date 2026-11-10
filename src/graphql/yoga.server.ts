@@ -1,11 +1,11 @@
 import { GraphQLError } from "graphql";
-import { requestLimits } from "#/graphql/limits";
 import {
 	createSchema,
 	createYoga,
 	type Plugin,
 	useErrorHandler,
 } from "graphql-yoga";
+import { requestLimits } from "#/graphql/limits";
 import { auth } from "#/lib/auth";
 import { announceChange, mutationSlugs } from "#/lib/realtime.server";
 import { tabFrom } from "#/lib/tab";
