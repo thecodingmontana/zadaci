@@ -38,7 +38,7 @@ export function LandingNav() {
 					<span className="hidden min-[769px]:contents">
 						<ThemeToggle />
 						<Link to="/auth/signin" className="btn btn-ghost">
-							Log in
+							Sign in
 						</Link>
 					</span>
 					<StarButton className="hidden lg:inline-flex" />

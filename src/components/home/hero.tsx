@@ -75,7 +75,7 @@ export function Hero() {
 								className="btn btn-secondary"
 								style={BTN_LG}
 							>
-								Log in
+								Sign in
 							</Link>
 						</div>
 					</div>

@@ -175,7 +175,7 @@ export function MobileMenu({
 							to="/auth/signin"
 							className="text-(length:--q-fs-md) underline-offset-4 hover:underline"
 						>
-							Log in
+							Sign in
 						</Link>
 					</div>
 				</nav>
