@@ -1,36 +1,57 @@
-import { motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { cn } from "#/lib/utils";
 
-export const EASE_OUT = [0.23, 1, 0.32, 1] as const;
-const SHOWN = { opacity: 1, transform: "translateY(0px)" };
+// Text and block reveals for the landing page, all in CSS (src/styles.css, "Landing reveals"):
+// on scroll they ride a view timeline, so they need no JavaScript and can never stay hidden;
+// browsers without scroll timelines, and reduced motion, simply show everything.
 
-/** Fades and lifts its children in the first time they scroll into view (fade only with reduced motion). */
+/** Fades and lifts its children in as they scroll into view; `delay` (s) staggers siblings. */
 export function Reveal({
 	children,
 	delay = 0,
 	className,
-	as = "div",
+	as: Tag = "div",
 	immediate = false,
 }: {
 	children: ReactNode;
 	delay?: number;
 	className?: string;
 	as?: "div" | "li" | "section";
-	/** above the fold: play on mount instead of waiting to scroll into view */
+	/** above the fold: play once on first paint instead of on scroll */
 	immediate?: boolean;
 }) {
-	const reduce = useReducedMotion();
-	const Tag = motion[as];
 	return (
 		<Tag
-			className={className}
-			initial={{ opacity: 0, transform: reduce ? "none" : "translateY(14px)" }}
-			animate={immediate ? SHOWN : undefined}
-			whileInView={immediate ? undefined : SHOWN}
-			viewport={{ once: true, margin: "0px 0px -80px 0px" }}
-			transition={{ duration: 0.7, delay, ease: EASE_OUT }}
+			className={cn(immediate ? "lp-enter" : "lp-reveal", className)}
+			style={{ "--i": delay * 10 } as CSSProperties}
 		>
 			{children}
+		</Tag>
+	);
+}
+
+/** A heading whose lines rise one after another from behind a mask. */
+export function RiseLines({
+	lines,
+	id,
+	className,
+	as: Tag = "h2",
+}: {
+	lines: ReactNode[];
+	id?: string;
+	className?: string;
+	as?: "h2" | "h3";
+}) {
+	return (
+		<Tag id={id} className={className}>
+			{lines.map((line, i) => (
+				// biome-ignore lint/suspicious/noArrayIndexKey: fixed lines
+				<span key={i} className="lp-line">
+					<span className="lp-rise" style={{ "--i": i } as CSSProperties}>
+						{line}
+					</span>
+				</span>
+			))}
 		</Tag>
 	);
 }

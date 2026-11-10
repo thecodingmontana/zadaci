@@ -1,70 +1,22 @@
-import { useReducedMotion } from "motion/react";
-import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
+import { type CSSProperties, Fragment, type ReactNode, useRef } from "react";
 import { useActive } from "./demo-stage";
 import { Reveal } from "./reveal";
 
 const STATEMENT =
 	"A calmer way to run a team. Zadaci keeps plans, docs and decisions next to the tasks they belong to, so the work explains itself and everyone can see what comes next.";
-const DIM = 0.22;
 
-/** The statement lights up word by word, grey to full ink, as it scrolls through the screen. */
+/** The statement inks in word by word, grey to full ink, as it scrolls through (CSS view timeline). */
 function ScrollWords() {
-	const ref = useRef<HTMLParagraphElement>(null);
-	const reduce = useReducedMotion();
 	const words = STATEMENT.split(" ");
-
-	useEffect(() => {
-		const p = ref.current;
-		if (!p) return;
-		const spans = [...p.querySelectorAll<HTMLElement>("[data-w]")];
-		if (reduce) {
-			for (const s of spans) s.style.opacity = "1";
-			return;
-		}
-		let frame = 0;
-		const paint = () => {
-			frame = 0;
-			const r = p.getBoundingClientRect();
-			const vh = window.innerHeight;
-			// starts as the paragraph's top passes 85% of the screen, done when its bottom reaches 55%
-			const progress = (vh * 0.85 - r.top) / (r.height + vh * 0.3);
-			const lit = Math.min(1, Math.max(0, progress)) * spans.length;
-			spans.forEach((s, i) => {
-				const t = Math.min(1, Math.max(0, lit - i));
-				s.style.opacity = String(DIM + (1 - DIM) * t);
-			});
-		};
-		const onScroll = () => {
-			if (!frame) frame = requestAnimationFrame(paint);
-		};
-		const io = new IntersectionObserver(([e]) => {
-			if (e?.isIntersecting) {
-				window.addEventListener("scroll", onScroll, { passive: true });
-				onScroll();
-			} else window.removeEventListener("scroll", onScroll);
-		});
-		io.observe(p);
-		return () => {
-			io.disconnect();
-			window.removeEventListener("scroll", onScroll);
-			cancelAnimationFrame(frame);
-		};
-	}, [reduce]);
-
 	return (
-		<p
-			ref={ref}
-			className="max-w-4xl text-[1.6rem] leading-[1.25] font-medium tracking-[-0.02em] text-balance text-(color:--q-text) sm:text-[2.25rem]"
-		>
+		<p className="lp-ink max-w-4xl text-[1.6rem] leading-[1.25] font-medium tracking-[-0.02em] text-balance text-(color:--q-text) sm:text-[2.25rem]">
 			{words.map((w, i) => (
-				<span
-					// biome-ignore lint/suspicious/noArrayIndexKey: a fixed sentence, split once
-					key={i}
-					data-w
-					style={{ opacity: DIM, transition: "opacity 120ms linear" }}
-				>
-					{w}{" "}
-				</span>
+				// biome-ignore lint/suspicious/noArrayIndexKey: a fixed sentence, split once
+				<Fragment key={i}>
+					<span style={{ "--i": i, "--n": words.length } as CSSProperties}>
+						{w}
+					</span>{" "}
+				</Fragment>
 			))}
 		</p>
 	);

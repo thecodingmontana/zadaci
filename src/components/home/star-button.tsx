@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { REPO_URL } from "#/components/shell/credits";
 import type { RepoStats } from "#/lib/github-repo";
 import { cn } from "#/lib/utils";
@@ -29,21 +29,67 @@ function useRepoStats() {
 	return stats;
 }
 
+/** Counts up to `to` once, the first time `on` is true (600ms, the page's ease); shown at once with reduced motion. */
+function useCountUp(to: number | null, on: boolean) {
+	const [n, setN] = useState<number | null>(null);
+	useEffect(() => {
+		if (to === null || !on) return;
+		if (matchMedia("(prefers-reduced-motion: reduce)").matches) return setN(to);
+		let raf = 0;
+		const start = performance.now();
+		const step = (t: number) => {
+			const p = Math.min(1, (t - start) / 600);
+			setN(Math.round(to * (1 - (1 - p) ** 3)));
+			if (p < 1) raf = requestAnimationFrame(step);
+		};
+		raf = requestAnimationFrame(step);
+		return () => cancelAnimationFrame(raf);
+	}, [to, on]);
+	return n;
+}
+
 /** ★ stars and ⑂ forks in a fixed-width slot, empty until known (never a made-up 0). */
 function Stats() {
 	const { stars, forks } = useRepoStats();
-	const item = (n: number | null, icon: string, what: string) =>
-		n === null ? null : (
-			<span className="inline-flex items-center gap-1" title={`${n} ${what}`}>
+	const ref = useRef<HTMLSpanElement>(null);
+	const [seen, setSeen] = useState(false);
+	useEffect(() => {
+		const el = ref.current;
+		if (!el) return;
+		const io = new IntersectionObserver(([e]) => {
+			if (e?.isIntersecting) {
+				setSeen(true);
+				io.disconnect();
+			}
+		});
+		io.observe(el);
+		return () => io.disconnect();
+	}, []);
+	const shownStars = useCountUp(stars, seen);
+	const shownForks = useCountUp(forks, seen);
+	const item = (
+		n: number | null,
+		total: number | null,
+		icon: string,
+		what: string,
+	) =>
+		n === null || total === null ? null : (
+			<span
+				className="inline-flex items-center gap-1"
+				title={`${total} ${what}`}
+			>
 				<span aria-hidden="true" className={cn(icon, "size-3.5")} />
 				{compact.format(n)}
 				<span className="sr-only"> {what}</span>
 			</span>
 		);
 	return (
-		<span className="inline-flex w-[11ch] items-center gap-2.5 text-(color:--q-text-3) tabular-nums">
-			{item(stars, "icon-[solar--star-linear]", "stars")}
-			{item(forks, "icon-[hugeicons--git-fork]", "forks")}
+		<span
+			ref={ref}
+			className="inline-flex w-[11ch] items-center gap-2.5 text-(color:--q-text-3) tabular-nums"
+		>
+			{item(shownStars, stars, "icon-[solar--star-linear]", "stars")}
+			{item(shownForks, forks, "icon-[hugeicons--git-fork]", "forks")}
 		</span>
 	);
 }

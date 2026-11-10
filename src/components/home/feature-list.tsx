@@ -93,7 +93,9 @@ export function FeatureList({
 							)}
 						>
 							<p className="overflow-hidden text-(length:--q-fs) leading-relaxed text-(color:--q-text-3)">
-								<span className="block min-h-[3em] pb-3 pe-8">{f.desc}</span>
+								<span className="block min-h-[5em] pb-3 pe-8 md:min-h-[3.4em]">
+									{f.desc}
+								</span>
 							</p>
 						</div>
 						{!reduce && open === i && (

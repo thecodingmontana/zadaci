@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { REPO_URL } from "#/components/shell/credits";
 import { ZadaciLogo } from "#/components/zadaci-logo";
 import { BTN_LG } from "./hero";
-import { Reveal } from "./reveal";
+import { Reveal, RiseLines } from "./reveal";
 import { StarButton } from "./star-button";
 
 // Recent releases, written from the commit log (keep 4, newest first).
@@ -74,19 +74,23 @@ export function Changelog() {
 export function ClosingCta() {
 	return (
 		<section className="relative overflow-hidden border-t border-(color:--q-border)">
-			<Reveal className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 sm:px-6 sm:py-28 md:flex-row md:items-end md:justify-between">
-				<h2 className="text-[2.4rem] leading-[1.05] font-semibold tracking-[-0.035em] sm:text-6xl">
-					Made for teams.
-					<br />
-					<span className="text-(color:--q-text-4)">Free to use today.</span>
-				</h2>
-				<div className="flex flex-wrap items-center gap-3">
+			<div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 sm:px-6 sm:py-28 md:flex-row md:items-end md:justify-between">
+				<RiseLines
+					lines={[
+						"Made for teams.",
+						<span key="free" className="text-(color:--q-text-4)">
+							Free to use today.
+						</span>,
+					]}
+					className="text-[2.4rem] leading-[1.05] font-semibold tracking-[-0.035em] sm:text-6xl"
+				/>
+				<Reveal delay={0.2} className="flex flex-wrap items-center gap-3">
 					<Link to="/auth/signin" className="btn btn-primary" style={BTN_LG}>
 						Get started
 					</Link>
 					<StarButton style={BTN_LG} />
-				</div>
-			</Reveal>
+				</Reveal>
+			</div>
 		</section>
 	);
 }

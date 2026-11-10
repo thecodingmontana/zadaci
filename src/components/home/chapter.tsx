@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { type Feature, FeatureList } from "./feature-list";
-import { Reveal } from "./reveal";
+import { Reveal, RiseLines } from "./reveal";
 
 /** One feature chapter: heading left, story right, a wide product panel, then its feature list. */
 export function Chapter({
@@ -25,17 +25,12 @@ export function Chapter({
 		>
 			<div className="mx-auto max-w-6xl px-4 pt-16 pb-14 sm:px-6 sm:pt-24 sm:pb-20 lg:pt-28">
 				<div className="grid gap-6 md:grid-cols-2 md:gap-12">
-					<Reveal>
-						<h2
-							id={`${id}-title`}
-							className="text-[2.2rem] leading-[1.05] font-semibold tracking-[-0.03em] sm:text-5xl"
-						>
-							{title[0]}
-							<br />
-							{title[1]}
-						</h2>
-					</Reveal>
-					<Reveal delay={0.08}>
+					<RiseLines
+						id={`${id}-title`}
+						lines={title}
+						className="text-[2.2rem] leading-[1.05] font-semibold tracking-[-0.03em] sm:text-5xl"
+					/>
+					<Reveal delay={0.15}>
 						<p className="text-[17px] leading-relaxed text-pretty text-(color:--q-text-2) sm:text-[19px]">
 							{body}
 						</p>

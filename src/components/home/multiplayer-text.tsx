@@ -241,7 +241,12 @@ export function MultiplayerText({
 								}}
 								transition={isPressed ? PRESS : DROP}
 							>
-								{word}
+								<span
+									className="lp-word"
+									style={{ "--i": i } as React.CSSProperties}
+								>
+									{word}
+								</span>
 							</motion.span>
 							{i < words.length - 1 && " "}
 						</span>

@@ -425,3 +425,78 @@
 .lp-progress {
   animation: lp-progress 4s linear both;
 }
+
+/* Landing reveals (src/components/home/reveal.tsx). One curve and one rhythm for the page:
+   blocks fade up, headings rise line by line from a mask, the statement inks in word by word
+   as it scrolls (a CSS view timeline). The hero plays on first paint with no JavaScript; the
+   rest is hidden only once the inline reveal script (reveal-script.ts) runs, so nothing can stay
+   stuck. Reduced motion shows everything at once. */
+:root {
+  --lp-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-line {
+  display: block;
+  overflow: clip;
+  overflow-clip-margin: 0.2em;
+}
+.lp-rise,
+.lp-word,
+.lp-ink > span {
+  display: inline-block;
+}
+@keyframes lp-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes lp-word {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em);
+  }
+}
+@keyframes lp-ink {
+  from {
+    opacity: 0.22;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* above the fold: once, on first paint */
+  .lp-enter {
+    animation: lp-enter 0.6s var(--lp-ease) both;
+    animation-delay: calc(0.25s + var(--i, 0) * 0.06s);
+  }
+  .lp-word {
+    animation: lp-word 0.6s var(--lp-ease) both;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+  }
+  /* on scroll: hidden only once the reveal script runs ([data-reveal]), shown as each enters */
+  html[data-reveal] .lp-reveal {
+    transition:
+      opacity 0.6s var(--lp-ease),
+      transform 0.6s var(--lp-ease);
+    transition-delay: calc(var(--i, 0) * 0.06s);
+  }
+  html[data-reveal] .lp-reveal:not([data-in]) {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  html[data-reveal] .lp-rise {
+    transition: transform 0.7s var(--lp-ease);
+    transition-delay: calc(var(--i, 0) * 0.08s);
+  }
+  html[data-reveal] .lp-line:not([data-in]) > .lp-rise {
+    transform: translateY(105%);
+  }
+  @supports (animation-timeline: view()) {
+    .lp-ink {
+      view-timeline: --lp-ink block;
+    }
+    .lp-ink > span {
+      animation: lp-ink linear both;
+      animation-timeline: --lp-ink;
+      animation-range: cover calc(15% + var(--i) / var(--n) * 35%) cover calc(18% + var(--i) / var(--n) * 35%);
+    }
+  }
+}

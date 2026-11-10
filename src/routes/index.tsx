@@ -1,4 +1,6 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, ScriptOnce } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Bento } from "#/components/home/bento";
 import { Chapters } from "#/components/home/chapters";
 import {
 	Changelog,
@@ -8,6 +10,7 @@ import {
 import { Hero } from "#/components/home/hero";
 import { LandingNav } from "#/components/home/landing-nav";
 import { Principles } from "#/components/home/principles";
+import { REVEAL_SCRIPT, startReveal } from "#/components/home/reveal-script";
 import { SITE_DESCRIPTION, SITE_URL } from "#/lib/seo";
 import { getSession } from "#/lib/session";
 
@@ -58,13 +61,17 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+	// after a client-side visit the inline script has already run once: watch the new page too
+	useEffect(() => startReveal(), []);
 	return (
 		<div className="min-h-dvh overflow-x-clip bg-(--q-bg) text-(color:--q-text) antialiased">
+			<ScriptOnce>{REVEAL_SCRIPT}</ScriptOnce>
 			<LandingNav />
 			<main>
 				<Hero />
 				<Principles />
 				<Chapters />
+				<Bento />
 				<Changelog />
 				<ClosingCta />
 			</main>

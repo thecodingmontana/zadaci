@@ -1,9 +1,8 @@
 import { BoardDemo } from "./board-demo";
 import { Chapter, Panel } from "./chapter";
-import { GithubDemo } from "./github-demo";
-import { NoteDemo } from "./note-demo";
+import { BookmarksChapter, InboxChapter } from "./chapters-more";
+import { ChatDemo, GithubDemo, NoteDemo, ZadDemo } from "./lazy";
 import { Shot } from "./reveal";
-import { ZadDemo } from "./zad-demo";
 
 export function Chapters() {
 	return (
@@ -75,15 +74,12 @@ export function Chapters() {
 			>
 				<div className="grid gap-3 md:grid-cols-2">
 					<NoteDemo />
-					<Panel className="hidden md:block">
-						<Shot
-							name="chat"
-							className="absolute inset-0 h-full! object-cover object-[78%_70%]"
-							alt="The #mobile channel in Zadaci chat, with the team discussing the beta"
-						/>
-					</Panel>
+					<ChatDemo />
 				</div>
 			</Chapter>
+
+			<BookmarksChapter />
+			<InboxChapter />
 
 			<Chapter
 				id="ai"
