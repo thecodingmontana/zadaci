@@ -182,7 +182,11 @@ export function ProjectPageSkeleton() {
 				</nav>
 			</div>
 			{tab === "overview" ? (
-				<div className="page" style={{ maxWidth: 1160, paddingTop: 22 }}>
+				// width: inside the flex column, auto margins would shrink it to its placeholders
+				<div
+					className="page"
+					style={{ maxWidth: 1160, paddingTop: 22, width: "100%" }}
+				>
 					<div className="grid2">
 						<div className="stack">
 							<Panel title="About" n={2} />
@@ -196,7 +200,10 @@ export function ProjectPageSkeleton() {
 					</div>
 				</div>
 			) : tab === "activity" || tab === "files" ? (
-				<div className="page" style={{ maxWidth: 820, paddingTop: 18 }}>
+				<div
+					className="page"
+					style={{ maxWidth: 820, paddingTop: 18, width: "100%" }}
+				>
 					<Rows n={8} tall />
 				</div>
 			) : (

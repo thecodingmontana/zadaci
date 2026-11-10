@@ -68,7 +68,10 @@ export function ProjectOverview({
 	const overdue = project.tasks.filter((t) => isOverdue(t)).length;
 
 	return (
-		<div className="page" style={{ maxWidth: 1160, paddingTop: 22 }}>
+		<div
+			className="page"
+			style={{ maxWidth: 1160, paddingTop: 22, width: "100%" }}
+		>
 			<div className="grid2">
 				<div className="stack">
 					<section className="panel">
