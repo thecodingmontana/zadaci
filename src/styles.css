@@ -162,42 +162,6 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Blueprint frame (homepage hero) */
-@keyframes bp-draw-y {
-  from { clip-path: inset(0 0 100% 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-@keyframes bp-draw-x {
-  from { clip-path: inset(0 50% 0 50%); }
-  to { clip-path: inset(0 0 0 0); }
-}
-@keyframes bp-band-in {
-  from { opacity: 0; filter: blur(5px); }
-  to { opacity: 1; filter: blur(0); }
-}
-@keyframes bp-cross-in {
-  from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-@keyframes bp-drift {
-  to { background-position: 12.5px -6.4px; }
-}
-@keyframes bp-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .bp-anim,
-  .bp-cross {
-    animation: bp-fade 260ms ease both !important;
-    clip-path: none !important;
-    filter: none !important;
-  }
-  .bp-cross {
-    transform: translate(-50%, -50%) !important;
-  }
-}
-
 .tst-root {
   --tst-text: #1b1b19;
   --tst-mute: #73736d;
@@ -245,12 +209,219 @@
   transition-duration: 0.01ms !important;
 }
 
-/* landing: the dot that travels between GitHub and Zadaci (src/components/home/github-sync.tsx) */
-@keyframes sync-dot {
+
+/* Landing phone menu (src/components/home/mobile-menu.tsx): grows out of the burger as a circle */
+@keyframes lp-menu-in {
   from {
-    transform: translateX(-12px);
+    clip-path: circle(0% at calc(100% - var(--menu-x, 44px)) var(--menu-y, 38px));
   }
   to {
-    transform: translateX(40px);
+    clip-path: circle(150% at calc(100% - var(--menu-x, 44px)) var(--menu-y, 38px));
   }
+}
+@keyframes lp-menu-out {
+  from {
+    clip-path: circle(150% at calc(100% - var(--menu-x, 44px)) var(--menu-y, 38px));
+  }
+  to {
+    clip-path: circle(0% at calc(100% - var(--menu-x, 44px)) var(--menu-y, 38px));
+  }
+}
+@keyframes lp-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lp-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+.lp-menu[open] {
+  animation: lp-menu-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lp-menu[open].closing {
+  animation: lp-menu-out 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lp-menu[open] .lp-menu-item {
+  animation: lp-fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0s);
+}
+.lp-menu-on-ink .ibtn,
+.lp-menu-on-ink.ibtn {
+  color: inherit;
+}
+.lp-menu-on-ink .ibtn:hover,
+.lp-menu-on-ink.ibtn:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: inherit;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-menu[open] {
+    animation: fadeOnly 0.2s ease both;
+  }
+  .lp-menu[open].closing {
+    animation: lp-fade-out 0.15s ease both;
+  }
+  .lp-menu[open] .lp-menu-item {
+    animation: none;
+  }
+}
+
+/* Landing principle drawings (src/components/home/principles.tsx): loop only while on screen
+   ([data-play]); the resting state is the finished picture, shown as-is with reduced motion. */
+.lp-art * {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-play-state: paused;
+}
+.lp-art[data-play] * {
+  animation-play-state: running;
+}
+.lp-a1-av {
+  animation: lp-a1-av 5s cubic-bezier(0.23, 1, 0.32, 1) var(--dl, 0s) infinite both;
+}
+@keyframes lp-a1-av {
+  0% {
+    opacity: 0;
+    transform: translate(var(--fx), var(--fy));
+  }
+  10% {
+    opacity: 1;
+  }
+  40%,
+  86% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+.lp-a1-card {
+  animation: lp-a1-card 5s ease infinite both;
+}
+@keyframes lp-a1-card {
+  0%,
+  44% {
+    opacity: 0;
+  }
+  54%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.lp-a2-card {
+  transform: translateX(42px);
+  animation: lp-a2-card 4.5s cubic-bezier(0.77, 0, 0.175, 1) infinite both;
+}
+@keyframes lp-a2-card {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  10%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  40% {
+    transform: translate(21px, -12px);
+  }
+  58%,
+  88% {
+    opacity: 1;
+    transform: translateX(42px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(42px);
+  }
+}
+.lp-ping {
+  opacity: 0;
+  animation: lp-ping 4.5s cubic-bezier(0.23, 1, 0.32, 1) infinite both;
+}
+@keyframes lp-ping {
+  0%,
+  56% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  64% {
+    opacity: 1;
+  }
+  86%,
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+.lp-a3-cursor {
+  animation: lp-a3-cursor 4.5s cubic-bezier(0.77, 0, 0.175, 1) infinite both;
+}
+@keyframes lp-a3-cursor {
+  0% {
+    opacity: 0;
+    transform: translate(-36px, 26px);
+  }
+  8% {
+    opacity: 1;
+    transform: translate(-36px, 26px);
+  }
+  30%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+.lp-a3-bubble {
+  transform-origin: 20% 100%;
+  animation: lp-a3-bubble 4.5s cubic-bezier(0.23, 1, 0.32, 1) infinite both;
+}
+@keyframes lp-a3-bubble {
+  0%,
+  32% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  44%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-art * {
+    animation: none !important;
+  }
+}
+
+/* Landing feature rows (src/components/home/feature-list.tsx): how long the open row stays open */
+@keyframes lp-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.lp-progress {
+  animation: lp-progress 4s linear both;
 }

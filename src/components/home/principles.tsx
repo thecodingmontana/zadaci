@@ -1,114 +1,240 @@
-import { motion, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
+import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
+import { useActive } from "./demo-stage";
 import { Reveal } from "./reveal";
 
-// Line drawings: isometric planes in 2:1 projection, drawn on when they scroll into view.
-const LAYERS = [
-	"M20 70 L80 40 L140 70 L80 100 Z",
-	"M20 55 L80 25 L140 55 L80 85 Z",
-	"M20 40 L80 10 L140 40 L80 70 Z",
-];
-const KEY = [
-	"M30 62 L80 37 L130 62 L80 87 Z",
-	"M30 62 L30 78 L80 103 L130 78 L130 62",
-	"M80 87 L80 103",
-	"M62 58 L80 49 L98 58 L80 67 Z",
-];
-const PAIR = [
-	"M18 74 L62 52 L106 74 L62 96 Z",
-	"M54 54 L98 32 L142 54 L98 76 Z",
-	"M98 32 L98 14",
-	"M93 16 L98 8 L103 16",
-	"M62 52 L62 34",
-	"M57 36 L62 28 L67 36",
-];
+const STATEMENT =
+	"A calmer way to run a team. Zadaci keeps plans, docs and decisions next to the tasks they belong to, so the work explains itself and everyone can see what comes next.";
+const DIM = 0.22;
 
-function Drawing({ paths, label }: { paths: string[]; label: string }) {
+/** The statement lights up word by word, grey to full ink, as it scrolls through the screen. */
+function ScrollWords() {
+	const ref = useRef<HTMLParagraphElement>(null);
 	const reduce = useReducedMotion();
+	const words = STATEMENT.split(" ");
+
+	useEffect(() => {
+		const p = ref.current;
+		if (!p) return;
+		const spans = [...p.querySelectorAll<HTMLElement>("[data-w]")];
+		if (reduce) {
+			for (const s of spans) s.style.opacity = "1";
+			return;
+		}
+		let frame = 0;
+		const paint = () => {
+			frame = 0;
+			const r = p.getBoundingClientRect();
+			const vh = window.innerHeight;
+			// starts as the paragraph's top passes 85% of the screen, done when its bottom reaches 55%
+			const progress = (vh * 0.85 - r.top) / (r.height + vh * 0.3);
+			const lit = Math.min(1, Math.max(0, progress)) * spans.length;
+			spans.forEach((s, i) => {
+				const t = Math.min(1, Math.max(0, lit - i));
+				s.style.opacity = String(DIM + (1 - DIM) * t);
+			});
+		};
+		const onScroll = () => {
+			if (!frame) frame = requestAnimationFrame(paint);
+		};
+		const io = new IntersectionObserver(([e]) => {
+			if (e?.isIntersecting) {
+				window.addEventListener("scroll", onScroll, { passive: true });
+				onScroll();
+			} else window.removeEventListener("scroll", onScroll);
+		});
+		io.observe(p);
+		return () => {
+			io.disconnect();
+			window.removeEventListener("scroll", onScroll);
+			cancelAnimationFrame(frame);
+		};
+	}, [reduce]);
+
 	return (
-		<svg
-			viewBox="0 0 160 112"
-			className="h-28 w-40 text-black/45 dark:text-white/40"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="1"
-			strokeLinejoin="round"
-			role="img"
-			aria-label={label}
+		<p
+			ref={ref}
+			className="max-w-4xl text-[1.6rem] leading-[1.25] font-medium tracking-[-0.02em] text-balance text-(color:--q-text) sm:text-[2.25rem]"
 		>
-			{paths.map((d, i) => (
-				<motion.path
-					key={d}
-					d={d}
-					initial={{ pathLength: reduce ? 1 : 0, opacity: 0 }}
-					whileInView={{ pathLength: 1, opacity: 1 }}
-					viewport={{ once: true }}
-					transition={{
-						duration: reduce ? 0.4 : 1.1,
-						delay: 0.2 + i * 0.15,
-						ease: [0.77, 0, 0.175, 1],
-					}}
-					className={i === paths.length - 1 ? "text-[#F97452]" : undefined}
-					stroke="currentColor"
-				/>
+			{words.map((w, i) => (
+				<span
+					// biome-ignore lint/suspicious/noArrayIndexKey: a fixed sentence, split once
+					key={i}
+					data-w
+					style={{ opacity: DIM, transition: "opacity 120ms linear" }}
+				>
+					{w}{" "}
+				</span>
 			))}
-		</svg>
+		</p>
 	);
 }
 
+/** A looping line drawing that plays only while on screen (static with reduced motion). */
+function Art({ label, children }: { label: string; children: ReactNode }) {
+	const ref = useRef<HTMLDivElement>(null);
+	const play = useActive(ref);
+	return (
+		<div ref={ref} className="lp-art" data-play={play || undefined}>
+			<svg
+				viewBox="0 0 160 112"
+				className="mx-auto h-auto w-full max-w-64 text-(color:--q-text-4) md:mx-0 md:h-28 md:w-40"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="1.25"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				role="img"
+				aria-label={label}
+			>
+				{children}
+			</svg>
+		</div>
+	);
+}
+
+/** A person: a round frame with a head and shoulders. */
+function Person({ x, y, r = 12 }: { x: number; y: number; r?: number }) {
+	const k = r / 12;
+	return (
+		<g>
+			<circle cx={x} cy={y} r={r} />
+			<circle cx={x} cy={y - 3 * k} r={3.6 * k} />
+			<path d={`M${x - 6.5 * k} ${y + 8 * k} q${6.5 * k} -7.5 ${13 * k} 0`} />
+		</g>
+	);
+}
+
+const v = (o: Record<string, string>) => o as CSSProperties;
+
+/** Teammates arriving at one board. */
+const Converge = (
+	<>
+		<rect x="40" y="44" width="80" height="54" rx="6" />
+		<path d="M40 54h80M66.7 54v44M93.3 54v44" />
+		<rect x="45" y="59" width="17" height="8" rx="2" />
+		<rect x="71.7" y="59" width="17" height="8" rx="2" />
+		<rect x="45" y="71" width="17" height="8" rx="2" />
+		<rect
+			className="lp-a1-card"
+			x="98.3"
+			y="59"
+			width="17"
+			height="8"
+			rx="2"
+			stroke="var(--q-accent)"
+		/>
+		{[
+			[53, 26, "-34px", "-8px", "0s"],
+			[80, 22, "0px", "-16px", "0.12s"],
+			[107, 26, "34px", "-8px", "0.24s"],
+		].map(([x, y, fx, fy, dl]) => (
+			<g
+				key={String(x)}
+				className="lp-a1-av"
+				style={v({
+					"--fx": String(fx),
+					"--fy": String(fy),
+					"--dl": String(dl),
+				})}
+			>
+				<Person x={Number(x)} y={Number(y)} r={8} />
+			</g>
+		))}
+	</>
+);
+
+/** A task card handed from one teammate to another. */
+const Handoff = (
+	<>
+		<Person x={34} y={66} />
+		<Person x={126} y={66} />
+		<circle
+			className="lp-ping"
+			cx="126"
+			cy="66"
+			r="17"
+			stroke="var(--q-accent)"
+		/>
+		<g className="lp-a2-card">
+			<rect
+				x="48"
+				y="56"
+				width="22"
+				height="16"
+				rx="3"
+				stroke="var(--q-accent)"
+			/>
+			<path d="M52 61.5h11M52 66.5h7" stroke="var(--q-accent)" />
+		</g>
+		<path d="M50 84 C 70 94, 90 94, 110 84" strokeDasharray="2 4" />
+	</>
+);
+
+/** A live cursor leaving a comment that pings a teammate. */
+const Mention = (
+	<>
+		<g className="lp-a3-bubble">
+			<path d="M28 22h70a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6H54l-8 8v-8H28a6 6 0 0 1-6-6V28a6 6 0 0 1 6-6z" />
+			<path d="M32 33h40M32 41h26" />
+			<path d="M78 41h18" stroke="var(--q-accent)" />
+		</g>
+		<Person x={124} y={80} />
+		<circle
+			className="lp-ping"
+			cx="124"
+			cy="80"
+			r="17"
+			stroke="var(--q-accent)"
+		/>
+		<g className="lp-a3-cursor">
+			<path
+				d="M96 50l11 4.5-4.6 1.6-1.9 4.7z"
+				fill="var(--q-accent)"
+				stroke="var(--q-accent)"
+			/>
+		</g>
+	</>
+);
+
 const ITEMS = [
 	{
-		n: "01",
 		title: "One place for the work",
 		body: "Projects, notes, files and conversations live side by side, so nobody hunts through five apps for one answer.",
-		paths: LAYERS,
-		label: "Three stacked planes",
+		art: Converge,
+		label: "Three teammates arriving at one shared board",
 	},
 	{
-		n: "02",
-		title: "Fast by default",
-		body: "Everything is a keystroke away. Press ⌘K, jump anywhere, and changes appear for the whole team as they happen.",
-		paths: KEY,
-		label: "A single keyboard key",
+		title: "Hand work off cleanly",
+		body: "Assign a task and it arrives with its subtasks, comments and files, so whoever picks it up never starts from zero.",
+		art: Handoff,
+		label: "A task card passed from one person to another",
 	},
 	{
-		n: "03",
 		title: "People and agents, together",
-		body: "Zad and your own AI agents work in the same projects as you, with exactly the access you give them.",
-		paths: PAIR,
-		label: "Two planes rising side by side",
+		body: "Mention a teammate and they hear about it at once. Zad and your AI agents work in the same projects, with your access.",
+		art: Mention,
+		label: "A comment that mentions a teammate, who gets a ping",
 	},
 ];
 
 export function Principles() {
 	return (
-		<section className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
-			<Reveal>
-				<p className="max-w-4xl text-[1.6rem] leading-[1.25] font-medium tracking-[-0.02em] text-balance text-black/40 sm:text-[2.25rem] dark:text-white/35">
-					<span className="text-[#121212] dark:text-white">
-						A calmer way to run a team.
-					</span>{" "}
-					Zadaci keeps plans, docs and decisions next to the tasks they belong
-					to, so the work explains itself and everyone can see what comes next.
-				</p>
-			</Reveal>
-			<ul className="mt-16 grid gap-12 sm:mt-24 md:grid-cols-3 md:gap-0">
+		<section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:py-28">
+			<ScrollWords />
+			<ul className="mt-12 grid gap-3 sm:mt-16 md:grid-cols-3 md:gap-0">
 				{ITEMS.map((item, i) => (
 					<Reveal
 						as="li"
-						key={item.n}
-						delay={i * 0.08}
-						className="md:border-l md:border-black/[0.08] md:px-8 md:first:border-l-0 md:first:pl-0 dark:md:border-white/[0.08]"
+						key={item.title}
+						delay={i * 0.1}
+						className="rounded-(--q-r-lg) border border-(color:--q-border) bg-(--q-surface) p-5 md:rounded-none md:border-0 md:border-l md:bg-transparent md:p-0 md:px-8 md:first:border-l-0 md:first:pl-0"
 					>
-						<span className="font-ibm-plex-mono text-[11px] tracking-wider text-black/40 uppercase dark:text-white/35">
-							{item.n}
-						</span>
-						<div className="my-8">
-							<Drawing paths={item.paths} label={item.label} />
-						</div>
-						<h3 className="text-[17px] font-semibold tracking-tight">
+						<Art label={item.label}>{item.art}</Art>
+						<h3 className="mt-5 text-[17px] font-semibold tracking-tight">
 							{item.title}
 						</h3>
-						<p className="mt-2 max-w-xs text-[14.5px] leading-relaxed text-black/55 dark:text-white/50">
+						<p className="mt-2 text-[14.5px] md:max-w-xs leading-relaxed text-(color:--q-text-3)">
 							{item.body}
 						</p>
 					</Reveal>

@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
 	motion,
 	useReducedMotion,
@@ -5,9 +6,16 @@ import {
 	useSpring,
 	useTransform,
 } from "motion/react";
-import { useRef } from "react";
+import { type CSSProperties, useRef } from "react";
 import { MultiplayerText } from "./multiplayer-text";
 import { Reveal, Shot } from "./reveal";
+
+/** the app's large button size (.btn at --q-h-lg), for the page's main calls to action */
+export const BTN_LG = {
+	"--h": "var(--q-h-lg)",
+	padding: "0 14px",
+	fontSize: "var(--q-fs-md)",
+} as CSSProperties;
 
 const PLAYERS = [
 	{ name: "Olive Bishop", color: "#3ecf8e" },
@@ -40,47 +48,61 @@ export function Hero() {
 				</h1>
 				<MultiplayerText
 					text="Turning team productivity into a powerful daily habit"
-					className="max-w-4xl text-[2.6rem] leading-[1.08] font-semibold tracking-[-0.035em] text-[#121212] sm:text-6xl lg:text-[4.5rem] dark:text-white"
+					className="max-w-4xl text-[2.6rem] leading-[1.2] sm:leading-[1.08] font-semibold tracking-[-0.035em] text-(color:--q-text) sm:text-6xl lg:text-[4.5rem]"
 					players={PLAYERS}
 					interval={1500}
 				/>
 				<Reveal
 					immediate
 					delay={0.15}
-					className="mt-12 flex flex-col gap-4 sm:mt-16 md:flex-row md:items-end md:justify-between"
+					className="mt-14 flex flex-col gap-8 sm:mt-16 md:flex-row md:items-end md:justify-between"
 				>
-					<p className="max-w-lg text-[16px] leading-relaxed text-pretty text-black/55 sm:text-[17px] dark:text-white/50">
-						Projects, tasks, notes and chat in one calm workspace. Built for
-						teams, and for the AI agents they work with.
-					</p>
+					<div className="flex flex-col gap-6">
+						<p className="max-w-lg text-[16px] leading-relaxed text-pretty text-(color:--q-text-3) sm:text-[17px]">
+							Projects, tasks, notes and chat in one calm workspace. Built for
+							teams, and for the AI agents they work with.
+						</p>
+						<div className="flex items-center gap-3">
+							<Link
+								to="/auth/signin"
+								className="btn btn-primary"
+								style={BTN_LG}
+							>
+								Get started
+							</Link>
+							<Link
+								to="/auth/signin"
+								className="btn btn-secondary"
+								style={BTN_LG}
+							>
+								Log in
+							</Link>
+						</div>
+					</div>
 					<a
 						href="#github"
 						className="group flex shrink-0 items-center gap-2 text-[14.5px]"
 					>
 						<span className="font-medium">New</span>
-						<span className="text-black/55 transition-colors group-hover:text-black dark:text-white/50 dark:group-hover:text-white">
+						<span className="text-(color:--q-text-3) transition-colors group-hover:text-(color:--q-text)">
 							GitHub comments sync both ways
 						</span>
 						<span
 							aria-hidden="true"
-							className="icon-[solar--arrow-right-linear] size-4 text-black/55 transition-transform duration-200 ease-out group-hover:translate-x-0.5 dark:text-white/50"
+							className="icon-[solar--arrow-right-linear] size-4 text-(color:--q-text-3) transition-transform duration-200 ease-out group-hover:translate-x-0.5"
 						/>
 					</a>
 				</Reveal>
 			</div>
 
-			<div className="relative mx-auto mt-14 max-w-[76rem] px-3 sm:mt-20 sm:px-6">
-				<div
-					aria-hidden="true"
-					className="pointer-events-none absolute inset-x-[10%] top-[8%] h-2/3 rounded-full bg-[radial-gradient(closest-side,rgba(249,116,82,0.22),transparent)] blur-3xl dark:bg-[radial-gradient(closest-side,rgba(249,116,82,0.16),transparent)]"
-				/>
+			<div className="relative mx-auto mt-12 max-w-[76rem] px-3 sm:mt-20 sm:px-6">
 				<Reveal immediate delay={0.25}>
 					<motion.div
 						ref={frame}
 						style={{ transform, transformOrigin: "50% 0%" }}
-						className="relative rounded-xl border border-black/[0.08] bg-white/60 p-1.5 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.25)] sm:rounded-2xl sm:p-2 dark:border-white/[0.08] dark:bg-white/[0.03] dark:shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)]"
+						className="relative rounded-xl border border-(color:--q-border) bg-(--q-surface-2) p-1.5 sm:rounded-2xl sm:p-2"
 					>
-						<div className="overflow-hidden rounded-lg border border-black/[0.06] sm:rounded-xl dark:border-white/[0.06]">
+						<div className="overflow-hidden rounded-md border border-(color:--q-border) sm:rounded-lg">
 							<Shot
 								name="board"
 								alt="A Zadaci project board with tasks in Backlog, To Do, In Progress and Review"
@@ -91,7 +113,7 @@ export function Hero() {
 				</Reveal>
 				<div
 					aria-hidden="true"
-					className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-b from-transparent to-[#fbfaf8] dark:to-[#0b0b0c]"
+					className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-b from-transparent to-(--q-bg)"
 				/>
 			</div>
 		</section>

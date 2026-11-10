@@ -59,7 +59,7 @@ export const Route = createFileRoute("/")({
 
 function Home() {
 	return (
-		<div className="min-h-dvh overflow-x-clip bg-[#fbfaf8] text-[#121212] antialiased dark:bg-[#0b0b0c] dark:text-[#f2f2f0]">
+		<div className="min-h-dvh overflow-x-clip bg-(--q-bg) text-(color:--q-text) antialiased">
 			<LandingNav />
 			<main>
 				<Hero />

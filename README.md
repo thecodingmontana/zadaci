@@ -39,7 +39,7 @@ Live at [zadaci.vercel.app](https://zadaci.vercel.app).
   - Anyone else gets *Page not found*, and every admin request checks the list on the server too.
 - Light and dark themes, responsive layout with a mobile bottom nav.
 - **Offline and updates:** a bar across the top says when you're offline (changes won't save until the connection is back, with *Try again*), and when a new version has been deployed since the page (or the installed app) opened: *Reload* gets it. Pages compare their build with `/api/version` when you come back to them and every 15 minutes.
-- **Landing page** (`/`, for signed-out visitors): a hero with a live board screenshot, three principles, chapters on planning, working together, Zad and MCP agents, and GitHub sync with small live demos, a changelog strip and real light and dark screenshots of the app (`public/landing/`); components in `src/components/home/`.
+- **Landing page** (`/`, for signed-out visitors): a hero with a real board screenshot, principles that draw themselves, and chapters whose demos are the app's own UI (board, notes, Zad, GitHub) playing on a loop while in view, with feature rows that open in turn. A phone menu grows out of the burger. Real light and dark screenshots live in `public/landing/`; components in `src/components/home/`. The **Star on GitHub** buttons show the repo's stars and forks from `/api/github-repo` (GitHub's public API, cached an hour at the edge; nothing shows if GitHub can't be reached).
 
 ## Tech stack
 

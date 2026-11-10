@@ -1,6 +1,7 @@
-import { Chapter, EdgeFade, Panel } from "./chapter";
-import { GithubSync } from "./github-sync";
-import { LiveBoard } from "./live-board";
+import { BoardDemo } from "./board-demo";
+import { Chapter, Panel } from "./chapter";
+import { GithubDemo } from "./github-demo";
+import { NoteDemo } from "./note-demo";
 import { Shot } from "./reveal";
 import { ZadDemo } from "./zad-demo";
 
@@ -12,26 +13,33 @@ export function Chapters() {
 				title={["Plan it", "your way"]}
 				body="Every project opens as a board, list, table, calendar or timeline, whichever suits the work. Statuses, milestones, leads and saved views keep a busy roadmap readable."
 				features={[
-					"Board, list and table",
-					"Calendar and timeline",
-					"Milestones and leads",
-					"Saved views",
-					"Dependencies",
-					"Repeating tasks",
+					{
+						name: "Board, list and table",
+						desc: "Every project opens in the view you pick: drag cards between status columns, or edit fields right in the table.",
+					},
+					{
+						name: "Calendar and timeline",
+						desc: "Tasks with dates land on a month calendar and on a timeline you can read by weeks or months.",
+					},
+					{
+						name: "Milestones and leads",
+						desc: "Give a project a lead and milestones, so everyone knows who owns it and what comes next.",
+					},
+					{
+						name: "Saved views",
+						desc: "Keep a filter, sort and layout as a named view on the project, one click away.",
+					},
+					{
+						name: "Dependencies",
+						desc: "Mark a task as blocked by another, so the order of the work is clear before anyone starts.",
+					},
+					{
+						name: "Repeating tasks",
+						desc: "Set a task to repeat, and the next one is ready when this one is done.",
+					},
 				]}
 			>
-				<div className="relative pb-0 md:pb-16">
-					<Panel>
-						<Shot
-							name="timeline"
-							alt="The timeline view of a Zadaci project, with tasks grouped by status across November"
-						/>
-						<EdgeFade right />
-					</Panel>
-					<div className="mt-3 md:absolute md:right-6 md:bottom-0 md:mt-0 md:w-[440px]">
-						<LiveBoard />
-					</div>
-				</div>
+				<BoardDemo />
 			</Chapter>
 
 			<Chapter
@@ -39,30 +47,40 @@ export function Chapters() {
 				title={["Work on it", "together"]}
 				body="Tasks carry their subtasks, assignees, comments and time spent. Write the plan in a Notion-style note, talk it through in team chat, and get a morning digest of what changed."
 				features={[
-					"Subtasks and assignees",
-					"Comments and mentions",
-					"Notes with blocks",
-					"Channels and DMs",
-					"Time tracking",
-					"Digest and web push",
+					{
+						name: "Subtasks and assignees",
+						desc: "Break a task into subtasks and assign it to one person or several.",
+					},
+					{
+						name: "Comments and mentions",
+						desc: "Talk it through on the task itself; @mention someone and they get notified, with reactions for quick replies.",
+					},
+					{
+						name: "Notes with blocks",
+						desc: "Notion-style pages with headings, lists, tables, embeds and covers, linked to a project if you like.",
+					},
+					{
+						name: "Channels and DMs",
+						desc: "Team chat with channels, direct messages, threads, and a chat for any project or task.",
+					},
+					{
+						name: "Time tracking",
+						desc: "Start a timer on a task to see how long the work really took.",
+					},
+					{
+						name: "Digest and web push",
+						desc: "A morning email at the hour you choose, plus push notifications on desktop and phone.",
+					},
 				]}
 			>
-				<div className="grid gap-3 md:grid-cols-[1.25fr_1fr]">
-					<Panel className="aspect-[4/3] md:aspect-auto md:h-[420px]">
-						<Shot
-							name="notes"
-							alt="A Zadaci note titled Mobile 2.0 launch plan, with goals, timeline and open questions"
-							className="w-[180%]! max-w-none -translate-x-[18%] md:w-[150%]! md:-translate-x-[16%]"
-						/>
-						<EdgeFade />
-					</Panel>
-					<Panel className="aspect-[4/3] md:aspect-auto md:h-[420px]">
+				<div className="grid gap-3 md:grid-cols-2">
+					<NoteDemo />
+					<Panel className="hidden md:block">
 						<Shot
 							name="chat"
+							className="absolute inset-0 h-full! object-cover object-[78%_70%]"
 							alt="The #mobile channel in Zadaci chat, with the team discussing the beta"
-							className="w-[190%]! max-w-none -translate-x-[33%] -translate-y-[50%] md:w-[170%]! md:-translate-y-[54%]"
 						/>
-						<EdgeFade />
 					</Panel>
 				</div>
 			</Chapter>
@@ -70,24 +88,44 @@ export function Chapters() {
 			<Chapter
 				id="ai"
 				title={["Zad and your", "own agents"]}
-				body="Ask Zad what's due, what's blocked or to plan your week, and it acts on your tasks for you. Connect Claude, Cursor or ChatGPT over MCP and they work in Zadaci as you, with exactly your access."
+				body="Ask Zad what's due, what's blocked or to plan your week, and it acts on your tasks for you. Connect Claude, Cursor or Codex over MCP and they work in Zadaci as you, with exactly your access."
 				features={[
-					"Zad assistant",
-					"MCP server",
-					"Approvals before changes",
-					"Bring your own key",
-					"Claude, Cursor, ChatGPT",
-					"Same permissions as you",
+					{
+						name: "Zad assistant",
+						desc: "Ask what is due or blocked, or tell it to create, update, assign or move tasks for you.",
+					},
+					{
+						name: "MCP server",
+						desc: "Connect Claude, Claude Code, Cursor, Codex, VS Code or any MCP client, and it works in Zadaci as you.",
+					},
+					{
+						name: "Approvals before changes",
+						desc: "Zad asks first before deleting, archiving or changing more than three tasks at once.",
+					},
+					{
+						name: "Bring your own key",
+						desc: "Add your own Claude, ChatGPT, Gemini or OpenRouter key to use Zad as much as you like; keys are encrypted.",
+					},
+					{
+						name: "Setup for each agent",
+						desc: "Settings has a tab for Claude, Claude Code, Codex, Cursor, VS Code and Gemini CLI, each with a copy button.",
+					},
+					{
+						name: "Same permissions as you",
+						desc: "Agents act with exactly your role in each workspace, and their changes show up live for your team.",
+					},
 				]}
 			>
-				<ZadDemo />
-				<Panel className="mt-3 hidden md:block">
-					<Shot
-						name="zad"
-						alt="Zad, the Zadaci assistant, open beside a project timeline"
-					/>
-					<EdgeFade />
-				</Panel>
+				<div className="grid gap-3 md:grid-cols-2">
+					<ZadDemo />
+					<Panel className="hidden md:block">
+						<Shot
+							name="zad"
+							className="absolute inset-0 h-full! object-cover object-[100%_0%]"
+							alt="Zad, the Zadaci assistant, open beside a project timeline"
+						/>
+					</Panel>
+				</div>
 			</Chapter>
 
 			<Chapter
@@ -95,13 +133,25 @@ export function Chapters() {
 				title={["Linked to", "GitHub"]}
 				body="Link a project to a repository and its tasks and issues stay in step both ways: titles, status, comments and pull requests, with webhooks for speed and an hourly check for anything missed."
 				features={[
-					"Two-way issue sync",
-					"Comments both ways",
-					"Pull request links",
-					"Webhooks and repair",
+					{
+						name: "Two-way issue sync",
+						desc: "Creating, editing, completing or deleting a task updates its issue, and changes on GitHub update the task.",
+					},
+					{
+						name: "Comments both ways",
+						desc: "A task comment is posted on its issue, and a comment written on GitHub becomes a task comment.",
+					},
+					{
+						name: "Pull request links",
+						desc: "Pull requests that mention a task’s key show on the task, and merging one completes it.",
+					},
+					{
+						name: "Webhooks and repair",
+						desc: "Webhooks bring changes in quickly, and an hourly check puts anything missed back in step.",
+					},
 				]}
 			>
-				<GithubSync />
+				<GithubDemo />
 			</Chapter>
 		</>
 	);

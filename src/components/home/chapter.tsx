@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { type Feature, FeatureList } from "./feature-list";
 import { Reveal } from "./reveal";
 
 /** One feature chapter: heading left, story right, a wide product panel, then its feature list. */
@@ -13,16 +14,16 @@ export function Chapter({
 	id: string;
 	title: [string, string];
 	body: string;
-	features: string[];
+	features: Feature[];
 	children: ReactNode;
 }) {
 	return (
 		<section
 			id={id}
 			aria-labelledby={`${id}-title`}
-			className="scroll-mt-14 border-t border-black/[0.07] dark:border-white/[0.07]"
+			className="scroll-mt-14 border-t border-(color:--q-border)"
 		>
-			<div className="mx-auto max-w-6xl px-4 pt-24 pb-20 sm:px-6 sm:pt-32">
+			<div className="mx-auto max-w-6xl px-4 pt-16 pb-14 sm:px-6 sm:pt-24 sm:pb-20 lg:pt-28">
 				<div className="grid gap-6 md:grid-cols-2 md:gap-12">
 					<Reveal>
 						<h2
@@ -35,49 +36,35 @@ export function Chapter({
 						</h2>
 					</Reveal>
 					<Reveal delay={0.08}>
-						<p className="text-[17px] leading-relaxed text-pretty text-black/60 sm:text-[19px] dark:text-white/55">
+						<p className="text-[17px] leading-relaxed text-pretty text-(color:--q-text-2) sm:text-[19px]">
 							{body}
 						</p>
-						<Link
-							to="/auth/signin"
-							className="group mt-6 inline-flex items-center gap-1.5 text-[14.5px] font-medium"
-						>
+						<Link to="/auth/signin" className="group btn btn-secondary mt-6">
 							Try it free
 							<span
 								aria-hidden="true"
-								className="icon-[solar--arrow-right-linear] size-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5"
+								className="icon-[solar--arrow-right-linear] size-3.5 transition-transform duration-150 ease-out group-hover:translate-x-0.5"
 							/>
 						</Link>
 					</Reveal>
 				</div>
 
-				<Reveal delay={0.1} className="relative mt-14 sm:mt-20">
+				<Reveal delay={0.1} className="relative mt-10 sm:mt-14">
 					{children}
 				</Reveal>
 
-				<Reveal className="mt-14 grid gap-4 text-[14.5px] sm:mt-20 md:grid-cols-2">
-					<span className="text-black/40 dark:text-white/35">Features</span>
-					<ul className="grid grid-cols-2 gap-x-6 gap-y-2.5">
-						{features.map((f) => (
-							<li
-								key={f}
-								className="flex items-center gap-1.5 text-black/65 dark:text-white/60"
-							>
-								{f}
-								<span
-									aria-hidden="true"
-									className="icon-[solar--add-circle-linear] size-3.5 opacity-50"
-								/>
-							</li>
-						))}
-					</ul>
+				<Reveal className="mt-10 grid gap-3 sm:mt-14 md:grid-cols-[1fr_2fr] md:gap-12">
+					<h3 className="text-(length:--q-fs) font-normal text-(color:--q-text-4)">
+						Features
+					</h3>
+					<FeatureList id={id} features={features} />
 				</Reveal>
 			</div>
 		</section>
 	);
 }
 
-/** A soft bordered panel for product UI, its edges fading into the page. */
+/** A bordered frame for a screenshot, with the app's own border and radius tokens. */
 export function Panel({
 	children,
 	className = "",
@@ -87,27 +74,9 @@ export function Panel({
 }) {
 	return (
 		<div
-			className={`relative overflow-hidden rounded-xl border border-black/[0.08] bg-white shadow-[0_24px_60px_-32px_rgba(0,0,0,0.2)] dark:border-white/[0.08] dark:bg-[#141416] dark:shadow-[0_24px_60px_-32px_rgba(0,0,0,0.9)] ${className}`}
+			className={`relative overflow-hidden rounded-(--q-r-lg) border border-(color:--q-border) bg-(--q-bg) ${className}`}
 		>
 			{children}
 		</div>
-	);
-}
-
-/** Fades the bottom (and optionally right) of a panel into the page colour. */
-export function EdgeFade({ right = false }: { right?: boolean }) {
-	return (
-		<>
-			<div
-				aria-hidden="true"
-				className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-b from-transparent to-[#fbfaf8] dark:to-[#0b0b0c]"
-			/>
-			{right && (
-				<div
-					aria-hidden="true"
-					className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-linear-to-r from-transparent to-[#fbfaf8] dark:to-[#0b0b0c]"
-				/>
-			)}
-		</>
 	);
 }

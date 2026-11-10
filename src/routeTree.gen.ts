@@ -22,6 +22,7 @@ import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
 import { Route as AuthedOnboardingRouteImport } from './routes/_authed/onboarding'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
+import { Route as ApiGithubRepoRouteImport } from './routes/api/github-repo'
 import { Route as ApiGraphqlRouteImport } from './routes/api/graphql'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
@@ -137,6 +138,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
 const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
   id: '/api/client-error',
   path: '/api/client-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGithubRepoRoute = ApiGithubRepoRouteImport.update({
+  id: '/api/github-repo',
+  path: '/api/github-repo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGraphqlRoute = ApiGraphqlRouteImport.update({
@@ -402,6 +408,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
+  '/api/github-repo': typeof ApiGithubRepoRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/api/mcp': typeof ApiMcpRoute
   '/api/version': typeof ApiVersionRoute
@@ -464,6 +471,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
+  '/api/github-repo': typeof ApiGithubRepoRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/api/mcp': typeof ApiMcpRoute
   '/api/version': typeof ApiVersionRoute
@@ -528,6 +536,7 @@ export interface FileRoutesById {
   '/_authed/onboarding': typeof AuthedOnboardingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/client-error': typeof ApiClientErrorRoute
+  '/api/github-repo': typeof ApiGithubRepoRoute
   '/api/graphql': typeof ApiGraphqlRoute
   '/api/mcp': typeof ApiMcpRoute
   '/api/version': typeof ApiVersionRoute
@@ -593,6 +602,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/api/chat'
     | '/api/client-error'
+    | '/api/github-repo'
     | '/api/graphql'
     | '/api/mcp'
     | '/api/version'
@@ -655,6 +665,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/api/chat'
     | '/api/client-error'
+    | '/api/github-repo'
     | '/api/graphql'
     | '/api/mcp'
     | '/api/version'
@@ -718,6 +729,7 @@ export interface FileRouteTypes {
     | '/_authed/onboarding'
     | '/api/chat'
     | '/api/client-error'
+    | '/api/github-repo'
     | '/api/graphql'
     | '/api/mcp'
     | '/api/version'
@@ -781,6 +793,7 @@ export interface RootRouteChildren {
   DotwellKnownOpenidConfigurationRoute: typeof DotwellKnownOpenidConfigurationRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
+  ApiGithubRepoRoute: typeof ApiGithubRepoRoute
   ApiGraphqlRoute: typeof ApiGraphqlRoute
   ApiMcpRoute: typeof ApiMcpRoute
   ApiVersionRoute: typeof ApiVersionRoute
@@ -892,6 +905,13 @@ declare module '@tanstack/react-router' {
       path: '/api/client-error'
       fullPath: '/api/client-error'
       preLoaderRoute: typeof ApiClientErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/github-repo': {
+      id: '/api/github-repo'
+      path: '/api/github-repo'
+      fullPath: '/api/github-repo'
+      preLoaderRoute: typeof ApiGithubRepoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/graphql': {
@@ -1375,6 +1395,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownOpenidConfigurationRoute: DotwellKnownOpenidConfigurationRoute,
   ApiChatRoute: ApiChatRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
+  ApiGithubRepoRoute: ApiGithubRepoRoute,
   ApiGraphqlRoute: ApiGraphqlRoute,
   ApiMcpRoute: ApiMcpRoute,
   ApiVersionRoute: ApiVersionRoute,

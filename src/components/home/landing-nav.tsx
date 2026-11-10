@@ -1,18 +1,19 @@
 import { Link } from "@tanstack/react-router";
 import { ThemeToggle } from "#/components/theme-toggle";
 import { ZadaciLogo } from "#/components/zadaci-logo";
+import { MobileMenu } from "./mobile-menu";
+import { StarButton } from "./star-button";
 
 const LINKS = [
 	{ href: "#plan", label: "Plan" },
 	{ href: "#together", label: "Together" },
 	{ href: "#ai", label: "AI" },
 	{ href: "#github", label: "GitHub" },
-	{ href: "#changelog", label: "Changelog" },
 ];
 
 export function LandingNav() {
 	return (
-		<header className="sticky top-0 z-40 border-b border-black/[0.07] bg-[#fbfaf8]/80 backdrop-blur-md dark:border-white/[0.07] dark:bg-[#0b0b0c]/75">
+		<header className="sticky top-0 z-40 border-b border-(color:--q-border) bg-(--q-bg)/85 backdrop-blur-md">
 			<nav
 				aria-label="Main"
 				className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6"
@@ -24,32 +25,27 @@ export function LandingNav() {
 					<ZadaciLogo className="size-6" />
 					Zadaci
 				</a>
-				<ul className="ml-auto hidden items-center gap-6 text-[13.5px] text-black/60 md:flex dark:text-white/55">
+				<ul className="ml-auto hidden items-center gap-1 min-[769px]:flex">
 					{LINKS.map((l) => (
 						<li key={l.href}>
-							<a
-								href={l.href}
-								className="transition-colors duration-150 hover:text-black dark:hover:text-white"
-							>
+							<a href={l.href} className="btn btn-ghost">
 								{l.label}
 							</a>
 						</li>
 					))}
 				</ul>
-				<div className="ml-auto flex items-center gap-2 md:ml-0 md:border-l md:border-black/10 md:pl-5 dark:md:border-white/10">
-					<ThemeToggle />
-					<Link
-						to="/auth/signin"
-						className="hidden px-2 text-[13.5px] text-black/60 transition-colors hover:text-black sm:block dark:text-white/55 dark:hover:text-white"
-					>
-						Log in
-					</Link>
-					<Link
-						to="/auth/signin"
-						className="rounded-full bg-[#121212] px-3.5 py-1.5 text-[13.5px] font-medium text-white transition-transform duration-150 ease-out active:scale-[0.97] dark:bg-white dark:text-[#121212]"
-					>
+				<div className="ml-auto flex items-center gap-2 min-[769px]:ml-0 min-[769px]:border-l min-[769px]:border-(color:--q-border) min-[769px]:pl-4">
+					<span className="hidden min-[769px]:contents">
+						<ThemeToggle />
+						<Link to="/auth/signin" className="btn btn-ghost">
+							Log in
+						</Link>
+					</span>
+					<StarButton className="hidden lg:inline-flex" />
+					<Link to="/auth/signin" className="btn btn-primary">
 						Sign up
 					</Link>
+					<MobileMenu links={LINKS} />
 				</div>
 			</nav>
 		</header>

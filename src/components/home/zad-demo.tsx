@@ -1,150 +1,225 @@
-import { motion, useInView, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import {
+	ItemList,
+	itemsOf,
+	MessageText,
+	ThinkingCard,
+} from "#/components/ai/assistant-parts";
+import { Stage, useDemoLoop } from "./demo-stage";
+
+// Zad's side panel, built from the assistant's own parts (ThinkingCard, MessageText, ItemList)
+// and classes (.drawer.ai-drawer, .ai-chat …): a question is typed and sent, the steps run with
+// their chips, the answer streams in, then "Worked for 3s".
 
 const QUESTION = "What's still blocking the mobile release?";
 const ANSWER =
-	"Two things. Sync conflicts when two people edit (urgent, Leo, due Friday) is the last open blocker. Beta feedback round two is waiting on it. Want me to move the beta date to next Tuesday?";
+	"One task is still open on the critical path: **MA-5 Sync conflicts when two people edit** (urgent, Leo Park, due Friday). **MA-10 Beta feedback round two** is waiting on it.\n\nEverything else for Mobile app 2.0 is in progress or in review. Want me to move the beta feedback round to next Tuesday?";
 
-const AGENT = [
+const BLOCKERS = {
+	tasks: [
+		{
+			id: "5",
+			key: "MA-5",
+			title: "Sync conflicts when two people edit",
+			status: "To Do",
+			project: "Mobile app 2.0",
+		},
+		{
+			id: "10",
+			key: "MA-10",
+			title: "Beta feedback round two",
+			status: "To Do",
+			project: "Mobile app 2.0",
+		},
+		{
+			id: "1",
+			key: "MA-1",
+			title: "Offline mode for task lists",
+			status: "In Progress",
+			project: "Mobile app 2.0",
+		},
+	],
+};
+const CALLS = [
 	{
-		who: "Claude Code",
-		call: "listTasks",
-		arg: 'project: "Mobile app 2.0"',
-		out: "11 tasks",
+		name: "listProjects",
+		input: "{}",
+		output: JSON.stringify({
+			projects: [{ id: "p", title: "Mobile app 2.0", color: "violet" }],
+		}),
 	},
 	{
-		who: "Claude Code",
-		call: "updateTask",
-		arg: 'MA-5 → status: "In Review"',
-		out: "done",
-	},
-	{
-		who: "Cursor",
-		call: "addComment",
-		arg: 'MA-5 "Fix is in PR #214"',
-		out: "posted",
-	},
-	{
-		who: "ChatGPT",
-		call: "createNote",
-		arg: '"Release notes 2.0"',
-		out: "created",
+		name: "listTasks",
+		input: JSON.stringify({ project: "Mobile app 2.0" }),
+		output: JSON.stringify(BLOCKERS),
 	},
 ];
+type Call = { name: string; input: string; output?: string };
 
-/** Zad answering a question as it types, next to outside agents calling Zadaci's MCP tools. */
+const noop = () => {};
+
 export function ZadDemo() {
-	const ref = useRef<HTMLDivElement>(null);
-	const inView = useInView(ref, { once: true, margin: "-120px" });
-	const reduce = useReducedMotion();
+	const stage = useRef<HTMLDivElement>(null);
+	const [draft, setDraft] = useState("");
+	const [asked, setAsked] = useState(false);
+	const [calls, setCalls] = useState<Call[]>([]);
 	const [chars, setChars] = useState(0);
+	const [live, setLive] = useState(false);
+	const [startedAt, setStartedAt] = useState<number>();
+	const [round, setRound] = useState(0);
 
-	useEffect(() => {
-		if (!inView) return;
-		if (reduce) {
+	useDemoLoop(
+		stage,
+		async (wait) => {
+			await wait(700);
+			for (let i = 1; i <= QUESTION.length; i++) {
+				await wait(38);
+				setDraft(QUESTION.slice(0, i));
+			}
+			await wait(400);
+			setDraft("");
+			setAsked(true);
+			setLive(true);
+			setStartedAt(Date.now());
+			await wait(900); // "Thinking…" before the first step
+			for (const call of CALLS) {
+				setCalls((cs) => [...cs, { name: call.name, input: call.input }]);
+				await wait(1100);
+				setCalls((cs) => cs.map((c) => (c.name === call.name ? call : c)));
+				await wait(250);
+			}
+			// the answer arrives in chunks, a few words at a time
+			for (let n = 0; n < ANSWER.length; ) {
+				n = Math.min(ANSWER.length, n + 6 + Math.floor(Math.random() * 10));
+				setChars(n);
+				await wait(55);
+			}
+			setLive(false);
+			await wait(5200);
+		},
+		() => {
+			setDraft("");
+			setAsked(false);
+			setCalls([]);
+			setChars(0);
+			setLive(false);
+			setRound((r) => r + 1);
+		},
+		() => {
+			setAsked(true);
+			setCalls(CALLS);
 			setChars(ANSWER.length);
-			return;
-		}
-		let n = 0;
-		let id: ReturnType<typeof setInterval> | undefined;
-		const start = setTimeout(() => {
-			id = setInterval(() => {
-				n += 2;
-				setChars(Math.min(n, ANSWER.length));
-				if (n >= ANSWER.length) clearInterval(id);
-			}, 28);
-		}, 900);
-		return () => {
-			clearTimeout(start);
-			clearInterval(id);
-		};
-	}, [inView, reduce]);
+			setLive(false);
+		},
+	);
 
-	const typing = chars < ANSWER.length;
-
+	const text = ANSWER.slice(0, chars);
 	return (
-		<div ref={ref} className="grid gap-3 md:grid-cols-[1.15fr_1fr]">
-			<div className="rounded-xl border border-black/[0.08] bg-white p-4 sm:p-5 dark:border-white/[0.08] dark:bg-[#141416]">
-				<div className="flex items-center gap-2 border-b border-black/[0.06] pb-3 text-[13px] font-medium dark:border-white/[0.06]">
-					<span
-						aria-hidden="true"
-						className="icon-[hugeicons--ai-magic] size-4 text-[#F97452]"
-					/>
-					Zad
-				</div>
-				<div className="flex min-h-64 flex-col gap-3 pt-4 text-[13.5px] leading-relaxed">
-					<p className="max-w-[85%] self-end rounded-2xl rounded-br-md bg-black/[0.05] px-3.5 py-2 dark:bg-white/[0.07]">
-						{QUESTION}
-					</p>
-					<div className="flex flex-wrap gap-1.5">
-						{["Read Mobile app 2.0", "Checked 11 tasks"].map((t, i) => (
-							<motion.span
-								key={t}
-								initial={{ opacity: 0 }}
-								animate={inView ? { opacity: 1 } : {}}
-								transition={{ delay: 0.3 + i * 0.25 }}
-								className="flex items-center gap-1 rounded-full border border-black/[0.07] px-2 py-0.5 text-[11px] text-black/50 dark:border-white/[0.08] dark:text-white/45"
-							>
-								<span
-									aria-hidden="true"
-									className="icon-[solar--check-circle-linear] size-3 text-emerald-500"
-								/>
-								{t}
-							</motion.span>
-						))}
-					</div>
-					<p className="text-black/80 dark:text-white/80">
-						<span className="sr-only">{ANSWER}</span>
-						<span aria-hidden="true">
-							{ANSWER.slice(0, chars)}
-							{typing && inView && (
-								<span className="ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] animate-pulse bg-[#F97452]" />
-							)}
-						</span>
-					</p>
-				</div>
-			</div>
-
-			<div className="overflow-hidden rounded-xl border border-black/[0.08] bg-[#f6f5f2] font-ibm-plex-mono text-[11.5px] dark:border-white/[0.08] dark:bg-[#111113]">
-				<div className="flex items-center justify-between border-b border-black/[0.06] px-4 py-3 text-black/50 dark:border-white/[0.06] dark:text-white/45">
-					<span>mcp · zadaci</span>
-					<span className="flex items-center gap-1.5">
-						<span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-						connected
+		<Stage
+			width={560}
+			height={600}
+			label="Zad, the Zadaci assistant, answering what's blocking a release"
+			stageRef={stage}
+			fluid
+		>
+			<aside
+				key={round}
+				className="drawer enter ai-drawer"
+				style={{
+					position: "absolute",
+					inset: 0,
+					width: "100%",
+					zIndex: 1,
+					boxShadow: "none",
+					borderLeft: 0,
+				}}
+			>
+				<div className="drawer-h">
+					<span className="icon-[hugeicons--ai-magic] size-4" />
+					<b style={{ marginLeft: 4 }}>Zad</b>
+					<span className="sp" />
+					<span className="ibtn ibtn-sm">
+						<span className="icon-[solar--eraser-linear] size-4" />
+					</span>
+					<span className="ibtn ibtn-sm">
+						<span className="icon-[solar--maximize-square-linear] size-4" />
+					</span>
+					<span className="ibtn ibtn-sm">
+						<span className="icon-[solar--close-circle-linear] size-4" />
 					</span>
 				</div>
-				<ul className="flex flex-col gap-3 p-4">
-					{AGENT.map((a, i) => (
-						<motion.li
-							key={a.call + a.arg}
-							initial={{
-								opacity: 0,
-								transform: reduce ? "none" : "translateY(6px)",
-							}}
-							animate={
-								inView ? { opacity: 1, transform: "translateY(0px)" } : {}
-							}
-							transition={{
-								delay: 0.6 + i * 0.9,
-								duration: 0.5,
-								ease: [0.23, 1, 0.32, 1],
-							}}
-							className="leading-relaxed"
-						>
-							<span className="text-black/40 dark:text-white/35">{a.who}</span>
-							<br />
-							<span className="text-[#F97452]">{a.call}</span>
-							<span className="text-black/70 dark:text-white/70">
-								({a.arg})
+				<div className="ai-chat">
+					<div className="ai-msgs">
+						{asked && (
+							<div className="ai-msg me">
+								<MessageText text={QUESTION} onOpen={noop} />
+							</div>
+						)}
+						{asked && calls.length === 0 && (
+							<div className="ai-thinking">
+								<span className="shim on">Thinking…</span>
+							</div>
+						)}
+						{calls.length > 0 && (
+							<div className="ai-msg bot">
+								<ThinkingCard
+									calls={calls}
+									live={live}
+									startedAt={startedAt}
+									seconds={3}
+									onOpen={noop}
+								/>
+								{text && <MessageText text={text} onOpen={noop} />}
+								{!live && (
+									<ItemList
+										items={calls
+											.filter((c) => c.output)
+											.flatMap(itemsOf)
+											.filter((i) => i.kind === "task")}
+										onOpen={noop}
+									/>
+								)}
+								{!live && text && (
+									<div className="ai-acts">
+										<span className="ibtn ibtn-xs">
+											<span className="icon-[solar--copy-linear] size-3.5" />
+										</span>
+										<span className="ibtn ibtn-xs">
+											<span className="icon-[solar--restart-linear] size-3.5" />
+										</span>
+									</div>
+								)}
+							</div>
+						)}
+					</div>
+					<div className="ai-input">
+						<textarea
+							value={draft}
+							rows={2}
+							readOnly
+							tabIndex={-1}
+							placeholder="Ask Zad, or type @ to mention a project, task or note…"
+						/>
+						<div className="row">
+							<span className="ibtn ibtn-sm">
+								<span className="icon-[solar--mention-circle-linear] size-4" />
 							</span>
-							<span className="text-emerald-600 dark:text-emerald-400">
-								{" "}
-								✓ {a.out}
-							</span>
-						</motion.li>
-					))}
-				</ul>
-			</div>
-		</div>
+							<span className="sp" />
+							{live ? (
+								<span className="btn btn-secondary btn-sm">Stop</span>
+							) : (
+								<span
+									className="btn btn-primary btn-sm"
+									aria-disabled={!draft.trim()}
+								>
+									Send
+								</span>
+							)}
+						</div>
+					</div>
+					<p className="faint ai-note" />
+				</div>
+			</aside>
+		</Stage>
 	);
 }

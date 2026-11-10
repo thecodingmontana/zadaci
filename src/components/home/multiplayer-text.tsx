@@ -7,7 +7,11 @@ export interface MultiplayerTextPlayer {
 	color: string;
 }
 
-type Cursor = { x: number; y: number; rot: number };
+export type Cursor = { x: number; y: number; rot: number };
+
+/** How long a cursor takes to travel to its next target, in seconds. */
+export const CURSOR_TRAVEL_S = 0.65;
+export const CURSOR_PRESS_MS = 170;
 type Center = { x: number; y: number; bottom: number };
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
@@ -16,8 +20,8 @@ const SPRING = { type: "spring", duration: 0.5, bounce: 0.16 } as const;
 const DROP = { type: "spring", duration: 0.55, bounce: 0.28 } as const;
 const PRESS = { duration: 0.09, ease: EASE_OUT };
 
-const TRAVEL_S = 0.65;
-const PRESS_MS = 170;
+const TRAVEL_S = CURSOR_TRAVEL_S;
+const PRESS_MS = CURSOR_PRESS_MS;
 
 const HAND_POINT =
 	"M9 14 L9 4 A2.5 2.5 0 0 1 14 4 L14 12 L16 12 A6 6 0 0 1 22 18 L22 20 A7 7 0 0 1 15 27 L13 27 A8 8 0 0 1 5 19 L5 17.5 A4 4 0 0 1 9 14 Z";
@@ -249,74 +253,91 @@ export function MultiplayerText({
 				aria-hidden="true"
 				className="pointer-events-none absolute inset-0 select-none"
 			>
-				{players.map((player, i) => {
-					const cursor = cursors[i];
-					const isPressing = !reduce && pressed?.player === i;
-					return (
-						<motion.div
-							key={player.name}
-							className="absolute top-0 left-0"
-							initial={false}
-							animate={{
-								transform: cursor
-									? `translate3d(${cursor.x}px, ${cursor.y}px, 0)`
-									: "translate3d(-48px, -48px, 0)",
-								opacity: cursor ? 1 : 0,
-							}}
-							transition={
-								reduce
-									? { duration: 0 }
-									: {
-											transform: { duration: TRAVEL_S, ease: EASE_IN_OUT },
-											opacity: {
-												duration: 0.3,
-												ease: EASE_OUT,
-												delay: i * 0.06,
-											},
-										}
-							}
-						>
-							<motion.span
-								className="block origin-[11px_6px] drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
-								initial={false}
-								animate={{
-									transform: `rotate(${cursor?.rot ?? 0}deg) scale(${isPressing ? 0.9 : 1})`,
-								}}
-								transition={isPressing ? PRESS : SPRING}
-							>
-								<svg
-									width="26"
-									height="30"
-									viewBox="0 0 26 30"
-									fill="none"
-									aria-hidden="true"
-								>
-									<path
-										d={isPressing ? HAND_PRESS : HAND_POINT}
-										fill={player.color}
-										stroke="#141612"
-										strokeWidth="1.75"
-										strokeLinejoin="round"
-										strokeLinecap="round"
-									/>
-									<path
-										d="M12 17.5v4 M15 17.5v4 M18 17.5v4"
-										stroke="#141612"
-										strokeWidth="1.5"
-										strokeLinecap="round"
-									/>
-								</svg>
-							</motion.span>
-							<span
-								className="absolute top-6.5 left-4.5 rounded-full border-[1.5px] border-[#141612] px-2.5 py-0.5 text-xs font-bold tracking-[-0.01em] whitespace-nowrap text-[#141612] shadow-[0_2px_6px_-1px_rgba(0,0,0,0.25)]"
-								style={{ backgroundColor: player.color }}
-							>
-								{player.name}
-							</span>
-						</motion.div>
-					);
-				})}
+				{players.map((player, i) => (
+					<PlayerCursor
+						key={player.name}
+						player={player}
+						cursor={cursors[i] ?? null}
+						pressing={!reduce && pressed?.player === i}
+						reduce={reduce}
+						delay={i * 0.06}
+					/>
+				))}
 			</div>
 		</div>
+	);
+}
+
+/** A teammate's live cursor (the hand with their name): travels, tilts and presses. */
+export function PlayerCursor({
+	player,
+	cursor,
+	pressing,
+	reduce,
+	delay = 0,
+}: {
+	player: MultiplayerTextPlayer;
+	cursor: Cursor | null;
+	pressing: boolean;
+	reduce: boolean;
+	delay?: number;
+}) {
+	return (
+		<motion.div
+			className="absolute top-0 left-0 origin-top-left max-sm:scale-[0.72]"
+			initial={false}
+			animate={{
+				transform: cursor
+					? `translate3d(${cursor.x}px, ${cursor.y}px, 0)`
+					: "translate3d(-48px, -48px, 0)",
+				opacity: cursor ? 1 : 0,
+			}}
+			transition={
+				reduce
+					? { duration: 0 }
+					: {
+							transform: { duration: TRAVEL_S, ease: EASE_IN_OUT },
+							opacity: { duration: 0.3, ease: EASE_OUT, delay },
+						}
+			}
+		>
+			<motion.span
+				className="block origin-[11px_6px] drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]"
+				initial={false}
+				animate={{
+					transform: `rotate(${cursor?.rot ?? 0}deg) scale(${pressing ? 0.9 : 1})`,
+				}}
+				transition={pressing ? PRESS : SPRING}
+			>
+				<svg
+					width="26"
+					height="30"
+					viewBox="0 0 26 30"
+					fill="none"
+					aria-hidden="true"
+				>
+					<path
+						d={pressing ? HAND_PRESS : HAND_POINT}
+						fill={player.color}
+						stroke="#141612"
+						strokeWidth="1.75"
+						strokeLinejoin="round"
+						strokeLinecap="round"
+					/>
+					<path
+						d="M12 17.5v4 M15 17.5v4 M18 17.5v4"
+						stroke="#141612"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+					/>
+				</svg>
+			</motion.span>
+			<span
+				className="absolute top-6.5 left-4.5 rounded-full border-[1.5px] border-[#141612] px-2.5 py-0.5 text-xs font-bold tracking-[-0.01em] whitespace-nowrap text-[#141612] shadow-[0_2px_6px_-1px_rgba(0,0,0,0.25)]"
+				style={{ backgroundColor: player.color }}
+			>
+				{player.name}
+			</span>
+		</motion.div>
 	);
 }
