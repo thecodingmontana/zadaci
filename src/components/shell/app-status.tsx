@@ -65,8 +65,10 @@ export function AppStatus() {
 					aria-hidden="true"
 				/>
 				<span className="grow">
-					<b>You're offline.</b> Changes won't be saved until your connection is
-					back.
+					<b>You're offline.</b>{" "}
+					<span className="more">
+						Changes won't be saved until your connection is back.
+					</span>
 				</span>
 				<button
 					type="button"
@@ -94,8 +96,10 @@ export function AppStatus() {
 					aria-hidden="true"
 				/>
 				<span className="grow">
-					<b>A new version of Zadaci is ready.</b> Reload to get the latest
-					pages and fixes.
+					<b>A new version of Zadaci is ready.</b>{" "}
+					<span className="more">
+						Reload to get the latest pages and fixes.
+					</span>
 				</span>
 				<button
 					type="button"

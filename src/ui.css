@@ -6685,19 +6685,26 @@ a.chat-at:hover {
   border-bottom: 1px solid var(--q-divider);
 }
 
-/* offline, or a new version out: a bar across the top of every page (components/shell/app-status) */
+/* offline, or a new version out: a small card floating at the bottom of every page, above the
+   phone's bottom nav, so it never covers the top bar (components/shell/app-status) */
 .app-status {
   position: fixed;
-  inset: 0 0 auto;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
   z-index: 60;
+  width: max-content;
+  max-width: calc(100vw - 24px);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  padding-top: max(7px, env(safe-area-inset-top));
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
   font-size: 12.5px;
+  line-height: 1.35;
   color: var(--q-text);
-  border-bottom: 1px solid var(--q-border);
+  border: 1px solid var(--q-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
 }
 .app-status.offline {
   background: var(--q-amber-soft);
@@ -6706,8 +6713,20 @@ a.chat-at:hover {
   color: var(--q-amber);
 }
 .app-status.update {
-  background: var(--q-accent-soft);
+  background: var(--q-surface);
 }
 .app-status.update > [class*="icon-"] {
   color: var(--q-accent);
+}
+.app-status .btn {
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .app-status {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+  /* the short version on a phone */
+  .app-status .more {
+    display: none;
+  }
 }
