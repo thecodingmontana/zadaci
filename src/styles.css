@@ -244,3 +244,13 @@
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
 }
+
+/* landing: the dot that travels between GitHub and Zadaci (src/components/home/github-sync.tsx) */
+@keyframes sync-dot {
+  from {
+    transform: translateX(-12px);
+  }
+  to {
+    transform: translateX(40px);
+  }
+}
